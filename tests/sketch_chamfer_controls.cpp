@@ -10,6 +10,7 @@
 #include <QJsonDocument>
 #include <QLineEdit>
 #include <QMenu>
+#include <QMouseEvent>
 #include <QProcess>
 #include <QPushButton>
 #include <QTest>
@@ -22,6 +23,50 @@ class SketchChamferControlsTest final:public QObject{
  QJsonObject session(AlloyWindow& w){return w.state().value("activeSession").toObject();}
  QJsonObject draft(AlloyWindow& w){return session(w).value("draftSketch").toObject();}
 private slots:
+ void nativeHandleAndDirectAnnotation(){
+  AlloyTheme::apply(*qApp);AlloyWindow w;w.resize(1500,950);w.show();QVERIFY(QTest::qWaitForWindowExposed(&w));
+#ifdef Q_OS_MACOS
+  QProcess activate;activate.start("osascript",{"-e",QString("tell application \"System Events\" to set frontmost of first application process whose unix id is %1 to true").arg(QCoreApplication::applicationPid())});QVERIFY(activate.waitForFinished(5000));QCOMPARE(activate.exitCode(),0);
+#endif
+  w.raise();w.activateWindow();w.windowHandle()->requestActivate();QApplication::setActiveWindow(&w);QTRY_VERIFY(w.isActiveWindow());
+  ReferenceView* view=nullptr;for(auto* child:w.findChildren<QWidget*>())if(auto* v=dynamic_cast<ReferenceView*>(child))view=v;QVERIFY(view);
+  const auto output=qEnvironmentVariable("ALLOY_CHAMFER_DRAG_EVIDENCE");if(!output.isEmpty())QDir().mkpath(output);
+  auto capture=[&](const QString& name){if(!output.isEmpty())call(w,"capture.screenshot",{{"path",output+"/"+name+".png"}});};
+  auto saveJson=[&](const QString& name,const QJsonObject& value){if(!output.isEmpty()){QFile f(output+"/"+name+".json");QVERIFY(f.open(QIODevice::WriteOnly));f.write(QJsonDocument(value).toJson());}};
+  auto coords=[](const QJsonObject& p){return QPoint(qRound(p.value("x").toDouble()),qRound(p.value("y").toDouble()));};
+  auto pixel=[&](double u,double v){return coords(call(w,"view.projectSketchPoint",{{"sketchId",draft(w).value("id")},{"uMm",u},{"vMm",v}}));};
+  auto handles=[&]{return view->diagnostics().value("chamferHandles").toArray();};
+  auto motion=[&](const QPoint& to){QMouseEvent event(QEvent::MouseMove,QPointF(to),QPointF(view->mapToGlobal(to)),Qt::NoButton,Qt::LeftButton,Qt::NoModifier);QApplication::sendEvent(view,&event);};
+  auto group=[&]{return draft(w).value("parameters").toObject().value("chamferGroups").toArray().first().toObject();};
+  auto label=[&](bool driving){for(const auto& row:view->annotations()){const auto a=row.toObject();if(a.value("kind")=="chamferDistance" && a.value("driving").toBool()==driving)return a;}return QJsonObject{};};
+  call(w,"sketch.begin",{{"plane","XZ"},{"units","mm"}});call(w,"sketch.centerRectangle",{{"centerX",0},{"centerY",0},{"width",150},{"height",75},{"units","mm"}});call(w,"sketch.lookAt");call(w,"view.fit");call(w,"view.zoom",{{"factor",1.7}});
+  const auto base=draft(w);const auto history=session(w).value("draftHistory").toObject();
+  call(w,"sketch.tool",{{"tool","chamfer"}});QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(view));
+  QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,pixel(75,37.5));QCOMPARE(handles().size(),1);
+  auto* distance=w.findChild<QLineEdit*>("sketch.chamfer.distance");QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(distance));capture("01-selected-corner-handle");
+  auto from=coords(handles().first().toObject());auto to=pixel(65,27.5); // midpoint for a 20 mm setback
+  QCOMPARE(QApplication::widgetAt(view->mapToGlobal(from)),static_cast<QWidget*>(view));
+  QTest::mousePress(view,Qt::LeftButton,Qt::NoModifier,from);QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(view));QVERIFY(session(w).value("pendingChamfer").toObject().value("dragActive").toBool());
+  motion(pixel(67.5,30));motion(to);QCOMPARE(draft(w),base);QVERIFY(session(w).value("pendingChamfer").toObject().contains("previewDraft"));QVERIFY(std::abs(distance->text().toDouble()-20)<0.5);capture("02-native-drag-preview");saveJson("drag-preview-state",w.state());
+  QTest::mouseRelease(view,Qt::LeftButton,Qt::NoModifier,to);QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(view));QVERIFY(!session(w).contains("pendingChamfer"));QVERIFY(std::abs(group().value("distanceMm").toDouble()-20)<0.5);
+  QCOMPARE(session(w).value("draftHistory").toObject().value("count").toInt(),history.value("count").toInt()+1);
+  const auto created=draft(w);const auto stableGroup=group();call(w,"history.undo");QCOMPARE(draft(w),base);call(w,"history.redo");QCOMPARE(draft(w),created);
+  // Existing-corner drag is disposable until release, and Escape rolls it back.
+  from=coords(handles().first().toObject());to=pixel(60,22.5);QTest::mousePress(view,Qt::LeftButton,Qt::NoModifier,from);motion(to);QCOMPARE(draft(w),created);QTest::keyClick(view,Qt::Key_Escape);QVERIFY(!session(w).contains("pendingChamfer"));QTest::mouseRelease(view,Qt::LeftButton,Qt::NoModifier,to);QCOMPARE(draft(w),created);
+  from=coords(handles().first().toObject());to=pixel(62.5,25);QTest::mousePress(view,Qt::LeftButton,Qt::NoModifier,from);motion(to);QTest::mouseRelease(view,Qt::LeftButton,Qt::NoModifier,to);QVERIFY(std::abs(group().value("distanceMm").toDouble()-25)<0.5);QCOMPARE(group().value("id"),stableGroup.value("id"));
+  const auto beforeInvalid=draft(w);call(w,"history.undo");QCOMPARE(draft(w),created);call(w,"history.redo");QCOMPARE(draft(w),beforeInvalid);from=coords(handles().first().toObject());to=pixel(25,-12.5);QTest::mousePress(view,Qt::LeftButton,Qt::NoModifier,from);motion(to);QVERIFY(!session(w).value("pendingChamfer").toObject().contains("previewDraft"));QCOMPARE(draft(w),beforeInvalid);capture("03-invalid-drag");QTest::mouseRelease(view,Qt::LeftButton,Qt::NoModifier,to);QCOMPARE(draft(w),beforeInvalid);QVERIFY(!session(w).contains("pendingChamfer"));
+  // First displayed dimension owns the edit; the other is visibly driven.
+  auto first=label(true);QVERIFY(!first.isEmpty());QTest::mouseDClick(view,Qt::LeftButton,Qt::NoModifier,coords(first.value("label").toObject()));
+  auto* input=w.findChild<QLineEdit*>("sketch.inlineValue");QVERIFY(input && input->isVisible());QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(input));QVERIFY(!input->isReadOnly());capture("04-inline-first-distance");
+  QTest::keyClicks(input,"12 mm");QTest::keyClick(input,Qt::Key_Return);QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(view));QCOMPARE(group().value("distanceMm").toDouble(),12.0);
+  const auto afterAnnotation=draft(w);call(w,"history.undo");QCOMPARE(draft(w),beforeInvalid);call(w,"history.redo");QCOMPARE(draft(w),afterAnnotation);QTest::mouseDClick(view,Qt::LeftButton,Qt::NoModifier,coords(label(true).value("label").toObject()));QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(input));QTest::keyClicks(input,"15");QTest::keyClick(input,Qt::Key_Escape);QCOMPARE(draft(w),afterAnnotation);QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(view));
+  auto second=label(false);QVERIFY(second.value("label").toObject().value("text").toString().startsWith("("));QTest::mouseDClick(view,Qt::LeftButton,Qt::NoModifier,coords(second.value("label").toObject()));QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(input));QVERIFY(input->isReadOnly());capture("05-driven-second-distance");QTest::keyClick(input,Qt::Key_Return);QCOMPARE(draft(w),afterAnnotation);
+  const auto dimensions=base.value("parameters").toObject().value("dimensions").toArray();call(w,"sketch.dimensionUpdate",{{"dimensionId",dimensions[0].toObject().value("id")},{"value",160},{"units","mm"}});call(w,"sketch.dimensionUpdate",{{"dimensionId",dimensions[1].toObject().value("id")},{"value",80},{"units","mm"}});QCOMPARE(group().value("id"),stableGroup.value("id"));QCOMPARE(group().value("distanceMm").toDouble(),12.0);capture("06-source-edited-handle");
+  const auto finalDraft=draft(w);call(w,"history.undo");call(w,"history.redo");QCOMPARE(draft(w),finalDraft);saveJson("native-final-state",w.state());QVERIFY(view->diagnostics().value("hardwareAccelerated").toBool());
+  call(w,"sketch.finish");const auto inspect=call(w,"document.inspect");const auto sketches=inspect.value("evaluation").toObject().value("sketches").toArray();QCOMPARE(sketches.first().toObject().value("profiles").toArray().size(),1);QVERIFY(std::abs(sketches.first().toObject().value("profiles").toArray().first().toObject().value("areaMm2").toDouble()-12728)<1e-6);
+  if(!output.isEmpty()){const auto path=output+"/chamfer-handle.alloy";call(w,"document.save",{{"path",path}});call(w,"document.open",{{"path",path}});QCOMPARE(call(w,"document.inspect").value("authored"),inspect.value("authored"));saveJson("capture-metadata",call(w,"capture.screenshot",{{"path",output+"/07-reopened.png"}}));QVERIFY(view->framebuffer().save(output+"/native-framebuffer.png"));}
+  w.close();
+ }
  void nativeCornerPreviewCancelAndRetainedEdit(){
   AlloyTheme::apply(*qApp);AlloyWindow w;w.resize(1500,950);w.show();QVERIFY(QTest::qWaitForWindowExposed(&w));
 #ifdef Q_OS_MACOS

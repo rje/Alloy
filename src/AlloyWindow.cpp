@@ -5018,6 +5018,8 @@ void AlloyWindow::registerCommands() {
         if(!session_.value("displayOptions").toObject().value("showDimensions").toBool(true))return failure("annotation_hidden","Show Dimensions before selecting an annotation");
         bool found=false;for(const auto& entry:session_.value("draftSketch").toObject()["parameters"].toObject()["dimensions"].toArray())found|=entry.toObject()["id"]==a["dimensionId"];
         for(const auto& group:session_.value("draftSketch").toObject()["parameters"].toObject()["polygonGroups"].toArray())found|=group.toObject()["id"]==a["dimensionId"];
+        for(const auto& group:session_.value("draftSketch").toObject().value("parameters").toObject().value("chamferGroups").toArray())
+            found|=group.toObject().value("id")==a.value("dimensionId") || group.toObject().value("pointIds").toArray().contains(a.value("dimensionId"));
         if(!found)return failure("stale_entity","Dimension does not exist");
         auto selection=session_.value("selection").toObject();selection.remove("constraintIds");session_.remove("hoveredConstraintId");selection["dimensionId"]=a["dimensionId"];session_["selection"]=selection;return selection;
     });
@@ -11424,6 +11426,7 @@ void AlloyWindow::cancelTwoPointRectangle() {
 }
 
 void AlloyWindow::cancelDimension() {
+    if(session_.value("pendingDimension").toObject().value("chamferPending").toBool())cancelChamfer();
     session_.remove("pendingDimension");
     if(dimensionEditor_)dimensionEditor_->hide();
 }
@@ -11501,6 +11504,24 @@ QJsonObject AlloyWindow::acceptDimension(const QJsonObject& args) {
     if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
     if(args.contains("session") && args["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
     const auto pending=session_.value("pendingDimension").toObject();if(pending.value("phase")!="editing")return failure("no_pending_dimension","Place or edit a dimension first");
+    if(pending.contains("chamferId")){
+        if(!pending.value("driving").toBool()){cancelDimension();view_->setFocus();return {{"authoredChange",false}};}
+        if(args.contains("valueDeg") || (args.contains("text") && args.contains("value")))return failure("invalid_arguments","Enter one Chamfer length quantity");
+        auto units=args.value("units").toString(session_.value("inputs").toObject().value("units").toString());double value=0;
+        if(args.contains("value"))value=args.value("value").toDouble();
+        else {
+            const QRegularExpression expression(QStringLiteral(R"(^\s*([+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)\s*(mm|in)?\s*$)"),QRegularExpression::CaseInsensitiveOption);
+            const auto match=expression.match(args.value("text").toString(dimensionEditorValue_?dimensionEditorValue_->text():QString{}));
+            if(!match.hasMatch())return failure("invalid_dimension_value","Enter a positive Chamfer distance with optional mm or in");
+            bool valid=false;value=match.captured(1).toDouble(&valid);if(!valid)return failure("invalid_dimension_value","Chamfer distance is outside the supported range");
+            if(!match.captured(2).isEmpty())units=match.captured(2).toLower();
+        }
+        QJsonObject mutation{{"value",value},{"units",units}};
+        if(!pending.value("chamferPending").toBool())mutation["chamferId"]=pending.value("chamferId");
+        const auto response=execute(pending.value("chamferPending").toBool()?"sketch.chamferAccept":"sketch.chamferUpdate",mutation);
+        if(!response.value("ok").toBool())return response;
+        cancelDimension();view_->setFocus();return response.value("result").toObject();
+    }
     if(pending.contains("polygonId")){
         if(args.contains("valueDeg") || (args.contains("text") && args.contains("value")))return failure("invalid_arguments","Enter one Polygon length quantity");
         auto units=args.value("units").toString(session_.value("inputs").toObject()["units"].toString());double value=0;
@@ -11578,6 +11599,15 @@ QJsonObject AlloyWindow::acceptDimension(const QJsonObject& args) {
 QJsonObject AlloyWindow::editDimension(const QString& id) {
     if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
     if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
+    for(const auto& row:view_->annotations()){
+        const auto layout=row.toObject();if(layout.value("dimensionId")!=id || layout.value("chamferId").toString().isEmpty())continue;
+        cancelDimension();
+        QJsonObject dimension{{"dimensionId",id},{"chamferId",layout.value("chamferId")},{"kind","chamferDistance"},
+            {"phase","editing"},{"driving",layout.value("driving")},{"measuredValueMm",layout.value("valueMm")},
+            {"annotation",layout.value("annotation")},{"name",layout.value("driving").toBool()?"Equal Distance Chamfer":"Equal setback (driven)"},
+            {"chamferPending",session_.contains("pendingChamfer")}};
+        session_["pendingDimension"]=dimension;showDimensionEditor();return dimension;
+    }
     QJsonObject dimension;for(const auto& entry:session_.value("draftSketch").toObject()["parameters"].toObject()["dimensions"].toArray())if(entry.toObject()["id"]==id){dimension=entry.toObject();break;}
     if(dimension.isEmpty())for(const auto& row:session_.value("draftSketch").toObject()["parameters"].toObject()["polygonGroups"].toArray()){
         const auto group=row.toObject();if(group["id"]!=id)continue;

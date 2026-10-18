@@ -135,6 +135,7 @@ public:
     QJsonObject dimensionLayout(const QJsonObject& feature, const QJsonObject& dimension,
         double valueMm, const QString& units) const;
     void decorateConicHandle(const QJsonObject& feature,const QJsonObject& selection);
+    void clearChamferDrag() { chamferDrag_={}; }
     void clearConicDrag() { conicDragging_=false;conicHandleState_={}; }
     QJsonObject conicHandle() const { return conicHandleState_; }
     void decorateSplineHandles(const QJsonObject& feature,const QJsonObject& selection);
@@ -347,6 +348,8 @@ private:
     QJsonArray constructionDraftLineIds_, centerlineDraftLineIds_;
     int rightMousePressCount_ = 0;
     QJsonObject splineHandleState_,splineDrag_;
+    QJsonArray chamferHandles_;
+    QJsonObject chamferDrag_;
     QJsonObject conicHandleState_;
     bool conicDragging_=false;
     int contextMenuEventCount_ = 0;

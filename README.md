@@ -126,7 +126,9 @@ focused workflow closes a rectangle and creates a verified solid.
 retains typed setbacks on connected line corners through source edits,
 history/reopen and printable extrusion. [Adjacent corners](docs/validation/sketch-multiple-chamfers.md)
 can share a side with independent distances and overlap refusal. Other modes
-and direct canvas editing have bounded Todo issues.
+have bounded Todo issues. [Canvas Chamfer editing](docs/validation/sketch-chamfer-canvas-edit.md)
+now supports a draggable handle, an inline driving distance and a visibly
+driven second distance.
 
 [Extrude Distance formulas](docs/validation/extrude-distance-expression.md) now
 retain arithmetic such as `Width*2` through parameter edits, undo and reopening.

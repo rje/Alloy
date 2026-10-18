@@ -1558,7 +1558,7 @@ QJsonObject ReferenceView::selectSketchWindow(const QJsonObject& feature,double 
 void ReferenceView::clearSketchDecorations() {
     if(!context_.IsNull())for(const auto& decoration:sketchDecorations_)context_->Remove(decoration,false);
     sketchDecorations_.clear();splineHandleState_={};
-    annotationLayouts_={};
+    annotationLayouts_={};chamferHandles_={};
     constraintGlyphs_={};
 }
 QJsonObject ReferenceView::dimensionLayout(const QJsonObject& feature,const QJsonObject& dimension,double valueMm,const QString& units) const {
@@ -1803,7 +1803,7 @@ QJsonObject ReferenceView::pickAnnotation(double x,double y) const {
         if(std::abs(dx*std::cos(angle)-dy*std::sin(angle))<=label.value("width").toDouble()/2
             && std::abs(dx*std::sin(angle)+dy*std::cos(angle))<=label.value("height").toDouble()/2)
             return {{"kind","dimension"},{"dimensionId",layout.value("dimensionId")},{"part","label"},{"annotation",layout.value("annotation")},
-                {"polygonId",layout.value("polygonId")},{"sizeBasis",layout.value("sizeBasis")}};
+                {"polygonId",layout.value("polygonId")},{"sizeBasis",layout.value("sizeBasis")},{"chamferId",layout.value("chamferId")}};
     }
     return {};
 }
@@ -2194,17 +2194,48 @@ aspect->ArrowAspect()->SetLength(7*size);aspect->SetArrowTailSize(8*size);aspect
         label->SetColor(color);label->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(label,0,-1,false);context_->Deactivate(label);sketchDecorations_.push_back(label);
     }
     if(showDimensions_)for(const auto& row:parameters.value("chamferGroups").toArray()){
-        const auto group=row.toObject();
-        for(const auto& id:group.value("pointIds").toArray()){
-            const auto p=points.value(id.toString());
-            Handle(AIS_TextLabel) label=new AIS_TextLabel;
-            const auto text=QString("%1 %2").arg(group.value("distanceMm").toDouble()/(units=="in" ? 25.4 : 1.0),0,'g',6).arg(units);
-            label->SetText(TCollection_ExtendedString(text.toUtf8().constData(),true));
-            label->SetPosition(sketchWorld(plane,p.value("uMm").toDouble()+2,p.value("vMm").toDouble()+3));
-            label->SetHeight(13);label->SetFont("Arial");label->SetZoomable(false);
-            label->SetColor(Quantity_Color(0.10,0.34,0.84,Quantity_TOC_RGB));label->SetZLayer(Graphic3d_ZLayerId_Topmost);
-            context_->Display(label,0,-1,false);context_->Deactivate(label);sketchDecorations_.push_back(label);
+        const auto group=row.toObject();const auto contacts=group.value("pointIds").toArray();
+        int side=0;
+        for(const auto& id:contacts){
+            const auto p=points.value(id.toString());const double u=p.value("uMm").toDouble()+2,v=p.value("vMm").toDouble()+3;
+            const bool driving=side==0;
+            const auto text=QString(driving?"%1 %2":"(%1 %2)").arg(group.value("distanceMm").toDouble()/(units=="in" ? 25.4 : 1.0),0,'g',6).arg(units);
+            const auto pixel=projectSketchPoint(u,v,plane);
+            QFont font("Arial");font.setPixelSize(13);const QFontMetricsF metrics(font);
+            annotationLayouts_.append(QJsonObject{{"dimensionId",driving?group.value("id"):id},{"chamferId",group.value("id")},
+                {"kind","chamferDistance"},{"driving",driving},{"valueMm",group.value("distanceMm")},
+                {"annotation",QJsonObject{{"uMm",u},{"vMm",v}}},
+                {"label",QJsonObject{{"x",pixel.value("x")},{"y",pixel.value("y")},{"width",metrics.horizontalAdvance(text)+8},{"height",metrics.height()+6},{"angleDegrees",0},{"text",text}}}});
+            Handle(AIS_TextLabel) label=new AIS_TextLabel;label->SetText(TCollection_ExtendedString(text.toUtf8().constData(),true));
+            label->SetPosition(sketchWorld(plane,u,v));label->SetHeight(13);label->SetFont("Arial");label->SetZoomable(false);
+            label->SetHJustification(Graphic3d_HTA_CENTER);label->SetVJustification(Graphic3d_VTA_CENTER);
+            label->SetColor(driving?Quantity_Color(0.10,0.34,0.84,Quantity_TOC_RGB):Quantity_Color(0.42,0.46,0.51,Quantity_TOC_RGB));label->SetZLayer(Graphic3d_ZLayerId_Topmost);
+            context_->Display(label,0,-1,false);context_->Deactivate(label);sketchDecorations_.push_back(label);++side;
         }
+        // A corner's diagonal midpoint follows distance * (direction1 + direction2)/2.
+        // This gives a sketch-plane drag axis without a second geometry model.
+        const auto source=sourceFeature.value("parameters").toObject();QMap<QString,QPointF> authoredPoints;
+        for(const auto& entry:source.value("points").toArray()){const auto p=entry.toObject();authoredPoints[p.value("id").toString()]={p.value("uMm").toDouble(),p.value("vMm").toDouble()};}
+        QJsonObject lines[2];const auto ids=group.value("sourceEntityIds").toArray();
+        for(const auto& entry:source.value("entities").toArray())for(int j=0;j<2;++j)if(entry.toObject().value("id")==ids[j])lines[j]=entry.toObject();
+        QPointF vertex;bool found=false;
+        for(const auto* first:{"startPointId","endPointId"})for(const auto* second:{"startPointId","endPointId"}){
+            const auto a=authoredPoints.value(lines[0].value(first).toString()),b=authoredPoints.value(lines[1].value(second).toString());
+            if(QLineF(a,b).length()<1e-6){vertex=(a+b)*0.5;found=true;}
+        }
+        if(!found || (selection.value("tool")!="select" && !(selection.value("tool")=="chamfer" && selection.value("entityIds").toArray().contains(group.value("lineId")))))continue;
+        const auto a=points.value(contacts[0].toString()),b=points.value(contacts[1].toString());
+        const QPointF midpoint((a.value("uMm").toDouble()+b.value("uMm").toDouble())/2,(a.value("vMm").toDouble()+b.value("vMm").toDouble())/2);
+        const auto axis=(midpoint-vertex)/group.value("distanceMm").toDouble();
+        const auto pixel=projectSketchPoint(midpoint.x(),midpoint.y(),plane);
+        chamferHandles_.append(QJsonObject{{"chamferId",group.value("id")},{"distanceMm",group.value("distanceMm")},{"x",pixel.value("x")},{"y",pixel.value("y")},{"hitRadius",11},
+            {"originUMm",vertex.x()},{"originVMm",vertex.y()},{"axisU",axis.x()},{"axisV",axis.y()}});
+        Handle(AIS_Shape) guide=new AIS_Shape(BRepBuilderAPI_MakeEdge(sketchWorld(plane,vertex.x(),vertex.y()),sketchWorld(plane,midpoint.x(),midpoint.y())).Edge());
+        guide->SetColor(Quantity_Color(0.18,0.66,0.77,Quantity_TOC_RGB));guide->Attributes()->LineAspect()->SetTypeOfLine(Aspect_TOL_DASH);guide->SetZLayer(Graphic3d_ZLayerId_Topmost);
+        context_->Display(guide,0,-1,false);context_->Deactivate(guide);sketchDecorations_.push_back(guide);
+        Handle(AIS_Point) grip=new AIS_Point(new Geom_CartesianPoint(sketchWorld(plane,midpoint.x(),midpoint.y())));
+        grip->Attributes()->SetPointAspect(new Prs3d_PointAspect(Aspect_TOM_O_POINT,Quantity_Color(0.08,0.70,0.82,Quantity_TOC_RGB),6*devicePixelRatioF()));
+        grip->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(grip,0,-1,false);context_->Deactivate(grip);sketchDecorations_.push_back(grip);
     }
     context_->UpdateCurrentViewer();
 }
@@ -3109,6 +3140,8 @@ QJsonObject ReferenceView::diagnostics() const {
     result.insert("splineCagePreviewVisible",!splineCageCursor_.IsNull());
     result.insert("sketchDecorations",static_cast<int>(sketchDecorations_.size()));
     result.insert("sketchAnnotations",annotationLayouts_);
+    result.insert("chamferHandles",chamferHandles_);
+    result.insert("chamferDrag",chamferDrag_);
     auto snapCue=sketchSnapState_;snapCue["visible"]=!sketchSnapCue_.IsNull();
     snapCue["marker"]=snapCue.value("status")=="ambiguous" ? "cross" : snapCue.value("status")=="acquired" ?
         (snapCue.value("target").toObject().value("kind")=="filletCorner" ? "fillet-corner-square" :
@@ -3261,6 +3294,15 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
             setFocus(Qt::MouseFocusReason);e->accept();return;
         }
     }
+    if(e->button()==Qt::LeftButton && e->modifiers()==Qt::NoModifier && !sketchPlane_.isEmpty()){
+        for(const auto& row:chamferHandles_){const auto handle=row.toObject();
+            if(QLineF(e->position(),QPointF(handle.value("x").toDouble(),handle.value("y").toDouble())).length()>handle.value("hitRadius").toDouble())continue;
+            // Save the drag axis before dispatch: preview refresh rebuilds overlays.
+            const auto captured=handle;setFocus(Qt::MouseFocusReason);
+            dispatch("sketch.chamferHandle",{{"phase","begin"},{"chamferId",handle.value("chamferId")}});chamferDrag_=captured;
+            e->accept();return;
+        }
+    }
     if(e->button()==Qt::LeftButton && !e->modifiers().testFlag(Qt::AltModifier) &&
        decorationSelection_.value("tool")=="conic" && !conicHandleState_.isEmpty() &&
        QLineF(e->position(),QPointF(conicHandleState_["x"].toDouble(),conicHandleState_["y"].toDouble())).length()<12) {
@@ -3364,6 +3406,7 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
         if(!sketchPlane_.isEmpty() && !decorationSelection_.value("tool").toString().endsWith("Polygon") && decorationSelection_.value("tool")!="point" && decorationSelection_.value("tool")!="line" && decorationSelection_.value("tool")!="rectangle" && decorationSelection_.value("tool")!="circle" && decorationSelection_.value("tool")!="twoPointCircle" && decorationSelection_.value("tool")!="threePointCircle" && decorationSelection_.value("tool")!="centerArc" && decorationSelection_.value("tool")!="threePointArc" && decorationPending_.value("phase")!="placing") {
             const auto picked=pickAnnotation(e->position().x(),e->position().y());
             if(!picked.isEmpty()) {
+                if(!picked.value("chamferId").toString().isEmpty()){e->accept();return;}
                 draggedAnnotation_=picked.value("dimensionId").toString();annotationGestureId_=QString::number(++nextAnnotationGesture_);annotationPress_=e->position();annotationDragged_=false;
                 dispatch("sketch.annotationSelect",{{"dimensionId",draggedAnnotation_}});e->accept();return;
             }
@@ -3384,6 +3427,14 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
     else QWidget::mousePressEvent(e);
 }
 void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
+    if(!chamferDrag_.isEmpty() && e->buttons().testFlag(Qt::LeftButton)){
+        const auto point=sketchPoint(e->position().x(),e->position().y(),sketchPlane_,sketchFrame_);
+        const QPointF axis(chamferDrag_.value("axisU").toDouble(),chamferDrag_.value("axisV").toDouble());
+        const QPointF offset(point.value("uMm").toDouble()-chamferDrag_.value("originUMm").toDouble(),point.value("vMm").toDouble()-chamferDrag_.value("originVMm").toDouble());
+        const double distance=QPointF::dotProduct(offset,axis)/QPointF::dotProduct(axis,axis);
+        chamferDrag_["requestedDistanceMm"]=distance;
+        dispatch("sketch.chamferHandle",{{"phase","move"},{"value",distance}});e->accept();return;
+    }
     if(cubePressHandled_) {
         if(!e->buttons().testFlag(Qt::LeftButton)){cancelCubeGesture();e->accept();return;}
         if(!cubeDragging_ && QLineF(cubePress_,e->position()).length()>=QApplication::startDragDistance()) {
@@ -3530,6 +3581,9 @@ void ReferenceView::leaveEvent(QEvent* e) {
     QWidget::leaveEvent(e);
 }
 void ReferenceView::keyPressEvent(QKeyEvent* e) {
+    if(e->key()==Qt::Key_Escape && !chamferDrag_.isEmpty()){
+        chamferDrag_={};dispatch("sketch.chamferHandle",{{"phase","cancel"}});e->accept();return;
+    }
     if(e->key()==Qt::Key_Escape && cubePressHandled_) {cancelCubeGesture(true);e->accept();return;}
     if(e->key()==Qt::Key_Escape && inputGestureActive()) {cancelInputGesture();e->accept();return;}
     if(e->key()==Qt::Key_Escape && navigationTool_!="select") {
@@ -3554,6 +3608,11 @@ void ReferenceView::keyReleaseEvent(QKeyEvent* e) {
     QWidget::keyReleaseEvent(e);
 }
 void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
+    if(e->button()==Qt::LeftButton && !chamferDrag_.isEmpty()){
+        const auto drag=chamferDrag_;chamferDrag_={};
+        dispatch("sketch.chamferHandle",drag.contains("requestedDistanceMm") ? QJsonObject{{"phase","end"},{"value",drag.value("requestedDistanceMm")}}:QJsonObject{{"phase","cancel"}});
+        e->accept();return;
+    }
     if(alternateOrbitSuppressRelease_ && e->button()==Qt::LeftButton){alternateOrbitSuppressRelease_=false;e->accept();return;}
     if(cubeSuppressRelease_ && e->button()==Qt::LeftButton){cubeSuppressRelease_=false;e->accept();return;}
     if(cubePressHandled_ && e->button()==Qt::LeftButton){

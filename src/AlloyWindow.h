@@ -74,6 +74,7 @@ private:
     QJsonObject sketchChamfer(const QJsonObject& args,const QString& operation);
     QJsonObject chamferGesture(const QJsonObject& pixel,bool commit);
     void cancelChamfer();
+    QJsonObject chamferHandle(const QJsonObject& args);
     void buildChamferControls(QVBoxLayout* layout);
     void refreshChamferControls();
     QWidget* sketchChamferControls_=nullptr;

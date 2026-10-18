@@ -18,6 +18,10 @@ void AlloyWindow::registerSketchChamferCommands(){
     auto value=param("number","Equal setback distance in supplied length units.",false);value["minimum"]=0.000001;value["maximum"]=100000;
     auto units=param("string","Length units (defaults to the sketch units).",false);units["enum"]=QJsonArray{"mm","in"};
     const QJsonObject schema{{"entityIds",param("array","Two incident retained source line IDs.",false)},{"value",value},{"units",units},{"chamferId",param("string","Retained Chamfer UUID for editing.",false)},{"session",param("string","Optional active sketch session UUID.",false)}};
+    auto dragValue=param("number","Requested setback in millimeters",false);dragValue["minimum"]=-1000000;dragValue["maximum"]=1000000;
+    commands_.push_back({"sketch.chamferHandle","Drag Equal Distance Chamfer","Preview an equal setback and publish one draft transaction on release.",
+        {{"phase",param("string","begin, move, end or cancel")},{"chamferId",param("string","Retained or preview corner UUID",false)},
+         {"value",dragValue}},true,[this](const QJsonObject& a){return chamferHandle(a);}});
     for(const auto& action:QStringList{"Preview","Accept","Cancel","Update",""}){
         const QString id="sketch.chamfer"+action;
         auto commandSchema=action=="Cancel"?QJsonObject{}:schema;
@@ -29,6 +33,7 @@ void AlloyWindow::registerSketchChamferCommands(){
     }
 }
 void AlloyWindow::cancelChamfer(){
+    view_->clearChamferDrag();
     if(!session_.contains("pendingChamfer"))return;
     session_.remove("pendingChamfer");view_->clearSketchCursor();
     if(session_.value("command")=="sketch.edit"){view_->showSketchDraft(evaluateSketchDraft(session_.value("draftSketch").toObject()));displayedSketchDraft_=session_.value("draftSketch").toObject();}
@@ -50,7 +55,7 @@ QJsonObject AlloyWindow::sketchChamfer(const QJsonObject& args,const QString& op
     canonical["distanceMm"]=d;
     const auto solved=SketchGeometry::chamferCorner(session_.value("draftSketch").toObject(),canonical,session_.value("projectionContext").toObject());
     if(!solved.ok){
-        if(operation=="Preview"){pending.remove("previewDraft");pending["previewError"]=solved.error;session_["pendingChamfer"]=pending;view_->showSketchDraft(evaluateSketchDraft(session_.value("draftSketch").toObject()));refreshSketchControls();refreshChamferControls();}
+        if(operation=="Preview"){pending.remove("previewDraft");pending["distanceMm"]=d;pending["previewError"]=solved.error;session_["pendingChamfer"]=pending;view_->showSketchDraft(evaluateSketchDraft(session_.value("draftSketch").toObject()));refreshSketchControls();refreshChamferControls();}
         return fail("sketch_chamfer_failed",solved.error);
     }
     if(operation=="Preview"){
@@ -61,6 +66,32 @@ QJsonObject AlloyWindow::sketchChamfer(const QJsonObject& args,const QString& op
     }
     const auto response=publishSketchSolve(solved);if(response.contains("error"))return response;
     session_.remove("pendingChamfer");session_["tool"]="select";view_->clearSketchCursor();view_->setFocus(Qt::OtherFocusReason);return response;
+}
+QJsonObject AlloyWindow::chamferHandle(const QJsonObject& args){
+    if(session_.value("command")!="sketch.edit")return fail("no_active_sketch","Enter a sketch first");
+    const auto phase=args.value("phase").toString();
+    if(phase=="cancel")return sketchChamfer({},"Cancel");
+    if(phase=="begin"){
+        if(!session_.contains("pendingChamfer")){
+            const auto id=args.value("chamferId");QJsonObject group;
+            for(const auto& row:session_.value("draftSketch").toObject().value("parameters").toObject().value("chamferGroups").toArray())
+                if(row.toObject().value("id")==id)group=row.toObject();
+            if(group.isEmpty())return fail("chamfer_unavailable","Retained Chamfer is unavailable");
+            const auto tool=execute("sketch.tool",{{"tool","chamfer"}});if(!tool.value("ok").toBool())return tool;
+            const auto preview=sketchChamfer({{"chamferId",id},{"value",group.value("distanceMm")},{"units","mm"}},"Preview");
+            if(preview.contains("error"))return preview;
+        }
+        auto pending=session_.value("pendingChamfer").toObject();pending["dragActive"]=true;session_["pendingChamfer"]=pending;
+        return {{"dragging",true},{"authoredChange",false}};
+    }
+    if((phase!="move" && phase!="end") || !session_.value("pendingChamfer").toObject().value("dragActive").toBool())
+        return fail("chamfer_drag_inactive","Begin a Chamfer handle drag first");
+    if(!args.value("value").isDouble())return fail("invalid_arguments","Drag needs a setback distance");
+    const double distance=args.value("value").toDouble();
+    if(sketchChamferDistance_){const QSignalBlocker block(sketchChamferDistance_);sketchChamferDistance_->setText(QString::number(distance/(session_.value("inputs").toObject().value("units")=="in"?25.4:1),'g',8));}
+    const auto response=sketchChamfer({{"value",distance},{"units","mm"}},phase=="move"?"Preview":"Accept");
+    if(phase=="end" && response.contains("error"))sketchChamfer({},"Cancel");
+    return response;
 }
 QJsonObject AlloyWindow::chamferGesture(const QJsonObject& pixel,bool commit){
     const auto plane=session_.value("inputs").toObject().value("plane").toString();
