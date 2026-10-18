@@ -2,6 +2,7 @@
 #include "AlloyTheme.h"
 #include "ReferenceView.h"
 #include "SketchSpline.h"
+#include "SketchSplineOffset.h"
 #include <QApplication>
 #include <QAccessible>
 #include <QAction>
@@ -1346,6 +1347,74 @@ private slots:
                 QCOMPARE(session(window).value("selection").toObject().value("entityIds").toArray(),QJsonArray{target});QVERIFY(view->hasFocus());QTest::keyClick(view,Qt::Key_Delete);
             }
             QTRY_VERIFY(!params().contains(key));QCOMPARE(session(window).value("draftHistory").toObject().value("index").toInt(),index+1);
+            const auto removed=params();QVERIFY2(run(window,"history.undo"),error_.constData());QCOMPARE(params(),original);
+            QVERIFY2(run(window,"history.redo"),error_.constData());QCOMPARE(params(),removed);
+            QVERIFY2(run(window,"sketch.cancel"),error_.constData());
+        }
+    }
+    void sketchFitSplineOffsetDelete() {
+        AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+#ifdef Q_OS_MACOS
+        QProcess activation;activation.start("osascript",{"-e",QString("tell application \"System Events\" to set frontmost of first application process whose unix id is %1 to true").arg(QCoreApplication::applicationPid())});
+        QVERIFY(activation.waitForFinished(5000));QCOMPARE(activation.exitCode(),0);
+#endif
+        window.raise();window.activateWindow();window.windowHandle()->requestActivate();QApplication::setActiveWindow(&window);QTRY_VERIFY(window.isActiveWindow());
+        auto* view=viewport(window);QVERIFY(view);
+        auto params=[&]{return session(window).value("draftSketch").toObject().value("parameters").toObject();};
+        for(const auto* route:{"splineCanvas","splineList","splineContext"}) {
+            QVERIFY2(run(window,"sketch.begin",{{"plane","XY"}}),error_.constData());
+            const QString routeName=QString::fromLatin1(route);
+            QVERIFY2(run(window,"sketch.splineAdd",{{"points",QJsonArray{QJsonObject{{"uMm",-20},{"vMm",12}},QJsonObject{{"uMm",0},{"vMm",24}},QJsonObject{{"uMm",20},{"vMm",12}}}}}),error_.constData());
+            const auto source=params().value("entities").toArray().last().toObject().value("id");
+            QVERIFY2(run(window,"sketch.tool",{{"tool","offset"}}),error_.constData());
+            QVERIFY2(run(window,"sketch.offsetPreview",{{"sourceEntityId",source},{"distance",-5},{"units","mm"}}),error_.constData());
+            QVERIFY2(run(window,"sketch.offsetAccept"),error_.constData());
+            QVERIFY2(run(window,"sketch.tool",{{"tool","select"}}),error_.constData());
+            QVERIFY2(run(window,"view.fit"),error_.constData());
+            const auto target=params().value("entities").toArray().last().toObject().value("id").toString();
+            QJsonObject result;for(const auto& row:params().value("entities").toArray())if(row.toObject().value("id")==target)result=row.toObject();
+            const auto evaluated=SketchSplineOffset::evaluate(params(),result);
+            QTest::qWait(150); // Settle the fitted native camera/overlays.
+            if(routeName=="splineCanvas") {
+                const auto state=window.state().value("viewport").toObject().value("gpu").toObject();
+                const auto p=evaluated.curve->Value(evaluated.curve->FirstParameter()+0.25*(evaluated.curve->LastParameter()-evaluated.curve->FirstParameter()));
+                qInfo()<<"Source-grip hit-priority observation"<<sketchPixel(view,p.X(),p.Y())<<state.value("splineHandles")<<session(window).value("selection");
+                const auto capture=qEnvironmentVariable("ALLOY_SPLINE_OFFSET_DELETE_CAPTURE");
+                if(!capture.isEmpty())QVERIFY2(run(window,"capture.screenshot",{{"path",capture}}),error_.constData());
+            }
+            // Deselect the source through a real blank-canvas click so its
+            // editing grips do not cover this nearby result curve.
+            const QPoint blank(50,view->height()-60);
+            QVERIFY(view->pickSketch(session(window).value("draftSketch").toObject(),blank.x(),blank.y()).isEmpty());
+            QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,blank);
+            QVERIFY(session(window).value("selection").toObject().value("entityIds").toArray().isEmpty());
+            QTest::qWait(50);
+            const auto p=evaluated.curve->Value(evaluated.curve->FirstParameter()+0.25*(evaluated.curve->LastParameter()-evaluated.curve->FirstParameter()));
+            const QPointF pick{p.X(),p.Y()};
+            const auto pixel=sketchPixel(view,pick.x(),pick.y());
+            QCOMPARE(view->pickSketch(session(window).value("draftSketch").toObject(),pixel.x(),pixel.y()).value("entityId").toString(),target);
+            qInfo()<<"Native fit-spline Offset Delete fixture"<<routeName;
+            const auto original=params();const auto index=session(window).value("draftHistory").toObject().value("index").toInt();
+            if(routeName=="splineList") {
+                auto* tree=window.findChild<QTreeWidget*>("sketch.selection");QVERIFY(tree);QTreeWidgetItem* row=nullptr;
+                for(QTreeWidgetItemIterator it(tree);*it;++it)if((*it)->data(0,Qt::UserRole+1).toString()==target)row=*it;
+                QVERIFY(row);tree->scrollToItem(row);QTest::mouseClick(tree->viewport(),Qt::LeftButton,Qt::NoModifier,tree->visualItemRect(row).center());
+                QCOMPARE(session(window).value("selection").toObject().value("entityIds").toArray(),QJsonArray{target});QVERIFY(tree->hasFocus());QTest::keyClick(tree,Qt::Key_Delete);
+            } else if(routeName=="splineContext") {
+                const auto pixel=sketchPixel(view,pick.x(),pick.y());
+                QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,pixel);
+                QCOMPARE(session(window).value("selection").toObject().value("entityIds").toArray(),QJsonArray{target});
+                QVERIFY(view->hasFocus());
+                QContextMenuEvent context(QContextMenuEvent::Mouse,pixel,view->mapToGlobal(pixel));QApplication::sendEvent(view,&context);
+                auto* menu=view->findChild<QMenu*>("context.sketchGeometry");QVERIFY(menu);QTRY_COMPARE(QApplication::activePopupWidget(),menu);
+                QCOMPARE(session(window).value("selection").toObject().value("entityIds").toArray(),QJsonArray{target});
+                auto* remove=menu->findChild<QAction*>("sketch.action.deleteGeometry");QVERIFY(remove);QTest::mouseClick(menu,Qt::LeftButton,Qt::NoModifier,menu->actionGeometry(remove).center());QTRY_VERIFY(QApplication::activePopupWidget()==nullptr);
+            } else {
+                QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,sketchPixel(view,pick.x(),pick.y()));
+                QCOMPARE(session(window).value("selection").toObject().value("entityIds").toArray(),QJsonArray{target});QVERIFY(view->hasFocus());QTest::keyClick(view,Qt::Key_Delete);
+            }
+            QTRY_COMPARE(params().value("entities").toArray().size(),1);QCOMPARE(session(window).value("draftHistory").toObject().value("index").toInt(),index+1);
             const auto removed=params();QVERIFY2(run(window,"history.undo"),error_.constData());QCOMPARE(params(),original);
             QVERIFY2(run(window,"history.redo"),error_.constData());QCOMPARE(params(),removed);
             QVERIFY2(run(window,"sketch.cancel"),error_.constData());

@@ -1711,6 +1711,27 @@ SketchGeometry::SolveResult SketchGeometry::deleteEntities(const QJsonObject& dr
             }
             if(kept.isEmpty())parameters.remove(key);else parameters[key]=kept;
         }
+        // A retained fit-spline Offset owns exactly its result and two derived
+        // endpoints. Unlike ordinary authored points, those endpoints cannot
+        // become free points when a surviving closure Line still uses them.
+        for(const auto& value:authoredEntities) {
+            const auto offset=value.toObject();
+            if(offset.value("type")!="fitSplineOffset")continue;
+            if(targets.contains(offset.value("sourceEntityId").toString()))
+                reject("Delete the Offset result first, separately from its source geometry");
+            if(!targets.contains(offset.value("id").toString()))continue;
+            const QSet<QString> endpoints{offset.value("startPointId").toString(),offset.value("endPointId").toString()};
+            for(const auto& row:authoredEntities) {
+                const auto entity=row.toObject();
+                if(!targets.contains(entity.value("id").toString()) && mentions(entity,endpoints,mentions))
+                    reject("An Offset endpoint is required by surviving geometry; remove its dependent geometry first");
+            }
+            for(auto it=parameters.begin();it!=parameters.end();++it) {
+                if(QSet<QString>{"points","entities","constraints","dimensions"}.contains(it.key()))continue;
+                if(mentions(it.value(),endpoints,mentions))
+                    reject("Retained sketch metadata depends on an Offset endpoint: "+it.key()+"; edit or remove its owning operation first");
+            }
+        }
         // A retained Circle Offset has one result, rather than a group row.
         // Removing its glyph remains association-only in deleteSelection; only
         // geometry Delete retires this owner and its center coincidence.
@@ -1738,7 +1759,7 @@ SketchGeometry::SolveResult SketchGeometry::deleteEntities(const QJsonObject& dr
         for(const auto& value:authoredEntities) {
             const auto entity=value.toObject();const auto id=entity["id"].toString();
             if(!targets.contains(id))continue;
-            if(!QSet<QString>{"line","circle","arc","point","ellipse","conic","fitSpline","controlSpline"}.contains(entity["type"].toString()))
+            if(!QSet<QString>{"line","circle","arc","point","ellipse","conic","fitSpline","controlSpline","fitSplineOffset"}.contains(entity["type"].toString()))
                 reject("This derived sketch entity requires its owning tool to remove it: "+id);
         }
         // An authored ellipse owns its two retained construction axes. Retire

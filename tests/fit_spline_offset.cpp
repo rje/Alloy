@@ -58,6 +58,20 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
         if(entity["type"]=="fitSplineOffset" && entity["id"]!=offset["id"])siblingId=entity["id"].toString();
     }
     check(!siblingId.isEmpty(),"second offset retains its own identity");
+    // Result Delete is whole-owner removal; its authored source and sibling
+    // remain exact, including their retained points and tangent records.
+    auto expected=siblingDraft["parameters"].toObject();QJsonArray keptEntities,keptPoints;
+    for(const auto& row:expected.value("entities").toArray())if(row.toObject().value("id")!=offset.value("id"))keptEntities.append(row);
+    for(const auto& row:expected.value("points").toArray())if(row.toObject().value("id")!=offset.value("startPointId") && row.toObject().value("id")!=offset.value("endPointId"))keptPoints.append(row);
+    expected["entities"]=keptEntities;expected["points"]=keptPoints;expected["constraints"]=QJsonArray{};
+    const auto deleted=accept(SketchGeometry::deleteEntities(siblingDraft,{offset.value("id")}));
+    check(deleted.value("parameters").toObject()==expected,"result Delete changes only its entity and two endpoints");
+    SketchGeometry::evaluateFeature(deleted);
+    for(const auto& ids:QList<QJsonArray>{{source.value("id")},{source.value("id"),offset.value("id")},{offset.value("id"),source.value("id")},{offset.value("id"),"stale"}}){
+        const auto refused=SketchGeometry::deleteEntities(siblingDraft,ids);
+        check(!refused.ok && refused.feature==siblingDraft,"source/mixed/stale Delete refuses atomically");
+    }
+
     siblingDraft=accept(SketchSplineOffset::update(siblingDraft,{{"offsetEntityId",siblingId},{"signedDistanceMm",-6}}));
     QJsonObject firstSibling,secondSibling;
     for(const auto& value:siblingDraft["parameters"].toObject()["entities"].toArray()){
@@ -72,6 +86,8 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
         {"u2Mm",evaluated.start.X()},{"v2Mm",evaluated.start.Y()},
         {"startSnapTarget",QJsonObject{{"kind","point"},{"pointId",sourceIds.first()}}},
         {"endSnapTarget",QJsonObject{{"kind","point"},{"pointId",offset["startPointId"]}}}}));
+    const auto oneDependent=SketchGeometry::deleteEntities(draft,{offset.value("id")});
+    check(!oneDependent.ok && oneDependent.feature==draft,"one surviving closure Line refuses result Delete atomically");
     draft=accept(SketchGeometry::addPointerEntity(draft,"line",{{"u1Mm",lastSource["uMm"]},{"v1Mm",lastSource["vMm"]},
         {"u2Mm",evaluated.end.X()},{"v2Mm",evaluated.end.Y()},
         {"startSnapTarget",QJsonObject{{"kind","point"},{"pointId",sourceIds.last()}}},
@@ -83,6 +99,13 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
         {"entityIds",QJsonArray{connector["id"]}}});
     check(!unsupported.ok && unsupported.feature==draft,"connector relation cannot turn a derived endpoint into a solver unknown");
     const auto profileId=SketchGeometry::evaluateFeature(draft).profiles[0].profileId;
+    const auto dependentDelete=SketchGeometry::deleteEntities(draft,{offset.value("id")});
+    check(!dependentDelete.ok && dependentDelete.feature==draft && dependentDelete.error.contains("endpoint"),"live closure Line prevents result Delete atomically");
+    QJsonArray connectorIds;for(const auto& row:draft.value("parameters").toObject().value("entities").toArray())if(row.toObject().value("type")=="line")connectorIds.append(row.toObject().value("id"));
+    const auto withoutConnectors=accept(SketchGeometry::deleteEntities(draft,connectorIds));
+    const auto withoutOffset=accept(SketchGeometry::deleteEntities(withoutConnectors,{offset.value("id")}));
+    check(withoutOffset.value("parameters").toObject().value("entities").toArray()==QJsonArray{source},"explicit closure removal permits result Delete without source cascade");
+
     const auto before=draft;
     const auto bad=SketchSplineOffset::update(draft,{{"offsetEntityId",offset["id"]},{"signedDistanceMm",10000}});
     check(!bad.ok && bad.feature==before,"invalid offset edit leaves authored draft exact");

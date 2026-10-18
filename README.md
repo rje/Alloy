@@ -85,6 +85,10 @@ command, including native canvas, list and context routes.
 removes a selected derived circle and its owner relations while preserving the
 source. Deleting its Offset badge removes only the association. Earlier
 historical-edit preflight for downstream profiles remains SKT-150/#576.
+[Fit-spline Offset Delete](docs/validation/sketch-fit-spline-offset-delete.md)
+now removes one selected generated curve and its derived endpoints while
+preserving the source and sibling. Source-grip click priority and association-only
+removal remain SKT-151/#577 and SKT-149/#575.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,
