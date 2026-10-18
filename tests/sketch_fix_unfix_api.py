@@ -50,7 +50,7 @@ with application(a.app, out) as (call, ledger):
     assert role(point) == 'fixed'
     call('sketch.dimensionUpdate', {'dimensionId': dimension_id, 'value': 45, 'units': 'mm'}, error='sketch_solve_failed')
     assert draft() == fixed_both
-    for args in ({'entityIds': [circle['id']]}, {'pointIds': ['00000000-0000-0000-0000-000000000000']}, {'entityIds': [line['id']], 'pointIds': [point['pointId']]}):
+    for args in ({'entityIds': [point['id']]}, {'pointIds': ['00000000-0000-0000-0000-000000000000']}, {'entityIds': [line['id']], 'pointIds': [point['pointId']]}):
         before = session()['draftHistory']
         call('sketch.fixToggle', args, error='sketch_solve_failed')
         assert draft() == fixed_both and session()['draftHistory'] == before

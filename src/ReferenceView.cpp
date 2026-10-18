@@ -1913,7 +1913,7 @@ void ReferenceView::decorateSketch(const QJsonObject& sourceFeature,const QJsonO
     }
     QMap<QString,QJsonObject> points;QSet<QString> fixed,coincidentPoints;
     for(const auto& entry:parameters["constraints"].toArray()) {
-        const auto constraint=entry.toObject();if(constraint["type"]=="fixed" || constraint["type"]=="fixedLine")for(const auto& id:constraint["pointIds"].toArray())fixed.insert(id.toString());
+        const auto constraint=entry.toObject();if(constraint["type"]=="fixed" || constraint["type"]=="fixedLine" || constraint["type"]=="fixedCircle")for(const auto& id:constraint["pointIds"].toArray())fixed.insert(id.toString());
         if(constraint["type"]=="coincident")for(const auto& id:constraint["pointIds"].toArray())coincidentPoints.insert(id.toString());
     }
     for(const auto& entry:parameters["points"].toArray()) {

@@ -12,6 +12,8 @@
 #include <QPushButton>
 #include <QScrollArea>
 #include <QTest>
+#include <QTreeWidget>
+#include <QTreeWidgetItemIterator>
 #include <QWindow>
 
 class SketchFixUnfixControls final : public QObject {
@@ -30,6 +32,7 @@ private slots:
         auto parameters=[&]{return draft().value("parameters").toObject();};
         auto roles=[&]{return session().value("solverDiagnostics").toObject().value("entityRoles").toArray();};
         auto role=[&](QJsonValue id){for(const auto& row:roles())if(row.toObject().value("entityId")==id)return row.toObject().value("role").toString();return QString{};};
+        auto curveLabel=[&](QJsonValue id){for(auto* tree:w.findChildren<QTreeWidget*>())for(QTreeWidgetItemIterator it(tree);*it;++it)if((*it)->data(0,Qt::UserRole)=="entity" && (*it)->data(0,Qt::UserRole+1).toString()==id.toString())return (*it)->text(0);return QString{};};
         call(w,"sketch.begin",{{"plane","XY"},{"units","mm"},{"name","Fix and UnFix"}});
         call(w,"sketch.line",{{"x1",-35},{"y1",-10},{"x2",5},{"y2",-10},{"units","mm"}});const auto line=parameters().value("entities").toArray().last().toObject();
         call(w,"sketch.constraint",{{"type","horizontal"},{"entityIds",QJsonArray{line.value("id")}}});
@@ -50,6 +53,7 @@ private slots:
         click(30,15);const auto fixedBoth=draft();QCOMPARE(role(point.value("id")),QString("fixed"));const auto pointRelation=parameters().value("constraints").toArray().last().toObject();QCOMPARE(pointRelation.value("type"),QJsonValue("fixed"));QCOMPARE(pointRelation.size(),5);
         const auto output=qEnvironmentVariable("ALLOY_FIX_UNFIX_EVIDENCE");QJsonArray receipts;if(!output.isEmpty())QDir().mkpath(output);
         auto record=[&](QString name){receipts.append(QJsonObject{{"step",name},{"state",w.state()}});if(!output.isEmpty())call(w,"capture.screenshot",{{"path",output+"/"+name+".png"}});};
+        QCOMPARE(curveLabel(line.value("id")).count("Fixed"),1);QVERIFY(curveLabel(line.value("id")).contains("Horizontal"));
         record("native-fixed-line-point");
         const auto glyphs=w.state().value("viewport").toObject().value("gpu").toObject().value("sketchConstraintGlyphs").toArray();for(const auto& g:glyphs){QVERIFY(g.toObject().value("constraintId")!=lineRelation.value("id"));QVERIFY(g.toObject().value("constraintId")!=pointRelation.value("id"));}
         click(-15,-10);const auto pointOnly=draft();QVERIFY(pointOnly!=fixedBoth);QVERIFY(role(line.value("id"))!="fixed");QCOMPARE(role(point.value("id")),QString("fixed"));
@@ -58,7 +62,7 @@ private slots:
         QTest::mouseClick(fix,Qt::LeftButton);QCOMPARE(session().value("constraintType"),QJsonValue("fixed"));
         click(30,15);QCOMPARE(draft(),fixedLine);QTest::keyClick(view,Qt::Key_Escape);QCOMPARE(session().value("tool"),QJsonValue("select"));call(w,"history.undo");QCOMPARE(draft(),fixedBoth);call(w,"history.redo");QCOMPARE(draft(),fixedLine);call(w,"history.undo");QCOMPARE(draft(),fixedBoth);
         // Unsupported and stale API targets, including mixed target families, refuse atomically.
-        for(const auto& args:QList<QJsonObject>{{{"entityIds",QJsonArray{circle.value("id")}}},{{"entityIds",QJsonArray{"00000000-0000-0000-0000-000000000000"}}},{{"entityIds",QJsonArray{line.value("id")}},{"pointIds",QJsonArray{point.value("pointId")}}}}){const auto before=session().value("draftHistory");QVERIFY(!w.executeApi("sketch.fixToggle",args).value("ok").toBool());QCOMPARE(draft(),fixedBoth);QCOMPARE(session().value("draftHistory"),before);}
+        for(const auto& args:QList<QJsonObject>{{{"entityIds",QJsonArray{point.value("id")}}},{{"entityIds",QJsonArray{"00000000-0000-0000-0000-000000000000"}}},{{"entityIds",QJsonArray{line.value("id")}},{"pointIds",QJsonArray{point.value("pointId")}}}}){const auto before=session().value("draftHistory");QVERIFY(!w.executeApi("sketch.fixToggle",args).value("ok").toBool());QCOMPARE(draft(),fixedBoth);QCOMPARE(session().value("draftHistory"),before);}
         // Both endpoint coordinates remain fixed through attempted moves.
         for(const auto& id:QJsonArray{line.value("startPointId"),line.value("endPointId"),point.value("pointId")}){w.executeApi("sketch.movePoint",{{"pointId",id},{"x",60},{"y",40},{"units","mm"}});QCOMPARE(draft(),fixedBoth);}
         // A conflicting driver is refused instead of distorting the fixed line.

@@ -1969,10 +1969,10 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             return true;
         };
         const QSet<QString> pointIds(points.keyBegin(), points.keyEnd());
-        QSet<QString> lineIds, curveIds, arcIds;
+        QSet<QString> lineIds, curveIds, arcIds, circleIds;
         for (const auto& entry : parameters["entities"].toArray()) {const auto e=entry.toObject();
             if(e["type"]=="line") lineIds.insert(e["id"].toString());
-            else {curveIds.insert(e["id"].toString()); if(e["type"]=="arc") arcIds.insert(e["id"].toString());}}
+            else {curveIds.insert(e["id"].toString()); if(e["type"]=="arc") arcIds.insert(e["id"].toString());if(e["type"]=="circle")circleIds.insert(e["id"].toString());}}
         QSet<QString> ownedEllipseAxes;
         for(const auto& value:parameters["entities"].toArray()){
             const auto ellipse=value.toObject();if(ellipse["type"]!="ellipse")continue;
@@ -2080,6 +2080,13 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 if (constraint.size() != (fixed ? 5 : 3) || constraint.contains("entityIds")
                     || !checkReferences(constraint, "pointIds", fixed ? 1 : 2, pointIds)) return "Invalid point constraint references";
                 if (fixed) { coordinate(constraint, "uMm"); coordinate(constraint, "vMm"); }
+            } else if(type=="fixedCircle") {
+                if(constraint.size()!=7 || !checkReferences(constraint,"entityIds",1,circleIds)
+                    || !checkReferences(constraint,"pointIds",1,pointIds))return "Fixed circle requires one circle and its center";
+                QJsonObject circle;for(const auto& row:parameters["entities"].toArray())if(row.toObject()["id"]==constraint["entityIds"].toArray()[0])circle=row.toObject();
+                if(constraint["pointIds"].toArray()!=QJsonArray{circle["centerPointId"]})return "Fixed circle center does not match its target";
+                coordinate(constraint,"uMm");coordinate(constraint,"vMm");
+                if(coordinate(constraint,"radiusMm")<minimumLength)return "Invalid fixed circle radius";
             } else if(type=="fixedLine") {
                 if(constraint.size()!=5 || !checkReferences(constraint,"entityIds",1,lineIds)
                     || !checkReferences(constraint,"pointIds",2,pointIds) || constraint["coordinates"].toArray().size()!=2)
@@ -2470,7 +2477,7 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& source
         // projection takes precedence over both. This precedence is Alloy policy.
         QSet<QString> fixedPoints;
         for(const auto& row:parameters.value("constraints").toArray()){
-            const auto relation=row.toObject();if(relation.value("type")=="fixed" || relation.value("type")=="fixedLine")
+            const auto relation=row.toObject();if(relation.value("type")=="fixed" || relation.value("type")=="fixedLine" || relation.value("type")=="fixedCircle")
                 for(const auto& id:relation.value("pointIds").toArray())fixedPoints.insert(id.toString());
         }
         QJsonArray roles,underconstrained;
@@ -2513,16 +2520,19 @@ SketchGeometry::SolveResult SketchGeometry::toggleFixed(const QJsonObject& draft
     try {
         validateDraft(draft);checkFields(arguments,{"pointIds","entityIds"});
         const auto points=arguments.value("pointIds").toArray(),entities=arguments.value("entityIds").toArray();
-        if(points.size()+entities.size()!=1)reject("Fix/UnFix requires one point or authored straight line");
+        if(points.size()+entities.size()!=1)reject("Fix/UnFix requires one point, authored straight line or circle");
         auto parameters=draft.value("parameters").toObject();
         QJsonArray owned=points;QJsonObject relation{{"id",newId()},{"type",points.isEmpty() ? "fixedLine" : "fixed"}};
         if(!entities.isEmpty()) {
             QJsonObject target;for(const auto& row:parameters.value("entities").toArray())if(row.toObject().value("id")==entities[0])target=row.toObject();
             if(target.isEmpty())reject("Fix/UnFix target no longer exists");
-            if(target.value("type")!="line")reject("Fix/UnFix currently supports authored straight lines and sketch points");
+            if(target.value("type")!="line" && target.value("type")!="circle")reject("Fix/UnFix currently supports authored straight lines, circles and sketch points");
+            const bool circle=target.value("type")=="circle";
+            if(circle && target.contains("diameterStartPointId"))reject("Fix/UnFix requires an independent circle; retained diameter placement owns this target");
             if(target.contains("projectionId"))reject("Projected geometry cannot own Fix");
-            owned=QJsonArray{target.value("startPointId"),target.value("endPointId")};relation["entityIds"]=entities;
-            QSet<QString> targetIds{entities[0].toString(),owned[0].toString(),owned[1].toString()};
+            owned=circle ? QJsonArray{target.value("centerPointId")} : QJsonArray{target.value("startPointId"),target.value("endPointId")};relation["entityIds"]=entities;
+            if(circle){relation["type"]="fixedCircle";relation["radiusMm"]=target.value("radiusMm");}
+            QSet<QString> targetIds{entities[0].toString()};for(const auto& id:owned)targetIds.insert(id.toString());
             const auto mentions=[&](const QJsonValue& value,const auto& self)->bool {
                 if(value.isString())return targetIds.contains(value.toString());
                 if(value.isArray())for(const auto& item:value.toArray())if(self(item,self))return true;
@@ -2531,7 +2541,11 @@ SketchGeometry::SolveResult SketchGeometry::toggleFixed(const QJsonObject& draft
             };
             for(auto it=parameters.constBegin();it!=parameters.constEnd();++it) {
                 if(QSet<QString>{"points","entities","constraints","dimensions","originPointId"}.contains(it.key()))continue;
-                if(mentions(it.value(),mentions))reject("Fix/UnFix requires an independent line; retained geometry owns this target");
+                if(mentions(it.value(),mentions))reject("Fix/UnFix requires independent geometry; retained geometry owns this target");
+            }
+            if(circle)for(const auto& row:parameters.value("constraints").toArray()) {
+                const auto prior=row.toObject();if(prior.value("type")=="circleOffset" && prior.value("entityIds").toArray().contains(entities[0]))
+                    reject("Fix/UnFix requires an independent circle; retained Offset owns this target");
             }
             for(const auto& row:parameters.value("entities").toArray()) {
                 const auto other=row.toObject();if(other.value("id")==entities[0])continue;
@@ -2546,12 +2560,12 @@ SketchGeometry::SolveResult SketchGeometry::toggleFixed(const QJsonObject& draft
             coordinates.append(QJsonObject{{"uMm",point.value("uMm")},{"vMm",point.value("vMm")}});
         }
         relation["pointIds"]=owned;
-        if(points.isEmpty())relation["coordinates"]=coordinates;
+        if(points.isEmpty() && relation.value("type")!="fixedCircle")relation["coordinates"]=coordinates;
         else {relation["uMm"]=coordinates[0].toObject().value("uMm");relation["vMm"]=coordinates[0].toObject().value("vMm");}
         bool removed=false;QJsonArray kept;
         for(const auto& row:parameters.value("constraints").toArray()) {
             const auto prior=row.toObject();
-            const bool match=points.isEmpty() ? prior.value("type")=="fixedLine" && prior.value("entityIds")==entities
+            const bool match=points.isEmpty() ? prior.value("type")==relation.value("type") && prior.value("entityIds")==entities
                 : prior.value("type")=="fixed" && prior.value("pointIds")==points;
             if(match)removed=true;else kept.append(row);
         }
