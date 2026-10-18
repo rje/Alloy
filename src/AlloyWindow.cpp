@@ -872,17 +872,33 @@ AlloyWindow::AlloyWindow() {
         }
         if(!item->parent() || item->parent()->data(0,Qt::UserRole+4)!="bodies")return;
         const auto bodyId=item->data(0,Qt::UserRole+1).toString();
-        QMenu menu(this);menu.setObjectName("context.browserBody");auto* move=menu.addAction("Move/Copy");move->setObjectName("context.moveBody");move->setEnabled(session_.isEmpty());
-        auto* convert=menu.addAction("Create Components from Bodies");convert->setObjectName("context.createComponentsFromBodies");convert->setEnabled(session_.isEmpty());
-        auto* rename=menu.addAction("Rename…");rename->setObjectName("context.renameBody");rename->setEnabled(session_.isEmpty());
-        auto* reparent=menu.addAction("Move to Component…");reparent->setObjectName("context.reparentBody");reparent->setEnabled(session_.isEmpty());
-        auto* remove=menu.addAction("Remove");remove->setObjectName("context.removeBody");
+        auto* menu=new QMenu(this);menu->setObjectName("context.browserBody");menu->setAttribute(Qt::WA_DeleteOnClose);
+        auto* move=menu->addAction("Move/Copy");move->setObjectName("context.moveBody");move->setEnabled(session_.isEmpty());
+        auto* convert=menu->addAction("Create Components from Bodies");convert->setObjectName("context.createComponentsFromBodies");convert->setEnabled(session_.isEmpty());
+        auto* rename=menu->addAction("Rename…");rename->setObjectName("context.renameBody");rename->setEnabled(session_.isEmpty());
+        auto* reparent=menu->addAction("Move to Component…");reparent->setObjectName("context.reparentBody");reparent->setEnabled(session_.isEmpty());
+        auto* remove=menu->addAction("Remove");remove->setObjectName("context.removeBody");
         remove->setEnabled(session_.isEmpty() && std::any_of(document_->bodies().begin(),document_->bodies().end(),
             [&](const auto& body){return body.bodyId==bodyId && body.occurrenceId.isEmpty() && body.summary["type"]=="surface";}));
-        auto* mesh=menu.addAction("Save As Mesh…");mesh->setObjectName("context.exportMesh");mesh->setEnabled(session_.isEmpty());
-        QJsonArray actions;for(const auto* action:menu.actions())actions.append(QJsonObject{{"id",action->objectName()},{"text",action->text()},{"enabled",action->isEnabled()}});
+        auto* mesh=menu->addAction("Save As Mesh…");mesh->setObjectName("context.exportMesh");mesh->setEnabled(session_.isEmpty());
+        QJsonArray actions;for(const auto* action:menu->actions())actions.append(QJsonObject{{"id",action->objectName()},{"text",action->text()},{"enabled",action->isEnabled()}});
         QJsonObject context{{"origin","browser"},{"bodyId",bodyId},{"phase","open"},{"actions",actions}};view_->recordContextMenu(context,true);
-        const auto* action=menu.exec(tree_->viewport()->mapToGlobal(point));context["phase"]="closed";context["result"]=action ? action->objectName() : QString("cancelled");view_->recordContextMenu(context);if(action==move)execute("solid.moveDialog",{{"targetBodyId",bodyId}});else if(action==convert){QJsonArray ids;for(auto* selected:tree_->selectedItems())if(selected->parent() && selected->parent()->data(0,Qt::UserRole+4)=="bodies")ids.append(selected->data(0,Qt::UserRole+1).toString());if(ids.isEmpty())ids.append(bodyId);execute("component.createFromBodiesDialog",{{"bodyIds",ids}});}else if(action==rename)execute("body.renameDialog",{{"bodyId",bodyId}});else if(action==reparent)execute("component.reparentDialog",{{"bodyId",bodyId}});else if(action==remove)execute("body.remove",{{"bodyId",bodyId}});else if(action==mesh)execute("document.exportMeshDialog",{{"bodyId",bodyId}});
+        QJsonArray ids;for(auto* selected:tree_->selectedItems())if(selected->parent() && selected->parent()->data(0,Qt::UserRole+4)=="bodies")ids.append(selected->data(0,Qt::UserRole+1).toString());if(ids.isEmpty())ids.append(bodyId);
+        connect(menu,&QMenu::triggered,this,[this,menu,context,bodyId,ids](QAction* action)mutable{
+            menu->setProperty("selected",true);context["phase"]="closed";context["result"]=action->objectName();view_->recordContextMenu(context);
+            const auto command=action->objectName();QTimer::singleShot(0,this,[this,command,bodyId,ids]{
+                if(command=="context.moveBody")execute("solid.moveDialog",{{"targetBodyId",bodyId}});
+                else if(command=="context.createComponentsFromBodies")execute("component.createFromBodiesDialog",{{"bodyIds",ids}});
+                else if(command=="context.renameBody")execute("body.renameDialog",{{"bodyId",bodyId}});
+                else if(command=="context.reparentBody")execute("component.reparentDialog",{{"bodyId",bodyId}});
+                else if(command=="context.removeBody")execute("body.remove",{{"bodyId",bodyId}});
+                else if(command=="context.exportMesh")execute("document.exportMeshDialog",{{"bodyId",bodyId}});
+            });
+        });
+        connect(menu,&QMenu::aboutToHide,this,[this,menu,context]()mutable{
+            if(!menu->property("selected").toBool()){context["phase"]="closed";context["result"]="cancelled";view_->recordContextMenu(context);}
+        });
+        menu->popup(tree_->viewport()->mapToGlobal(point));
     });
     connect(tree_, &QTreeWidget::itemClicked, this, [this](QTreeWidgetItem* item, int) {
         if(!item || item->isHidden() || !(item->flags()&Qt::ItemIsEnabled))return;

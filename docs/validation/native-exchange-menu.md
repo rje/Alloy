@@ -29,10 +29,7 @@ External evidence is in
 editor quit result. The interaction observations are recorded here; the
 custom popup itself was not captured by the main-window screenshot API.
 
-**Remaining scope:** body Browser right-click opened the recorded menu with
-the correct body and an enabled `Save As Mesh…` action, but CUA's click returned
-after the blocking `QMenu::exec` had canceled. No native selection of that
-context-menu action was observed. [DOC-036/#517](https://github.com/rje/Alloy/issues/517)
-retains the exact path as Todo; this may require physical human input or a
-bounded nonblocking menu change. The present result does not diagnose an app
-defect or establish hardware mouse, other-platform, or reference visual parity.
+The body Browser path was subsequently accepted under
+[DOC-036/#517](native-browser-mesh.md) after a bounded nonblocking menu change.
+This File-menu result alone does not establish hardware mouse, other-platform,
+or reference visual parity.

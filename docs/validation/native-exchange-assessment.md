@@ -50,7 +50,7 @@ Update 2026-10-17: the earlier window-binding limit was resolved. The
 STEP File Open, inch STEP and nondefault STL sheet controls, native Save/Cancel
 and independent outputs. A further [File-menu receipt](native-exchange-menu.md)
 qualifies File export entry. DOC-036/#517 retains the Browser body context-menu
-path.
+path in the later [Browser body receipt](native-browser-mesh.md).
 
 ## Evidence relocation (2026-10-14)
 

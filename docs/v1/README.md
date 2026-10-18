@@ -11,7 +11,7 @@ rows still require real-workflow evidence and explicit release-gate disposition.
 The [DOC-016 native exchange-sheet gate](../validation/native-exchange-sheet.md)
 now has independently checked STEP/STL output. The
 [File-menu export path](../validation/native-exchange-menu.md) passes; DOC-036/#517
-retains body Browser context-menu activation.
+also passes the [body Browser export path](../validation/native-browser-mesh.md).
 
 - [Command inventory](command-inventory.json): 150 capability rows and 397 runtime-cross-checked IDs, with explicit gaps and evidence.
 - [Inventory notes](inventory-notes.md): definitions and verification limits.

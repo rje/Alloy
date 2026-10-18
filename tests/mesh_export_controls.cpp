@@ -12,6 +12,11 @@
 #include <QComboBox>
 #include <QTimer>
 #include <QJsonDocument>
+#include <QContextMenuEvent>
+#include <QMenu>
+#include <QPointer>
+#include <QTreeWidget>
+#include <QTreeWidgetItemIterator>
 
 class MeshExportControlsTest final:public QObject {
  Q_OBJECT
@@ -31,6 +36,26 @@ class MeshExportControlsTest final:public QObject {
  }
  void drain(AlloyWindow& w){QTRY_VERIFY_WITH_TIMEOUT(w.geometryEvaluationRunning_->ready.load(std::memory_order_acquire),10000);w.pollGeometryEvaluation();QVERIFY(!w.geometryEvaluationRunning_);}
 private slots:
+ void browserContextMeshCancel(){
+  AlloyTheme::apply(*qApp);AlloyWindow w;w.resize(1400,900);w.show();QVERIFY(QTest::qWaitForWindowExposed(&w));
+  call(w,"solid.box",{{"width",20},{"depth",10},{"height",15},{"units","mm"}});
+  const auto before=call(w,"document.inspect");const auto bodyId=before.value("evaluation").toObject().value("bodies").toArray().first().toObject().value("bodyId").toString();
+  auto* tree=w.findChild<QTreeWidget*>("browser.tree");QVERIFY(tree);tree->expandAll();
+  QTreeWidgetItem* row=nullptr;for(QTreeWidgetItemIterator it(tree);*it;++it)if((*it)->data(0,Qt::UserRole+1).toString()==bodyId){row=*it;break;}
+  QVERIFY(row);tree->scrollToItem(row);QApplication::processEvents();
+  const auto point=tree->visualItemRect(row).center();QVERIFY(tree->viewport()->rect().contains(point));
+  QContextMenuEvent event(QContextMenuEvent::Mouse,point,tree->viewport()->mapToGlobal(point));
+  QApplication::sendEvent(tree->viewport(),&event);
+  auto* menu=qobject_cast<QMenu*>(QApplication::activePopupWidget());QVERIFY(menu);QCOMPARE(menu->objectName(),QString("context.browserBody"));
+  QAction* mesh=nullptr;for(auto* action:menu->actions())if(action->objectName()=="context.exportMesh")mesh=action;
+  QVERIFY(mesh);QVERIFY(mesh->isEnabled());QTest::mouseClick(menu,Qt::LeftButton,Qt::NoModifier,menu->actionGeometry(mesh).center());
+  QPointer<QDialog> dialog;QTRY_VERIFY((dialog=w.findChild<QDialog*>("mesh.export.dialog"))&&dialog->isVisible());
+  QTRY_VERIFY(QApplication::activePopupWidget()==nullptr);
+  QCOMPARE(dialog->findChild<QComboBox*>("mesh.export.body")->currentData().toString(),bodyId);
+  QTest::mouseClick(dialog->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Cancel),Qt::LeftButton);
+  QTRY_VERIFY(!dialog||!dialog->isVisible());
+  QCOMPARE(call(w,"document.inspect"),before);
+ }
  void publicationAndNativeCompletion(){
   QTemporaryDir dir;QVERIFY(dir.isValid());AlloyWindow w;call(w,"solid.box",{{"width",20},{"depth",10},{"height",15},{"units","mm"}});
   const auto before=call(w,"document.inspect");const auto path=dir.filePath("solid.stl");sentinel(path);

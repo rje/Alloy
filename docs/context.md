@@ -21,8 +21,11 @@ authored/undo preservation. Export sheets were launched through the local API;
 DOC-035/#516 now passes physical File-menu entry for STEP and mesh sheets and
 one full native-menu STEP export with independent readback; see
 [the File-menu receipt](validation/native-exchange-menu.md).
-DOC-036/#517 retains the unproven body Browser context-menu Save As Mesh path
-as Todo. See also [the native-sheet receipt](validation/native-exchange-sheet.md).
+DOC-036/#517 now passes the body Browser right-click > Save As Mesh > native
+chooser path with an independently valid STL and unchanged authored/undo state.
+The body menu uses a nonblocking popup, matching the viewport body menu; see
+[the Browser receipt](validation/native-browser-mesh.md) and
+[the native-sheet receipt](validation/native-exchange-sheet.md).
 TUT-030/#442 research is independently accepted: the public connector
 dimensions remain unknown, while the user-approved nominal-fixture adaptation
 under TUT-035 passes measured 0.5 mm clearance to each half. The governing

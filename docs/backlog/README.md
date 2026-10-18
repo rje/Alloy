@@ -18,7 +18,7 @@ project board. Their public workflow contracts and real-object fixtures remain
 to be researched and implemented; REL-030/#469 still owns final v1 scope review.
 DOC-016/#167 has a bounded [native exchange-sheet receipt](../validation/native-exchange-sheet.md);
 DOC-035/#516 has a bounded [File-menu export receipt](../validation/native-exchange-menu.md);
-DOC-036/#517 retains the Browser body context-menu path as Todo.
+DOC-036/#517 has a bounded [Browser body mesh receipt](../validation/native-browser-mesh.md).
 
 DOC-009/#21 now has a bounded, independently reviewed two-body Browser
 identity, visibility, selection and reopen receipt in

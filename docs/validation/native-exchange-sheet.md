@@ -46,9 +46,8 @@ check, and the imported-body capture. The STEP output SHA-256 begins
 remain in [STEP exchange](step-exchange.md) and [bracket exchange](bracket-exchange.md).
 
 **Limit at this checkpoint:** export sheet activation used the local API.
-A later [File-menu receipt](native-exchange-menu.md) validates the physical
-File-menu-to-export path. Browser body context-menu Save As Mesh remains Todo
-under [DOC-036/#517](https://github.com/rje/Alloy/issues/517); the current
-computer-control limitation does not establish an app defect. No other-platform
-native runtime, original bracket modeling history or visual reference parity
-is claimed here. Astra independently checked the readbacks and state boundary.
+Later [File-menu](native-exchange-menu.md) and
+[Browser body](native-browser-mesh.md) receipts validate those native entry
+paths. No other-platform native runtime, original bracket modeling history or
+visual reference parity is claimed here. Astra independently checked the
+readbacks and state boundary.
