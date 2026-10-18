@@ -3084,17 +3084,19 @@
     },
     {
       "id": "sketch.additional-circles",
-      "label": "3-Point and tangent Circle variants",
+      "label": "3-Point, 2-Tangent and 3-Tangent Circle modes",
       "category": "Sketch",
       "scope": "proposed-v1",
       "implementation": "missing",
       "nativeEvidence": "unknown",
-      "gap": "No registered additional circle modes.",
+      "gap": "No authoring route yet for the three documented modes. SKT-095 owns three circumference picks; SKT-107 owns two line picks then radius; SKT-108 owns three line picks with immediate result. Public evidence limits tangent inputs to straight sketch lines.",
       "apiIds": [],
       "issueKeys": [
         "SKT-006",
         "ADV-005",
-        "SKT-095"
+        "SKT-095",
+        "SKT-107",
+        "SKT-108"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"

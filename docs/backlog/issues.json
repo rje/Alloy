@@ -8361,7 +8361,7 @@
     },
     {
       "key": "SKT-095",
-      "title": "Author three-point and tangent circle modes",
+      "title": "Author Three-Point Circle sketch mode",
       "kind": "implementation",
       "phase": "P2 Parametric modeling",
       "priority": "P1",
@@ -8371,7 +8371,7 @@
       "labels": [
         "area:skt"
       ],
-      "body": "## Bounded result\nAuthor three-point and tangent circle modes. This proposed printable-part v1 gap is a child of `ADV-005`; remaining modes stay on the parent roadmap.\n\n## Reference and scope\nBefore coding, record public command inputs, selection rules, defaults, preview, commit/cancel, history/edit behavior and visual examples in `../Alloy-reference-records/knowledge`, with dated provenance. Define a supported option subset and retain other noncloud modes on the parent.\n\n## Acceptance\n- Make a three-point circle and a circle tangent to supported curves; edit a source and verify retained relation/profile.\n- Native UI and local control use the same retained authored command. Check a meaningful upstream edit, one transactional refusal, Undo/Redo and save/reopen.\n- Inspect actual GPU presentation and native controls. For a printable solid, independently read back STL. Keep geometry, input and export evidence distinct.\n\n## Ownership\nInventory row `sketch.additional-circles`; parent `ADV-005`. Todo until its public command contract and real-object fixture are accepted. Its closure does not complete the whole capability family or release gate.\n"
+      "body": "## Bounded result\nAuthor the documented Three-Point Circle mode. This proposed printable-part v1 gap is a child of `ADV-005`; separate tangent modes are split below.\n\n## Reference and scope\nDated public contract: `../Alloy-reference-records/knowledge/specs/skt-095-circles-2026-10-18.md`. In an active sketch, choose Create > Circle > 3-Point Circle and pick three successive points on the circumference. No center or radius field is documented. Repeated placement and Enter completion are documented; exact per-stage Escape and modern preview styling remain unqualified.\n\n## Acceptance\n- Native and local control create one analytic circle from the same three ordered circumference picks, with a disposable live preview, repeat/Enter and noncommitting Escape for incomplete input. Acquired point snaps retain actual logical relations; free picks do not acquire invented fixed dimensions.\n- Refuse coincident/collinear triples transactionally. Move one retained source point and verify the circle/profile and downstream extrusion update without losing stable identity. Check an editable diameter/radius where supported, Undo/Redo and save/reopen.\n- Inspect actual GPU/native presentation and independently read back one STL from the extruded circular profile. Keep geometry, input, history and export evidence distinct.\n\n## Split\n[SKT-107](https://github.com/rje/Alloy/issues/531) owns 2-Tangent Circle; [SKT-108](https://github.com/rje/Alloy/issues/532) owns 3-Tangent Circle. This closure will not claim either line-selection workflow or the whole Circle family.\n\n## Dependencies\n- [SKT-008](https://github.com/rje/Alloy/issues/35)\n"
     },
     {
       "key": "SKT-096",
@@ -8799,6 +8799,34 @@
         "area:skt"
       ],
       "body": "\n## Bounded result\nResolve whether a distinct sketch Parallelogram creation mode belongs in the printable-part v1 tool contract. The permitted public sources for SKT-094 document Three-Point Rectangle but do not establish a separate target-product Parallelogram command.\n\n## Acceptance\n- Search additional permitted public docs/tutorials and record dated evidence outside the repo, distinguishing a documented command from a geometric technique made with ordinary lines and Parallel constraints.\n- If a distinct mode is supported by evidence, define its point order, preview, fields, constraints, edit and cancel behavior and create a linked implementation issue with a real-object acceptance gate.\n- If no distinct target mode exists, update the v1 inventory and parent roadmap explicitly. A useful Alloy-specific Parallelogram extension may be proposed, but must not be represented as compatibility.\n\n## Dependency and split\nSplit from SKT-094/#499 after the public three-point Rectangle research. SKT-094 owns the documented Three-Point Rectangle implementation. This child retains the originally listed Parallelogram question until its disposition is recorded.\n"
+    },
+    {
+      "key": "SKT-107",
+      "title": "Author 2-Tangent Circle on straight sketch lines",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-008"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Bounded result\nAuthor documented 2-Tangent Circle as a retained analytic sketch circle tangent to two straight sketch lines. Split from SKT-095/#500; this mode has its own two-line-then-radius input state machine.\n\n## Reference and scope\nDated public contract: `../Alloy-reference-records/knowledge/specs/skt-095-circles-2026-10-18.md`. Select exactly two sketch lines, then point/click or type a radius and click to place. The public material does not establish line-order or general side/branch policy; define the bounded Alloy policy, report unknown parity, and do not silently accept arcs/circles.\n\n## Acceptance\n- Native and local control use the same authored command: two line picks, live tangent/radius preview, typed-radius path, final placement click, repeat and clear cancel/Enter behavior. Stable selected line IDs and two genuine Tangent relations survive source edits.\n- Edit radius and one source line in a nondegenerate fixture; inspect exact tangent contact/profile and stable circle identity. Refuse invalid target, ambiguous/no-solution branch or incompatible radius transactionally. Check Undo/Redo and save/reopen.\n- Inspect GPU/native captures against available public figures and keep input, solver/geometry, history and visual evidence distinct. Reuse the already qualified circle-profile Extrude/STL route unless this mode exposes a distinct export risk.\n\n## Dependency and split\nSKT-095/#500 owns 3-Point Circle; SKT-108/#532 owns 3-Tangent Circle. Existing straight-line circle tangency is foundation, not this native authoring workflow. Depends on SKT-008/#35; do not start as active until its bounded reference contract is ready.\n"
+    },
+    {
+      "key": "SKT-108",
+      "title": "Author 3-Tangent Circle on straight sketch lines",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-008"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Bounded result\nAuthor documented 3-Tangent Circle as a retained analytic sketch circle tangent to three straight sketch lines. Split from SKT-095/#500; the third selected line completes it without a radius field or fourth placement click.\n\n## Reference and scope\nDated public contract: `../Alloy-reference-records/knowledge/specs/skt-095-circles-2026-10-18.md`. Official tutorial figures show selecting three rectangle edges and later editing that source rectangle while tangency persists. Public sources do not define general in/excircle branch policy; state a bounded Alloy rule and report exact-parity limits. Do not claim arc/circle tangent targets.\n\n## Acceptance\n- Native and local control use the same authored command: three line selections, valid preview/result on the third, repeat and Enter/Escape. Retain stable source IDs and three genuine Tangent relations; no radius input.\n- Use a nondegenerate visible three-line fixture to verify exact contacts/profile and one source-line edit. Refuse parallel/degenerate/no-supported-unique branch transactionally, and check Undo/Redo and save/reopen.\n- Inspect GPU/native capture with public tutorial figures; distinguish geometry, selection/focus, history and visual evidence. Reuse accepted circle-profile Extrude/STL qualification unless this mode reveals a distinct export risk.\n\n## Dependency and split\nSKT-095/#500 owns 3-Point Circle; SKT-107/#531 owns 2-Tangent Circle. Existing single-line circle tangency is foundation, not this native three-line tool. Depends on SKT-008/#35; do not start as active until its bounded reference contract is ready.\n"
     }
   ]
 }
