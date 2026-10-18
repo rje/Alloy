@@ -295,7 +295,10 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             } else if (type == "arcTangent") {
                 // Shared contact and arc rules already retain the radius. A radial
                 // perpendicular gives tangency full first-order rank at contact.
-                solver.addConstraintPerpendicular(arcMap.at(reference(constraint,"entityIds",0)).center,
+                auto& arc=arcMap.at(reference(constraint,"entityIds",0));
+                if(constraint.contains("contact"))
+                    solver.addConstraintTangent(line(reference(constraint,"entityIds",1)),static_cast<GCS::Circle&>(arc),number(constraint,"side")>0,t);
+                else solver.addConstraintPerpendicular(arc.center,
                     point(reference(constraint,"pointIds",0)),line(reference(constraint,"entityIds",1)),t);
             } else if (type == "tangent") {
                 auto& circle=circleMap.at(reference(constraint,"entityIds",0));
@@ -601,10 +604,22 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             }
             else if(type=="arcTangent") {
                 const auto& arc=arcMap.at(reference(c,"entityIds",0));const auto& target=line(reference(c,"entityIds",1));
-                const auto& contact=point(reference(c,"pointIds",0));
                 const double dx=*target.p2.x-*target.p1.x,dy=*target.p2.y-*target.p1.y,length=std::hypot(dx,dy);
                 check((dx*(*arc.center.y-*target.p1.y)-dy*(*arc.center.x-*target.p1.x))/length-number(c,"side")*(*arc.rad),lengthTolerance);
-                check((dx*(*contact.x-*arc.center.x)+dy*(*contact.y-*arc.center.y))/length,lengthTolerance);
+                if(c.contains("contact")){
+                    const auto correspondence=c["contact"].toObject();
+                    const double foot=((*arc.center.x-*target.p1.x)*dx+(*arc.center.y-*target.p1.y)*dy)/(length*length);
+                    const double sweep=*arc.endAngle-*arc.startAngle,sign=number(correspondence,"sweepSign");
+                    require(sign*sweep>0,"Interior tangent arc reversed its retained sweep branch");
+                    const double angle=std::atan2(-number(c,"side")*dx,number(c,"side")*dy);
+                    double offset=std::fmod(sign*(angle-*arc.startAngle),2*std::acos(-1.0));if(offset<0)offset+=2*std::acos(-1.0);
+                    const double parameter=offset/std::abs(sweep),margin=1e-6;
+                    require(foot>margin && foot<1-margin,"Interior tangent contact left the finite line");
+                    require(parameter>margin && parameter<1-margin,"Interior tangent contact left its retained arc sweep");
+                }else{
+                    const auto& contact=point(reference(c,"pointIds",0));
+                    check((dx*(*contact.x-*arc.center.x)+dy*(*contact.y-*arc.center.y))/length,lengthTolerance);
+                }
             }
             else if(type=="collinear") {
                 const auto& a=line(reference(c,"entityIds",0));const auto& b=line(reference(c,"entityIds",1));

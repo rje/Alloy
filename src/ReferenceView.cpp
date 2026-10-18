@@ -1995,13 +1995,13 @@ void ReferenceView::decorateSketch(const QJsonObject& sourceFeature,const QJsonO
                 const QPointF center(a["uMm"].toDouble(),a["vMm"].toDouble()),delta(b["uMm"].toDouble()-center.x(),b["vMm"].toDouble()-center.y());
                 const double distance=std::hypot(delta.x(),delta.y());if(distance<1e-9)continue;
                 contact=center+delta*(circle["radiusMm"].toDouble()/distance);
-            }else if(kind=="arcTangent") {
+            }else if(kind=="arcTangent" && !relation.contains("contact")) {
                 if(circle["type"]!="arc" || relation["pointIds"].toArray().size()!=1)continue;
                 const auto shared=points.value(relation["pointIds"].toArray()[0].toString());
                 if(shared.isEmpty())continue;
                 contact=QPointF(shared["uMm"].toDouble(),shared["vMm"].toDouble());
             } else {
-                if(circle["type"]!="circle")continue;
+                if(circle["type"]!="circle" && circle["type"]!="arc")continue;
                 const auto center=points.value(circle["centerPointId"].toString());
                 const auto first=points.value(line["startPointId"].toString()),last=points.value(line["endPointId"].toString());
                 if(center.isEmpty() || first.isEmpty() || last.isEmpty())continue;

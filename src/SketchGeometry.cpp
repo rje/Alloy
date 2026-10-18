@@ -2103,14 +2103,26 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                     if(value.toObject()["id"]==ref && value.toObject()["type"]=="circle")circle=true;
                     if(!circle)return "Circle tangency references must be circles";}
             } else if (type == "arcTangent") {
+                const bool interior=constraint.contains("contact");
                 if (constraint.size()!=5 || !checkReferences(constraint,"entityIds",2,entityIds)
-                    || !checkReferences(constraint,"pointIds",1,pointIds) || !constraint["side"].isDouble()
-                    || (constraint["side"].toDouble()!=1 && constraint["side"].toDouble()!=-1))return "Arc tangency requires endpoint and signed side";
-                const auto refs=constraint["entityIds"].toArray(); const auto contact=constraint["pointIds"].toArray()[0].toString();
+                    || !constraint["side"].isDouble()
+                    || (constraint["side"].toDouble()!=1 && constraint["side"].toDouble()!=-1))return "Arc tangency requires retained contact and signed side";
+                const auto refs=constraint["entityIds"].toArray();
                 if(!arcIds.contains(refs[0].toString()) || !lineIds.contains(refs[1].toString()))return "Arc tangent references must be arc then line";
-                for(const auto& value:parameters["entities"].toArray()) {const auto e=value.toObject();
-                    if((e["id"]==refs[0] || e["id"]==refs[1]) && e["startPointId"]!=contact && e["endPointId"]!=contact)
-                        return "Arc tangent contact must be a shared endpoint";}
+                if(interior){
+                    const auto contact=constraint["contact"].toObject();
+                    if(contact.size()!=3 || !contact["arcParameter"].isDouble() || !contact["lineParameter"].isDouble()
+                        || contact["arcParameter"].toDouble()<=0 || contact["arcParameter"].toDouble()>=1
+                        || contact["lineParameter"].toDouble()<=0 || contact["lineParameter"].toDouble()>=1
+                        || !contact["sweepSign"].isDouble() || (contact["sweepSign"].toDouble()!=1 && contact["sweepSign"].toDouble()!=-1))
+                        return "Interior arc tangency requires finite normalized contact correspondence";
+                }else{
+                    if(!checkReferences(constraint,"pointIds",1,pointIds))return "Arc tangency requires a shared endpoint";
+                    const auto contact=constraint["pointIds"].toArray()[0].toString();
+                    for(const auto& value:parameters["entities"].toArray()) {const auto e=value.toObject();
+                        if((e["id"]==refs[0] || e["id"]==refs[1]) && e["startPointId"]!=contact && e["endPointId"]!=contact)
+                            return "Arc tangent contact must be a shared endpoint";}
+                }
             } else if (type == "tangent") {
                 const bool endpointContact=constraint.contains("pointIds");
                 if (constraint.size()!=(endpointContact ? 5 : 4) || !checkReferences(constraint,"entityIds",2,entityIds)
@@ -2462,8 +2474,23 @@ SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& dra
                     for(const auto& key:{"startPointId","endPointId"})for(const auto& other:{"startPointId","endPointId"})
                         if(arc[key]==line[other])shared.append(arc[key].toString());
                     shared.removeDuplicates();
-                    if(shared.size()!=1)reject("Arc and line must share exactly one authored endpoint");
-                    constraint["type"]="arcTangent";constraint["pointIds"]=QJsonArray{shared[0]};
+                    constraint["type"]="arcTangent";
+                    if(shared.size()==1)constraint["pointIds"]=QJsonArray{shared[0]};
+                    else {
+                        if(!shared.isEmpty())reject("Arc tangent contact is ambiguous");
+                        // The signed normal determines one contact on the supporting
+                        // circle. Never search for another contact after an edit.
+                        const double cx=center["uMm"].toDouble(),cy=center["vMm"].toDouble();
+                        const double foot=((cx-a["uMm"].toDouble())*dx+(cy-a["vMm"].toDouble())*dy)/(length*length);
+                        const double angle=std::atan2(-constraint["side"].toInt()*dx,constraint["side"].toInt()*dy)*180/std::acos(-1.0);
+                        const double sweep=arc["sweepAngleDeg"].toDouble(),sign=sweep<0 ? -1 : 1;
+                        double offset=std::fmod(sign*(angle-arc["startAngleDeg"].toDouble()),360.0);if(offset<0)offset+=360;
+                        const double parameter=offset/std::abs(sweep);
+                        const double margin=1e-6;
+                        if(foot<=margin || foot>=1-margin)reject("Tangent contact must be strictly inside the finite line");
+                        if(parameter<=margin || parameter>=1-margin)reject("Tangent contact must be strictly inside the arc sweep");
+                        constraint["contact"]=QJsonObject{{"arcParameter",parameter},{"lineParameter",foot},{"sweepSign",sign}};
+                    }
                 }
             }
         }

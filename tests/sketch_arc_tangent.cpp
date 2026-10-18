@@ -46,6 +46,30 @@ int main(int argc,char** argv){
         QTemporaryDir dir;require(dir.isValid(),"temporary directory");const auto path=dir.path()+"/arc-tangent.alloy";
         require(document.save(path).isEmpty(),"save");CadDocument reopened;
         require(reopened.open(path).isEmpty() && reopened.authored()==authored,"reopen");
+        for(double sweep:{180.0,-180.0})for(bool reverse:{false,true}){
+            auto interior=SketchGeometry::newFeature(document.authored()["documentId"].toString(),"XY");
+            interior=SketchGeometry::addArc(interior,{{"centerUMm",0},{"centerVMm",0},{"radiusMm",10},{"startAngleDeg",sweep>0 ? 0 : 180},{"sweepAngleDeg",sweep}});
+            const auto curve=interior["parameters"].toObject()["entities"].toArray().last().toObject();
+            interior=SketchGeometry::addLine(interior,{{"u1Mm",-20},{"v1Mm",11},{"u2Mm",20},{"v2Mm",11}});
+            const auto edge=interior["parameters"].toObject()["entities"].toArray().last().toObject();
+            auto result=SketchGeometry::addConstraint(interior,{{"type","tangent"},{"entityIds",reverse ? QJsonArray{edge["id"],curve["id"]} : QJsonArray{curve["id"],edge["id"]}}});
+            require(result.ok,"interior tangent: "+result.error);interior=result.feature;
+            const auto relation=interior["parameters"].toObject()["constraints"].toArray().last().toObject();
+            require(relation["type"]=="arcTangent" && relation["contact"].toObject()["sweepSign"]==(sweep>0 ? 1 : -1),"interior branch correspondence");
+            require(std::abs(relation["contact"].toObject()["arcParameter"].toDouble()-0.5)<1e-6,"interior arc parameter");
+            require(std::abs(relation["contact"].toObject()["lineParameter"].toDouble()-0.5)<1e-6,"interior segment parameter");
+            auto duplicate=SketchGeometry::addConstraint(interior,{{"type","tangent"},{"entityIds",QJsonArray{curve["id"],edge["id"]}}});
+            require(!duplicate.ok && duplicate.feature==interior,"interior duplicate atomic");
+        }
+        for(const auto& bounds:{QPair<double,double>{10,20},{11,20},{-20,0}}){
+            auto invalid=SketchGeometry::newFeature(document.authored()["documentId"].toString(),"XY");
+            invalid=SketchGeometry::addArc(invalid,{{"centerUMm",0},{"centerVMm",0},{"radiusMm",10},{"startAngleDeg",0},{"sweepAngleDeg",180}});
+            const auto id=invalid["parameters"].toObject()["entities"].toArray().last().toObject().value("id");
+            invalid=SketchGeometry::addLine(invalid,{{"u1Mm",bounds.first},{"v1Mm",11},{"u2Mm",bounds.second},{"v2Mm",11}});
+            const auto lineId=invalid["parameters"].toObject()["entities"].toArray().last().toObject().value("id");
+            const auto result=SketchGeometry::addConstraint(invalid,{{"type","tangent"},{"entityIds",QJsonArray{id,lineId}}});
+            require(!result.ok && result.feature==invalid,"interior endpoint/out-of-segment refusal atomic");
+        }
         std::cout<<"sketch arc-line Tangent: both contacts, pick orders, refusal, history, reopen passed\n";
         return 0;
     }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}

@@ -24,6 +24,9 @@ in the sketch-constraint backlog.
 [Circle-pair Tangent](docs/validation/sketch-circle-circle-tangent.md) now retains
 external or internal contact through radius and center edits, with native
 constraint picks and a selectable badge.
+[Interior arc-line Tangent](docs/validation/sketch-interior-arc-line-tangent.md)
+now retains a finite, nonendpoint contact through radius and line edits, with
+the same constraint controls and a verified downstream rounded extrusion.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,
