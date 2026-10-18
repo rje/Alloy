@@ -95,6 +95,9 @@ within a measured 0.001 mm tolerance.
 now refuses removal of a curve whose profile is selected by a downstream
 Extrude, naming the feature before changing the draft. Unrelated Delete in the
 same sketch remains editable and preserves the saved solid.
+[Projection-backed rectangle Offset Delete](docs/validation/sketch-closed-rect-offset-delete.md)
+now removes one generated loop and restores its sources' recorded profile flags
+while preserving linked support and an adjacent Offset owner.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,

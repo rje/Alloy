@@ -2,6 +2,7 @@
 #include "SketchGeometry.h"
 #include "GeometryKernel.h"
 #include <QCoreApplication>
+#include <QJsonDocument>
 #include <QUuid>
 #include <cmath>
 #include <iostream>
@@ -28,6 +29,40 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
         if(!result.ok)std::cerr<<result.error.toStdString()<<'\n';check(result.ok,"Offset group failed");sketch=result.feature;}
     const auto p=sketch["parameters"].toObject();check(p["closedRectOffsets"].toArray().size()==3,"Three retained groups");
     for(const auto& row:p["projections"].toArray())check(row.toObject()["profile"]==false,"Original purple Project must not duplicate cut profiles");
+    // Whole-owner Delete preserves each projection/support identity, restores
+    // prior profile flags, and leaves independent owners byte-equivalent.
+    const auto owner=p.value("closedRectOffsets").toArray()[0].toObject();
+    const auto target=owner.value("entityIds").toArray().at(0);
+    auto deleted=SketchGeometry::deleteEntities(sketch,{target},{},context);
+    check(deleted.ok,qPrintable(deleted.error));auto expected=p;
+    auto retainedGroups=p.value("closedRectOffsets").toArray();retainedGroups.removeAt(0);expected["closedRectOffsets"]=retainedGroups;
+    for(const auto& field:{"entities","points"}) {
+        QJsonArray kept;const auto ids=owner.value(QString(field)=="entities"?"entityIds":"pointIds").toArray();
+        for(const auto& row:p.value(field).toArray())if(!ids.contains(row.toObject().value("id")))kept.append(row);
+        expected[field]=kept;
+    }
+    auto restored=p.value("projections").toArray();for(int i=0;i<4;++i){auto row=restored[i].toObject();row["profile"]=true;restored[i]=row;}expected["projections"]=restored;
+    expected["constraints"]=QJsonArray{};
+    check(deleted.feature.value("parameters").toObject()==expected,"Delete changed independent owner/source IDs or retained result members");
+    const auto refuse=[&](const QJsonObject& fixture,const QJsonArray& ids){const auto r=SketchGeometry::deleteEntities(fixture,ids,{},context);check(!r.ok && r.feature==fixture,"Unsafe owner Delete must refuse atomically");};
+    refuse(sketch,{groups[0][0]});refuse(sketch,{target,groups[0][0]});refuse(sketch,{target,"stale"});
+    auto legacy=sketch;auto legacyP=p;auto legacyGroups=p.value("closedRectOffsets").toArray();auto legacyOwner=owner;legacyOwner.remove("sourceProfiles");legacyGroups[0]=legacyOwner;legacyP["closedRectOffsets"]=legacyGroups;legacy["parameters"]=legacyP;
+    check(SketchGeometry::solveDraft(legacy,context).ok,"Legacy owner must remain editable");refuse(legacy,{target});
+    auto malformed=sketch;auto malformedP=p;auto malformedGroups=p.value("closedRectOffsets").toArray();auto malformedOwner=owner;
+    auto malformedCorners=owner.value("pointIds").toArray();malformedCorners[1]=malformedCorners[0];malformedOwner["pointIds"]=malformedCorners;malformedGroups[0]=malformedOwner;malformedP["closedRectOffsets"]=malformedGroups;malformed["parameters"]=malformedP;refuse(malformed,{target});
+    auto missingSource=sketch;auto missingP=p;auto missingProjections=p.value("projections").toArray();missingProjections.removeAt(0);missingP["projections"]=missingProjections;missingSource["parameters"]=missingP;refuse(missingSource,{target});
+    auto source=SketchGeometry::newConstructionPlaneFeature(id(),id(),"Prior mixed profile flags");auto sourceP=source.value("parameters").toObject();auto mixed=projections;
+    for(int i=0;i<mixed.size();++i){auto row=mixed[i].toObject();row["profile"]=i%2==0;mixed[i]=row;}sourceP["projections"]=mixed;source["parameters"]=sourceP;
+    auto mixedOffset=SketchGeometry::addClosedRectOffset(source,groups[0],1,context);check(mixedOffset.ok,"Mixed prior profiles must offset");
+    const auto mixedTarget=mixedOffset.feature.value("parameters").toObject().value("closedRectOffsets").toArray()[0].toObject().value("entityIds").toArray().at(0);
+    sourceP["constraints"]=QJsonArray{};sourceP["dimensions"]=QJsonArray{};
+    const auto mixedDeleted=SketchGeometry::deleteEntities(mixedOffset.feature,{mixedTarget},{},context);
+    check(mixedDeleted.ok && mixedDeleted.feature.value("parameters").toObject()==sourceP,"Prior false profile flags must restore exactly");
+    const auto corner=owner.value("pointIds").toArray().at(0);QJsonObject cornerPoint;for(const auto& row:p.value("points").toArray())if(row.toObject().value("id")==corner)cornerPoint=row.toObject();
+    auto dependent=SketchGeometry::addLine(sketch,{{"u1Mm",cornerPoint.value("uMm")},{"v1Mm",cornerPoint.value("vMm")},{"u2Mm",-45},{"v2Mm",-15},{"startPointId",corner}});
+    check(SketchGeometry::solveDraft(dependent,context).ok,"Shared corner fixture solves");refuse(dependent,{target});
+    const auto measured=SketchGeometry::addDimension(sketch,{{"kind","linear"},{"entityId",target},{"driving",false}},context);
+    check(measured.ok,"Result dimension fixture solves");refuse(measured.feature,{target});
     auto result=SketchGeometry::evaluateFeature(sketch,SketchGeometry::frame("XZ"),context);
     check(!result.profiles.empty(),"Overlapping offset contours must form bounded regions");
     auto united=GeometryKernel::unionProfiles(result.profiles);

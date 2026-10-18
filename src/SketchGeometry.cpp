@@ -564,12 +564,12 @@ SketchGeometry::SolveResult SketchGeometry::addClosedRectOffset(const QJsonObjec
         auto p=draft["parameters"].toObject();auto projections=p["projections"].toArray();
         if(sourceEntityIds.size()!=4 || (p["plane"]!="face" && p["plane"]!="construction"))
             reject("Select four linked projected rectangle edges");
-        QSet<QString> requested,already;
+        QSet<QString> requested,already;QJsonArray sourceProfiles;
         for(const auto& value:p["closedRectOffsets"].toArray())for(const auto& id:value.toObject()["sourceEntityIds"].toArray())already.insert(id.toString());
         for(const auto& value:sourceEntityIds) {
             const auto id=value.toString();bool found=false;
             for(int i=0;i<projections.size();++i)if(projections[i].toObject()["id"]==id) {
-                found=true;auto projection=projections[i].toObject();projection["profile"]=false;projections[i]=projection;break;
+                found=true;auto projection=projections[i].toObject();sourceProfiles.append(projection.value("profile").toBool());projection["profile"]=false;projections[i]=projection;break;
             }
             if(!found || requested.contains(id) || already.contains(id))reject("Closed Offset needs four unused linked projected edges");
             requested.insert(id);
@@ -594,7 +594,7 @@ SketchGeometry::SolveResult SketchGeometry::addClosedRectOffset(const QJsonObjec
                 {"endPointId",pointIds[(i+1)%4]}});
         }
         groups.append(QJsonObject{{"id",newId()},{"sourceEntityIds",sourceEntityIds},
-            {"distanceMm",signedDistanceMm},{"pointIds",pointIds},{"entityIds",entityIds}});
+            {"distanceMm",signedDistanceMm},{"pointIds",pointIds},{"entityIds",entityIds},{"sourceProfiles",sourceProfiles}});
         p["points"]=points;p["entities"]=entities;p["closedRectOffsets"]=groups;
         auto candidate=draft;candidate["parameters"]=p;
         return solveDraft(candidate,projectionContext);
@@ -1634,6 +1634,9 @@ SketchGeometry::SolveResult SketchGeometry::deleteEntities(const QJsonObject& dr
             availableEntities.insert(row.toObject().value("lineId").toString());
         for(const auto& value:entityIds) {
             if(!value.isString() || value.toString().isEmpty() || targets.contains(value.toString()))reject("Entity targets must be distinct authored IDs");
+            for(const auto& row:parameters.value("closedRectOffsets").toArray())
+                if(row.toObject().value("sourceEntityIds").toArray().contains(value))
+                    reject("Select a generated rectangle Offset edge first; its linked source is still consumed by the Offset");
             if(!availableEntities.contains(value.toString()))reject("Selected entity is not authored in this sketch");
             targets.insert(value.toString());
         }
@@ -1650,7 +1653,7 @@ SketchGeometry::SolveResult SketchGeometry::deleteEntities(const QJsonObject& dr
         QSet<QString> ownerPoints,ownerRelations,ownerIds;
         QJsonArray removedGroups;
         const auto requestedEntities=targets;
-        for(const auto& key:{"slotGroups","arcSlotGroups","polygonGroups","chamferGroups","mirrorGroups","openChainOffsets"}) {
+        for(const auto& key:{"slotGroups","arcSlotGroups","polygonGroups","chamferGroups","mirrorGroups","openChainOffsets","closedRectOffsets"}) {
             QJsonArray kept;
             for(const auto& row:parameters.value(key).toArray()) {
                 const auto group=row.toObject();QSet<QString> members;
@@ -1662,13 +1665,13 @@ SketchGeometry::SolveResult SketchGeometry::deleteEntities(const QJsonObject& dr
                 const auto family=QString::fromLatin1(key);
                 if(family=="slotGroups"){add("centerlineId");add("sideIds");add("arcIds");}
                 else if(family=="arcSlotGroups"){add("pathArcId");add("outerArcId");add("innerArcId");add("capIds");}
-                else if(family=="polygonGroups")add("entityIds");
+                else if(family=="polygonGroups" || family=="closedRectOffsets")add("entityIds");
                 else if(family=="mirrorGroups")
                     for(const auto& pair:group.value("entityPairs").toArray())members.insert(pair.toObject().value("resultEntityId").toString());
                 else if(family=="openChainOffsets")add("generatedEntityIds");
                 else add("lineId");
                 if(!members.intersects(requestedEntities)){kept.append(row);continue;}
-                if(family=="mirrorGroups" || family=="openChainOffsets") {
+                if(family=="mirrorGroups" || family=="openChainOffsets" || family=="closedRectOffsets") {
                     QSet<QString> inputs;
                     if(family=="mirrorGroups") {
                         inputs.insert(group.value("axisEntityId").toString());
@@ -1697,6 +1700,50 @@ SketchGeometry::SolveResult SketchGeometry::deleteEntities(const QJsonObject& dr
                 if(family=="openChainOffsets")
                     for(const auto& field:{"generatedPointIds","topIntersectionPointIds"})
                         for(const auto& id:group.value(field).toArray())ownerPoints.insert(id.toString());
+                if(family=="closedRectOffsets") {
+                    const auto sources=group.value("sourceEntityIds").toArray();
+                    const auto profiles=group.value("sourceProfiles").toArray();
+                    if(profiles.size()!=4)reject("This legacy rectangle Offset has no retained source profile state; recreate the Offset before deleting its result");
+                    const auto corners=group.value("pointIds").toArray(),edges=group.value("entityIds").toArray();
+                    QSet<QString> distinctCorners,distinctEdges;
+                    for(int i=0;i<4;++i) {
+                        const auto corner=corners[i].toString(),edge=edges[i].toString();
+                        if(!availablePoints.contains(corner) || corner==parameters.value("originPointId").toString()
+                            || distinctCorners.contains(corner) || distinctEdges.contains(edge))
+                            reject("Rectangle Offset generated ownership is malformed; repair its owning operation first");
+                        distinctCorners.insert(corner);distinctEdges.insert(edge);
+                        bool found=false;for(const auto& row:authoredEntities) {
+                            const auto entity=row.toObject();
+                            if(entity.value("id")==edges[i] && entity.value("type")=="line"
+                                && entity.value("startPointId")==corners[i] && entity.value("endPointId")==corners[(i+1)%4]
+                                && !entity.value("construction").toBool())found=true;
+                        }
+                        if(!found)reject("Rectangle Offset generated boundary identity changed; repair its owning operation first");
+                    }
+                    auto projections=parameters.value("projections").toArray();
+                    for(int i=0;i<sources.size();++i) {
+                        int found=-1;
+                        for(int j=0;j<projections.size();++j)if(projections[j].toObject().value("id")==sources[i]) {
+                            if(found>=0)reject("Rectangle Offset source identity is ambiguous");found=j;
+                        }
+                        if(found<0)reject("Rectangle Offset source projection is unavailable; restore its source before deleting the result");
+                        auto projection=projections[found].toObject();
+                        if(projection.value("profile")!=false)reject("Rectangle Offset source profile state changed; repair its owning operation first");
+                        projection["profile"]=profiles[i];projections[found]=projection;
+                    }
+                    parameters["projections"]=projections;
+                    QSet<QString> owned=members;
+                    for(const auto& id:group.value("pointIds").toArray()){ownerPoints.insert(id.toString());owned.insert(id.toString());}
+                    // Derived corners may never survive as frozen free points,
+                    // and attached relations are dependencies, not cascade targets.
+                    for(const auto& entity:authoredEntities)
+                        if(!requestedEntities.contains(entity.toObject().value("id").toString())
+                            && !members.contains(entity.toObject().value("id").toString()) && mentions(entity,owned,mentions))
+                            reject("Rectangle Offset result is required by surviving geometry; remove its dependent geometry first");
+                    for(const auto& field:{"constraints","dimensions"})
+                        for(const auto& relation:parameters.value(field).toArray())if(mentions(relation,owned,mentions))
+                            reject("Rectangle Offset result has a surviving relation; remove its dependent relation first");
+                }
                 targets.unite(members);ownerIds.insert(group.value("id").toString());removedGroups.append(group.value("id"));
                 if(family=="slotGroups")ownerPoints.insert(group.value("centerPointId").toString());
                 if(family=="polygonGroups" || family=="chamferGroups")
@@ -2173,11 +2220,16 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             QSet<QString> sources;
             for(const auto& value:parameters["closedRectOffsets"].toArray()) {
                 const auto group=value.toObject();
-                if(group.size()!=5 || !claimId(group["id"].toString()) || !group["distanceMm"].isDouble()
+                if((group.size()!=5 && !(group.size()==6 && group.contains("sourceProfiles"))) || !claimId(group["id"].toString()) || !group["distanceMm"].isDouble()
                     || std::abs(group["distanceMm"].toDouble())<minimumLength
                     || !std::isfinite(group["distanceMm"].toDouble())
                     || group["sourceEntityIds"].toArray().size()!=4 || group["pointIds"].toArray().size()!=4
                     || group["entityIds"].toArray().size()!=4)return "Invalid retained closed rectangle Offset";
+                if(group.contains("sourceProfiles")) {
+                    const auto profiles=group.value("sourceProfiles").toArray();
+                    if(!group.value("sourceProfiles").isArray() || profiles.size()!=4)return "Invalid retained Offset source profile state";
+                    for(const auto& profile:profiles)if(!profile.isBool())return "Invalid retained Offset source profile flag";
+                }
                 for(const auto& source:group["sourceEntityIds"].toArray()) {
                     if(!validId(source.toString()) || sources.contains(source.toString()))return "Closed Offset source identity is repeated";
                     sources.insert(source.toString());
