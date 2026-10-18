@@ -133,3 +133,18 @@ OCCT/FreeType outputs and application/solver libraries. The artifact explicitly
 marks bundling, loaded runtime and GPU untested. macOS Intel and corrected
 Windows remain under compilation; CI-009 stays open until those artifacts are
 inspected.
+
+The corrected Windows x64 run `39126716732` reached a complete pinned Qt
+source build and passed the offscreen item-view regression (5/5) on MSVC
+19.44.35229. Artifact `12137843820` has GitHub digest
+`sha256:68c59c1a730b4a1c4039e7147c65bc6af7ae04b5058e1840c75e02d20b30e345`.
+Its `private-qt-build.json` confirms the admitted patched item-view hash and
+mandatory accessibility, item views, Widgets, Network, OpenGL and FreeType
+features. OCCT and the original Ondsel library compiled, but Alloy's assembly
+adapter failed to compile because the public Ondsel `FullMatrix.h` uses `M_PI`
+and MSVC requires `_USE_MATH_DEFINES` before including math headers. The
+artifact retains `17-cmake.log` and the Qt manifest; it contains no Alloy
+`build.json`, so Windows compilation/link acceptance is still open. A
+Windows-only adapter compile definition is now the bounded correction. A
+manual targeted Windows rerun is needed; do not infer a packaged runtime/GPU
+result from the successful Qt regression.

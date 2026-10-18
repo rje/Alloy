@@ -16,6 +16,11 @@ target_compile_definitions(OndselSolver PRIVATE TEST_DATA_PATH="${alloy_ondsel_S
 add_library(alloy_assembly_solver SHARED "${CMAKE_CURRENT_LIST_DIR}/../src/AssemblySolver.cpp")
 set_target_properties(alloy_assembly_solver PROPERTIES AUTOMOC OFF VERSION 0.1.0 SOVERSION 0)
 target_compile_definitions(alloy_assembly_solver PRIVATE ALLOY_ASSEMBLY_SOLVER_BUILD)
+if(MSVC)
+    # Public Ondsel headers use M_PI; MSVC exposes it only when requested
+    # before the header's math includes.
+    target_compile_definitions(alloy_assembly_solver PRIVATE _USE_MATH_DEFINES)
+endif()
 target_include_directories(alloy_assembly_solver PUBLIC "${CMAKE_CURRENT_LIST_DIR}/../src")
 target_include_directories(alloy_assembly_solver SYSTEM PRIVATE "${alloy_ondsel_SOURCE_DIR}/OndselSolver")
 target_link_libraries(alloy_assembly_solver PRIVATE OndselSolver)
