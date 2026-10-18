@@ -315,7 +315,14 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 // Shared contact and arc rules already retain the radius. A radial
                 // perpendicular gives tangency full first-order rank at contact.
                 auto& arc=arcMap.at(reference(constraint,"entityIds",0));
-                if(constraint.contains("contact"))
+                if(constraint.contains("endpoints")){
+                    const auto contacts=constraint["endpoints"].toArray();
+                    const auto a=contacts[0].toObject()["pointId"].toString(),b=contacts[1].toObject()["pointId"].toString();
+                    bool coincident=false;for(const auto& value:constraints){const auto row=value.toObject();const auto ids=row["pointIds"].toArray();
+                        if(row["type"]=="coincident" && ids.contains(a) && ids.contains(b))coincident=true;}
+                    if(!coincident)solver.addConstraintP2PCoincident(point(a),point(b),t);
+                    solver.addConstraintPerpendicular(arc.center,point(a),line(reference(constraint,"entityIds",1)),t);
+                }else if(constraint.contains("contact"))
                     solver.addConstraintTangent(line(reference(constraint,"entityIds",1)),static_cast<GCS::Circle&>(arc),number(constraint,"side")>0,t);
                 else solver.addConstraintPerpendicular(arc.center,
                     point(reference(constraint,"pointIds",0)),line(reference(constraint,"entityIds",1)),t);
@@ -664,7 +671,13 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 const auto& arc=arcMap.at(reference(c,"entityIds",0));const auto& target=line(reference(c,"entityIds",1));
                 const double dx=*target.p2.x-*target.p1.x,dy=*target.p2.y-*target.p1.y,length=std::hypot(dx,dy);
                 check((dx*(*arc.center.y-*target.p1.y)-dy*(*arc.center.x-*target.p1.x))/length-number(c,"side")*(*arc.rad),lengthTolerance);
-                if(c.contains("contact")){
+                if(c.contains("endpoints")){
+                    const auto contacts=c["endpoints"].toArray();const auto a=contacts[0].toObject(),b=contacts[1].toObject();
+                    const auto& endpoint=point(a["pointId"].toString());const auto& other=point(b["pointId"].toString());
+                    require(number(a,"sweepSign")*(*arc.endAngle-*arc.startAngle)>0,"Endpoint tangent reversed its retained arc sweep");
+                    check(*endpoint.x-*other.x,lengthTolerance);check(*endpoint.y-*other.y,lengthTolerance);
+                    check((dx*(*endpoint.x-*arc.center.x)+dy*(*endpoint.y-*arc.center.y))/length,lengthTolerance);
+                }else if(c.contains("contact")){
                     const auto correspondence=c["contact"].toObject();
                     const double foot=((*arc.center.x-*target.p1.x)*dx+(*arc.center.y-*target.p1.y)*dy)/(length*length);
                     const double sweep=*arc.endAngle-*arc.startAngle,sign=number(correspondence,"sweepSign");

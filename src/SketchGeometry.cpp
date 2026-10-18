@@ -2151,13 +2151,23 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                     || !contact["sweepSign"].isDouble() || std::abs(contact["sweepSign"].toDouble())!=1)
                     return "Arc-circle tangency requires one finite arc and one circle";
             } else if (type == "arcTangent") {
-                const bool interior=constraint.contains("contact");
+                const bool interior=constraint.contains("contact"), endpoints=constraint.contains("endpoints");
                 if (constraint.size()!=5 || !checkReferences(constraint,"entityIds",2,entityIds)
                     || !constraint["side"].isDouble()
                     || (constraint["side"].toDouble()!=1 && constraint["side"].toDouble()!=-1))return "Arc tangency requires retained contact and signed side";
                 const auto refs=constraint["entityIds"].toArray();
                 if(!arcIds.contains(refs[0].toString()) || !lineIds.contains(refs[1].toString()))return "Arc tangent references must be arc then line";
-                if(interior){
+                if(endpoints){
+                    const auto contacts=constraint["endpoints"].toArray();
+                    if(contacts.size()!=2)return "Arc-line endpoint tangency requires two stable endpoint roles";
+                    for(int i=0;i<2;++i){
+                        QJsonObject curve;for(const auto& value:parameters["entities"].toArray())if(value.toObject()["id"]==refs[i])curve=value.toObject();
+                        const auto contact=contacts[i].toObject();const auto role=contact["endpoint"].toString();
+                        if(contact.size()!=(i==0 ? 3 : 2) || (role!="start" && role!="end") || contact["pointId"]!=curve[role+"PointId"]
+                            || (i==0 && (!contact["sweepSign"].isDouble() || std::abs(contact["sweepSign"].toDouble())!=1)))return "Invalid retained arc-line endpoint role";
+                    }
+                    if(contacts[0].toObject()["pointId"]==contacts[1].toObject()["pointId"])return "Distinct endpoint relation requires distinct point identities";
+                }else if(interior){
                     const auto contact=constraint["contact"].toObject();
                     if(contact.size()!=3 || !contact["arcParameter"].isDouble() || !contact["lineParameter"].isDouble()
                         || contact["arcParameter"].toDouble()<=0 || contact["arcParameter"].toDouble()>=1
@@ -2488,7 +2498,7 @@ SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& dra
             }
             for(const auto& value:parameters["points"].toArray()){const auto point=value.toObject();points[point["id"].toString()]=point;}
             const bool endpointPair=arguments["endpoint"].toString().contains(':');
-            if(endpointPair && arcs.size()!=2)reject("Endpoint-pair Tangent requires two authored arcs");
+            if(endpointPair && arcs.size()!=2 && (arcs.size()!=1 || line.isEmpty()))reject("Endpoint-pair Tangent requires two arcs or one arc and one line");
             if(arguments.contains("endpoint") && !endpointPair && (arcs.size()!=1 || circles.size()!=1))reject("Endpoint Tangent requires one authored arc and one full circle");
             if(circles.size()==2 || arcs.size()==2 || (!arc.isEmpty() && !circle.isEmpty())){
                 if(arguments.contains("side"))reject("Tangent derives its branch from current solved geometry");
@@ -2568,8 +2578,27 @@ SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& dra
                         if(arc[key]==line[other])shared.append(arc[key].toString());
                     shared.removeDuplicates();
                     constraint["type"]="arcTangent";
-                    if(shared.size()==1)constraint["pointIds"]=QJsonArray{shared[0]};
+                    QJsonArray endpointCandidates;
+                    for(const auto& role:{QString("start"),QString("end")})for(const auto& other:{QString("start"),QString("end")}){
+                        const auto ap=points.value(arc[role+"PointId"].toString()),lp=points.value(line[other+"PointId"].toString());
+                        if(std::hypot(ap["uMm"].toDouble()-lp["uMm"].toDouble(),ap["vMm"].toDouble()-lp["vMm"].toDouble())<=1e-6)
+                            endpointCandidates.append(QJsonArray{role,other});
+                    }
+                    if(endpointPair){
+                        const auto roles=arguments["endpoint"].toString().split(':');
+                        const QJsonArray chosen{roles[arc["id"]==ids[0] ? 0 : 1],roles[line["id"]==ids[0] ? 0 : 1]};
+                        if(!endpointCandidates.contains(chosen))reject("Chosen arc and line endpoints must already coincide within 0.000001 mm");
+                        endpointCandidates=QJsonArray{QJsonValue(chosen)};
+                    }
+                    constraint.remove("endpoint");
+                    if(endpointCandidates.size()>1)reject("Arc-line endpoint contact is ambiguous; choose explicit endpoint roles");
+                    if(endpointCandidates.size()==1 && arc[endpointCandidates[0].toArray()[0].toString()+"PointId"]!=line[endpointCandidates[0].toArray()[1].toString()+"PointId"]){
+                        const auto roles=endpointCandidates[0].toArray();
+                        constraint["endpoints"]=QJsonArray{QJsonObject{{"endpoint",roles[0]},{"pointId",arc[roles[0].toString()+"PointId"]},{"sweepSign",arc["sweepAngleDeg"].toDouble()<0 ? -1 : 1}},
+                            QJsonObject{{"endpoint",roles[1]},{"pointId",line[roles[1].toString()+"PointId"]}}};
+                    }else if(shared.size()==1)constraint["pointIds"]=QJsonArray{shared[0]};
                     else {
+                        if(endpointPair)reject("Chosen endpoint contact is unavailable");
                         if(!shared.isEmpty())reject("Arc tangent contact is ambiguous");
                         // The signed normal determines one contact on the supporting
                         // circle. Never search for another contact after an edit.

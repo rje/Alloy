@@ -1996,8 +1996,9 @@ void ReferenceView::decorateSketch(const QJsonObject& sourceFeature,const QJsonO
                 const double distance=std::hypot(delta.x(),delta.y());if(distance<1e-9)continue;
                 contact=center+delta*(circle["radiusMm"].toDouble()/distance);
             }else if(kind=="arcTangent" && !relation.contains("contact")) {
-                if(circle["type"]!="arc" || relation["pointIds"].toArray().size()!=1)continue;
-                const auto shared=points.value(relation["pointIds"].toArray()[0].toString());
+                if(circle["type"]!="arc")continue;
+                const auto id=relation.contains("endpoints") ? relation["endpoints"].toArray()[0].toObject()["pointId"] : relation["pointIds"].toArray().first();
+                const auto shared=points.value(id.toString());
                 if(shared.isEmpty())continue;
                 contact=QPointF(shared["uMm"].toDouble(),shared["vMm"].toDouble());
             } else {

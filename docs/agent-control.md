@@ -1088,3 +1088,15 @@ payloads. Each affected Canvas retains its placement and other metadata plus
 not a replacement authored document. Internal preview state, `document.inspect`
 authored data and saved models retain the complete images. The local transport
 response bound is unchanged.
+
+Distinct arc–line endpoint Tangent uses the existing `sketch.constraint`,
+`sketch.constraintTool` and `sketch.tangentContact` commands. `endpoint` may be
+`start:start`, `start:end`, `end:start` or `end:end`; roles refer to the first
+and second picked entities, in either arc/line order. Native Contact labels
+use **First … to Second …** for these same roles (also supported for two arcs).
+Without an explicit role, the single geometrically coincident endpoint pair
+within 0.000001 mm is used; multiple pairs refuse. This is an Alloy policy.
+The retained `arcTangent.endpoints` array is canonical arc then line, each
+with `endpoint` and stable `pointId`; the arc contact also retains `sweepSign`.
+The point identities remain distinct. The relation jointly constrains
+coincidence and tangency, and never rematches its endpoint roles after edits.

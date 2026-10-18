@@ -133,8 +133,9 @@ SketchProfiles::Result SketchProfiles::derive(const QJsonObject& feature, const 
     }
     for (const auto& value : parameters["constraints"].toArray()) {
         const auto constraint = value.toObject();
-        if (constraint["type"] != "coincident") continue;
-        const auto references = constraint["pointIds"].toArray();
+        if (constraint["type"] != "coincident" && !(constraint["type"]=="arcTangent" && constraint.contains("endpoints"))) continue;
+        const auto contacts=constraint["endpoints"].toArray();
+        const auto references = contacts.isEmpty() ? constraint["pointIds"].toArray() : QJsonArray{contacts[0].toObject()["pointId"],contacts[1].toObject()["pointId"]};
         const auto aId = references[0].toString(), bId = references[1].toString();
         const auto a = points.value(aId), b = points.value(bId);
         if (std::hypot(a.u-b.u,a.v-b.v) > endpointTolerance)

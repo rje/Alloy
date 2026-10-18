@@ -3,6 +3,7 @@
 #include "SketchGeometry.h"
 #include <QCoreApplication>
 #include <QTemporaryDir>
+#include <QUuid>
 #include <iostream>
 #include <stdexcept>
 
@@ -69,6 +70,27 @@ int main(int argc,char** argv){
             const auto lineId=invalid["parameters"].toObject()["entities"].toArray().last().toObject().value("id");
             const auto result=SketchGeometry::addConstraint(invalid,{{"type","tangent"},{"entityIds",QJsonArray{id,lineId}}});
             require(!result.ok && result.feature==invalid,"interior endpoint/out-of-segment refusal atomic");
+        }
+        for(bool reverse:{false,true})for(bool explicitRoles:{false,true})for(const auto& role:{QString("start"),QString("end")})for(const auto& other:{QString("start"),QString("end")})for(double sweep:{90.,-90.}){
+            auto candidate=SketchGeometry::newFeature(document.authored()["documentId"].toString(),"XY");
+            candidate=SketchGeometry::addArc(candidate,{{"centerUMm",0},{"centerVMm",0},{"radiusMm",10},{"startAngleDeg",role=="start" ? 0 : -sweep},{"sweepAngleDeg",sweep}});
+            const auto curve=candidate["parameters"].toObject()["entities"].toArray().last().toObject();
+            candidate=SketchGeometry::addLine(candidate,{{"u1Mm",10},{"v1Mm",other=="start" ? 0 : -20},{"u2Mm",10},{"v2Mm",other=="start" ? 20 : 0}});
+            auto p=candidate["parameters"].toObject();auto points=p["points"].toArray();auto entities=p["entities"].toArray();auto edge=entities.last().toObject();
+            QJsonObject point;for(const auto& value:points)if(value.toObject()["id"]==edge[other+"PointId"])point=value.toObject();
+            point["id"]=QUuid::createUuid().toString(QUuid::WithoutBraces);points.append(point);edge[other+"PointId"]=point["id"];entities[entities.size()-1]=edge;
+            p["points"]=points;p["entities"]=entities;candidate["parameters"]=p;
+            QJsonObject args{{"type","tangent"},{"entityIds",reverse ? QJsonArray{edge["id"],curve["id"]} : QJsonArray{curve["id"],edge["id"]}}};
+            if(explicitRoles)args["endpoint"]=reverse ? other+":"+role : role+":"+other;
+            auto result=SketchGeometry::addConstraint(candidate,args);require(result.ok,"distinct endpoint tangent "+role+":"+other+QString::number(sweep)+" explicit="+QString::number(explicitRoles)+": "+result.error);
+            const auto relation=result.feature["parameters"].toObject()["constraints"].toArray().last().toObject();
+            const auto contacts=relation["endpoints"].toArray();
+            require(contacts.size()==2 && contacts[0].toObject()["pointId"]==curve[role+"PointId"] && contacts[1].toObject()["pointId"]==edge[other+"PointId"],"exact distinct endpoint identities");
+            require(contacts[0].toObject()["endpoint"]==role && contacts[1].toObject()["endpoint"]==other,"exact endpoint roles");
+            require(SketchGeometry::solveDraft(result.feature).ok,"distinct endpoint solve roundtrip");
+            auto duplicate=SketchGeometry::addConstraint(result.feature,args);require(!duplicate.ok && duplicate.feature==result.feature,"distinct endpoint duplicate atomic");
+            auto invalid=result.feature;p=invalid["parameters"].toObject();entities=p["entities"].toArray();auto corrupt=entities[0].toObject();corrupt["sweepAngleDeg"]=-sweep;entities[0]=corrupt;p["entities"]=entities;invalid["parameters"]=p;
+            require(!SketchGeometry::solveDraft(invalid).ok,"distinct endpoint sweep reversal refuses");
         }
         std::cout<<"sketch arc-line Tangent: both contacts, pick orders, refusal, history, reopen passed\n";
         return 0;

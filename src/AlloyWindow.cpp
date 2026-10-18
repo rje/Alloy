@@ -4847,7 +4847,7 @@ void AlloyWindow::registerCommands() {
     constraintType["enum"]=QJsonArray{"coincident","concentric","horizontal","vertical","horizontalVertical","parallel","collinear","perpendicular","equal","fixed","midpoint","symmetry","tangent","pointOnCurve"};
     auto constraintToolType=constraintType;
     constraintToolType["enum"]=QJsonArray{"coincident","concentric","horizontal","vertical","horizontalVertical","parallel","collinear","perpendicular","equal","fixed","midpoint","symmetry","tangent"};
-    auto tangentEndpoint=parameter("string","Explicit arc endpoint to circle, or first:second endpoint roles for two arc picks. Omit for interior contact.");
+    auto tangentEndpoint=parameter("string","Explicit arc endpoint to circle, or first:second endpoint roles for two arc picks or an arc and line. Omit for interior contact.");
     tangentEndpoint["enum"]=QJsonArray{"start","end","start:start","start:end","end:start","end:end"};
     add("sketch.constraintTool","Activate sketch constraint","Apply compatible preselection, then repeatedly pick geometry; Escape returns to Select.",{{"type",constraintToolType},{"endpoint",optional(tangentEndpoint)},{"session",optionalSession}},[this](const auto& a){
         if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
@@ -10910,7 +10910,8 @@ QJsonObject AlloyWindow::setSketchSelection(const QJsonObject& selection) {
         }
         if(constraintType=="tangent" && session_.contains("tangentEndpoint")){
             if(session_.value("tangentEndpoint").toString().contains(':')){
-                for(const auto& kind:types)if(kind!="arc")return rejectPick("wrong_type","Endpoint join requires two authored arcs");
+                for(const auto& kind:types)if(kind!="arc" && kind!="line")return rejectPick("wrong_type","Endpoint join requires two arcs or an arc and line");
+                if(types.size()==2 && !types.contains("arc"))return rejectPick("unsupported_pair","Endpoint join requires an authored arc");
             }else {
             for(const auto& kind:types)if(kind!="arc" && kind!="circle")return rejectPick("wrong_type","Endpoint contact needs one arc and one full circle");
             if(types.size()==2 && !(types.contains("arc") && types.contains("circle")))return rejectPick("unsupported_pair","Endpoint contact needs one arc and one full circle");
@@ -10968,7 +10969,7 @@ QJsonObject AlloyWindow::setSketchSelection(const QJsonObject& selection) {
             .arg(session_.value("tangentEndpoint").toString()).arg(targets.isEmpty() ? "Pick arc or circle" : "Pick matching arc or circle");
         if(type=="tangent" && session_.value("tangentEndpoint").toString().contains(':')){
             const auto roles=session_.value("tangentEndpoint").toString().split(':');
-            session_["constraintPrompt"]=QString("Tangent · Pick %1 arc %2 · Escape exits").arg(targets.isEmpty() ? "first" : "second").arg(roles[targets.isEmpty() ? 0 : 1]);
+            session_["constraintPrompt"]=QString("Tangent · Pick %1 curve (%2 endpoint) · Arc–arc or arc–line · Escape exits").arg(targets.isEmpty() ? "first" : "second").arg(roles[targets.isEmpty() ? 0 : 1]);
         }
         if(targets.size()>required)return failure("invalid_constraint_target",QString("%1 requires %2 targets").arg(label).arg(required));
         if(type=="symmetry" && !normalized["pointIds"].toArray().isEmpty())return failure("invalid_constraint_target","Symmetry requires line, circle or arc picks");
@@ -12396,9 +12397,9 @@ void AlloyWindow::showSketch() {
         layout->addLayout(constraints);
         auto* tangentOptions=new QWidget;tangentOptions->setObjectName("sketch.tangent.options");auto* tangentLayout=new QFormLayout(tangentOptions);
         tangentLayout->setContentsMargins(0,0,0,0);auto* tangentContact=new QComboBox;tangentContact->setObjectName("sketch.tangent.contact");
-        tangentContact->addItem("Curve Interior",QString{});tangentContact->addItem("Arc Start to Circle","start");tangentContact->addItem("Arc End to Circle","end");
+        tangentContact->addItem("Automatic / Interior",QString{});tangentContact->addItem("Arc Start to Circle","start");tangentContact->addItem("Arc End to Circle","end");
         for(const auto& first:{QString("start"),QString("end")})for(const auto& second:{QString("start"),QString("end")})
-            tangentContact->addItem(QString("Arc %1 to Arc %2").arg(first,second),first+":"+second);
+            tangentContact->addItem(QString("First %1 to Second %2").arg(first,second),first+":"+second);
         tangentLayout->addRow("Contact",tangentContact);layout->addWidget(tangentOptions);tangentOptions->hide();
         connect(tangentContact,&QComboBox::currentIndexChanged,this,[this,tangentContact]{
             QJsonObject args;const auto endpoint=tangentContact->currentData().toString();if(!endpoint.isEmpty())args["endpoint"]=endpoint;
