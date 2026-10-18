@@ -117,9 +117,10 @@ external tester and whole-release gates remain open.
    overlap volumes of 0.732240293455 mm³ and 0.888291503536 mm³ with
    SIDE-ETH-001; the other 22 pairs have zero intersection
    ([receipt](validation/enclosure-reference-clearance.md)).
-   [TUT-030](https://github.com/rje/Alloy/issues/442) owns source qualification
-   and an explicit supported correction before whole-reference clearance can
-   pass. Physical fit remains unclaimed. Reuse the accepted board, ports and
+   [TUT-030](https://github.com/rje/Alloy/issues/442) completed source qualification;
+   the approved [TUT-035 adaptation](validation/enclosure-connector-clearance.md)
+   has measured 0.5 mm model separation from each half. Exact connector-source
+   parity and physical fit remain unclaimed. Reuse the accepted board, ports and
    snaps checkpoints.
 2. **Surface shoehorn:** finish exact R12 corner geometry ([GEO-019](https://github.com/rje/Alloy/issues/352)), generated
    Fillet endpoint references ([GEO-018](https://github.com/rje/Alloy/issues/350)), tangent-plane/hole support ([GEO-004](https://github.com/rje/Alloy/issues/286)),
@@ -147,8 +148,9 @@ Constrained orbit and pivot controls have accepted source/API/GPU evidence;
 [NAV-009](https://github.com/rje/Alloy/issues/428) preserves the blocked native
 route. The exact paired enclosure R0.5 operation is accepted in GEO-020; the
 GEO-021 retained-tool Cut/export and TUT-023 final-stage footage/captures are
-accepted. TUT-029 records two measured connector intersections; TUT-030 source
-qualification and correction, plus full-source TUT-016, remain open. NAV-003 smooth zoom and
+accepted. TUT-029 records two measured connector intersections in the preserved
+original. TUT-030 source qualification and TUT-035's approved model-clearance
+adaptation are accepted; full-source TUT-016 remains open. NAV-003 smooth zoom and
 Qt trackpad routing is accepted with physical-device qualification preserved in
 NAV-008. GEO-020 now has bounded production/source-edit/history/GPU acceptance. NAV-010 cube presentation and orientation picks are
 accepted, as are NAV-011 drag, NAV-013 Fit/Home and NAV-012 cube accessories.

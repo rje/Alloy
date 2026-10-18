@@ -110,7 +110,10 @@ drag profiling is complete with a failed 100 ms budget; REL-020/#446 remains
 Todo after bounded diagnosis and a reverted experiment. REL-013/#416 visual
 audit split observed minimum-size ribbon/navigation clipping into accepted
 REL-021/#447 (`c562c85`); remaining visual-quality scope stays open. GEO-019/#352 is accepted for the exact corner construction;
-TUT-030/#442 preserves unresolved nominal connector clearance. The current
+TUT-030/#442 now closes the research decision: public dimensions remain
+insufficient for exact connector parity, and the user-approved nominal-fixture
+adaptation passed under TUT-035/#472. [The final receipt](../validation/enclosure-connector-clearance.md)
+measures 0.5 mm from each half; physical fit and cumulative TUT-016 remain open. The current
 sequence JSON takes precedence over historical delivery notes below.
 SRF-019/#451 three-section no-rail Loft and NAV-021/#452 cube accessory disclosure
 are independently accepted. The full surface-iron chain and REL-013 wider

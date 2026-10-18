@@ -10,6 +10,12 @@ explicit remainder, and move the board item to Done only after real-app
 evidence. DOC-013 local New/Open/Save As/dirty-close now has real API and
 native-dialog evidence, including API inspection/answering of an open native
 decision; see [the receipt](validation/document-local-files.md).
+TUT-030/#442 research is independently accepted: the public connector
+dimensions remain unknown, while the user-approved nominal-fixture adaptation
+under TUT-035 passes measured 0.5 mm clearance to each half. The governing
+[final receipt](validation/enclosure-connector-clearance.md) records the actual
+−1.5 mm Cut offset and rebuilt R0.4 rim. TUT-016 keeps the full tutorial gate;
+physical fit and exact source connector parity remain unclaimed.
 
 GitHub Actions already compiles tag/manual candidates for macOS, Windows and
 Linux. [The build/distribution plan](build-distribution.md) distinguishes

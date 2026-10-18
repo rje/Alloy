@@ -28,7 +28,7 @@
       ],
       "acceptance": "Complete actual seam/rim geometry and final enclosure chain; no unchanged blind kernel retries.",
       "status": "todo",
-      "remaining": "Rim/Cut and separate exports accepted. Final nominal connector collision measured in both halves; TUT-030 awaits qualified dimensions or explicit design adaptation. Preserve evidence; do not repeat unchanged geometry."
+      "remaining": "Original nominal collision remains preserved as evidence. TUT-030 research and TUT-035 approved 0.5 mm model-clearance adaptation are accepted; TUT-016 retains the cumulative source-stage tutorial, exact-reference uncertainty and physical-fit limits."
     },
     {
       "id": "READY-03",

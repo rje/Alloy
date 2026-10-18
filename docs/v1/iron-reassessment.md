@@ -71,8 +71,9 @@ acceptance. Publish the replacement gallery entry only after this gate passes.
 
 TUT-016/#299 remains open. Accepted rim/Cut/export and native rename/section
 support should be reused. TUT-029 found positive connector overlaps in both
-halves; TUT-030 must qualify the reference or document an explicit supported
-adaptation before the whole-reference clearance gate passes. Finish the full
+original halves; TUT-030 qualified the remaining source uncertainty and
+TUT-035's approved adaptation measured 0.5 mm model clearance to the nominal
+connector in each final half. Finish the full
 source-stage ledger/movie, retained snaps/ports/lip, edit/history/reopen and
 separate checked exports. Zero intersection does not alone establish positive
 manufacturing clearance or physical fit.
