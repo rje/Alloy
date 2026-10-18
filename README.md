@@ -27,6 +27,8 @@ constraint picks and a selectable badge.
 [Interior arc-line Tangent](docs/validation/sketch-interior-arc-line-tangent.md)
 now retains a finite, nonendpoint contact through radius and line edits, with
 the same constraint controls and a verified downstream rounded extrusion.
+[Analytic constraint pick feedback](docs/validation/sketch-constraint-pair-feedback.md)
+now explains unsupported geometry pairs without discarding a valid first pick.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,

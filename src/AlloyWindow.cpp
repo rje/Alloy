@@ -3908,7 +3908,7 @@ void AlloyWindow::registerCommands() {
         }
         if(session_.value("tool")=="constraint" || leavingFillet || a["tool"]=="fillet")
             session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}},{"profileIds",QJsonArray{}}};
-        session_.remove("pendingSplinePoints");session_.remove("splineInsertEntityId");session_.remove("pendingSplineDrag");session_.remove("pendingTrim");session_.remove("pendingExtend");session_.remove("trimNotice");session_["tool"]=a["tool"];sketchHistoryGroup_.clear();session_.remove("constraintType");session_.remove("constraintPrompt");session_.remove("firstPoint");session_.remove("secondPoint");session_.remove("thirdPoint");session_.remove("pointerPoint");session_.remove("gestureSweepDeg");session_.remove("snap");view_->clearSketchCursor();
+        session_.remove("pendingSplinePoints");session_.remove("splineInsertEntityId");session_.remove("pendingSplineDrag");session_.remove("pendingTrim");session_.remove("pendingExtend");session_.remove("trimNotice");session_["tool"]=a["tool"];sketchHistoryGroup_.clear();session_.remove("constraintType");session_.remove("constraintPrompt");session_.remove("constraintPickStatus");session_.remove("firstPoint");session_.remove("secondPoint");session_.remove("thirdPoint");session_.remove("pointerPoint");session_.remove("gestureSweepDeg");session_.remove("snap");view_->clearSketchCursor();
         if(a["tool"]=="fillet" && sketchFilletRadius_) {
             const QSignalBlocker block(sketchFilletRadius_);
             sketchFilletRadius_->setText(QString::number(10.0/(session_.value("inputs").toObject()["units"]=="in" ? 25.4 : 1.0),'g',8));
@@ -4856,7 +4856,7 @@ void AlloyWindow::registerCommands() {
             session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}},{"profileIds",QJsonArray{}}};
         }
         cancelDimension();cancelCircleDiameter();view_->clearSketchCursor();session_.remove("snap");
-        session_["tool"]="constraint";session_["constraintType"]=a["type"];
+        session_["tool"]="constraint";session_["constraintType"]=a["type"];session_.remove("constraintPickStatus");
         session_.remove("firstPoint");session_.remove("secondPoint");session_.remove("pointerPoint");session_.remove("gestureSweepDeg");
         const auto type=a["type"].toString();const auto field=type=="fixed" || type=="coincident" || (type=="horizontalVertical" && !session_.value("selection").toObject()["pointIds"].toArray().isEmpty()) ? QString("pointIds") : QString("entityIds");
         const auto selection=session_["selection"].toObject();
@@ -10858,41 +10858,56 @@ QJsonObject AlloyWindow::setSketchSelection(const QJsonObject& selection) {
         }
         normalized[field]=ids;
     }
-    if(session_.value("tool")=="constraint" && session_.value("constraintType")=="symmetry"){
+    const auto constraintType=session_.value("constraintType").toString();
+    const bool analyticConstraint=session_.value("tool")=="constraint"
+        && QStringList{"concentric","collinear","symmetry","tangent"}.contains(constraintType);
+    if(analyticConstraint){
         const auto targets=normalized["entityIds"].toArray();
-        if(!normalized["pointIds"].toArray().isEmpty() || targets.size()>3)
-            return failure("invalid_constraint_target","Symmetry requires two lines or two arcs and a construction axis");
-        QString pairType;
+        const auto label=constraintType.first(1).toUpper()+constraintType.sliced(1);
+        const auto retry=[&]{
+            const auto count=session_.value("selection").toObject()["entityIds"].toArray().size();
+            return constraintType=="symmetry" && count==2 ? QString("Pick construction axis")
+                : count==0 ? QString("Pick first compatible curve") : QString("Pick a compatible second curve");
+        };
+        const auto rejectPick=[&](const QString& status,const QString& explanation){
+            session_["constraintPickStatus"]=status;
+            const auto message=label+" · "+(status=="unsupported_pair" ? "Unsupported pair: " : "Wrong type: ")+explanation;
+            session_["constraintPrompt"]=message+" · "+retry()+" · Escape exits";
+            return failure("invalid_constraint_target",message);
+        };
+        if(!normalized["pointIds"].toArray().isEmpty() || !normalized["profileIds"].toArray().isEmpty())
+            return rejectPick("wrong_type","Select sketch curves, not points or profiles");
+        if(targets.size()>(constraintType=="symmetry" ? 3 : 2))
+            return rejectPick("wrong_type",constraintType=="symmetry" ? "Select two curves then one construction axis" : "Select two distinct curves");
+        QStringList types;
         for(int index=0;index<targets.size();++index){
             QJsonObject entity;for(const auto& row:parameters["entities"].toArray())if(row.toObject()["id"]==targets[index]){entity=row.toObject();break;}
-            if(index==0)pairType=entity["type"].toString();
-            if(index==1 && entity["type"]!=pairType)return failure("invalid_constraint_target","Symmetry requires two matching lines or arcs");
-            if((index<2 && entity["type"]!="line" && entity["type"]!="arc") || (index==2 && (entity["type"]!="line" || !entity["construction"].toBool())))
-                return failure("invalid_constraint_target",index==2 ? "Third symmetry pick must be a construction line" : "Symmetry requires two matching lines or arcs");
+            const auto kind=entity["type"].toString();types.append(kind);
+            if(constraintType=="symmetry" && index==2){
+                if(kind!="line" || !entity["construction"].toBool())
+                    return rejectPick("wrong_type","Third symmetry pick must be a construction line");
+            }else if(constraintType=="concentric" && kind!="circle" && kind!="arc")
+                return rejectPick("wrong_type","Concentric requires circles or arcs");
+            else if(constraintType=="collinear" && kind!="line")
+                return rejectPick("wrong_type","Collinear requires straight lines");
+            else if(constraintType=="symmetry" && kind=="circle")
+                return rejectPick("unsupported_pair","Circle symmetry is not yet supported; select two lines or two arcs");
+            else if((constraintType=="symmetry" && kind!="line" && kind!="arc")
+                || (constraintType=="tangent" && kind!="line" && kind!="circle" && kind!="arc"))
+                return rejectPick("wrong_type",label+" requires authored lines, circles or arcs");
         }
-    }
-    if(session_.value("tool")=="constraint" && session_.value("constraintType")=="tangent"){
-        const auto targets=normalized["entityIds"].toArray();
-        if(!normalized["pointIds"].toArray().isEmpty() || targets.size()>2)
-            return failure("invalid_constraint_target","Tangent requires two circles, a circle and line, or an arc and line");
-        bool hasCurve=false,hasLine=false;int circleCount=0;
-        for(const auto& target:targets){QJsonObject entity;
-            for(const auto& row:parameters["entities"].toArray())if(row.toObject()["id"]==target){entity=row.toObject();break;}
-            if(entity["type"]=="circle")++circleCount;
-            if(entity["type"]=="arc" || entity["type"]=="circle")hasCurve=true;else if(entity["type"]=="line")hasLine=true;
-            else return failure("invalid_constraint_target","Tangent requires two circles, a circle and line, or an arc and line");
+        if(types.size()>=2){
+            const auto first=types[0],second=types[1];
+            if(constraintType=="symmetry" && first!=second)
+                return rejectPick("unsupported_pair","Symmetry requires matching line-line or arc-arc geometry");
+            if(constraintType=="tangent" && !((first=="circle" && second=="circle")
+                || (first=="line" && (second=="circle" || second=="arc"))
+                || (second=="line" && (first=="circle" || first=="arc"))))
+                return rejectPick("unsupported_pair",first=="line" && second=="line"
+                    ? "Line-line Tangent is unavailable; use Collinear for a common line"
+                    : "Arc-circle and arc-arc Tangent are not yet supported; select a line with the arc");
         }
-        if(targets.size()==2 && circleCount!=2 && (!hasCurve || !hasLine))
-            return failure("invalid_constraint_target","Tangent requires two circles, a circle and line, or an arc and line");
-    }
-    if(session_.value("tool")=="constraint" && session_.value("constraintType")=="collinear"){
-        const auto targets=normalized["entityIds"].toArray();
-        if(!normalized["pointIds"].toArray().isEmpty() || targets.size()>2)
-            return failure("invalid_constraint_target","Collinear requires two straight lines");
-        for(const auto& target:targets){bool line=false;
-            for(const auto& row:parameters["entities"].toArray())if(row.toObject()["id"]==target){line=row.toObject()["type"]=="line";break;}
-            if(!line)return failure("invalid_constraint_target","Collinear requires two straight lines");
-        }
+        session_["constraintPickStatus"]=targets.isEmpty() ? "pending_first" : "pending_next";
     }
     session_["selection"]=normalized;session_.remove("hoveredConstraintId");
     cancelDimension();
@@ -10940,15 +10955,18 @@ QJsonObject AlloyWindow::setSketchSelection(const QJsonObject& selection) {
         if(targets.size()==required) {
             const auto result=applySketchConstraint(type,{{field,targets}});
             if(result["ok"].isBool() && !result["ok"].toBool()) {
-                if(type=="symmetry" || type=="tangent" || type=="collinear"){
+                if(analyticConstraint){
                     auto pending=normalized;auto entities=pending["entityIds"].toArray();entities.removeLast();pending["entityIds"]=entities;
                     session_["selection"]=pending;
                 }
+                if(analyticConstraint)session_["constraintPickStatus"]="solve_failed";
                 session_["constraintPrompt"]=type=="collinear" ? QString("Collinear · Failed; pick second line")
                     : type=="tangent" ? QString("Tangent · Failed; pick matching curve or line")
+                    : analyticConstraint ? label+" · Constraint failed; "+result["error"].toObject()["message"].toString()+" · Pick another compatible curve · Escape exits"
                     : label+" · Constraint failed; pick a new set · Escape exits";return result;
             }
             session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}},{"profileIds",QJsonArray{}}};
+            if(analyticConstraint)session_["constraintPickStatus"]="applied";
             session_["constraintPrompt"]=type=="collinear" ? QString("Collinear · Applied")
                 : label+" · Applied; pick next "+(field=="pointIds" ? "point" : "curve")+" · Escape exits";
             auto completed=result;completed["constraintApplied"]=true;completed["constraintType"]=type;completed["selection"]=session_["selection"];return completed;
@@ -11038,7 +11056,14 @@ QJsonArray AlloyWindow::angleRaySigns(const QJsonArray& entityIds,const QJsonObj
 }
 
 void AlloyWindow::sketchResponse(const QJsonObject& response) {
-    if(sketchError_)sketchError_->setText(response["ok"].toBool() ? "" : response["error"].toObject()["message"].toString());
+    if(sketchError_){
+        sketchError_->setText(response["ok"].toBool() ? "" : response["error"].toObject()["message"].toString());
+        // Error feedback lives outside the scrolled palette. Reserve its wrapped
+        // height after a refusal so the explanation cannot be compressed away.
+        sketchError_->setMinimumHeight(sketchError_->text().isEmpty() ? 0
+            : sketchError_->heightForWidth(std::max(80,sketchError_->contentsRect().width())));
+        sketchError_->updateGeometry();
+    }
     if(dimensionEditor_ && dimensionEditor_->isVisible() && !response.value("ok").toBool())dimensionEditorError_->setText(response.value("error").toObject().value("message").toString());
 }
 
