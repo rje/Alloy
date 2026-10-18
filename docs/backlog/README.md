@@ -7,11 +7,11 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **562 issues**: **442 implementation, 24 research,
+The current local backlog contains **563 issues**: **443 implementation, 24 research,
 2 research/design, 22 epics, and 72 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 SKT-115–121 and SKT-123–124/#540–546, #548–549 are accepted analytic constraint pairs and endpoint contacts; SKT-129/#554 accepts distinct-ID arc/line endpoint Tangent and SKT-022/#163 is closed for its declared v1 analytic scope. SKT-122/#547 and SKT-130–132/#555–557 retain later multi-pair Symmetry, spline constraints and branch-control research.
-SKT-125/#550 accepts per-entity sketch status and Find Under-Constrained; SKT-126/#551 accepts independent sketch visibility and hidden-target picking; SKT-127/#552 accepts contextual point relations and Delete Coincident. SKT-128/#553 accepts a bounded glyph/edit inventory, including a readable Vertical mark; SKT-133/#558 accepts point/line Fix/UnFix; SKT-134/#559 accepts Center Circle Fix/UnFix; SKT-135/#560 accepts ordinary finite Arc Fix/UnFix under SKT-023/#164, and later geometry/ownership work is SKT-136–138/#561–563; SKT-139/#564 accepts Two-Point Circle Fix; remaining circle-mode qualification is SKT-140/#565.
+SKT-125/#550 accepts per-entity sketch status and Find Under-Constrained; SKT-126/#551 accepts independent sketch visibility and hidden-target picking; SKT-127/#552 accepts contextual point relations and Delete Coincident. SKT-128/#553 accepts a bounded glyph/edit inventory, including a readable Vertical mark; SKT-133/#558 accepts point/line Fix/UnFix; SKT-134/#559 accepts Center Circle Fix/UnFix; SKT-135/#560 accepts ordinary finite Arc Fix/UnFix; SKT-139/#564 accepts Two-Point Circle Fix; SKT-140/#565 qualifies the other v1 authored circle modes. SKT-023/#164 is accepted for its declared v1 analytic scope; later geometry/ownership work remains SKT-136–138/#561–563.
 SKT-114/#538 retains crossing-line Chamfer kept-side selection after the
 accepted connected-corner modes. REL-050/#539 retains physical/native failure
 message and recovery checks after the [packaged REL-015 slice](../validation/actionable-failures-packaged.md).
@@ -26,6 +26,9 @@ The subsequent ownership audit added six narrow Todo implementation issues
 inspection, OBJ output and active-preview visibility responsiveness. Other
 broader parent issues must be split when pulled; see
 [the ownership audit](../v1/ownership-audit.md).
+The [partial-row disposition](../v1/partial-row-disposition.md) names the
+working minimum v1 variants; SOL-071/#566 retains ordinary Combine naming and
+invalid-result recovery as an explicit Todo.
 The user's first-v1 scope decision requires 3MF export and modeled printable
 threads. XCH-011/#524 has a bounded [Core 3MF export receipt](../validation/3mf-export.md)
 with actual app/native/independent consumer evidence; XCH-005 retains import

@@ -62,6 +62,9 @@ history and reopen.
 [Two-Point Circle Fix/UnFix](docs/validation/sketch-fix-two-point-circle.md)
 now retains the authored diameter source and direction with its evaluated
 circle through edits and reopen.
+[Other authored Circle Fix/UnFix modes](docs/validation/sketch-fix-circle-modes.md)
+now qualify Three-Point, tangent and retained Center Circle source relations
+through native input, conflict recovery and reopen.
 [Arc Fix/UnFix](docs/validation/sketch-fix-arc.md) now retains center, radius
 and sweep locks through native interaction and a downstream rounded solid.
 

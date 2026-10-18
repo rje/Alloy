@@ -12,6 +12,9 @@ The [ownership audit](ownership-audit.md) added six missing narrow owners
 [#518–#523](../backlog/github.md) and identified broad parent issues that must be
 split before implementation. Thirteen partial rows have accepted subsets but
 still need an explicit v1-versus-later option decision under REL-030.
+Their [working minimum-v1 disposition](partial-row-disposition.md) now names
+the proposed variants and isolates ordinary Combine name/error recovery as
+SOL-071/#566; REL-030 still owns final scope and release-gate reconciliation.
 The user explicitly included 3MF export and modeled printable threads in the
 first stable v1 on 2026-10-17. [XCH-011/#524](../backlog/github.md) and
 [SOL-059/#504](../backlog/github.md) own those bounded deliverables. The
