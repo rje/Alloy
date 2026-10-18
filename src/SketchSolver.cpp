@@ -2,6 +2,7 @@
 #include "SketchSolver.h"
 #include "SketchMirror.h"
 #include "SketchArcSlot.h"
+#include "SketchPolygon.h"
 #include "GCS.h"
 #include <QJsonArray>
 #include <QMap>
@@ -149,6 +150,10 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             auto seeded=SketchMirror::seed({{"points",points},{"entities",entities},{"mirrorGroups",parameters["mirrorGroups"]}});
             points=seeded["points"].toArray();entities=seeded["entities"].toArray();
         }
+        if(parameters.contains("polygonGroups")){
+            auto intent=parameters;intent["points"]=points;intent["entities"]=entities;
+            const auto seeded=SketchPolygon::seed(intent);points=seeded["points"].toArray();
+        }
         // All storage is allocated before pointers enter the solver. std::map
         // nodes and deque elements retain addresses as their containers grow.
         std::vector<double> coordinates(static_cast<size_t>(points.size()) * 2);
@@ -264,6 +269,10 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             const auto type = constraint.value("type").toString(); const int t = tag(constraint);
             if (type == "coincident") {
                 solver.addConstraintP2PCoincident(point(reference(constraint,"pointIds",0)), point(reference(constraint,"pointIds",1)), t);
+            } else if(type=="polygonVertex") {
+                auto& anchor=point(reference(constraint,"pointIds",0));auto& vertex=point(reference(constraint,"pointIds",1));
+                solver.addConstraintDifference(anchor.x,vertex.x,constant(number(constraint,"offsetUMm")),t);
+                solver.addConstraintDifference(anchor.y,vertex.y,constant(number(constraint,"offsetVMm")),t);
             } else if(type=="pointOnCurve" || type=="supportLine") {
                 const auto id=reference(constraint,"entityIds",0);auto& p=point(reference(constraint,"pointIds",0));
                 if(lineMap.contains(id))solver.addConstraintPointOnLine(p,line(id),t);else solver.addConstraintPointOnCircle(p,circleMap.at(id),t);
@@ -551,6 +560,10 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 if(lineMap.contains(id)){const auto& l=line(id);double dx=*l.p2.x-*l.p1.x,dy=*l.p2.y-*l.p1.y,len=std::hypot(dx,dy);check((dx*(*p.y-*l.p1.y)-dy*(*p.x-*l.p1.x))/len,lengthTolerance);double t=((*p.x-*l.p1.x)*dx+(*p.y-*l.p1.y)*dy)/(len*len);if(type=="pointOnCurve")require(t>=-1e-6 && t<=1+1e-6,"Trim contact left its finite boundary line");}
                 else {const auto& circle=circleMap.at(id);check(std::hypot(*p.x-*circle.center.x,*p.y-*circle.center.y)-*circle.rad,lengthTolerance);}
             }
+            else if(type=="polygonVertex") {
+                const auto& anchor=point(reference(c,"pointIds",0));const auto& vertex=point(reference(c,"pointIds",1));
+                check(*vertex.x-*anchor.x-number(c,"offsetUMm"),lengthTolerance);check(*vertex.y-*anchor.y-number(c,"offsetVMm"),lengthTolerance);
+            }
             else if(type=="fixed") {const auto& p=point(reference(c,"pointIds",0));check(*p.x-number(c,"uMm"),lengthTolerance);check(*p.y-number(c,"vMm"),lengthTolerance);}
             else if(type=="arcTangent") {
                 const auto& arc=arcMap.at(reference(c,"entityIds",0));const auto& target=line(reference(c,"entityIds",1));
@@ -709,6 +722,7 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
         QJsonArray solvedPoints;
         for (qsizetype i=0;i<points.size();++i) {auto p=points[i].toObject();p["uMm"]=coordinates[2*i];p["vMm"]=coordinates[2*i+1];solvedPoints.append(p);}
         result.parameters["points"] = solvedPoints;
+        result.parameters=SketchPolygon::refreshAnchors(result.parameters);
         // Tangent handles are evaluator vectors, outside PlaneGCS's fit-point
         // equations. Derive their reflection using the final solved axis.
         if(parameters.contains("mirrorGroups"))result.parameters=SketchMirror::refreshSplineHandles(result.parameters);

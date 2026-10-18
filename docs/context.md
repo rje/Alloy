@@ -28,14 +28,20 @@ retained edits, native numeric refusal, three closed regions, downstream
 extrusion, history/reopen and independently read STL. Astra reviewed the
 final app captures and accepted the bounded slice; see
 [the receipt](validation/sketch-regular-polygons.md). Actual placement relations
-remain Todo under SKT-103/#526 and SKT-105/#528. Physical input and
+were split between SKT-103/#526 and SKT-105/#528. Physical input and
 other-platform qualification remain open.
 SKT-104/#527 now accepts true circumradius, inradius and fixed-base-edge canvas
 annotations with native double-click editing, unit conversion, visibility,
 refusal, downstream extrusion and independently read STL. Astra accepted the
 actual capture and shared-command route; see
 [the receipt](validation/sketch-polygon-annotations.md). Label drag and exact
-styling remain unqualified; anchor relations remain SKT-103/SKT-105 work.
+styling remain unqualified; second-driver relations remain SKT-105 work.
+SKT-103/#526 now accepts a genuine first-point origin, authored-point or
+retained-line-midpoint relation. Its solver anchor moves the same Polygon and
+downstream extrusion under an upstream edit; stable IDs, external constraints,
+history/reopen and independent STL passed. Astra reviewed the solver and
+native cue evidence; see [the receipt](validation/sketch-polygon-first-anchor.md).
+Second-point size/orientation ownership remains SKT-105/#528 Todo.
 Broad parent splits and the 13 partial rows with accepted subsets are recorded
 in [the ownership audit](v1/ownership-audit.md). Final v1 option decisions and
 release disposition remain open under REL-030; do not infer readiness from the

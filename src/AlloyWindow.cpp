@@ -3270,7 +3270,9 @@ void AlloyWindow::registerCommands() {
     auto polygonSide=parameter("number","Edge Polygon side: +1 left or -1 right.");polygonSide["minimum"]=-1;polygonSide["maximum"]=1;polygonSide["enum"]=QJsonArray{-1,1};
     add("sketch.polygon","Polygon","Create retained regular closed line geometry; center or first base vertex, size, angle and count are authoritative.",
         {{"mode",polygonMode},{"x",coordinate},{"y",coordinate},{"size",sizeCoordinate},{"angleDeg",optional(polygonAngle)},
-         {"count",optional(polygonCount)},{"side",optional(polygonSide)},{"units",optional(units)},{"session",optional(parameter("string","Optional active sketch session identity."))}},
+         {"count",optional(polygonCount)},{"side",optional(polygonSide)},{"units",optional(units)},
+         {"anchorSnapTarget",optional(parameter("object","First placement anchor: origin, authored/retained point, or retained straight-line midpoint."))},
+         {"session",optional(parameter("string","Optional active sketch session identity."))}},
         [this](const auto& a){return polygonCommand(a,false);});
     add("sketch.polygonUpdate","Edit Polygon","Edit the retained polygon count, driving size, anchor or orientation in the active sketch.",
         {{"polygonId",parameter("string","Retained Polygon UUID.")},{"count",optional(polygonCount)},{"size",optional(sizeCoordinate)},
@@ -7324,8 +7326,8 @@ void AlloyWindow::refresh() {
             "Click the first path end center to set radius" : "Click the path arc center · Origin snap adds Coincident";
         else if(tool.endsWith("Polygon"))prompt=tool=="edgePolygon" ? (session_.contains("secondPoint") ?
             "Set sides · Click the side containing the polygon · Enter ends Polygon" : session_.contains("firstPoint") ?
-            "Click the second base vertex · Or enter edge length and angle" : "Click the first base vertex · Literal coordinates") :
-            session_.contains("firstPoint") ? "Set radius and sides · Click to place · Enter ends Polygon" : "Click the center · Literal coordinates";
+            "Click the second base vertex · Or enter edge length and angle" : "Click first base vertex · Origin, point and midpoint anchors snap") :
+            session_.contains("firstPoint") ? "Set radius and sides · Click to place · Enter ends Polygon" : "Click center · Origin, point and midpoint anchors snap";
         else if(tool=="centerPointEllipse")prompt=session_.contains("secondPoint") ?
             "Click a point on the ellipse contour · Escape ends Ellipse" : session_.contains("firstPoint") ?
             "Click first axis endpoint · Type full length, Tab angle" : "Click ellipse center · Origin snap adds Coincident";
@@ -9394,7 +9396,7 @@ QJsonObject AlloyWindow::polygonCommand(const QJsonObject& inputs,bool update) {
     if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
     const auto units=inputs.value("units").toString(session_.value("inputs").toObject()["units"].toString());
     QJsonObject canonical;
-    for(const auto& field:{"mode","polygonId","count","angleDeg","side"})if(inputs.contains(field))canonical[field]=inputs[field];
+    for(const auto& field:{"mode","polygonId","count","angleDeg","side","anchorSnapTarget"})if(inputs.contains(field))canonical[field]=inputs[field];
     for(const auto& field:{"x","y","size"})if(inputs.contains(field))canonical[field==QString("x") ? "uMm" : field==QString("y") ? "vMm" : "sizeMm"]=CadDocument::millimeters(inputs[field].toDouble(),units);
     return publishSketchSolve(SketchGeometry::polygon(session_.value("draftSketch").toObject(),canonical,update,session_.value("projectionContext").toObject()));
 }
@@ -9405,8 +9407,17 @@ QJsonObject AlloyWindow::polygonGesture(const QJsonObject& point,bool commit) {
     if(!session_.value("polygonEditId").toString().isEmpty())return QJsonObject{{"authoredChange",false},{"editing",true}};
     session_["pointerPoint"]=point;
     if(!session_.contains("firstPoint")){
-        if(commit)session_["firstPoint"]=point;
-        return QJsonObject{{"placement",false},{"nextPoint",edge ? "second base vertex" : "radial point"}};
+        const auto plane=session_.value("inputs").toObject()["plane"].toString();
+        const auto pixel=view_->projectSketchPoint(point["uMm"].toDouble(),point["vMm"].toDouble(),plane);
+        auto snap=resolveSketchSnap(pixel["x"].toDouble(),pixel["y"].toDouble(),plane,true);
+        if(snap["status"]=="acquired"){
+            const auto allowed=SketchGeometry::polygonAnchorTarget(session_.value("draftSketch").toObject(),snap["target"].toObject(),session_.value("projectionContext").toObject());
+            if(!allowed["ok"].toBool())snap={{"status","none"},{"uMm",point["uMm"]},{"vMm",point["vMm"]},{"rejectedTarget",snap["target"]},{"reason",allowed["error"]}};
+        }
+        session_["snap"]=snap;view_->showSketchSnap(plane,snap);
+        if(snap["status"]=="ambiguous")return failure("ambiguous_snap","Move toward one unambiguous Polygon anchor");
+        if(commit)session_["firstPoint"]=snap["status"]=="acquired" ? snap : point;
+        return QJsonObject{{"placement",false},{"snap",snap},{"nextPoint",edge ? "second base vertex" : "radial point"}};
     }
     const auto first=session_.value("firstPoint").toObject();const auto pending=session_.value("polygonInput").toObject();
     const auto second=edge && session_.contains("secondPoint") ? session_.value("secondPoint").toObject() : point;
@@ -9428,12 +9439,15 @@ QJsonObject AlloyWindow::polygonGesture(const QJsonObject& point,bool commit) {
     }
     const QString mode=edge ? "edge" : tool=="circumscribedPolygon" ? "circumscribed" : "inscribed";
     QJsonObject canonical{{"mode",mode},{"uMm",u},{"vMm",v},{"sizeMm",size},{"angleDeg",angle},{"count",pending.value("count").toInt(6)},{"side",side}};
+    if(first["status"]=="acquired")canonical["anchorSnapTarget"]=first["target"];
     if(!commit){
         const auto preview=SketchGeometry::polygon(session_.value("draftSketch").toObject(),canonical,false,session_.value("projectionContext").toObject());
         if(preview.ok)view_->showSketchPolygonCursor(preview.feature);else view_->clearSketchCursor();
         return QJsonObject{{"previewed",preview.ok},{"sizeMm",size},{"angleDeg",angle},{"side",side},{"authoredChange",false}};
     }
-    auto result=polygonCommand({{"mode",mode},{"x",u},{"y",v},{"size",size},{"angleDeg",angle},{"count",canonical["count"]},{"side",side},{"units","mm"}},false);
+    QJsonObject inputs{{"mode",mode},{"x",u},{"y",v},{"size",size},{"angleDeg",angle},{"count",canonical["count"]},{"side",side},{"units","mm"}};
+    if(first["status"]=="acquired")inputs["anchorSnapTarget"]=first["target"];
+    auto result=polygonCommand(inputs,false);
     if(result.contains("error"))return result;
     session_.remove("firstPoint");session_.remove("secondPoint");session_.remove("pointerPoint");view_->clearSketchCursor();
     refreshPolygonControls();view_->setFocus(Qt::OtherFocusReason);
@@ -10067,6 +10081,10 @@ QJsonObject AlloyWindow::resolveSketchSnap(double x,double y,const QString& plan
     }
     for(const auto& value:session_.value("projectionContext").toObject()["lines"].toArray()) {
         const auto line=value.toObject();
+        if(includeMidpoints && session_.value("tool").toString().endsWith("Polygon")){
+            bool retained=false;for(const auto& row:parameters["projections"].toArray())retained|=row.toObject()["id"]==line["id"];
+            if(retained)offer({{"kind","midpoint"},{"entityId",line["id"]}},(line["u1Mm"].toDouble()+line["u2Mm"].toDouble())/2,(line["v1Mm"].toDouble()+line["v2Mm"].toDouble())/2);
+        }
         for(const bool end:{false,true}) {
             const auto id=line[end ? "endPointId" : "startPointId"].toString();
             const double u=line[end ? "u2Mm" : "u1Mm"].toDouble(),v=line[end ? "v2Mm" : "v1Mm"].toDouble();
@@ -11977,7 +11995,7 @@ void AlloyWindow::showSketch() {
         auto* polygonSize=new QLineEdit;polygonSize->setObjectName("sketch.polygon.size");polygonSize->setPlaceholderText("Follow pointer");auto* polygonSizeLabel=new QLabel("Circumradius");polygonSizeLabel->setObjectName("sketch.polygon.sizeLabel");polygonForm->addRow(polygonSizeLabel,polygonSize);
         auto* polygonAngle=new QLineEdit;polygonAngle->setObjectName("sketch.polygon.angle");polygonAngle->setPlaceholderText("Follow pointer");polygonForm->addRow("Angle (deg)",polygonAngle);polygonLayout->addLayout(polygonForm);
         auto* polygonApply=new QPushButton("Apply Polygon Edit");polygonApply->setObjectName("sketch.polygon.apply");polygonLayout->addWidget(polygonApply);
-        auto* polygonNote=new QLabel("Radius follows a vertex (Inscribed) or edge midpoint (Circumscribed). Edge uses two base vertices, then a side click. Placement uses literal coordinates. Tab changes fields; Enter fixes a typed base edge or ends the tool.");polygonNote->setWordWrap(true);polygonNote->setStyleSheet("color: #52616b;");polygonLayout->addWidget(polygonNote);layout->addWidget(polygonControls);
+        auto* polygonNote=new QLabel("Radius follows a vertex (Inscribed) or edge midpoint (Circumscribed). Edge uses two base vertices, then a side click. First anchor snaps retain Coincident or Midpoint; the second pick is literal. Tab changes fields; Enter fixes a typed base edge or ends the tool.");polygonNote->setWordWrap(true);polygonNote->setStyleSheet("color: #52616b;");polygonLayout->addWidget(polygonNote);layout->addWidget(polygonControls);
         connect(polygonMode,&QComboBox::activated,this,[this,polygonMode](int index){sketchResponse(execute("sketch.tool",{{"tool",polygonMode->itemData(index).toString()}}));});
         connect(polygonEdit,&QComboBox::activated,this,[this,polygonEdit](int index){sketchResponse(execute("sketch.polygonEditSelect",{{"polygonId",polygonEdit->itemData(index).toString()}}));});
         auto polygonFields=[polygonCount,polygonSize,polygonAngle]()->QJsonObject{

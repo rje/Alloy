@@ -917,10 +917,54 @@ SketchGeometry::SolveResult SketchGeometry::addCenterRectangle(const QJsonObject
     } catch(const std::exception& error) {return invalidDraft(draft,QString::fromUtf8(error.what()));}
 }
 
+QJsonObject SketchGeometry::polygonAnchorTarget(const QJsonObject& draft,const QJsonObject& target,const QJsonObject& projectionContext) {
+    try {
+        auto p=draft["parameters"].toObject();const auto kind=target["kind"].toString();
+        auto derived=SketchArcSlot::derivedPointIds(p);derived.unite(SketchSplineOffset::derivedPointIds(p));derived.unite(SketchOpenChainOffset::derivedPointIds(p));
+        for(const auto& row:p["closedRectOffsets"].toArray())for(const auto& id:row.toObject()["pointIds"].toArray())derived.insert(id.toString());
+        if(kind=="origin"){
+            if(target.size()!=1)reject("Polygon origin target accepts only kind");
+            return {{"ok",true},{"source",target},{"uMm",0},{"vMm",0}};
+        }
+        if(kind=="point"){
+            const auto id=target["pointId"].toString();if(target.size()!=2 || !validId(id))reject("Polygon anchor needs a stable point identity");
+            if(derived.contains(id))reject("Polygon anchor cannot constrain a derived contact point");
+            retainSupportPoint(p,projectionContext,id);
+        }else if(kind!="midpoint" || target.size()!=2 || !validId(target["entityId"].toString()))reject("Polygon anchor accepts origin, point or straight-line midpoint");
+        const auto expanded=expandedProjectionFeature(QJsonObject{{"parameters",p}},projectionContext)["parameters"].toObject();
+        QMap<QString,QJsonObject> points;for(const auto& row:expanded["points"].toArray())points[row.toObject()["id"].toString()]=row.toObject();
+        if(kind=="point"){
+            const auto point=points.value(target["pointId"].toString());if(point.isEmpty())reject("Polygon anchor source point is unavailable");
+            return {{"ok",true},{"source",target},{"uMm",point["uMm"]},{"vMm",point["vMm"]}};
+        }
+        for(const auto& row:expanded["entities"].toArray()){
+            const auto line=row.toObject();if(line["id"]!=target["entityId"])continue;
+            if(line["type"]!="line")reject("Polygon midpoint anchor requires a straight line");
+            if(derived.contains(line["startPointId"].toString()) || derived.contains(line["endPointId"].toString()))reject("Polygon midpoint anchor needs an independent straight line");
+            const auto first=points.value(line["startPointId"].toString()),last=points.value(line["endPointId"].toString());
+            if(first.isEmpty() || last.isEmpty())reject("Polygon midpoint endpoints are unavailable");
+            return {{"ok",true},{"source",target},{"uMm",(first["uMm"].toDouble()+last["uMm"].toDouble())/2},
+                {"vMm",(first["vMm"].toDouble()+last["vMm"].toDouble())/2}};
+        }
+        reject("Polygon midpoint source is unavailable");
+    }catch(const std::exception& error){return {{"ok",false},{"error",QString::fromUtf8(error.what())}};}
+}
+
 SketchGeometry::SolveResult SketchGeometry::polygon(const QJsonObject& draft,const QJsonObject& arguments,bool update,const QJsonObject& projectionContext) {
     try {
-        validateDraft(draft);auto candidate=draft;
-        candidate["parameters"]=SketchPolygon::apply(draft["parameters"].toObject(),arguments,update);
+        validateDraft(draft);auto candidate=draft;auto canonical=arguments;
+        if(arguments.contains("anchorSnapTarget")){
+            if(update || !arguments["anchorSnapTarget"].isObject())reject("A Polygon placement anchor is chosen only on creation");
+            const auto target=arguments["anchorSnapTarget"].toObject();
+            if(target["kind"]=="origin")candidate=withOriginReference(candidate);
+            auto p=candidate["parameters"].toObject();
+            const auto resolved=polygonAnchorTarget(candidate,target,projectionContext);
+            if(!resolved["ok"].toBool())reject(resolved["error"].toString());
+            if(target["kind"]=="point")retainSupportPoint(p,projectionContext,target["pointId"].toString());
+            auto source=resolved["source"].toObject();if(target["kind"]=="origin")source["pointId"]=p["originPointId"];
+            canonical.remove("anchorSnapTarget");canonical["anchorSource"]=source;canonical["uMm"]=resolved["uMm"];canonical["vMm"]=resolved["vMm"];candidate["parameters"]=p;
+        }
+        candidate["parameters"]=SketchPolygon::apply(candidate["parameters"].toObject(),canonical,update);
         const auto result=solveDraft(candidate,projectionContext);
         return result.ok ? result : SolveResult{false,draft,result.diagnostics,result.error};
     }catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
@@ -1857,6 +1901,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 && constraint["pointIds"].toArray().size()==1)
                 usedPoints.insert(constraint["pointIds"].toArray()[0].toString());
         }
+        for(const auto& row:parameters["polygonGroups"].toArray())if(row.toObject().contains("anchorPointId"))usedPoints.insert(row.toObject()["anchorPointId"].toString());
         if (usedPoints.size() != points.size()) return "Sketch contains unreferenced points";
         auto checkReferences = [](const QJsonObject& object, const QString& field, int count, const QSet<QString>& valid) {
             if (!object[field].isArray() || object[field].toArray().size() != count) return false;
@@ -1979,6 +2024,11 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 if (constraint.size() != (fixed ? 5 : 3) || constraint.contains("entityIds")
                     || !checkReferences(constraint, "pointIds", fixed ? 1 : 2, pointIds)) return "Invalid point constraint references";
                 if (fixed) { coordinate(constraint, "uMm"); coordinate(constraint, "vMm"); }
+            } else if(type=="polygonVertex") {
+                if(constraint.size()!=5 || !checkReferences(constraint,"pointIds",2,pointIds))return "Polygon relative driver requires anchor and vertex identities";
+                coordinate(constraint,"offsetUMm");coordinate(constraint,"offsetVMm");bool owned=false;
+                for(const auto& row:parameters["polygonGroups"].toArray())owned|=row.toObject()["constraintIds"].toArray().contains(constraint["id"]);
+                if(!owned)return "Polygon relative driver has no owning Polygon";
             } else if (type == "pointOnCurve" || type == "supportLine") {
                 if(constraint.size()!=4 || !checkReferences(constraint,"pointIds",1,pointIds) || !checkReferences(constraint,"entityIds",1,entityIds))return "Point-on-curve requires one point and one curve";
                 const auto id=constraint["entityIds"].toArray()[0].toString();for(const auto& entry:parameters["entities"].toArray())if(entry.toObject()["id"]==id &&

@@ -11,7 +11,7 @@ Alloy implementation; it does not assert exact visual or default parity.
 | Inscribed | Center then vertex; size is center-to-vertex radius | Two-click live preview, circumradius/count/angle entry |
 | Circumscribed | Center then side midpoint; size is center-to-edge midpoint radius | Two-click live preview, inradius/count/angle entry |
 | Edge | Two first-edge endpoints, then side point; typed length/angle and count supported | First edge fixed in preview, opposite-side choice, typed base length/angle |
-| Selection | Start in active sketch; public snap cues/relations apply | Active-sketch prerequisite; actual placement relations remain SKT-103 and SKT-105 |
+| Selection | Start in active sketch; public snap cues/relations apply | First center/base anchor retains origin, point or line midpoint relation; second driver remains SKT-105 |
 | Commit/cancel | Repeat after placement; Enter exits. Exact Escape semantics not documented by polygon help | Repeat, Enter exit, Escape cancel current preview/tool; invalid input blocks placement |
 | History/edit | Public tutorial shows size edit; contemporary side-count edit not established | Authored group, stable surviving IDs, count/size edit, Undo/Redo, save/reopen |
 | Profile/visual | Pale filled closed regions, radial/base-edge annotation; center dots coincide with the origin in older public frames | Closed filled regions and editable true-size canvas callouts; exact styling/label placement remain unknown |
@@ -23,3 +23,5 @@ receipt](../../validation/sketch-regular-polygons.md) separates Qt input,
 geometry, GPU capture, history and printable STL evidence.
 The [annotation receipt](../../validation/sketch-polygon-annotations.md) covers
 native label editing and the updated visual state.
+The [first-anchor receipt](../../validation/sketch-polygon-first-anchor.md)
+covers native cues, actual solver relations and upstream solid propagation.

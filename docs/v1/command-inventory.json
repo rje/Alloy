@@ -3024,7 +3024,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Three retained modes, canvas size editing and downstream solids pass; actual placement snaps/relations remain open, while label drag and exact styling are unqualified.",
+      "gap": "Three retained modes, canvas size editing, first-anchor relations and downstream solids pass; second-driver size/angle ownership remains open, while label drag and exact styling are unqualified.",
       "apiIds": [
         "sketch.polygon",
         "sketch.polygonInput",
@@ -3047,7 +3047,8 @@
       ],
       "receipts": [
         "docs/validation/sketch-regular-polygons.md",
-        "docs/validation/sketch-polygon-annotations.md"
+        "docs/validation/sketch-polygon-annotations.md",
+        "docs/validation/sketch-polygon-first-anchor.md"
       ],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },
