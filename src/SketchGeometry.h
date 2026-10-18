@@ -45,6 +45,8 @@ public:
     // a retained center point, and driving width/height dimensions.
     static SolveResult addCenterRectangle(const QJsonObject& draft, const QJsonObject& arguments,
         const QJsonObject& projectionContext = {});
+    static SolveResult polygon(const QJsonObject& draft,const QJsonObject& arguments,bool update = false,
+        const QJsonObject& projectionContext = {});
     // Center, one end-center direction/half-length and full width. The guide is
     // construction geometry; the four outer analytic edges form one profile.
     static SolveResult addCenterPointSlot(const QJsonObject& draft, const QJsonObject& arguments,

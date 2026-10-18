@@ -2354,6 +2354,17 @@ void ReferenceView::showSketchSlotCursor(const QJsonObject& feature,bool arcSlot
     sketchCursor_->SetWidth(2*devicePixelRatioF());
     context_->Display(sketchCursor_,AIS_WireFrame,-1,false);context_->Deactivate(sketchCursor_);context_->UpdateCurrentViewer();
 }
+void ReferenceView::showSketchPolygonCursor(const QJsonObject& feature) {
+    clearSketchCursor();if(context_.IsNull())return;
+    const auto parameters=feature["parameters"].toObject();const auto groups=parameters["polygonGroups"].toArray();if(groups.isEmpty())return;
+    const auto ids=groups.last().toObject()["entityIds"].toArray();
+    TopoDS_Compound compound;BRep_Builder builder;builder.MakeCompound(compound);
+    for(const auto& entry:parameters["entities"].toArray()){
+        const auto entity=entry.toObject();if(ids.contains(entity["id"]))builder.Add(compound,SketchGeometry::analyticEdge(parameters,entity,sketchFrame_));
+    }
+    sketchCursor_=sketchPresentation(compound);sketchCursor_->SetColor(Quantity_Color(0.30,0.58,0.87,Quantity_TOC_RGB));
+    sketchCursor_->SetWidth(2*devicePixelRatioF());context_->Display(sketchCursor_,AIS_WireFrame,-1,false);context_->Deactivate(sketchCursor_);context_->UpdateCurrentViewer();
+}
 void ReferenceView::showSketchEllipseCursor(const QJsonObject& feature) {
     clearSketchCursor();if(context_.IsNull())return;
     const auto parameters=feature["parameters"].toObject();

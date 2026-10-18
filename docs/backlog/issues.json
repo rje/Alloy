@@ -8724,6 +8724,34 @@
         "area:skt"
       ],
       "body": "## Bounded result\nComplete selected-geometry Delete for authored ellipse, conic and spline curves and for retained grouped/derived sketch geometry after SKT-099/#518 establishes ordinary line/circle/arc/point deletion. Group and generated-reference removal must be an explicit owning-operation policy, never a partial JSON cleanup.\n\n## Acceptance\n- Research public selection/Delete behavior for these curve families and preserve dated sources outside the repository. Specify when Delete removes a single curve, an entire generated group, or refuses with actionable guidance.\n- Native canvas and sketch list selection, Delete key and right-click action invoke the shared command. Retain surviving control points, dimensions, constraints, source relationships and stable IDs; remove only dependents owned by the deleted geometry.\n- Verify one spline and one grouped/derived case through edit, undo/redo, save/reopen and downstream profile or surface/solid use. Verify a transactional refusal for an unsupported cross-feature dependency.\n- Inspect actual GPU selection and post-delete presentation separately from authored geometry. Preserve further unsupported generated families as linked Todo before closing.\n\n## Ownership\nExplicit remainder split from SKT-099/#518; the first slice covers authored line/circle/arc/point. Do not infer full sketch-family parity from either bounded issue alone."
+    },
+    {
+      "key": "SKT-103",
+      "title": "Retain actual Polygon placement snaps and relations",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-093"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Bounded result\nMake all three retained Polygon placement tools acquire genuine sketch snaps and retain the corresponding geometric relation. This is the explicit placement-inference remainder of SKT-093/#498 under ADV-005/#101.\n\n## Acceptance\n- Show a point/edge/origin snap cue only when the authored relation will be retained; no visual-only coincidence or frozen-coordinate substitute.\n- On commit record stable source references and the appropriate coincident/on-entity relation. Move an upstream reference and verify the Polygon follows or refuses atomically. Count/size edits must not silently drop the relation.\n- Verify native pointer focus, cues and shared control result, Undo/Redo, save/reopen and closed profile. Use the dated external Polygon public record and distinguish input, geometry and visual evidence.\n\n## Dependency\nSKT-093 supplies the retained three-mode foundation. SKT-021 retains general sketch inference."
+    },
+    {
+      "key": "SKT-104",
+      "title": "Show editable Polygon size and anchor annotations",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-093"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Bounded result\nDisplay and edit retained Polygon size/anchor annotations on the sketch canvas, following the dated public visual examples recorded outside the repository. This is the visible dimension/center marker remainder after SKT-093/#498 establishes the functional three-mode tool.\n\n## Scope and acceptance\n- Show a readable center-to-vertex circumradius for Inscribed, center-to-edge-midpoint inradius for Circumscribed, and base-edge length for Edge Polygon, with a center/anchor marker that corresponds to authored geometry. The label must reflect units and the actual retained parameter.\n- Native annotation edit and the shared control command update the same retained polygon size, preserve its closed profile, and propagate to one downstream extrusion. Verify Undo/Redo and save/reopen.\n- Compare an Alloy capture at a comparable state to the public frames in the external SKT-093 knowledge record; record line color/constraint-state differences honestly. Do not recolor absolutely fixed edges to imitate an underconstrained reference. Actual snap-following and relational constraint behavior are SKT-103/#526.\n\n## Dependency\n- SKT-093/#498 supplies the retained Polygon foundation.\n"
     }
   ]
 }

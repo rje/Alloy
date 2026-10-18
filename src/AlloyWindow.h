@@ -529,6 +529,9 @@ private:
     QJsonObject appendOverallSlot(const QJsonObject& inputs);
     QJsonObject appendCenterPointArcSlot(const QJsonObject& inputs);
     QJsonObject appendCenterPointEllipse(const QJsonObject& inputs);
+    QJsonObject polygonCommand(const QJsonObject& inputs,bool update);
+    QJsonObject polygonGesture(const QJsonObject& point,bool commit);
+    void refreshPolygonControls();
     void showSlotEditor(const QString& initialText = {});
     void hideSlotEditor();
     QJsonObject appendCircleOffset(const QJsonObject& inputs,bool update);

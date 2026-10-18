@@ -10,6 +10,7 @@
 #include "SketchSplineOffset.h"
 #include "SketchOpenChainOffset.h"
 #include "SketchEllipse.h"
+#include "SketchPolygon.h"
 #include <BRepBndLib.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
 #include <BRepBuilderAPI_MakeVertex.hxx>
@@ -916,6 +917,15 @@ SketchGeometry::SolveResult SketchGeometry::addCenterRectangle(const QJsonObject
     } catch(const std::exception& error) {return invalidDraft(draft,QString::fromUtf8(error.what()));}
 }
 
+SketchGeometry::SolveResult SketchGeometry::polygon(const QJsonObject& draft,const QJsonObject& arguments,bool update,const QJsonObject& projectionContext) {
+    try {
+        validateDraft(draft);auto candidate=draft;
+        candidate["parameters"]=SketchPolygon::apply(draft["parameters"].toObject(),arguments,update);
+        const auto result=solveDraft(candidate,projectionContext);
+        return result.ok ? result : SolveResult{false,draft,result.diagnostics,result.error};
+    }catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
+}
+
 SketchGeometry::SolveResult SketchGeometry::addCenterPointSlot(const QJsonObject& draft,const QJsonObject& arguments,
     const QJsonObject& projectionContext) {
     try {
@@ -1678,7 +1688,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
         try {return validateParameters(expandedProjectionFeature({{"parameters",parameters}},{{"lines",lines},{"circles",circles},{"points",resolvedPoints}})["parameters"].toObject(),authoredIds,referenceIds);}
         catch(const std::exception& error){return QString::fromUtf8(error.what());}
     }
-    const QSet<QString> allowed{"plane", "planeId", "originConvention", "points", "entities", "constraints", "dimensions", "nextDimensionNameIndex", "originPointId", "support", "texts", "loopOffsets", "openChainOffsets", "closedRectOffsets", "roundedRectangleIntent", "mirrorGroups", "slotGroups", "arcSlotGroups"};
+    const QSet<QString> allowed{"plane", "planeId", "originConvention", "points", "entities", "constraints", "dimensions", "nextDimensionNameIndex", "originPointId", "support", "texts", "loopOffsets", "openChainOffsets", "closedRectOffsets", "roundedRectangleIntent", "mirrorGroups", "slotGroups", "arcSlotGroups", "polygonGroups"};
     for (auto it = parameters.begin(); it != parameters.end(); ++it)
         if (!allowed.contains(it.key())) return "Unknown sketch parameter: " + it.key();
     if (!parameters["points"].isArray() || !parameters["entities"].isArray()) return "Sketch requires points and entities";
@@ -1922,6 +1932,9 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 arcSlotOwnedIds.insert(id.toString());
             }
         }
+        const auto polygonError=SketchPolygon::validate(parameters);if(!polygonError.isEmpty())return polygonError;
+        for(const auto& group:parameters["polygonGroups"].toArray())
+            if(!claimId(group.toObject()["id"].toString()))return "Duplicate Polygon UUID";
         const auto openOffsetError=SketchOpenChainOffset::validate(parameters);
         if(!openOffsetError.isEmpty())return openOffsetError;
         if(parameters.contains("closedRectOffsets")) {

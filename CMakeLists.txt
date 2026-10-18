@@ -39,7 +39,7 @@ add_library(alloy_kernel STATIC
     src/MeshExport.cpp src/MeshExport.h src/ExportScope.cpp src/ExportScope.h
     src/StepExchange.cpp src/StepExchange.h
     src/SketchSpline.cpp src/SketchSpline.h src/SketchSplineOffset.cpp src/SketchSplineOffset.h src/SketchOpenChainOffset.cpp src/SketchOpenChainOffset.h src/SketchConic.cpp src/SketchConic.h src/SketchGeometry.cpp src/SketchTrim.cpp src/SketchExtend.cpp src/SketchGeometry.h src/SketchText.cpp src/SketchText.h src/RoundedLoopOffset.cpp src/RoundedLoopOffset.h src/PlanarBoundaryInset.cpp src/PlanarBoundaryInset.h
-    src/SketchProfiles.cpp src/SketchProfiles.h src/SketchRegions.cpp)
+    src/SketchProfiles.cpp src/SketchProfiles.h src/SketchRegions.cpp src/SketchPolygon.cpp src/SketchPolygon.h)
 target_include_directories(alloy_kernel PUBLIC src)
 target_include_directories(alloy_kernel SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
 target_link_libraries(alloy_kernel PRIVATE lib3mf PUBLIC alloy_assembly_solver alloy_sketch_solver Qt6::Gui TKernel TKMath TKG3d TKBRep TKPrim TKTopAlgo TKFillet TKOffset TKBO TKBool TKGeomAlgo TKMesh TKDESTL TKDESTEP TKXSBase TKLCAF TKCAF TKCDF)
@@ -512,6 +512,14 @@ if(BUILD_TESTING)
     add_executable(entity_solved_colors_test tests/entity_solved_colors.cpp)
     target_link_libraries(entity_solved_colors_test PRIVATE alloy_kernel Qt6::Core)
     add_test(NAME entity_solved_colors COMMAND entity_solved_colors_test)
+    add_executable(sketch_polygon_test tests/sketch_polygon.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_include_directories(sketch_polygon_test PRIVATE src)
+    target_link_libraries(sketch_polygon_test PRIVATE Qt6::Gui alloy_kernel)
+    add_test(NAME sketch_polygon COMMAND sketch_polygon_test)
+    add_executable(sketch_polygon_controls_test tests/sketch_polygon_controls.cpp)
+    target_link_libraries(sketch_polygon_controls_test PRIVATE alloy_application Qt6::Test)
+    add_test(NAME sketch_polygon_controls COMMAND sketch_polygon_controls_test)
+    set_tests_properties(sketch_polygon_controls PROPERTIES TIMEOUT 90 LABELS "widget;gpu" RUN_SERIAL TRUE)
     add_executable(center_point_ellipse_test tests/center_point_ellipse.cpp src/CadDocument.cpp src/CadDocument.h)
     target_include_directories(center_point_ellipse_test PRIVATE src)
     target_link_libraries(center_point_ellipse_test PRIVATE Qt6::Gui alloy_kernel)

@@ -530,3 +530,5 @@ This is a publication snapshot. Use `python3 tools/backlog.py ready` for the liv
 | [#523 REL-048: Keep visibility changes responsive during active geometry previews](https://github.com/rje/Alloy/issues/523) | P4 Initial release | implementation | P1 | [#473](https://github.com/rje/Alloy/issues/473) |
 | [#524 XCH-011: Export selected printable bodies to 3MF](https://github.com/rje/Alloy/issues/524) | P3 Shape/import/print breadth | implementation | P1 | [#44](https://github.com/rje/Alloy/issues/44) |
 | [#525 SKT-102: Delete spline and grouped sketch geometry safely](https://github.com/rje/Alloy/issues/525) | P2 Parametric modeling | implementation | P1 | [#518](https://github.com/rje/Alloy/issues/518) |
+| [#526 SKT-103: Retain actual Polygon placement snaps and relations](https://github.com/rje/Alloy/issues/526) | P2 Parametric modeling | implementation | P1 | [#498](https://github.com/rje/Alloy/issues/498) |
+| [#527 SKT-104: Show editable Polygon size and anchor annotations](https://github.com/rje/Alloy/issues/527) | P2 Parametric modeling | implementation | P1 | [#498](https://github.com/rje/Alloy/issues/498) |

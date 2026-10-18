@@ -19,7 +19,16 @@ disposition remain open under REL-030. Six additional Todo owners
 deletion/diagnosis/intersection, interference inspection, OBJ output and
 active-preview visibility responsiveness. XCH-011/#524 adds a bounded required
 3MF export owner. SKT-102/#525 preserves non-ordinary and grouped geometry
-deletion after SKT-099; count is now 522 issues total.
+deletion after SKT-099. SKT-103/#526 and SKT-104/#527 retain Polygon placement
+relations and canvas annotation work after the bounded three-mode tool;
+the backlog now contains 524 issues.
+SKT-093/#498 now accepts Inscribed, Circumscribed and Edge Polygon creation,
+retained edits, native numeric refusal, three closed regions, downstream
+extrusion, history/reopen and independently read STL. Astra reviewed the
+final app captures and accepted the bounded slice; see
+[the receipt](validation/sketch-regular-polygons.md). Actual placement relations
+and editable canvas annotations remain Todo under SKT-103/#526 and
+SKT-104/#527. Physical input and other-platform qualification remain open.
 Broad parent splits and the 13 partial rows with accepted subsets are recorded
 in [the ownership audit](v1/ownership-audit.md). Final v1 option decisions and
 release disposition remain open under REL-030; do not infer readiness from the

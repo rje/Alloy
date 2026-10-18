@@ -3022,19 +3022,31 @@
       "label": "Inscribed, circumscribed and edge Polygon",
       "category": "Sketch",
       "scope": "proposed-v1",
-      "implementation": "missing",
-      "nativeEvidence": "unknown",
-      "gap": "No polygon authoring route is registered.",
-      "apiIds": [],
+      "implementation": "partial",
+      "nativeEvidence": "partial",
+      "gap": "Three retained modes and downstream solids pass; actual placement snaps/relations and editable canvas size/anchor annotations remain open.",
+      "apiIds": [
+        "sketch.polygon",
+        "sketch.polygonInput",
+        "sketch.polygonTypedInput",
+        "sketch.polygonEditSelect",
+        "sketch.polygonUpdate"
+      ],
       "issueKeys": [
         "SKT-021",
         "ADV-005",
-        "SKT-093"
+        "SKT-093",
+        "SKT-103",
+        "SKT-104"
       ],
       "sourceFiles": [
-        "docs/backlog/issues.json"
+        "docs/backlog/issues.json",
+        "src/SketchPolygon.cpp",
+        "src/AlloyWindow.cpp"
       ],
-      "receipts": [],
+      "receipts": [
+        "docs/validation/sketch-regular-polygons.md"
+      ],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },
     {
