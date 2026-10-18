@@ -1,0 +1,56 @@
+# Ordinary bracket modal gate: native readiness prerequisite
+
+2026-10-18, REL-052/#587, macOS arm64 Release `build-preview-release`, Qt
+6.11.2. This is a bounded harness diagnosis, with no application source change
+and no accepted modal or OS chooser workflow.
+
+The prior full-route driver forced `QApplication::setActiveWindow` during its
+initial setup. Native AppKit observation now shows that this could leave
+`NSApplication.isActive == false`, `keyWindow == nil` and neither the parent
+nor export sheet a key window. The visible export window was a real attached
+native sheet, could become key and had its own native first responder; Qt's
+`activeModalWidget` alone therefore did not establish native input readiness.
+The observed Browser focus is real, but these runs do not isolate a product
+popup-to-sheet defect in an active native application.
+
+The opt-in `ALLOY_ORDINARY_INPUT_REQUIRE_MODAL=1` route now requires an active
+application, the actual top-level `QWindow` as the native focus window, and an
+active top-level widget before opening the fixture or delivering user steps.
+It does not set Qt's active window directly. The existing accepted prefix mode
+retains its explicitly permitted initial Qt harness activation. Receipts now
+record platform application activity and both native and Qt active windows.
+
+The final strict probe stops at initial readiness with application inactive,
+no native focus window, no Qt active window and no focused widget. It never
+opens the fixture, displays the export sheet or writes a mesh. A LaunchServices
+`.app` wrapper and a genuine `QApplication::exec` test-loop experiment also
+failed initial native activation. CUA identified the private bundle as running
+but could not find a native capture window (`cgWindowNotFound`). The later
+unchanged prefix replay timed out in its existing initial AppleScript helper;
+that setup failure is separate from the prior accepted prefix evidence.
+
+The test target builds. The strict probe's expected failure is verified;
+there is no passing full-route result. Temporary native tracing, bundle and
+main-loop experiments remain external. One private editor ran at a time and
+all private processes exited; user PID33805 was preserved. No focus-only
+application workaround was retained.
+
+External evidence is under
+`../Alloy-reference-records/validation/rel012-ordinary-input-2026-10-18/`:
+`modal-lifecycle01` (Qt/Cocoa lifecycle and inspected visible sheet capture),
+`modal-native02` (exact AppKit observations and diagnostic driver),
+`modal-bundle01..03`, `modal-exec01` (initial activation experiments),
+`native-readiness02` (final strict driver, structured failure and capture), and
+`readiness-prefix01` (later setup failure). The lifecycle capture remains
+readable and its receipt reports Apple M4, Apple vendor, OpenGL 4.1 Metal and
+Retina ratio 2; this does not prove native keyboard readiness or mesh output.
+
+Keep REL-052 Todo, dependent on a finite native-session/harness prerequisite:
+establish one reliably active private Alloy/test window through ordinary native
+launch/initial activation, observe AppKit key/main window and Qt focus agreement,
+and replay the unchanged strict route. Only then diagnose any remaining modal
+handoff and complete natural field focus, Tab/Escape/Return, reopen, actual OS
+Save Cancel/Save, return/next input and independent mesh readback on the exact
+saved bracket. Do not repair focus between user steps. The accepted
+[REL-051 prefix](ordinary-bracket-input-prefix.md) and its shared-API mesh
+readback remain separate evidence.

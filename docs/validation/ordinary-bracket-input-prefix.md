@@ -38,7 +38,11 @@ not exact mesh bounds equality.
 The preserved full-route mode (`ALLOY_ORDINARY_INPUT_REQUIRE_MODAL=1`) continues
 to Browser Save As Mesh. Its popup closes and the sheet becomes the active modal,
 but after a bounded readiness wait keyboard focus remains `QTreeWidget
-browser.tree`, outside the dialog. This is the first unresolved boundary. Both
+browser.tree`, outside the dialog. This was the first observed unresolved boundary. Subsequent
+[native readiness diagnosis](ordinary-bracket-modal-readiness.md) found the
+initial harness could force Qt activation while the native application remained
+inactive; the strict full-route gate now stops at that prerequisite. These
+older sheet runs do not isolate an active-application product defect. Both
 immediate and queued activation attempts failed and were discarded. Do not
 repair focus in the test. A Todo continuation must qualify natural modal field
 focus/input, Tab/Escape/Return, cancellation and return, then actual native OS

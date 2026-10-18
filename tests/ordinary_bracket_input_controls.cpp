@@ -51,9 +51,10 @@ class OrdinaryBracketInputControls final : public QObject {
   QTest::keyClick(focus,key);QTest::qWait(80);}
  void saveReceipt(const QString& status,const QString& error={}){
   QFile file(output_+"/receipt.json");if(file.open(QIODevice::WriteOnly))file.write(QJsonDocument(QJsonObject{
+   {"applicationActive",QGuiApplication::applicationState()==Qt::ApplicationActive},{"nativeFocusWindow",QGuiApplication::focusWindow()?QGuiApplication::focusWindow()->objectName():"none"},{"qtActiveWindow",QApplication::activeWindow()?QApplication::activeWindow()->objectName():"none"},
    {"focusClass",QApplication::focusWidget()?QApplication::focusWidget()->metaObject()->className():"none"},{"focusObject",QApplication::focusWidget()?QApplication::focusWidget()->objectName():"none"},{"status",status},{"step",step_},{"error",error},{"steps",steps_},{"state",window_->state()},
    {"inputRoute","Qt delivered pointer/keyboard; initial activation only; no interstep focus or selection repair"},
-   {"limits",QJsonArray{"Not physical OS input or packaged qualification","Export modal keyboard activation/return remains failing in opt-in repro; OS Save chooser not exercised; final STL uses shared API export"}}}).toJson());
+   {"limits",QJsonArray{"Not physical OS input or packaged qualification","Full-route native readiness is required before modal qualification; OS Save chooser remains unexercised; default final STL uses shared API export"}}}).toJson());
  }
 private slots:
  void bracketGate(){
@@ -62,11 +63,23 @@ private slots:
   AlloyTheme::apply(*qApp);AlloyWindow window;window_=&window;window.resize(1500,950);window.show();QVERIFY(QTest::qWaitForWindowExposed(&window));
   for(auto* child:window.findChildren<QWidget*>())if(auto* v=dynamic_cast<ReferenceView*>(child))view_=v;QVERIFY(view_);
 #ifdef Q_OS_MACOS
+  if(!qEnvironmentVariableIntValue("ALLOY_ORDINARY_INPUT_REQUIRE_MODAL")){
   QProcess activate;activate.start("osascript",{"-e",QString("tell application \"System Events\" to set frontmost of first application process whose unix id is %1 to true").arg(QCoreApplication::applicationPid())});
-  QVERIFY(activate.waitForFinished(5000));QCOMPARE(activate.exitCode(),0);
+  QVERIFY(activate.waitForFinished(5000));QCOMPARE(activate.exitCode(),0);}
 #endif
-  window.raise();window.activateWindow();window.windowHandle()->requestActivate();QApplication::setActiveWindow(&window);QTRY_VERIFY(window.isActiveWindow());
+  window.raise();window.activateWindow();window.windowHandle()->requestActivate();
+  const bool requireModal=qEnvironmentVariableIntValue("ALLOY_ORDINARY_INPUT_REQUIRE_MODAL");
+  // The legacy accepted Qt prefix permits initial harness activation. Full modal
+  // qualification must instead observe real platform activation: setting Qt's
+  // active window directly can conceal an inactive native application.
+  if(!requireModal){QApplication::setActiveWindow(&window);QTRY_VERIFY(window.isActiveWindow());}
   try{
+   if(requireModal){
+    mark("Initial native application/window readiness before user steps");
+    require(QTest::qWaitFor([&]{return QGuiApplication::applicationState()==Qt::ApplicationActive
+      && QGuiApplication::focusWindow()==window.windowHandle() && window.isActiveWindow();},3000),
+      "native application and top-level window activate without Qt bookkeeping repair");
+   }
    call("document.open",{{"path",input},{"discard",true}});QTest::qWait(150);
    const auto before=call("document.inspect");const auto features=before.value("authored").toObject().value("features").toArray();
    const auto sketch=features.first().toObject().value("id").toString();
@@ -123,9 +136,9 @@ private slots:
    popup();require(QTest::qWaitFor([]{return QApplication::activePopupWidget()!=nullptr;},2000),"body context popup becomes active");
    auto* menu=qobject_cast<QMenu*>(QApplication::activePopupWidget());require(menu&&menu->objectName()=="context.browserBody","body context owns popup");
    QTest::keyClick(menu,Qt::Key_Escape);require(QTest::qWaitFor([]{return !QApplication::activePopupWidget();},2000),"Escape closes popup");
-   // Opt-in failed-repro mode preserves the unresolved native modal boundary.
+   // Opt-in full-route mode first requires genuine initial native activation.
    // Default acceptance stops at popup dismissal; it never repairs modal focus.
-   if(qEnvironmentVariableIntValue("ALLOY_ORDINARY_INPUT_REQUIRE_MODAL")){
+   if(requireModal){
    mark("Browser popup opens export modal and Escape returns");popup();
    require(QTest::qWaitFor([]{return QApplication::activePopupWidget()!=nullptr;},2000),"second context popup active");menu=qobject_cast<QMenu*>(QApplication::activePopupWidget());
    auto* exportAction=menu->findChild<QAction*>("context.exportMesh");require(exportAction,"Save As Mesh action exists");
