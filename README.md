@@ -17,8 +17,9 @@ also evaluates large models without freezing the window; its final presentation
 step still has a measured pause.
 [Historical Sketch Edit](docs/validation/responsive-historical-sketch.md) now
 evaluates the saved iron prefix off-thread while status and navigation remain
-responsive. Its changed-sketch Finish has focused command coverage, but the
-saved-fixture Finish and downstream geometry gate remain open under REL-042.
+responsive. Its changed-sketch
+[Finish checkpoint](docs/validation/responsive-historical-sketch-finish.md)
+now passes exact geometry, focus, history and reopen checks.
 [Direct sketch source edits](docs/validation/responsive-sketch-source-edit.md)
 also evaluate off-thread: the accepted iron edit preserved its exact solid,
 references and history while navigation and status stayed responsive.

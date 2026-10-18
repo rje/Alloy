@@ -25,20 +25,20 @@ REL-036/#479 independently fixes the large-model interactive Open stall;
 see its [receipt](../validation/responsive-native-open.md). A 1.279 s final
 presentation interval remains a measured responsiveness follow-up under
 REL-037/#480. The corrected iron full recording is now independently accepted;
-REL-038–041/#481–484 retain measured 20–56 s synchronous Trim, Loft, sketch
-and source-edit stalls as separate responsiveness work.
+REL-038/039/#481–482 retain measured Trim and Loft stalls as separate
+responsiveness work; REL-040/041 fixed the bounded sketch edit paths.
 REL-040/#483 now accepts the bounded historical Sketch Edit worker path and
 focused Finish command foundation. The saved iron Edit remained responsive
 through 53.331 s background evaluation, with exact draft publication; see
-[the receipt](../validation/responsive-historical-sketch.md). The exact
-saved-fixture Finish did not run because initial native editor activation could
-not be established. REL-042 retains that runtime/geometry/history/reopen gate;
-do not infer it from the focused tests.
+[the receipt](../validation/responsive-historical-sketch.md). The initial
+saved-fixture Finish attempts stopped at native activation; REL-042 later
+passed that exact runtime/geometry/history/reopen gate using a LaunchServices
+bundle launch. See [its receipt](../validation/responsive-historical-sketch-finish.md).
 REL-041/#484 now accepts the direct saved-iron source edit: 29.598 s worker
 evaluation with responsive status/pan/GUI heartbeat, exact changed solid,
 stable face IDs, one history operation and reopen. See
 [the receipt](../validation/responsive-sketch-source-edit.md). This does not
-close REL-042 or cumulative REL-016.
+close cumulative REL-016.
 
 ## Active delivery order
 

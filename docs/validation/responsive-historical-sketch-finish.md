@@ -1,0 +1,9 @@
+# Historical Sketch Finish saved-iron gate (2026-10-17)
+
+REL-042 completes the saved corrected-iron pre-bottom Edit→bottom-line→Finish checkpoint on the real Alloy entrypoint. The private editor was launched once through macOS LaunchServices and reported an active native window before any file or modeling command. Initial focus was on a button; historical Sketch Edit itself produced active viewport focus. The runner did not repair focus or selection between demonstrated steps.
+
+The existing `Back and notch sheets` sketch preserved all prior entities, points and constraints and added only the line from (-20,0) to (240,0). Edit source evaluation took 19.017 s off-thread; Finish full evaluation took 19.065 s off-thread. Submit responses took 70.115 and 104.419 ms. Pending status maxima were 2.092 and 2.281 ms, pan maxima 41.209 and 60.238 ms, and GUI heartbeat maximum gaps 311 and 253 ms. Terminal status intervals of 389.733 and 828.369 ms include adoption/presentation and are reported separately.
+
+The resulting three-tool body arrays and references exactly matched the accepted iron stage. One atomic history entry, exact authored and body-array Undo/Redo, and exact native authored/body-array reopen passed. The editor quit and its owned process exited. The GPU witness reported Apple M4/OpenGL 4.1 hardware acceleration; captures show source, pending controls and reopened result. Astra independently reviewed the frozen receipt.
+
+This is an API-driven checkpoint with observed Qt focus, not physical pointer/keyboard delivery. It does not replay the later Extrude/Fill suffix or the full tutorial movie and does not close cumulative REL-016 responsiveness. Full transcript, runner, model, captures, source/binary identities and receipt are outside the repository at `../Alloy-reference-records/validation/rel042-finish-2026-10-17/`.

@@ -2,26 +2,35 @@
 
 ## Active user order (2026-10-17)
 
+REL-042/#488 is independently accepted on the saved corrected-iron pre-bottom
+checkpoint. One macOS LaunchServices bundle launch produced an active native
+window; Sketch Edit itself produced viewport focus without inter-step repair.
+The exact bottom line was added, Edit/Finish each evaluated for about 19 s on
+the worker with responsive status/pan/GUI heartbeat, and the resulting
+three-tool bodies/references, one history entry, Undo/Redo and native reopen
+matched the accepted stage. See [the receipt](validation/responsive-historical-sketch-finish.md).
+Physical input and the later Extrude/Fill suffix remain outside this bounded
+gate; REL-038/039 and cumulative REL-016 remain open.
+
 REL-041/#484 is independently accepted for the direct no-session source edit
 that previously blocked the window for 55.825 s. On the saved corrected-iron
 candidate14 model, the same fit-point edit evaluated for 29.598 s off-thread;
 status/pan/GUI heartbeat stayed responsive. Exact authored/full evaluated
 bodies, stable face IDs, one history operation, Undo/Redo and native reopen
 passed. See [the bounded receipt](validation/responsive-sketch-source-edit.md).
-Physical focus, historical Sketch Finish (REL-042) and the other Trim/Loft
-stalls remain open.
+Physical input and the other Trim/Loft stalls remain open. REL-042 later
+verified historical Sketch Finish on the saved checkpoint.
 
 REL-040/#483 now has an Astra-reviewed historical Sketch Edit worker path and
 focused Finish command foundation. On the saved corrected-iron pre-bottom
 checkpoint, Edit evaluated for 53.331 s off-thread while status, pan and GUI
 timer remained responsive; the published draft matched the source. A stale
 full-document operation result initially exceeded the control client's 1 MiB
-bound and was corrected. The saved-fixture bottom-line Finish, geometry,
-history and reopen are **not yet verified**: initial native editor activation
-failed before that step, and repeated GUI attempts were stopped. See
-[the bounded receipt](validation/responsive-historical-sketch.md). REL-042
-retains that exact runtime gate; REL-016 remains open for cumulative interaction
-readiness. No private editor remains open.
+bound and was corrected. Initial native editor activation failed in those
+attempts; [the bounded receipt](validation/responsive-historical-sketch.md)
+preserves that limit. REL-042 subsequently passed the exact saved-fixture
+Finish through a LaunchServices bundle launch. REL-016 remains open for
+cumulative interaction readiness. No private editor remains open.
 
 2026-10-17 latest: TUT-035/#472 is independently accepted and closed for the
 approved enclosure connector-clearance adaptation. The 33-feature native model
