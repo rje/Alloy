@@ -9707,7 +9707,7 @@
     },
     {
       "key": "SKT-156",
-      "title": "Define whole-owner Delete for multi-boundary face projections",
+      "title": "Retain face projection groups through selected-edge Delete",
       "kind": "implementation",
       "phase": "P2 Parametric modeling",
       "priority": "P2",
