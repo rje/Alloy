@@ -9752,7 +9752,6 @@
       ],
       "labels": [
         "kind:validation",
-        "status:ready",
         "area:skt",
         "phase:P2",
         "priority:P2"
