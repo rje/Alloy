@@ -326,7 +326,10 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             } else if(type=="symmetry") {
                 auto& axis=line(reference(constraint,"entityIds",2));
                 solver.addConstraintP2PSymmetric(point(reference(constraint,"pointIds",0)),point(reference(constraint,"pointIds",1)),axis,t);
-                if(constraint["pointIds"].toArray().size()==6){
+                if(constraint["pointIds"].toArray().size()==2){
+                    solver.addConstraintEqual(circleMap.at(reference(constraint,"entityIds",0)).rad,
+                        circleMap.at(reference(constraint,"entityIds",1)).rad,t);
+                }else if(constraint["pointIds"].toArray().size()==6){
                     // Centers and one endpoint reflect; a shared signed sweep supplies
                     // the remaining angular equation without redundant ArcRules.
                     solver.addConstraintP2PSymmetric(point(reference(constraint,"pointIds",4)),point(reference(constraint,"pointIds",5)),axis,t);
@@ -676,6 +679,8 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                     check(*target.x-(2*(*axis.p1.x+along*dx)-*source.x),lengthTolerance);
                     check(*target.y-(2*(*axis.p1.y+along*dy)-*source.y),lengthTolerance);
                 }
+                if(c["pointIds"].toArray().size()==2)
+                    check(*radius(reference(c,"entityIds",0))-*radius(reference(c,"entityIds",1)),lengthTolerance);
             }
             else if(type=="equal") {
                 const auto a = reference(c,"entityIds",0), b = reference(c,"entityIds",1);

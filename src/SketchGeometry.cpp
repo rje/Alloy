@@ -2162,7 +2162,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 if(constraint.size()!=3 || !checkReferences(constraint,"entityIds",2,curveIds) || constraint.contains("pointIds"))
                     return "Concentric requires two distinct circles or arcs";
             } else if(type=="symmetry") {
-                if(constraint.size()!=4 || !checkReferences(constraint,"entityIds",3,entityIds))return "Symmetry requires two lines or two arcs and one construction axis";
+                if(constraint.size()!=4 || !checkReferences(constraint,"entityIds",3,entityIds))return "Symmetry requires two matching lines, circles or arcs and one construction axis";
                 const auto refs=constraint["entityIds"].toArray(),pairs=constraint["pointIds"].toArray();
                 QJsonObject first,second,axis;
                 for(const auto& value:parameters["entities"].toArray()){
@@ -2171,16 +2171,19 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                     if(e["id"]==refs[1])second=e;
                     if(e["id"]==refs[2])axis=e;
                 }
+                const bool circles=first["type"]=="circle" && second["type"]=="circle";
                 const bool arcs=first["type"]=="arc" && second["type"]=="arc";
-                if(!(arcs || (first["type"]=="line" && second["type"]=="line"))
-                    || !checkReferences(constraint,"pointIds",arcs ? 6 : 4,pointIds))return "Symmetry requires matching line or arc pairs";
+                if(!(circles || arcs || (first["type"]=="line" && second["type"]=="line"))
+                    || !checkReferences(constraint,"pointIds",circles ? 2 : arcs ? 6 : 4,pointIds))return "Symmetry requires matching line, circle or arc pairs";
                 if(axis["type"]!="line" || !axis["construction"].toBool())return "Symmetry axis must be a construction line";
+                if(circles && (pairs[0]!=first["centerPointId"] || pairs[1]!=second["centerPointId"]))
+                    return "Symmetry centers must match the retained circles";
                 if(arcs && (pairs[4]!=first["centerPointId"] || pairs[5]!=second["centerPointId"]
                     || ((first["sweepAngleDeg"].toDouble()*second["sweepAngleDeg"].toDouble()<0) != (pairs[1]==second["startPointId"]))))
                     return "Symmetry arc correspondence conflicts with the retained sweep branch";
-                if(pairs[0]!=first["startPointId"] || pairs[2]!=first["endPointId"]
+                if(!circles && (pairs[0]!=first["startPointId"] || pairs[2]!=first["endPointId"]
                     || !((pairs[1]==second["startPointId"] && pairs[3]==second["endPointId"])
-                      || (pairs[1]==second["endPointId"] && pairs[3]==second["startPointId"])))
+                      || (pairs[1]==second["endPointId"] && pairs[3]==second["startPointId"]))))
                     return "Symmetry endpoints must match the retained pairing";
             } else if((type=="horizontal" || type=="vertical") && constraint.contains("pointIds")) {
                 if(constraint.size()!=3 || !checkReferences(constraint,"pointIds",2,pointIds) || constraint.contains("entityIds"))
@@ -2496,16 +2499,16 @@ SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& dra
         }
         if(constraint["type"]=="symmetry"){
             const auto ids=constraint["entityIds"].toArray();
-            if(ids.size()!=3 || ids[0]==ids[1] || ids[0]==ids[2] || ids[1]==ids[2])reject("Symmetry needs two distinct lines or arcs and one construction axis");
+            if(ids.size()!=3 || ids[0]==ids[1] || ids[0]==ids[2] || ids[1]==ids[2])reject("Symmetry needs two distinct matching curves and one construction axis");
             QMap<QString,QJsonObject> lines,points;
             for(const auto& value:parameters["entities"].toArray()){
-                const auto entity=value.toObject();if(entity["type"]=="line" || entity["type"]=="arc")lines[entity["id"].toString()]=entity;
+                const auto entity=value.toObject();if(entity["type"]=="line" || entity["type"]=="arc" || entity["type"]=="circle")lines[entity["id"].toString()]=entity;
             }
             for(const auto& value:parameters["points"].toArray()){const auto point=value.toObject();points[point["id"].toString()]=point;}
-            for(const auto& id:ids)if(!lines.contains(id.toString()))reject("Symmetry supports two authored lines or arcs and a straight axis");
+            for(const auto& id:ids)if(!lines.contains(id.toString()))reject("Symmetry supports two authored matching lines, circles or arcs and a straight axis");
             const auto first=lines[ids[0].toString()],second=lines[ids[1].toString()],axis=lines[ids[2].toString()];
             const bool arcs=first["type"]=="arc" && second["type"]=="arc";
-            if(first["type"]!=second["type"])reject("Symmetry requires matching line or arc pairs");
+            if(first["type"]!=second["type"])reject("Symmetry requires matching line, circle or arc pairs");
             if(axis["type"]!="line" || !axis["construction"].toBool())reject("Symmetry axis must be a construction line");
             auto xy=[&](const QJsonValue& id){const auto point=points.value(id.toString());
                 if(point.isEmpty())reject("Symmetry endpoint is unavailable");return QPointF(point["uMm"].toDouble(),point["vMm"].toDouble());};
@@ -2513,6 +2516,9 @@ SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& dra
             const double norm=QPointF::dotProduct(delta,delta);
             if(norm<1e-12)reject("Symmetry axis is degenerate");
             const auto reflect=[&](const QPointF& point){const auto foot=axisStart+delta*(QPointF::dotProduct(point-axisStart,delta)/norm);return foot*2-point;};
+            if(first["type"]=="circle"){
+                constraint["pointIds"]=QJsonArray{first["centerPointId"],second["centerPointId"]};
+            }else{
             const auto a=reflect(xy(first["startPointId"])),b=reflect(xy(first["endPointId"]));
             const auto c=xy(second["startPointId"]),d=xy(second["endPointId"]);
             const auto square=[](const QPointF& v){return QPointF::dotProduct(v,v);};
@@ -2526,6 +2532,7 @@ SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& dra
                 ? QJsonArray{first["startPointId"],second["startPointId"],first["endPointId"],second["endPointId"]}
                 : QJsonArray{first["startPointId"],second["endPointId"],first["endPointId"],second["startPointId"]};
             if(arcs){auto pairs=constraint["pointIds"].toArray();pairs.append(first["centerPointId"]);pairs.append(second["centerPointId"]);constraint["pointIds"]=pairs;}
+            }
         }
         if(arguments.contains("origin")){
             if(constraint["type"]!="midpoint" || arguments["origin"]!=true || arguments.contains("pointIds"))

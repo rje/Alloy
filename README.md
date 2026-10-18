@@ -29,6 +29,9 @@ now retains a finite, nonendpoint contact through radius and line edits, with
 the same constraint controls and a verified downstream rounded extrusion.
 [Analytic constraint pick feedback](docs/validation/sketch-constraint-pair-feedback.md)
 now explains unsupported geometry pairs without discarding a valid first pick.
+[Circle-pair Symmetry](docs/validation/sketch-circle-symmetry.md) now reflects
+two authored circles about a construction axis through diameter and position
+edits, with a retained constraint and native badge.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,

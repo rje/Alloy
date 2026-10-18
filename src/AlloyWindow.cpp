@@ -598,7 +598,7 @@ AlloyWindow::AlloyWindow() {
         auto* action=constraints->addAction(type=="horizontalVertical" ? "Horizontal/Vertical" : type.first(1).toUpper()+type.sliced(1));
         action->setObjectName("sketch.action.constraint."+type);
         action->setToolTip(type=="tangent" ? "Pick two circles, a circle and line, or an arc and line sharing one endpoint; Escape exits"
-            : type=="symmetry" ? "Pick two existing lines or two arcs, then a construction symmetry axis; Escape exits"
+            : type=="symmetry" ? "Pick two matching lines, circles or arcs, then a construction symmetry axis; Escape exits"
             : type=="midpoint" ? "Pick a line or arc, then its midpoint point or sketch origin; Escape exits"
             : type=="fixed" ? "Select one point; retain its position" : type=="coincident" ? "Select two points"
             : type=="horizontalVertical" ? "Pick one line or two points; the first point is the initial reference" : type=="horizontal" || type=="vertical" ? "Pick one line" : type=="concentric" ? "Pick two circles or arcs" : "Pick a compatible pair; repeat pairs; Escape exits");
@@ -10890,16 +10890,14 @@ QJsonObject AlloyWindow::setSketchSelection(const QJsonObject& selection) {
                 return rejectPick("wrong_type","Concentric requires circles or arcs");
             else if(constraintType=="collinear" && kind!="line")
                 return rejectPick("wrong_type","Collinear requires straight lines");
-            else if(constraintType=="symmetry" && kind=="circle")
-                return rejectPick("unsupported_pair","Circle symmetry is not yet supported; select two lines or two arcs");
-            else if((constraintType=="symmetry" && kind!="line" && kind!="arc")
+            else if((constraintType=="symmetry" && kind!="line" && kind!="circle" && kind!="arc")
                 || (constraintType=="tangent" && kind!="line" && kind!="circle" && kind!="arc"))
                 return rejectPick("wrong_type",label+" requires authored lines, circles or arcs");
         }
         if(types.size()>=2){
             const auto first=types[0],second=types[1];
             if(constraintType=="symmetry" && first!=second)
-                return rejectPick("unsupported_pair","Symmetry requires matching line-line or arc-arc geometry");
+                return rejectPick("unsupported_pair","Symmetry requires matching line-line, circle-circle or arc-arc geometry");
             if(constraintType=="tangent" && !((first=="circle" && second=="circle")
                 || (first=="line" && (second=="circle" || second=="arc"))
                 || (second=="line" && (first=="circle" || first=="arc"))))
@@ -10941,10 +10939,10 @@ QJsonObject AlloyWindow::setSketchSelection(const QJsonObject& selection) {
             : type=="tangent" ? (targets.isEmpty() ? QString("Tangent · Pick curve or line")
             : QString("Tangent · Pick matching curve or line"))
             : type=="symmetry" ? (targets.size()==2 ? QString("Symmetry · Pick construction axis · Escape exits")
-            : targets.isEmpty() ? QString("Symmetry · Pick first line or arc · Escape exits") : QString("Symmetry · Pick matching line or arc · Escape exits"))
+            : targets.isEmpty() ? QString("Symmetry · Pick first line, circle or arc · Escape exits") : QString("Symmetry · Pick matching line, circle or arc · Escape exits"))
             : QString("%1 · Pick %2 %3 · Escape exits").arg(label).arg(targets.isEmpty() ? "first" : "next").arg(field=="pointIds" ? "point" : "curve");
         if(targets.size()>required)return failure("invalid_constraint_target",QString("%1 requires %2 targets").arg(label).arg(required));
-        if(type=="symmetry" && !normalized["pointIds"].toArray().isEmpty())return failure("invalid_constraint_target","Symmetry requires line or arc picks");
+        if(type=="symmetry" && !normalized["pointIds"].toArray().isEmpty())return failure("invalid_constraint_target","Symmetry requires line, circle or arc picks");
         if(field=="entityIds")for(int index=0;index<targets.size();++index)for(const auto& entry:parameters["entities"].toArray()) {
             const auto target=targets[index];
             const auto entity=entry.toObject();if(entity["id"]!=target)continue;
@@ -12348,7 +12346,7 @@ void AlloyWindow::showSketch() {
             const auto type=types[i];auto* button=new QPushButton(type=="horizontalVertical" ? "Horizontal/Vertical" : type.first(1).toUpper()+type.sliced(1));button->setObjectName("sketch.constraint."+type);button->setCheckable(true);
             button->setStyleSheet("QPushButton:checked { background: #deedf5; border: 1px solid #2b83ae; }");
             button->setToolTip(type=="tangent" ? "Pick two circles, a circle and line, or an arc and line sharing one endpoint; Escape exits"
-                : type=="symmetry" ? "Pick two existing lines or two arcs, then a construction symmetry axis; Escape exits"
+                : type=="symmetry" ? "Pick two matching lines, circles or arcs, then a construction symmetry axis; Escape exits"
                 : type=="midpoint" ? "Pick a line or arc, then a point or sketch origin; Escape exits"
                 : type=="fixed" ? "Select one point; retain its position" : type=="coincident" ? "Select two points"
                 : type=="horizontalVertical" ? "Pick one line or two points; the first point is the initial reference" : type=="horizontal" || type=="vertical" ? "Pick one line" : type=="equal" ? "Pick two lines or two circles/arcs; repeat pairs; Escape exits" : type=="concentric" ? "Pick two circles or arcs; repeat pairs; Escape exits" : "Pick two lines; repeat pairs; Escape exits");

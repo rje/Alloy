@@ -81,7 +81,42 @@ int main(int argc,char** argv){
         check(branchCase(90,-180).ok,"opposite sweep uses forward endpoint mapping");
         const auto incompatible=branchCase(90,180);check(!incompatible.ok && incompatible.error.contains("incompatible"),"incompatible sweep branch refused");
         const auto ambiguous=branchCase(0,180);check(!ambiguous.ok && ambiguous.error.contains("ambiguous"),"equidistant endpoint branches refused");
-        std::cout<<"sketch symmetry: line and arc pairing, source edit, refusal, history, reopen passed\n";
+        auto circles=SketchGeometry::newFeature(document.authored()["documentId"].toString(),"XY");
+        circles=SketchGeometry::addCircle(circles,{{"centerUMm",-20},{"centerVMm",0},{"diameterMm",20}});
+        const auto circleA=circles["parameters"].toObject()["entities"].toArray().last().toObject();
+        circles=SketchGeometry::addCircle(circles,{{"centerUMm",21},{"centerVMm",1},{"diameterMm",18}});
+        const auto circleB=circles["parameters"].toObject()["entities"].toArray().last().toObject();
+        circles=SketchGeometry::addLine(circles,{{"u1Mm",0},{"v1Mm",-25},{"u2Mm",0},{"v2Mm",25}});
+        const auto circleAxis=circles["parameters"].toObject()["entities"].toArray().last().toObject();
+        auto apply=[&](const QJsonObject& args){auto r=SketchGeometry::addConstraint(circles,args);check(r.ok,r.error);circles=r.feature;};
+        auto construction=SketchGeometry::setConstruction(circles,{{"entityIds",QJsonArray{circleAxis["id"]}},{"construction",true}});
+        check(construction.ok,construction.error);circles=construction.feature;
+        apply({{"type","fixed"},{"pointIds",QJsonArray{circleAxis["startPointId"]}}});
+        apply({{"type","vertical"},{"entityIds",QJsonArray{circleAxis["id"]}}});
+        apply({{"type","symmetry"},{"entityIds",QJsonArray{circleA["id"],circleB["id"],circleAxis["id"]}}});
+        const auto circleRelation=circles["parameters"].toObject()["constraints"].toArray().last().toObject();
+        check(circleRelation["pointIds"].toArray()==QJsonArray{circleA["centerPointId"],circleB["centerPointId"]},"stable circle center correspondence");
+        auto sized=SketchGeometry::addDimension(circles,{{"kind","diameter"},{"entityId",circleA["id"]},{"valueMm",20}});
+        check(sized.ok,sized.error);circles=sized.feature;
+        const auto diameter=circles["parameters"].toObject()["dimensions"].toArray().last().toObject()["id"].toString();
+        auto resized=SketchGeometry::updateDimension(circles,{{"dimensionId",diameter},{"valueMm",24}});
+        check(resized.ok,resized.error);circles=resized.feature;
+        const auto previousCenter=point(circles,circleA["centerPointId"].toString());
+        auto translated=SketchGeometry::movePoint(circles,{{"pointId",circleA["centerPointId"]},{"uMm",-24},{"vMm",5}});
+        check(translated.ok,translated.error);circles=translated.feature;
+        const auto ca=point(circles,circleA["centerPointId"].toString()),cb=point(circles,circleB["centerPointId"].toString());
+        check(std::abs(ca["uMm"].toDouble()+cb["uMm"].toDouble())<1e-5 && std::abs(ca["vMm"].toDouble()-cb["vMm"].toDouble())<1e-5,"circle centers remain reflected");
+        check(std::abs(ca["vMm"].toDouble()-previousCenter["vMm"].toDouble())>0.1,"circle translation remains editable");
+        for(const auto& e:circles["parameters"].toObject()["entities"].toArray())if(e.toObject()["type"]=="circle")
+            check(std::abs(e.toObject()["radiusMm"].toDouble()-12)<1e-5,"diameter edit drives both radii");
+        const auto conflict=SketchGeometry::addDimension(circles,{{"kind","diameter"},{"entityId",circleB["id"]},{"valueMm",30}});
+        check(!conflict.ok && conflict.feature==circles,"incompatible circle diameter refuses atomically");
+        auto corrupt=circles;auto cp=corrupt["parameters"].toObject();auto cc=cp["constraints"].toArray();
+        for(int i=0;i<cc.size();++i)if(cc[i].toObject()["type"]=="symmetry"){
+            auto relation=cc[i].toObject();relation["pointIds"]=QJsonArray{circleB["centerPointId"],circleA["centerPointId"]};cc[i]=relation;}
+        cp["constraints"]=cc;corrupt["parameters"]=cp;
+        check(!SketchGeometry::solveDraft(corrupt).ok,"swapped authored circle correspondence refuses");
+        std::cout<<"sketch symmetry: line, circle and arc pairing, source edit, refusal, history, reopen passed\n";
         return 0;
     }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}
 }
