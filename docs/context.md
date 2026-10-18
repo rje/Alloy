@@ -21,6 +21,13 @@ visibility policy, Browser/viewport body-selection synchronization, exact
 undo/redo and native-file reopen. A real-app API workflow plus native captures
 received independent review; see [the receipt](validation/browser-document-workflow.md).
 Broader assembly Browser and physical interaction parity remain separate work.
+REL-037/#480 now has independently accepted saved-iron final Open presentation
+evidence. Cached exact body bounds cut the GUI Fit phase from about 70 ms to
+9–12 ms; the current-build terminal poll fell from 520–578 ms to about 470 ms.
+Concurrent API heartbeat, tab/history identity, exact authored state and native
+capture passed. A roughly 0.42 s final UI pause remains measured, while
+broader responsiveness stays under REL-016; see
+[the receipt](validation/open-final-presentation.md).
 
 GitHub Actions already compiles tag/manual candidates for macOS, Windows and
 Linux. [The build/distribution plan](build-distribution.md) distinguishes
@@ -179,7 +186,8 @@ independently accepts background evaluation for interactive native Open on the
 same iron fixture: 30.607 s background work with responsive status/navigation,
 exact authored/geometry/history/save, and a disclosed 1.279 s final presentation
 pause. See [the receipt](validation/responsive-native-open.md).
-REL-037/#480 tracks the final presentation pause. TUT-034/#470 now has an
+REL-037/#480 later accepted a bounded final-presentation reduction; its measured
+remaining pause is recorded above. TUT-034/#470 now has an
 independently accepted corrected from-blank recording: 44 stages, 562 seconds,
 2,810 frames, exact final native solid, checked closed genus-1 STL and
 independent STEP readback. Meaningful source edit, Undo/Redo and reopen pass.

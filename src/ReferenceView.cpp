@@ -2347,7 +2347,23 @@ void ReferenceView::clearSketchCursor() {
 void ReferenceView::fit(const std::vector<EvaluatedBody>& bodies,const std::vector<EvaluatedSketch>& sketches) {
     Bnd_Box bounds;
     for(const auto& canvas:canvasModels_)if(context_->IsDisplayed(canvas))BRepBndLib::AddOptimal(canvas->Shape(),bounds,false,false);
-    for(const auto& body:bodies)if(body.visible)BRepBndLib::AddOptimal(body.shape,bounds,false,false);
+    for(const auto& body:bodies)if(body.visible){
+        // Evaluation already computed these exact AddOptimal bounds. Repeating
+        // that kernel traversal on the GUI thread stalls Fit on large designs.
+        const auto box=body.summary.value("boundsMm").toObject();
+        const auto low=box.value("min").toArray(),high=box.value("max").toArray();
+        bool usable=low.size()==3 && high.size()==3;
+        double lo[3]{},hi[3]{};
+        if(usable)for(int axis=0;axis<3;++axis){
+            usable=low[axis].isDouble() && high[axis].isDouble();
+            if(!usable)break;
+            lo[axis]=low[axis].toDouble();hi[axis]=high[axis].toDouble();
+            usable=std::isfinite(lo[axis]) && std::isfinite(hi[axis]) && lo[axis]<=hi[axis];
+            if(!usable)break;
+        }
+        if(usable)bounds.Update(lo[0],lo[1],lo[2],hi[0],hi[1],hi[2]);
+        else BRepBndLib::AddOptimal(body.shape,bounds,false,false);
+    }
     for(const auto& sketch:sketches)if(sketch.visible && !sketch.shape.IsNull())BRepBndLib::AddOptimal(sketch.shape,bounds,false,false);
     if(bounds.IsVoid()){sceneScale_=400;sceneCenter_=gp_Pnt();}
     else {

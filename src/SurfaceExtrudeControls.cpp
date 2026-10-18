@@ -165,6 +165,9 @@ QJsonObject AlloyWindow::cancelDocumentOpen() {
 }
 
 void AlloyWindow::completeDocumentOpen(const std::shared_ptr<GeometryEvaluation>& task) {
+    const bool traceOpen=qEnvironmentVariableIsSet("ALLOY_TRACE_OPEN_PRESENTATION");
+    QElapsedTimer presentationTimer;if(traceOpen)presentationTimer.start();
+    auto tracePhase=[&](const char* phase){if(traceOpen){qInfo().noquote()<<"open_presentation_ms"<<phase<<presentationTimer.nsecsElapsed()/1e6;presentationTimer.restart();}};
     statusBar()->clearMessage();status_->show();
     for(const auto& control:documentOpenFrozenControls_)if(control)control->setEnabled(true);
     documentOpenFrozenControls_.clear();
@@ -187,20 +190,24 @@ void AlloyWindow::completeDocumentOpen(const std::shared_ptr<GeometryEvaluation>
         // complete private result has passed identity, request and revision guards.
         error=document_->adoptOpen(task->full,task->inputs.value("path").toString(),task->base,task->revision);
     }
+    tracePhase("adopt");
     if(!error.isEmpty()){
         documentOpenOperation_["evaluationStatus"]="failed";
         documentOpenOperation_["previewError"]=QJsonObject{{"code","open_failed"},{"message",error},{"diagnostics",task->full.diagnostics}};
         status_->setText("Open failed; original design preserved: "+error);return;
     }
     if(!session_.isEmpty())finishSession(session_.value("id").toString(),false);
-    view_->rebindDocument();refreshCanvasPresentation();displayedDocumentRevision_=std::numeric_limits<quint64>::max();
+    view_->rebindDocument();tracePhase("rebind");
+    refreshCanvasPresentation();displayedDocumentRevision_=std::numeric_limits<quint64>::max();tracePhase("canvas");
     selectedBody_.clear();selectedFace_={};selectedEdge_={};selectedPlane_.clear();view_->selectSupportFace({},{});
     view_->clearSolidEdgeHighlights();selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};
     view_->fit(presentationBodies(),nonzeroAssemblyPose() ? std::vector<EvaluatedSketch>{} : document_->sketches());
+    tracePhase("fit");
     const auto operation=documentOpenOperation_;documentOpenOperation_=document_->state();
     for(auto it=operation.begin();it!=operation.end();++it)documentOpenOperation_[it.key()]=it.value();
     documentOpenOperation_["evaluationStatus"]="completed";geometryEvaluationTerminal_={};
-    refresh();const auto recoveryError=syncRecovery();
+    tracePhase("result_state");
+    refresh();tracePhase("refresh");const auto recoveryError=syncRecovery();tracePhase("recovery");
     documentOpenOperation_["recovery"]=QJsonObject{{"durable",recoveryError.isEmpty()},{"warning",recoveryError},{"scope","committed authored state only"}};
 
 }

@@ -14,7 +14,8 @@ also keeps the corrected iron's final solid evaluation responsive. Initial
 [cell enumeration](docs/validation/boundary-fill-responsive-cells.md) now runs
 on the same worker. [Interactive native Open](docs/validation/responsive-native-open.md)
 also evaluates large models without freezing the window; its final presentation
-step still has a measured pause.
+has a [bounded optimization](docs/validation/open-final-presentation.md) and
+still has a measured roughly 0.4 s pause.
 [Historical Sketch Edit](docs/validation/responsive-historical-sketch.md) now
 evaluates the saved iron prefix off-thread while status and navigation remain
 responsive. Its changed-sketch

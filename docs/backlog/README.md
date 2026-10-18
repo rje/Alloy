@@ -37,8 +37,11 @@ REL-035/#478 independently fixes the cell-enumeration UI stall on the saved
 iron fixture; see its [receipt](../validation/boundary-fill-responsive-cells.md).
 REL-036/#479 independently fixes the large-model interactive Open stall;
 see its [receipt](../validation/responsive-native-open.md). A 1.279 s final
-presentation interval remains a measured responsiveness follow-up under
-REL-037/#480. The corrected iron full recording is now independently accepted;
+presentation interval was a measured follow-up under REL-037/#480. The latter
+now independently accepts a bounded reduction in final Open presentation:
+current-build terminal polling measured 520–578 ms before and about 470 ms
+after reusing evaluated body bounds. A roughly 0.42 s final UI pause remains;
+see [the receipt](../validation/open-final-presentation.md). The corrected iron full recording is now independently accepted;
 REL-038/039/#481–482 fix the measured Trim and Inner Loft stalls;
 REL-040/041 fix the bounded sketch edit paths.
 REL-040/#483 now accepts the bounded historical Sketch Edit worker path and

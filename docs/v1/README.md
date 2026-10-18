@@ -6,7 +6,7 @@ The user reviewed this as a reasonable working direction on 2026-10-17. REL-030 
 
 - [Command inventory](command-inventory.json): 150 capability rows and 397 runtime-cross-checked IDs, with explicit gaps and evidence.
 - [Inventory notes](inventory-notes.md): definitions and verification limits.
-- [Backlog map](backlog-map.json) and [workstreams](backlog-notes.md): dated 484-issue reconciled snapshot, not a live board. It includes corrected TUT-018/TUT-034 acceptance, bounded TUT-035 clearance acceptance, accepted REL-033–036 responsiveness fixes, and measured REL-037–041 follow-ups.
+- [Backlog map](backlog-map.json) and [workstreams](backlog-notes.md): dated 484-issue reconciled snapshot, not a live board. It includes corrected TUT-018/TUT-034 acceptance, bounded TUT-035 clearance acceptance and the earlier REL-033–041 responsiveness state. REL-037 has a newer [final Open receipt](../validation/open-final-presentation.md).
 - [Iron reassessment](iron-reassessment.md): final shape rejected; public-view comparison and corrected fixture acceptance.
 
 Sequence: finish the remaining enclosure gate → reconcile each v1 gap into a bounded owner → creation/revision reliability → native interaction polish → native renderer and packaged platform qualification. Close each active issue with its stated evidence before pulling another; split only explicit remaining requirements into linked Todo work.
