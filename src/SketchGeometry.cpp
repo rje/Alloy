@@ -2097,12 +2097,18 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 };
                 for(auto it=parameters.constBegin();it!=parameters.constEnd();++it)if(!QSet<QString>{"points","entities","constraints","dimensions","originPointId"}.contains(it.key()) && mentions(it.value(),mentions))return "Fixed arc must be independent of retained geometry groups";
             } else if(type=="fixedCircle") {
-                if(constraint.size()!=7 || !checkReferences(constraint,"entityIds",1,circleIds)
-                    || !checkReferences(constraint,"pointIds",1,pointIds))return "Fixed circle requires one circle and its center";
+                if(!checkReferences(constraint,"entityIds",1,circleIds))return "Fixed circle requires one circle";
                 QJsonObject circle;for(const auto& row:parameters["entities"].toArray())if(row.toObject()["id"]==constraint["entityIds"].toArray()[0])circle=row.toObject();
-                if(constraint["pointIds"].toArray()!=QJsonArray{circle["centerPointId"]})return "Fixed circle center does not match its target";
+                const bool twoPoint=circle.contains("diameterStartPointId");
+                if(constraint.size()!=(twoPoint ? 11 : 7) || !checkReferences(constraint,"pointIds",twoPoint ? 2 : 1,pointIds)
+                    || constraint["pointIds"].toArray()!=(twoPoint ? QJsonArray{circle["centerPointId"],circle["diameterStartPointId"]} : QJsonArray{circle["centerPointId"]}))return "Fixed circle points do not match its target";
                 coordinate(constraint,"uMm");coordinate(constraint,"vMm");
                 if(coordinate(constraint,"radiusMm")<minimumLength)return "Invalid fixed circle radius";
+                if(twoPoint) {
+                    coordinate(constraint,"startUMm");coordinate(constraint,"startVMm");
+                    for(const auto& key:{"diameterDirectionU","diameterDirectionV"})
+                        if(std::abs(coordinate(constraint,key)-coordinate(circle,key))>1e-12)return "Fixed circle diameter direction cannot change";
+                }
             } else if(type=="fixedLine") {
                 if(constraint.size()!=5 || !checkReferences(constraint,"entityIds",1,lineIds)
                     || !checkReferences(constraint,"pointIds",2,pointIds) || constraint["coordinates"].toArray().size()!=2)
@@ -2545,9 +2551,12 @@ SketchGeometry::SolveResult SketchGeometry::toggleFixed(const QJsonObject& draft
             if(target.isEmpty())reject("Fix/UnFix target no longer exists");
             if(target.value("type")!="line" && target.value("type")!="circle" && target.value("type")!="arc")reject("Fix/UnFix currently supports authored straight lines, circles, arcs and sketch points");
             const bool circle=target.value("type")=="circle",arc=target.value("type")=="arc";
-            if(circle && target.contains("diameterStartPointId"))reject("Fix/UnFix requires an independent circle; retained diameter placement owns this target");
             if(target.contains("projectionId"))reject("Projected geometry cannot own Fix");
             owned=arc ? QJsonArray{target.value("centerPointId"),target.value("startPointId"),target.value("endPointId")} : circle ? QJsonArray{target.value("centerPointId")} : QJsonArray{target.value("startPointId"),target.value("endPointId")};relation["entityIds"]=entities;
+            if(circle && target.contains("diameterStartPointId")) {
+                owned.append(target.value("diameterStartPointId"));
+                relation["diameterDirectionU"]=target.value("diameterDirectionU");relation["diameterDirectionV"]=target.value("diameterDirectionV");
+            }
             if(circle || arc){relation["type"]=arc ? "fixedArc" : "fixedCircle";relation["radiusMm"]=target.value("radiusMm");}
             if(arc){relation["startAngleDeg"]=target.value("startAngleDeg");relation["sweepAngleDeg"]=target.value("sweepAngleDeg");}
             QSet<QString> targetIds{entities[0].toString()};for(const auto& id:owned)targetIds.insert(id.toString());
@@ -2580,6 +2589,9 @@ SketchGeometry::SolveResult SketchGeometry::toggleFixed(const QJsonObject& draft
         relation["pointIds"]=owned;
         if(points.isEmpty() && relation.value("type")!="fixedCircle" && relation.value("type")!="fixedArc")relation["coordinates"]=coordinates;
         else {relation["uMm"]=coordinates[0].toObject().value("uMm");relation["vMm"]=coordinates[0].toObject().value("vMm");}
+        if(relation.contains("diameterDirectionU")) {
+            relation["startUMm"]=coordinates[1].toObject().value("uMm");relation["startVMm"]=coordinates[1].toObject().value("vMm");
+        }
         bool removed=false;QJsonArray kept;
         for(const auto& row:parameters.value("constraints").toArray()) {
             const auto prior=row.toObject();

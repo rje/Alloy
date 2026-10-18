@@ -129,7 +129,12 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             }
             require(foundTarget,"Circle offset result no longer exists");
         }
-        QSet<QString> diameterStartIds;
+        QSet<QString> diameterStartIds,fixedDiameterStartIds;
+        for(const auto& value:constraints) {
+            const auto relation=value.toObject();
+            if(relation["type"]=="fixedCircle" && relation["pointIds"].toArray().size()==2)
+                fixedDiameterStartIds.insert(reference(relation,"pointIds",1));
+        }
         for(const auto& value:entities) {
             const auto circle=value.toObject();
             if(circle["type"]!="circle" || !circle.contains("diameterStartPointId"))continue;
@@ -184,7 +189,10 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             coordinates[2*i] = number(point, "uMm"); coordinates[2*i+1] = number(point, "vMm");
             require(std::abs(coordinates[2*i]) <= maximumCoordinate && std::abs(coordinates[2*i+1]) <= maximumCoordinate, "Point outside supported range");
             pointMap.emplace(id, GCS::Point(&coordinates[2*i], &coordinates[2*i+1]));
-            if(!lockedPointIds.contains(id) && !diameterStartIds.contains(id) && !derivedPointIds.contains(id)){
+            // A free two-point start is an authored seed. Explicit Fix instead
+            // makes it a solver variable pinned to the retained source position,
+            // so center-handle movement cannot reseed the fixed circle elsewhere.
+            if(!lockedPointIds.contains(id) && (!diameterStartIds.contains(id) || fixedDiameterStartIds.contains(id)) && !derivedPointIds.contains(id)){
                 unknowns.push_back(&coordinates[2*i]); unknowns.push_back(&coordinates[2*i+1]);}
         }
         auto point = [&](const QString& id) -> GCS::Point& {
@@ -301,6 +309,11 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 solver.addConstraintEqual(circle.center.x,constant(number(constraint,"uMm")),t);
                 solver.addConstraintEqual(circle.center.y,constant(number(constraint,"vMm")),t);
                 solver.addConstraintEqual(circle.rad,constant(number(constraint,"radiusMm")),t);
+                if(constraint.contains("startUMm")) {
+                    auto& start=point(reference(constraint,"pointIds",1));
+                    solver.addConstraintEqual(start.x,constant(number(constraint,"startUMm")),t);
+                    solver.addConstraintEqual(start.y,constant(number(constraint,"startVMm")),t);
+                }
             } else if(type=="fixedLine") {
                 const auto coordinates=constraint["coordinates"].toArray();
                 for(int i=0;i<2;++i){auto& p=point(reference(constraint,"pointIds",i));const auto position=coordinates[i].toObject();
@@ -648,7 +661,18 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 check(*vertex.x-*anchor.x-number(c,"offsetUMm"),lengthTolerance);check(*vertex.y-*anchor.y-number(c,"offsetVMm"),lengthTolerance);
             }
             else if(type=="fixedArc") {const auto& arc=arcMap.at(reference(c,"entityIds",0));check(*arc.center.x-number(c,"uMm"),lengthTolerance);check(*arc.center.y-number(c,"vMm"),lengthTolerance);check(*arc.rad-number(c,"radiusMm"),lengthTolerance);check(*arc.startAngle-number(c,"startAngleDeg")*degrees,1e-7);check(*arc.endAngle-(number(c,"startAngleDeg")+number(c,"sweepAngleDeg"))*degrees,1e-7);}
-            else if(type=="fixedCircle") {const auto& circle=circleMap.at(reference(c,"entityIds",0));check(*circle.center.x-number(c,"uMm"),lengthTolerance);check(*circle.center.y-number(c,"vMm"),lengthTolerance);check(*circle.rad-number(c,"radiusMm"),lengthTolerance);}
+            else if(type=="fixedCircle") {
+                const auto& circle=circleMap.at(reference(c,"entityIds",0));check(*circle.center.x-number(c,"uMm"),lengthTolerance);check(*circle.center.y-number(c,"vMm"),lengthTolerance);check(*circle.rad-number(c,"radiusMm"),lengthTolerance);
+                if(c.contains("startUMm")) {
+                    const auto& start=point(reference(c,"pointIds",1));
+                    check(*start.x-number(c,"startUMm"),lengthTolerance);check(*start.y-number(c,"startVMm"),lengthTolerance);
+                    // Both authored diameter endpoints follow from the retained
+                    // start, unit direction and radius; check the opposite end
+                    // independently of the evaluator's center seeding.
+                    check(2 * *circle.center.x-*start.x-number(c,"startUMm")-2*number(c,"diameterDirectionU")*number(c,"radiusMm"),lengthTolerance);
+                    check(2 * *circle.center.y-*start.y-number(c,"startVMm")-2*number(c,"diameterDirectionV")*number(c,"radiusMm"),lengthTolerance);
+                }
+            }
             else if(type=="fixedLine") {const auto positions=c["coordinates"].toArray();for(int i=0;i<2;++i){const auto& p=point(reference(c,"pointIds",i));const auto position=positions[i].toObject();check(*p.x-number(position,"uMm"),lengthTolerance);check(*p.y-number(position,"vMm"),lengthTolerance);}}
             else if(type=="fixed") {const auto& p=point(reference(c,"pointIds",0));check(*p.x-number(c,"uMm"),lengthTolerance);check(*p.y-number(c,"vMm"),lengthTolerance);}
             else if(type=="circleTangent" || type=="arcCircleTangent" || type=="arcEndpointCircleTangent" || type=="arcEndpointArcTangent" || type=="arcArcTangent") {
@@ -884,7 +908,7 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
         const std::set<double*> freeParameters(movable.begin(),movable.end());
         QJsonObject pointFreedom,entityFreedom;
         for(const auto& [id,p]:pointMap){
-            const bool determinate=dof==0||(!derivedPointIds.contains(id)&&!diameterStartIds.contains(id));
+            const bool determinate=dof==0||(!derivedPointIds.contains(id)&&(!diameterStartIds.contains(id)||fixedDiameterStartIds.contains(id)));
             const bool uFree=freeParameters.contains(p.x),vFree=freeParameters.contains(p.y);
             pointFreedom[id]=QJsonObject{{"uFree",uFree},{"vFree",vFree},{"determinate",determinate},{"fullyConstrained",determinate&&!uFree&&!vFree}};
         }

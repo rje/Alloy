@@ -31,7 +31,7 @@ private slots:
         const auto blank=SketchGeometry::newFeature(uuid(),"XY");
         auto two=SketchGeometry::addTwoPointCircle(blank,{{"startUMm",10},{"startVMm",10},{"directionU",1},{"directionV",0},{"diameterMm",8}});QVERIFY(two.ok);
         const auto twoId=two.feature.value("parameters").toObject().value("entities").toArray().last().toObject().value("id");
-        auto refused=SketchGeometry::toggleFixed(two.feature,{{"entityIds",QJsonArray{twoId}}});QVERIFY(!refused.ok);QCOMPARE(refused.feature,two.feature);
+        const auto fixedTwo=SketchGeometry::toggleFixed(two.feature,{{"entityIds",QJsonArray{twoId}}});QVERIFY2(fixedTwo.ok,qPrintable(fixedTwo.error));SketchGeometry::SolveResult refused;
         auto circle=SketchGeometry::addCircle(blank,{{"centerUMm",10},{"centerVMm",10},{"diameterMm",8}});const auto id=circle.value("parameters").toObject().value("entities").toArray().last().toObject().value("id");
         const auto offset=SketchGeometry::addCircleOffset(circle,{{"sourceEntityId",id},{"distanceMm",2}});QVERIFY2(offset.ok,qPrintable(offset.error));
         const auto resultId=offset.feature.value("parameters").toObject().value("entities").toArray().last().toObject().value("id");

@@ -88,12 +88,14 @@ native receipts retain the actual native workflow state and saved fixture.
 
 This receipt qualifies independent center circles with and without a retained
 radius dimension. Two-Point Circle's `diameterStartPointId` and retained direction
-own placement and explicitly refuse. Circles mentioned by retained groups,
-including Offset source/result, also refuse. Two-Point Circle remains SKT-139/#564;
-retained Circle Offset source/result remains SKT-138/#563. Remaining authored
+own placement and refused in this earlier bounded build; SKT-139/#564 now
+accepts that mode through source-aware Fix/UnFix; see its
+[receipt](sketch-fix-two-point-circle.md). Circles mentioned by retained groups,
+including Offset source/result, still refuse and remain SKT-138/#563. Remaining authored
 constructor combinations are SKT-140/#565 before claiming general authored circle
 coverage. Projected geometry remains read-only. Three-Point and tangent
 constructors author ordinary circles plus source constraints; their unqualified
-combinations remain SKT-140/#565. Arc/ellipse/conic/spline
-Fix remains SKT-135–137/#560–562. Physical OS input, exact matched pixels,
+combinations remain SKT-140/#565. Ordinary finite Arc Fix is accepted by
+SKT-135/#560; ellipse/conic/spline Fix remains SKT-136–137/#561–562.
+Physical OS input, exact matched pixels,
 other-platform GPU runtime and broad exact-match behavior remain unknown.
