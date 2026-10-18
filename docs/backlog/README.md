@@ -34,10 +34,10 @@ threads. XCH-011/#524 has a bounded [Core 3MF export receipt](../validation/3mf-
 with actual app/native/independent consumer evidence; XCH-005 retains import
 and extensions. SOL-059/#504 has a bounded
 [modeled external Thread receipt](../validation/modeled-external-thread.md).
-SKT-102/#525 preserves spline, ellipse, conic and grouped/derived geometry
-deletion after the [accepted ordinary line/circle/arc/point SKT-099 slice](../validation/sketch-geometry-delete.md).
-Its active authored-curve slice now retains generated-group deletion as linked
-Todo SKT-141–143/#567–569, so a refusal cannot be mistaken for implementation.
+SKT-102/#525 accepts authored spline, ellipse and conic deletion after the
+[ordinary line/circle/arc/point SKT-099 slice](../validation/sketch-geometry-delete.md).
+Generated-group deletion remains linked Todo SKT-141–143/#567–569, so a
+safe refusal cannot be mistaken for implementation.
 DOC-016/#167 has a bounded [native exchange-sheet receipt](../validation/native-exchange-sheet.md);
 DOC-035/#516 has a bounded [File-menu export receipt](../validation/native-exchange-menu.md);
 DOC-036/#517 has a bounded [Browser body mesh receipt](../validation/native-browser-mesh.md).

@@ -1642,8 +1642,19 @@ SketchGeometry::SolveResult SketchGeometry::deleteEntities(const QJsonObject& dr
         for(const auto& value:authoredEntities) {
             const auto entity=value.toObject();const auto id=entity["id"].toString();
             if(!targets.contains(id))continue;
-            if(!QSet<QString>{"line","circle","arc","point"}.contains(entity["type"].toString()))
+            if(!QSet<QString>{"line","circle","arc","point","ellipse","conic","fitSpline","controlSpline"}.contains(entity["type"].toString()))
                 reject("This derived sketch entity requires its owning tool to remove it: "+id);
+        }
+        // An authored ellipse owns its two retained construction axes. Retire
+        // those with the curve, while the survivor/metadata checks below still
+        // reject any external owner of the axes or ellipse. Selecting an axis
+        // alone never implicitly deletes its owning ellipse.
+        for(const auto& value:authoredEntities) {
+            const auto entity=value.toObject();
+            if(entity["type"]=="ellipse" && targets.contains(entity["id"].toString())) {
+                targets.insert(entity["firstAxisId"].toString());
+                targets.insert(entity["secondAxisId"].toString());
+            }
         }
         // A selected dependent endpoint or center cannot be removed independently.
         // A standalone Point entity is its own deletion target.
@@ -1664,6 +1675,7 @@ SketchGeometry::SolveResult SketchGeometry::deleteEntities(const QJsonObject& dr
             removedEntities.append(id);
             for(const auto& key:{"pointId","startPointId","endPointId","centerPointId","diameterStartPointId"})
                 if(entity[key].isString())candidatePoints.insert(entity[key].toString());
+            for(const auto& pointId:entity.value("pointIds").toArray())candidatePoints.insert(pointId.toString());
         }
         for(const auto& pointId:requestedPoints)candidatePoints.insert(pointId);
         QSet<QString> retiredPoints;
@@ -1679,7 +1691,7 @@ SketchGeometry::SolveResult SketchGeometry::deleteEntities(const QJsonObject& dr
             reject("A surviving entity depends on selected geometry; remove its owning operation first");
         for(auto it=parameters.begin();it!=parameters.end();++it) {
             if(QSet<QString>{"points","entities","constraints","dimensions"}.contains(it.key()))continue;
-            if(mentions(it.value(),retired,mentions))reject("Retained sketch metadata depends on selected geometry: "+it.key());
+            if(mentions(it.value(),retired,mentions))reject("Retained sketch metadata depends on selected geometry: "+it.key()+"; edit or remove its owning operation first");
         }
         QJsonArray points,constraints,dimensions,removedConstraints,removedDimensions,removedPoints;
         for(const auto& value:authoredPoints) {

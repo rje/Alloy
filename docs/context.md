@@ -18,7 +18,7 @@ disposition remain open under REL-030. Six additional Todo owners
 [#518–#523](backlog/github.md) cover previously unowned sketch
 deletion/diagnosis/intersection, interference inspection, OBJ output and
 active-preview visibility responsiveness. XCH-011/#524 adds a bounded required
-3MF export owner. SKT-102/#525 preserves non-ordinary authored-curve deletion after SKT-099; grouped constructor, Mirror/Offset and linked/projected deletion are explicit linked Todo SKT-141–143/#567–569. SKT-103/#526 owns the Polygon's first retained
+3MF export owner. SKT-102/#525 accepts authored ellipse/conic/fit/control-spline Delete with native/API, exact history/reopen and a downstream solid; see [its receipt](validation/sketch-authored-curve-delete.md). Grouped constructor, Mirror/Offset and linked/projected deletion remain linked Todo SKT-141–143/#567–569. SKT-103/#526 owns the Polygon's first retained
 placement anchor, SKT-104/#527 its canvas annotations, and SKT-105/#528 the
 second placement driver and size/orientation conflict contract. REL-049/#529 records the user's sequencing: finish v1
 functionality and packaging gates first, then audit intrinsic cost across

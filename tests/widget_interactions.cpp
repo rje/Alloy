@@ -31,6 +31,8 @@
 #include <QStyleOptionToolButton>
 #include <QStyleOptionViewItem>
 #include <QTest>
+#include <QProcess>
+#include <QWindow>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 #include <cmath>
@@ -1128,6 +1130,54 @@ private slots:
         QVERIFY(tree->hasFocus());
         QTest::keyClick(tree,Qt::Key_Delete);
         QTRY_COMPARE(params()["entities"].toArray().size(),0);
+        QVERIFY2(run(window,"sketch.cancel"),error_.constData());
+    }
+    void sketchAuthoredCurveDelete() {
+        AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+#ifdef Q_OS_MACOS
+        QProcess activation;activation.start("osascript",{"-e",QString("tell application \"System Events\" to set frontmost of first application process whose unix id is %1 to true").arg(QCoreApplication::applicationPid())});
+        QVERIFY(activation.waitForFinished(5000));QCOMPARE(activation.exitCode(),0);
+#endif
+        window.raise();window.activateWindow();window.windowHandle()->requestActivate();QApplication::setActiveWindow(&window);QTRY_VERIFY(window.isActiveWindow());
+        auto* view=viewport(window);QVERIFY(view);
+        QVERIFY2(run(window,"sketch.begin",{{"plane","XY"}}),error_.constData());
+        const QJsonArray fitPoints{QJsonObject{{"uMm",-30},{"vMm",-15}},QJsonObject{{"uMm",0},{"vMm",-15}},QJsonObject{{"uMm",30},{"vMm",-15}}};
+        QVERIFY2(run(window,"sketch.splineAdd",{{"points",fitPoints}}),error_.constData());
+        QVERIFY2(run(window,"sketch.centerPointEllipse",{{"centerX",0},{"centerY",20},{"firstX",16},{"firstY",20},{"contourX",0},{"contourY",28},{"units","mm"}}),error_.constData());
+        auto params=[&]{return session(window).value("draftSketch").toObject().value("parameters").toObject();};
+        const auto original=params();const auto fit=original.value("entities").toArray().first().toObject();
+        const auto ellipse=original.value("entities").toArray().last().toObject();
+        const auto index=session(window).value("draftHistory").toObject().value("index").toInt();
+        // Hit the spline between its fit points, then deliver Delete with the
+        // focus/selection actually produced by the canvas click.
+        QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,sketchPixel(view,-15,-15));
+        QCOMPARE(session(window).value("selection").toObject().value("entityIds").toArray(),QJsonArray{fit.value("id")});
+        QVERIFY(view->hasFocus());QTest::keyClick(view,Qt::Key_Delete);
+        QTRY_COMPARE(params().value("entities").toArray().size(),3);
+        QCOMPARE(params().value("points").toArray().size(),5);
+        QCOMPARE(session(window).value("draftHistory").toObject().value("index").toInt(),index+1);
+        QVERIFY2(run(window,"history.undo"),error_.constData());QCOMPARE(params(),original);
+        QVERIFY2(run(window,"history.redo"),error_.constData());
+        QVERIFY2(run(window,"history.undo"),error_.constData());
+        // An ellipse contour hit selects the curve rather than its owned axes.
+        const auto pick=sketchPixel(view,16/std::sqrt(2.0),20+8/std::sqrt(2.0));
+        QContextMenuEvent context(QContextMenuEvent::Mouse,pick,view->mapToGlobal(pick));QApplication::sendEvent(view,&context);
+        auto* menu=view->findChild<QMenu*>("context.sketchGeometry");QVERIFY(menu);QTRY_COMPARE(QApplication::activePopupWidget(),menu);
+        QCOMPARE(session(window).value("selection").toObject().value("entityIds").toArray(),QJsonArray{ellipse.value("id")});
+        auto* remove=menu->findChild<QAction*>("sketch.action.deleteGeometry");QVERIFY(remove);
+        QTest::mouseClick(menu,Qt::LeftButton,Qt::NoModifier,menu->actionGeometry(remove).center());
+        QTRY_VERIFY(QApplication::activePopupWidget()==nullptr);QTRY_COMPARE(params().value("entities").toArray().size(),1);
+        QCOMPARE(params().value("entities").toArray().first().toObject().value("id"),fit.value("id"));
+        QCOMPARE(params().value("points").toArray().size(),3);QCOMPARE(params().value("constraints").toArray().size(),0);
+        auto* tree=window.findChild<QTreeWidget*>("sketch.selection");QVERIFY(tree);
+        QTreeWidgetItem* row=nullptr;
+        for(QTreeWidgetItemIterator it(tree);*it;++it)if((*it)->data(0,Qt::UserRole+1).toString()==fit.value("id").toString())row=*it;
+        QVERIFY(row);tree->scrollToItem(row);
+        QTest::mouseClick(tree->viewport(),Qt::LeftButton,Qt::NoModifier,tree->visualItemRect(row).center());
+        QCOMPARE(session(window).value("selection").toObject().value("entityIds").toArray(),QJsonArray{fit.value("id")});
+        QVERIFY(tree->hasFocus());QTest::keyClick(tree,Qt::Key_Delete);
+        QTRY_COMPARE(params().value("entities").toArray().size(),0);QCOMPARE(params().value("points").toArray().size(),0);
         QVERIFY2(run(window,"sketch.cancel"),error_.constData());
     }
     void pressPullProfileModifierToggle() {
