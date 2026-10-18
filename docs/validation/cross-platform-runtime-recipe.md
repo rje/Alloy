@@ -87,3 +87,12 @@ inventory and Alloy compilation/link evidence. Preserve any failures before
 bounded correction. Independent review remains required. Packaging and actual
 installed-runtime/GPU/input qualification remain CI-006/007 and GATE-005; they
 are not part of source-policy admission.
+
+The first manual matrix at commit `b663b4d` is
+[`39125613075`](https://github.com/rje/Alloy/actions/runs/39125613075).
+Its Windows job stopped before Qt source download: the VS 2022 environment
+script was looked up under 32-bit Program Files, so `cl` was absent. Commit
+`dd9de1f` corrected that path and added a Windows-only manual matrix option;
+[`39125746935`](https://github.com/rje/Alloy/actions/runs/39125746935) is the
+targeted retry. Neither initial failure nor the pending retry qualifies the
+Windows input. Retain both run IDs and inspect all remaining jobs before closure.
