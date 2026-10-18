@@ -1,6 +1,8 @@
 # Multiple planar-inset loop owners (SKT-158 / #584)
 
-Bounded qualification candidate, 2026-10-18; independent review pending.
+Accepted bounded qualification, 2026-10-18. Independent Sol review reran the
+native test (3/3), matched app/native binary and saved-model hashes, and
+inspected the GPU captures; it found no material blocker.
 This validates the existing [multiple-owner contract](sketch-multiple-loop-offset-delete.md)
 for two `planarInsetV1` owners in one retained support-face sketch. No product
 controls, modeling code, defaults or ownership policy changed.

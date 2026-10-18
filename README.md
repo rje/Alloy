@@ -106,8 +106,8 @@ now coexist in one supported sketch, with exact sibling preservation and
 history/reopen checks.
 [Planar-inset loop Delete](docs/validation/sketch-planar-inset-delete.md) now
 also passes on a retained 18-edge enclosure support through the real app,
-native viewport input, exact history/reopen and GPU captures. The multiple-owner
-planar-inset variant still needs real-app/native qualification under SKT-158/#584.
+native viewport input, exact history/reopen and GPU captures. The [multiple-owner planar-inset variant](docs/validation/sketch-multiple-planar-inset-delete.md)
+also passes real-app/native both-order Delete, source edit, history and reopen.
 [Overlapping sketch selection](docs/validation/sketch-overlap-selection.md) now lets a native hold choose independently between coincident authored and projected lines/circles, with stable identity cues and checked Delete/history/reopen. Broader Select Other grouping and hover preview remain Todo.
 [Linked projection Delete](docs/validation/sketch-linked-projection-delete.md)
 now removes selected retained line, circle or point results through the shared
