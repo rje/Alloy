@@ -279,7 +279,7 @@ void AlloyWindow::pollGeometryEvaluation() {
     const bool current=document_==task->document && document_->revision()==task->revision
         && document_->authored()["documentId"]==task->documentId && session_.value("id")==task->sessionId
         && session_.value("command")==task->command && geometryEvaluationGeneration_==task->generation;
-    if(task->command=="sketch.edit" || task->command=="sketch.finish")completeSketchEvaluation(task);
+    if(task->command=="sketch.edit" || task->command=="sketch.finish" || task->command=="feature.edit")completeSketchEvaluation(task);
     else if(task->command=="document.open")completeDocumentOpen(task);
     else if(task->command=="surface.boundaryFill"){
         if(task->phase=="partition")completeBoundaryFillPartition(task);else completeBoundaryFillCommit(task);

@@ -2,6 +2,15 @@
 
 ## Active user order (2026-10-17)
 
+REL-041/#484 is independently accepted for the direct no-session source edit
+that previously blocked the window for 55.825 s. On the saved corrected-iron
+candidate14 model, the same fit-point edit evaluated for 29.598 s off-thread;
+status/pan/GUI heartbeat stayed responsive. Exact authored/full evaluated
+bodies, stable face IDs, one history operation, Undo/Redo and native reopen
+passed. See [the bounded receipt](validation/responsive-sketch-source-edit.md).
+Physical focus, historical Sketch Finish (REL-042) and the other Trim/Loft
+stalls remain open.
+
 REL-040/#483 now has an Astra-reviewed historical Sketch Edit worker path and
 focused Finish command foundation. On the saved corrected-iron pre-bottom
 checkpoint, Edit evaluated for 53.331 s off-thread while status, pan and GUI

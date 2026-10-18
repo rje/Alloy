@@ -1266,10 +1266,10 @@ QString CadDocument::commitSurfaceExtrudeEvaluation(const CandidateEvaluation& p
     return commitEvaluatedFeature(prepared,requestedCandidate,expectedBase,expectedRevision,"surfaceExtrude",label);
 }
 QString CadDocument::commitSketchEvaluation(const CandidateEvaluation& prepared,
-    const QJsonObject& requestedCandidate,const QJsonObject& expectedBase,quint64 expectedRevision) {
+    const QJsonObject& requestedCandidate,const QJsonObject& expectedBase,quint64 expectedRevision,const QString& label) {
     if(requestedCandidate.value("features").toArray().size()!=expectedBase.value("features").toArray().size())
         return "Historical sketch evaluation cannot append features";
-    return commitEvaluatedFeature(prepared,requestedCandidate,expectedBase,expectedRevision,"sketch","Edit sketch");
+    return commitEvaluatedFeature(prepared,requestedCandidate,expectedBase,expectedRevision,"sketch",label);
 }
 QString CadDocument::commitBoundaryFillEvaluation(const CandidateEvaluation& prepared,
     const QJsonObject& requestedCandidate, const QJsonObject& expectedBase, quint64 expectedRevision, const QString& label) {

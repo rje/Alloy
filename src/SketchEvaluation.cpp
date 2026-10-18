@@ -20,7 +20,7 @@ QJsonObject AlloyWindow::queueSketchEvaluation(const QString& command,const QStr
     // A new modeling request ends prior completed Open/commit status lifetimes.
     // The serial-worker gate prevents invalidating a still-pending caller here.
     documentOpenOperation_={};geometryEvaluationTerminal_={};
-    auto task=std::make_shared<GeometryEvaluation>();task->command=command;task->phase=command=="sketch.edit" ? "open" : "finish";
+    auto task=std::make_shared<GeometryEvaluation>();task->command=command;task->phase=command=="sketch.edit" ? "open" : command=="feature.edit" ? "edit" : "finish";
     task->document=document_;task->documentId=document_->authored().value("documentId").toString();
     task->tabId=activeTabId_;task->revision=document_->revision();task->base=document_->authored();task->retainedSession=session_;
     task->sessionId=CadDocument::newId();task->generation=++geometryEvaluationGeneration_;
@@ -41,7 +41,7 @@ QJsonObject AlloyWindow::queueSketchEvaluation(const QString& command,const QStr
     sketchEvaluationCancel_->setToolTip("Discard the background result; the original sketch draft remains. Running kernel work continues.");
     statusBar()->addPermanentWidget(sketchEvaluationCancel_);
     connect(sketchEvaluationCancel_,&QPushButton::clicked,this,[this]{execute("command.cancel",{{"session",sketchEvaluationOperation_.value("id")}});});
-    statusBar()->showMessage(command=="sketch.edit" ? "Opening sketch… You can navigate or Cancel Evaluation." : "Finishing sketch… You can navigate or Cancel Evaluation.");
+    statusBar()->showMessage(command=="sketch.edit" ? "Opening sketch… You can navigate or Cancel Evaluation." : command=="feature.edit" ? "Updating sketch and downstream geometry… You can navigate or Cancel Evaluation." : "Finishing sketch… You can navigate or Cancel Evaluation.");
     status_->hide();geometryEvaluationQueued_=task;startGeometryEvaluation();return sketchEvaluationOperation_;
 }
 
@@ -92,12 +92,18 @@ void AlloyWindow::completeSketchEvaluation(const std::shared_ptr<GeometryEvaluat
         }
     }else if(!task->full.ok)reject("evaluation_failed",task->full.error,task->full.diagnostics);
     else {
-        const auto error=document_->commitSketchEvaluation(task->full,task->candidate,task->base,task->revision);
+        const auto error=document_->commitSketchEvaluation(task->full,task->candidate,task->base,task->revision,task->command=="feature.edit" ? "Edit feature" : "Edit sketch");
         if(!error.isEmpty())reject("evaluation_failed",error);
         else {
+            if(task->command=="feature.edit"){
+                const auto operation=sketchEvaluationOperation_;sketchEvaluationOperation_=document_->state();
+                for(auto it=operation.begin();it!=operation.end();++it)sketchEvaluationOperation_[it.key()]=it.value();
+                sketchEvaluationOperation_["evaluationStatus"]="completed";
+            }else {
             const auto priorSession=session_.value("id");finishSession(priorSession.toString(),false);
             sketchEvaluationOperation_["sessionId"]=priorSession;sketchEvaluationOperation_["status"]="committed";
             sketchEvaluationOperation_["document"]=document_->state();sketchEvaluationOperation_["evaluationStatus"]="completed";
+            }
         }
     }
     refresh();const auto recoveryError=syncRecovery();

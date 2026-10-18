@@ -34,6 +34,11 @@ through 53.331 s background evaluation, with exact draft publication; see
 saved-fixture Finish did not run because initial native editor activation could
 not be established. REL-042 retains that runtime/geometry/history/reopen gate;
 do not infer it from the focused tests.
+REL-041/#484 now accepts the direct saved-iron source edit: 29.598 s worker
+evaluation with responsive status/pan/GUI heartbeat, exact changed solid,
+stable face IDs, one history operation and reopen. See
+[the receipt](../validation/responsive-sketch-source-edit.md). This does not
+close REL-042 or cumulative REL-016.
 
 ## Active delivery order
 

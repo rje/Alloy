@@ -69,7 +69,7 @@ public:
     QString commitSurfaceExtrudeEvaluation(const CandidateEvaluation& prepared,
         const QJsonObject& requestedCandidate, const QJsonObject& expectedBase, quint64 expectedRevision, const QString& label);
     QString commitSketchEvaluation(const CandidateEvaluation& prepared,
-        const QJsonObject& requestedCandidate, const QJsonObject& expectedBase, quint64 expectedRevision);
+        const QJsonObject& requestedCandidate, const QJsonObject& expectedBase, quint64 expectedRevision, const QString& label="Edit sketch");
     QString commitBoundaryFillEvaluation(const CandidateEvaluation& prepared,
         const QJsonObject& requestedCandidate, const QJsonObject& expectedBase, quint64 expectedRevision, const QString& label);
     QJsonObject lastEvaluationError() const { return lastEvaluationError_; }

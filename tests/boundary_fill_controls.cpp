@@ -50,6 +50,44 @@ class BoundaryFillControlsTest final:public QObject{
   QCOMPARE(QApplication::widgetAt(box->mapToGlobal(point)),static_cast<QWidget*>(box));QTest::mouseClick(box,Qt::LeftButton,Qt::NoModifier,point);
  }
 private slots:
+ void asynchronousDirectSketchEditContracts(){
+  QTemporaryDir temp;QVERIFY(temp.isValid());CadDocument fixture;
+  auto sketch=SketchGeometry::newFeature(fixture.authored().value("documentId").toString(),"XZ","Source");
+  sketch=SketchGeometry::addLine(sketch,{{"u1Mm",0},{"v1Mm",0},{"u2Mm",20},{"v2Mm",5}});
+  auto base=fixture.authored();base["features"]=QJsonArray{sketch};QVERIFY(fixture.commit(base,"Sketch").isEmpty());
+  const auto entity=sketch.value("parameters").toObject().value("entities").toArray()[0].toObject().value("id");
+  QVERIFY(fixture.commit(CadDocument::surfaceExtrudeCandidate(fixture.authored(),{{"sketchId",sketch.value("id")},{"entityIds",QJsonArray{entity}},{"sideOneMm",10},{"sideTwoMm",12}}),"Sheet").isEmpty());
+  // Non-sketch direct edits keep their existing synchronous route.
+  const auto sheet=fixture.authored().value("features").toArray().last().toObject();
+  const auto path=temp.filePath("source.alloy");QVERIFY(fixture.save(path).isEmpty());AlloyWindow w;
+  const auto capture=qEnvironmentVariable("ALLOY_REL041_CAPTURE");
+  if(!capture.isEmpty()){w.resize(1440,900);w.show();QVERIFY(QTest::qWaitForWindowExposed(&w));}
+  call(w,"document.open",{{"path",path},{"discard",true}});
+  const auto same=w.execute("feature.edit",{{"featureId",sheet.value("id")},{"parameters",QJsonObject{{"sideOneMm",11}}}});
+  QVERIFY(same.value("ok").toBool());QCOMPARE(same.value("completion").toString(),QString("completed"));call(w,"history.undo");
+  // Reset history after verifying the unrelated route.
+  call(w,"document.open",{{"path",path},{"discard",true}});const auto before=call(w,"document.inspect");
+  auto parameters=SketchGeometry::findFeature(fixture.authored(),sketch.value("id").toString()).value("parameters").toObject();
+  auto points=parameters.value("points").toArray();auto point=points[1].toObject();point["uMm"]=25;points[1]=point;parameters["points"]=points;
+  const QJsonObject args{{"featureId",sketch.value("id")},{"parameters",parameters}};
+  auto pending=w.execute("feature.edit",args);QCOMPARE(pending.value("completion").toString(),QString("pending"));const auto operation=pending.value("result").toObject();
+  QVERIFY(w.statusBar()->currentMessage().startsWith("Updating sketch and downstream geometry"));
+  if(!capture.isEmpty()){w.repaint();QVERIFY(w.grab().save(capture));}
+  QCOMPARE(call(w,"document.inspect"),before);QVERIFY(session(w).isEmpty());
+  QCOMPARE(w.execute("history.undo").value("error").toObject().value("code").toString(),QString("evaluation_busy"));
+  QVERIFY(w.execute("command.cancel",{{"session",operation.value("id")}}).value("ok").toBool());
+  QTRY_VERIFY_WITH_TIMEOUT(!w.state().value("geometryWork").toObject().value("active").toBool(),10000);
+  QCOMPARE(call(w,"document.inspect"),before);QCOMPARE(w.execute("command.status",{{"session",operation.value("id")}}).value("error").toObject().value("code").toString(),QString("command_cancelled"));
+  const auto after=call(w,"feature.edit",args);QVERIFY(after.contains("authored"));QVERIFY(after.value("authored")!=before.value("authored"));
+  QCOMPARE(after.value("undo").toObject().value("count").toInt(),1);QVERIFY(after.value("evaluation").toObject().value("bodies")!=before.value("evaluation").toObject().value("bodies"));
+  QVERIFY(!w.state().value("sketchEvaluation").toObject().contains("authored"));
+  call(w,"history.undo");QCOMPARE(call(w,"document.inspect").value("authored"),before.value("authored"));call(w,"history.redo");QCOMPARE(call(w,"document.inspect").value("authored"),after.value("authored"));
+  auto invalid=parameters;auto entities=invalid.value("entities").toArray();auto line=entities[0].toObject();line["construction"]=true;entities[0]=line;invalid["entities"]=entities;
+  pending=w.execute("feature.edit",{{"featureId",sketch.value("id")},{"parameters",invalid}});const auto failedId=pending.value("result").toObject().value("id");QJsonObject failed;
+  QTRY_VERIFY_WITH_TIMEOUT((failed=w.execute("command.status",{{"session",failedId}})).value("completion")!="pending",10000);
+  QCOMPARE(failed.value("completion").toString(),QString("failed"));QCOMPARE(call(w,"document.inspect").value("authored"),after.value("authored"));
+  const auto saved=temp.filePath("edited.alloy");call(w,"document.save",{{"path",saved}});call(w,"document.open",{{"path",saved},{"discard",true}});QCOMPARE(call(w,"document.inspect").value("authored"),after.value("authored"));
+ }
  void asynchronousHistoricalSketchContracts(){
   QTemporaryDir temp;QVERIFY(temp.isValid());CadDocument fixture;
   auto sketch=SketchGeometry::newFeature(fixture.authored().value("documentId").toString(),"XZ","Historical source");

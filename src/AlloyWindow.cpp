@@ -1305,7 +1305,7 @@ void AlloyWindow::updateTimelineDrop(const QPoint& globalPosition) {
 }
 
 bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
-    if(watched==view_ && geometryEvaluationRunning_ && (geometryEvaluationRunning_->command=="sketch.edit" || geometryEvaluationRunning_->command=="sketch.finish")){
+    if(watched==view_ && geometryEvaluationRunning_ && (geometryEvaluationRunning_->command=="sketch.edit" || geometryEvaluationRunning_->command=="sketch.finish" || geometryEvaluationRunning_->command=="feature.edit")){
         if(event->type()==QEvent::ContextMenu)return true;
         if(event->type()==QEvent::ShortcutOverride){event->accept();return true;}
         if(event->type()==QEvent::KeyPress || event->type()==QEvent::KeyRelease){
@@ -4913,14 +4913,18 @@ void AlloyWindow::registerCommands() {
         });
     add("feature.edit","Edit feature","Edit canonical millimeter parameters; validate/evaluate before commit.",
         {{"featureId",featureId},{"parameters",parameter("object","Partial authored millimeter parameters.")}},[this](const auto& a){
-            auto candidate=document_->authored();auto features=candidate["features"].toArray();bool found=false;
+            auto candidate=document_->authored();auto features=candidate["features"].toArray();bool found=false,isSketch=false;
             for(int i=0;i<features.size();++i) {auto feature=features[i].toObject();if(feature["id"]!=a["featureId"]) continue;
                 auto parameters=feature["parameters"].toObject();const auto edits=a["parameters"].toObject();
                 for(auto it=edits.begin();it!=edits.end();++it) parameters[it.key()]=it.value();
-                feature["parameters"]=parameters;features[i]=feature;found=true;break;
+                feature["parameters"]=parameters;features[i]=feature;found=true;isSketch=feature.value("type")=="sketch";break;
             }
             if(!found)return failure("stale_entity","Feature does not exist","featureId");
-            candidate["features"]=features;const auto error=document_->commit(candidate,"Edit feature");
+            candidate["features"]=features;
+            if(session_.isEmpty() && candidate!=document_->authored()
+                && isSketch)
+                return queueSketchEvaluation("feature.edit",a.value("featureId").toString(),candidate);
+            const auto error=document_->commit(candidate,"Edit feature");
             return error.isEmpty() ? document_->state() : failure("evaluation_failed",error,"parameters");
         });
     add("feature.reorder","Move Timeline feature","Move one retained feature immediately after another feature in the same component.",
@@ -6202,7 +6206,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
         const auto error=validateArguments(*findCommand(id),args);if(!error.isEmpty())return failure("invalid_arguments",error);
         return cancelSketchEvaluation();
     }
-    if(geometryEvaluationRunning_ && (geometryEvaluationRunning_->command=="sketch.edit" || geometryEvaluationRunning_->command=="sketch.finish")){
+    if(geometryEvaluationRunning_ && (geometryEvaluationRunning_->command=="sketch.edit" || geometryEvaluationRunning_->command=="sketch.finish" || geometryEvaluationRunning_->command=="feature.edit")){
         const bool safe=id=="commands.list" || id=="app.state" || id=="document.inspect"
             || id=="view.orbit" || id=="view.pan" || id=="view.zoom" || id=="view.orientation" || id=="view.home" || id=="view.fit" || id=="view.navigationTool" || id=="view.orbitTool"
             || id=="capture.screenshot" || id=="capture.viewport" || id=="capture.dialog";
@@ -6220,7 +6224,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
             || id=="view.fit" || id=="capture.screenshot" || id=="capture.viewport" || id=="capture.dialog";
         if(!safe)return failure("evaluation_busy","A native document is opening; navigate or Cancel Open to discard its result");
     }
-    if(geometryEvaluationRunning_ && geometryEvaluationRunning_->command!="sketch.edit" && geometryEvaluationRunning_->command!="sketch.finish") {
+    if(geometryEvaluationRunning_ && geometryEvaluationRunning_->command!="sketch.edit" && geometryEvaluationRunning_->command!="sketch.finish" && geometryEvaluationRunning_->command!="feature.edit") {
         const bool safe=id=="commands.list" || id=="app.state" || id=="document.inspect" || id=="command.cancel"
             || (session_.value("command")=="surface.extrude" && (id=="command.preview" || id=="command.update" || id=="command.commit"
                 || id=="surface.extrudeEntity" || id=="surface.extrudeProfile" || id=="selection.pick"))
@@ -6274,7 +6278,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     const auto busyLabel=geometryBusyActive_ ? QString{} : geometryWorkLabel(id,args);
     const bool ownsBusy=!busyLabel.isEmpty();
     QElapsedTimer busyTimer;
-    bool workSucceeded=false;
+    bool workSucceeded=false,workPending=false;
     if(ownsBusy) {
         geometryBusyActive_=true;busyTimer.start();
         QApplication::setOverrideCursor(Qt::WaitCursor);
@@ -6287,8 +6291,10 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
         if(!ownsBusy)return;
         const auto elapsed=busyTimer.elapsed();
         geometryBusyActive_=false;
-        lastGeometryWork_={{"command",id},{"label",busyLabel},{"elapsedMs",elapsed},{"succeeded",workSucceeded}};
+        lastGeometryWork_={{"command",id},{"label",busyLabel},{"elapsedMs",elapsed},{"succeeded",workSucceeded},{"completion",workPending ? "pending" : workSucceeded ? "completed" : "failed"}};
         QApplication::restoreOverrideCursor();
+        // The worker owns its progress/Cancel banner until terminal completion.
+        if(workPending)return;
         statusBar()->showMessage(QString("%1 %2 in %3 s").arg(busyLabel,
             workSucceeded ? "finished" : "did not complete").arg(elapsed/1000.0,0,'f',1),4000);
     });
@@ -6325,6 +6331,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     if(traceGraphSolves)qInfo().noquote()<<"assembly_preview_solves"<<id
         <<QString("command=%1").arg(afterCommandSolves-initialGraphSolves)
         <<QString("refresh=%1").arg(AssemblyGraph::solveCount()-afterCommandSolves);
+    workPending=result.value("evaluationStatus")=="pending";
     workSucceeded=true;
     return finish({{"ok", true}, {"completion", result.value("evaluationStatus")=="pending" ? "pending" : "completed"}, {"command", id}, {"revision", static_cast<qint64>(revision_)},
         {"documentRevision", static_cast<qint64>(document_->revision())}, {"result", result},
