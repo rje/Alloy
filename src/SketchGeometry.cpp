@@ -1,4 +1,5 @@
 #include "SketchGeometry.h"
+#include "SketchChamfer.h"
 #include "LengthExpression.h"
 #include "SketchSolver.h"
 #include "SketchSpline.h"
@@ -1782,10 +1783,11 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
         try {return validateParameters(expandedProjectionFeature({{"parameters",parameters}},{{"lines",lines},{"circles",circles},{"points",resolvedPoints}})["parameters"].toObject(),authoredIds,referenceIds);}
         catch(const std::exception& error){return QString::fromUtf8(error.what());}
     }
-    const QSet<QString> allowed{"plane", "planeId", "originConvention", "points", "entities", "constraints", "dimensions", "nextDimensionNameIndex", "originPointId", "support", "texts", "loopOffsets", "openChainOffsets", "closedRectOffsets", "roundedRectangleIntent", "mirrorGroups", "slotGroups", "arcSlotGroups", "polygonGroups"};
+    const QSet<QString> allowed{"plane", "planeId", "originConvention", "points", "entities", "constraints", "dimensions", "nextDimensionNameIndex", "originPointId", "support", "texts", "loopOffsets", "openChainOffsets", "closedRectOffsets", "roundedRectangleIntent", "mirrorGroups", "slotGroups", "arcSlotGroups", "polygonGroups", "chamferGroups"};
     for (auto it = parameters.begin(); it != parameters.end(); ++it)
         if (!allowed.contains(it.key())) return "Unknown sketch parameter: " + it.key();
     if (!parameters["points"].isArray() || !parameters["entities"].isArray()) return "Sketch requires points and entities";
+    if(parameters.contains("chamferGroups") && (parameters.contains("texts") || parameters.contains("loopOffsets")))return "Chamfer requires an authored analytic line sketch";
     if(parameters.contains("loopOffsets")){
         const auto error=RoundedLoopOffset::validate(parameters);
         if(!error.isEmpty())return error;
@@ -1818,6 +1820,10 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
         for(const auto& id:marker["sideIds"].toArray())if(!validId(id.toString()))return "Invalid rounded rectangle side reference";
         for(const auto& id:marker["cornerArcIds"].toArray())if(!validId(id.toString()))return "Invalid rounded rectangle corner reference";
         for(const auto& sign:marker["sideDirections"].toArray())if(!sign.isDouble() || std::abs(sign.toInt())!=1)return "Invalid rounded rectangle side direction";
+    }
+    if(parameters.contains("chamferGroups")){
+        const auto error=SketchChamfer::validate(parameters,authoredIds);
+        if(!error.isEmpty())return error;
     }
     QMap<QString, QJsonObject> points;
     auto claimId = [&](const QString& id) {
@@ -2344,7 +2350,7 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& source
         if(draft["parameters"].toObject().contains("pointProjections"))parameters["pointProjections"]=draft["parameters"].toObject()["pointProjections"];
         if(draft["parameters"].toObject().contains("circleProjections"))parameters["circleProjections"]=draft["parameters"].toObject()["circleProjections"];
         parameters=SketchSplineOffset::refreshEndpoints(parameters);
-        solved["parameters"]=parameters;validateDraft(solved);validateRoundedIntent(parameters);validateSlotGroups(parameters);validateArcSlotGroups(parameters);
+        solved["parameters"]=parameters;validateDraft(solved);SketchChamfer::derive(parameters);validateRoundedIntent(parameters);validateSlotGroups(parameters);validateArcSlotGroups(parameters);
         for(const auto& value:entities)if(value.toObject()["type"]=="fitSplineOffset"){
             const auto error=SketchSplineOffset::validate(parameters,value.toObject(),true);
             if(!error.isEmpty())reject(error);
@@ -2356,6 +2362,17 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& source
         if(handleDof){diagnostics["pointSolverDof"]=diagnostics["dof"];diagnostics["splineHandleDof"]=handleDof;diagnostics["dof"]=diagnostics["dof"].toInt()+handleDof;diagnostics["splineSolverScope"]="Fit-point constraints only; tangent vectors are editable evaluator parameters";diagnostics["status"]="underconstrained";}
         int rhoDof=0;for(const auto& value:entities)if(value.toObject()["type"]=="conic")++rhoDof;
         if(rhoDof){diagnostics["conicRhoDof"]=rhoDof;diagnostics["dof"]=diagnostics["dof"].toInt()+rhoDof;diagnostics["status"]="underconstrained";}
+        // Generated Chamfer contacts have no independent freedom: the source
+        // solve and retained equal distance determine them exactly.
+        auto entityFreedom=diagnostics.value("entityFreedom").toObject(),pointFreedom=diagnostics.value("pointFreedom").toObject();
+        for(const auto& row:parameters.value("chamferGroups").toArray()){
+            const auto group=row.toObject();bool constrained=true;
+            for(const auto& id:group.value("sourceEntityIds").toArray())constrained &= entityFreedom.value(id.toString()).toObject().value("fullyConstrained").toBool();
+            const QJsonObject freedom{{"fullyConstrained",constrained},{"derived",true},{"sourceEntityIds",group.value("sourceEntityIds")}};
+            entityFreedom[group.value("lineId").toString()]=freedom;
+            for(const auto& id:group.value("pointIds").toArray())pointFreedom[id.toString()]=freedom;
+        }
+        diagnostics["entityFreedom"]=entityFreedom;diagnostics["pointFreedom"]=pointFreedom;
         return {true,solved,diagnostics,{}};
     } catch(const std::exception& error){return invalidDraft(sourceDraft,QString::fromUtf8(error.what()));}
 }
@@ -3475,8 +3492,8 @@ QJsonObject SketchGeometry::evaluationFrame(const QJsonObject& parameters,const 
 EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature, const QJsonObject& resolvedFrame, const QJsonObject& projectionContext) {
     const auto solution = solveDraft(feature,projectionContext);
     if (!solution.ok) reject(solution.error);
-    const auto parameters = deriveClosedRectOffsets(SketchOpenChainOffset::derive(
-        expandedProjectionFeature(solution.feature,projectionContext)["parameters"].toObject()));
+    const auto parameters = SketchChamfer::derive(deriveClosedRectOffsets(SketchOpenChainOffset::derive(
+        expandedProjectionFeature(solution.feature,projectionContext)["parameters"].toObject())));
     const auto plane = parameters["plane"].toString();
     const auto sketchFrame=evaluationFrame(parameters,resolvedFrame);
     QMap<QString, gp_Pnt> points;
@@ -3542,6 +3559,7 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature, cons
     QJsonObject summary{{"kernel", "OCCT"}, {"version", ALLOY_OCCT_VERSION}, {"type", "sketch"}, {"valid", true},
         {"lengthUnit", "mm"}, {"plane", plane}, {"frame", sketchFrame}, {"solverIntegrated", true}, {"solver", solution.diagnostics},
         {"entities",geometry}, {"pointCount", points.size()}, {"entityCount", entities.size()}, {"worldPoints", worldPoints}, {"boundsMm", bounds}};
+    if(parameters.contains("chamferGroups"))summary["chamferGroups"]=parameters.value("chamferGroups");
     if(parameters.contains("mirrorGroups"))summary["mirrorGroups"]=parameters.value("mirrorGroups");
     // Downstream chain topology needs authored contact identity, not proximity.
     summary["constraints"]=solution.feature.value("parameters").toObject().value("constraints").toArray();
@@ -3549,7 +3567,7 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature, cons
     bool linkedProfile=false;
     for(const auto& collection:{"projections","circleProjections"})for(const auto& value:solution.feature["parameters"].toObject()[collection].toArray())
         linkedProfile|=value.toObject()["profile"].toBool();
-    if(linkedProfile) {
+    if(linkedProfile || parameters.contains("chamferGroups")) {
         auto profileParameters=parameters;
         // Region extraction consumes solved geometry. Constraints and retained
         // point anchors have already done their work and are not boundaries.
@@ -3578,6 +3596,7 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature, cons
             }
             if(retain)structural.append(relation);
         }
+        profileParameters.remove("chamferGroups");
         profileParameters["points"]=profilePoints;profileParameters["constraints"]=structural;
         profileParameters["dimensions"]=QJsonArray{};
         profileFeature["parameters"]=profileParameters;

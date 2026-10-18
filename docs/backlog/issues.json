@@ -8375,7 +8375,7 @@
     },
     {
       "key": "SKT-096",
-      "title": "Add a retained sketch chamfer",
+      "title": "Add retained Equal Distance sketch Chamfer",
       "kind": "implementation",
       "phase": "P2 Parametric modeling",
       "priority": "P1",
@@ -8385,7 +8385,7 @@
       "labels": [
         "area:skt"
       ],
-      "body": "## Bounded result\nAdd a retained sketch chamfer. This proposed printable-part v1 gap is a child of `ADV-005`; remaining modes stay on the parent roadmap.\n\n## Reference and scope\nBefore coding, record public command inputs, selection rules, defaults, preview, commit/cancel, history/edit behavior and visual examples in `../Alloy-reference-records/knowledge`, with dated provenance. Define a supported option subset and retain other noncloud modes on the parent.\n\n## Acceptance\n- Chamfer a dimensioned rectangle corner; edit distance/source lines and retain a closed extrudable profile.\n- Native UI and local control use the same retained authored command. Check a meaningful upstream edit, one transactional refusal, Undo/Redo and save/reopen.\n- Inspect actual GPU presentation and native controls. For a printable solid, independently read back STL. Keep geometry, input and export evidence distinct.\n\n## Ownership\nInventory row `sketch.chamfer`; parent `ADV-005`. Todo until its public command contract and real-object fixture are accepted. Its closure does not complete the whole capability family or release gate.\n"
+      "body": "## Bounded result\nAdd a retained Equal Distance sketch Chamfer. This proposed printable-part v1 gap is a child of `ADV-005`; remaining modes stay on the parent roadmap.\n\n## Reference and scope\nDated public command contract: `../Alloy-reference-records/knowledge/specs/skt-096-sketch-chamfer-2026-10-18.md`. This issue owns Equal Distance only; Two Distance and Distance And Angle are linked Todo children.\n\n## Acceptance\n- Chamfer a dimensioned rectangle corner; edit distance/source lines and retain a closed extrudable profile.\n- Native UI and local control use the same retained authored command. Check a meaningful upstream edit, one transactional refusal, Undo/Redo and save/reopen.\n- Inspect actual GPU presentation and native controls. For a printable solid, independently read back STL. Keep geometry, input and export evidence distinct.\n\n## Ownership\nInventory row `sketch.chamfer`; parent `ADV-005`. Todo until its public command contract and real-object fixture are accepted. Its closure does not complete the whole capability family or release gate. SKT-110/#534 retains Two Distance; SKT-111/#535 retains Distance And Angle. Chamfer Feature Options switching must be included with those modes or split explicitly before they close. SKT-112/#536 retains multiple Equal Distance corners in one sketch; SKT-113/#537 retains the public draggable distance handle. This issue accepts one corner with typed input.\n"
     },
     {
       "key": "SKT-097",
@@ -8843,6 +8843,62 @@
         "area:skt"
       ],
       "body": "## Bounded result\nComplete the documented Circle Feature Options selector in the Sketch Palette so the user can switch among the supported Circle creation types while the Circle tool is active. This family-wide control is distinct from each mode's native Create-menu entry and was split from SKT-095/#500 research.\n\n## Reference and scope\nThe dated public Circle command research in `../Alloy-reference-records/knowledge/specs/skt-095-circles-2026-10-18.md` records that the palette can change Circle types while a Circle command is active. Exact styling and pending-pick preservation when switching are not established; resolve with additional permitted public evidence or record an explicit Alloy policy before coding.\n\n## Acceptance\n- Show a readable, mode-labeled Circle type selector in the actual Sketch Palette for all supported Center Diameter, 2-Point, 3-Point, 2-Tangent and 3-Tangent modes. Selection switches the authoritative sketch tool via the shared command and updates prompts/preview without stray authored geometry.\n- Native mouse/keyboard selection and local state/command inspection agree. Define cancel/reset of incomplete picks on mode change; verify focus is usable for the first pick immediately after switching, with no test-harness focus repair.\n- Check one in-progress switch per distinct input-state family, one committed circle after switching, Escape/Enter, Undo/Redo, native save/reopen and a GPU capture. Reuse circle geometry/export gates; do not repeat redundant STL checks.\n\n## Dependencies\n- SKT-095/#500, SKT-107/#531 and SKT-108/#532 implement the distinct Circle modes first. Existing center and two-point modes remain supported.\n"
+    },
+    {
+      "key": "SKT-110",
+      "title": "Add retained Two Distance sketch Chamfer",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P2",
+      "depends_on": [
+        "SKT-096"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Bounded result\nAdd the documented Two Distance sketch Chamfer as an editable retained corner treatment. This is a separate mode from SKT-096/#501 Equal Distance and a child of ADV-005/#101.\n\n## Reference and scope\nDated public contract: `../Alloy-reference-records/knowledge/specs/skt-096-sketch-chamfer-2026-10-18.md`. A vertex or two incident lines define the corner. Two setback distances remain independent after creation. Public sources do not specify the line-order assignment or default values; define the bounded Alloy orientation policy explicitly and do not claim unknown parity.\n\n## Acceptance\n- Native Sketch > Modify > Chamfer > Two Distance and local control share an authoritative retained command with preview, typed/handle values, commit/cancel and two editable independent dimensions. Preserve source-line identity and a closed selectable profile.\n- On a dimensioned rectangle, change each setback independently and move a meaningful source dimension. Verify the opposite setback remains unchanged, the same feature follows its corner, and an impossible value refuses transactionally.\n- Inspect native focus, controls and GPU presentation; verify downstream extrusion, Undo/Redo and saved reopen. Reuse the accepted common STL route unless this mode exposes a distinct output risk.\n\n## Dependencies and split\nDepends on SKT-096/#501 for the Equal Distance foundation. SKT-111 owns Distance And Angle. Feature Options switching among Chamfer modes is retained here or split explicitly if its UI work is larger than this bounded mode; do not leave it unowned.\n"
+    },
+    {
+      "key": "SKT-111",
+      "title": "Add retained Distance And Angle sketch Chamfer",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P2",
+      "depends_on": [
+        "SKT-096"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Bounded result\nAdd the documented Distance And Angle sketch Chamfer as an editable retained corner treatment. This is distinct from SKT-096/#501 Equal Distance and SKT-110 Two Distance; it remains under ADV-005/#101.\n\n## Reference and scope\nDated public contract: `../Alloy-reference-records/knowledge/specs/skt-096-sketch-chamfer-2026-10-18.md`. The distance is along the first defining line and the angle is measured from it. Public API descriptions identify side-defining points for crossing lines; exact native quadrant and default values are unknown. State an Alloy selection/orientation policy and report parity limits.\n\n## Acceptance\n- Native Sketch > Modify > Chamfer > Distance And Angle and local control share an authoritative retained command with preview, typed/handle distance and angle, commit/cancel and editable driving dimensions. Preserve source-line identity and a closed selectable profile.\n- On a dimensioned corner fixture, independently edit distance and angle and then a meaningful source dimension. Verify stable feature identity and downstream solid; refuse invalid angle, out-of-span setback or unsupported quadrant transactionally.\n- Inspect native focus, controls and GPU presentation; verify Undo/Redo and saved reopen. Reuse the accepted common extrusion/export route unless this mode exposes a distinct output risk.\n\n## Dependencies and split\nDepends on SKT-096/#501. SKT-110 owns Two Distance. Chamfer Feature Options type switching must have an explicit owner: include it when these modes are implemented or split a linked Todo before closing this issue.\n"
+    },
+    {
+      "key": "SKT-112",
+      "title": "Support multiple Equal Distance sketch Chamfers",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-096"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Bounded result\nAllow more than one retained Equal Distance sketch Chamfer in one sketch. SKT-096/#501 accepts one corner of a dimensioned rectangle; this issue preserves the explicit second-corner limitation and is a child of ADV-005/#101.\n\n## Acceptance\n- Apply a second equal-distance chamfer to a distinct corner, with stable source and generated IDs, independent editable distances and one closed extrudable profile. Define and test how adjacent chamfers share one source line and refuse overlapping/impossible setbacks without changing the draft.\n- Edit the source width/height and each chamfer distance, verify both cuts follow their corners, profile area and downstream solid, Undo/Redo and native reopen. Native corner selection/preview and shared local control agree; inspect actual GPU result.\n- Keep Two Distance and Distance And Angle scope in SKT-110/#534 and SKT-111/#535. Reuse accepted common STL output unless multiple derived trims reveal a distinct export risk.\n\n## Dependency\nSKT-096/#501.\n"
+    },
+    {
+      "key": "SKT-113",
+      "title": "Drag and edit on-canvas sketch Chamfer distance",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P2",
+      "depends_on": [
+        "SKT-096"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Bounded result\nAdd the on-canvas distance handle and directly editable first distance annotation for Equal Distance sketch Chamfer preview and editing. SKT-096/#501 supports typed distance; the public guide illustrates a draggable manipulator. Keep this native interaction requirement independently visible under ADV-005/#101.\n\n## Reference\nDated public command/figure record: `../Alloy-reference-records/knowledge/specs/skt-096-sketch-chamfer-2026-10-18.md`, public guide figures 19\u201321. Exact color/scale is not established for Alloy's current UI.\n\n## Acceptance\n- After corner selection, drag a visible distance handle to preview and commit a valid equal-distance cut through the same authoritative command used by typed input. For an existing chamfer, drag the handle or edit the first displayed distance annotation to change its retained distance, with Cancel/Escape rollback and one undoable transaction. The second displayed equal distance is driven by the first.\n- Inspect hit target, pointer motion, numeric readout, focus, GPU capture, source edit, Undo/Redo and reopen in the native app. Refuse out-of-span drag values transactionally. Preserve typed entry and avoid a separate mock geometry model.\n\n## Dependency\nSKT-096/#501. Multiple-corner scope remains SKT-112/#536; the two other parameter modes remain SKT-110/#534 and SKT-111/#535.\n"
     }
   ]
 }

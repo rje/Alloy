@@ -70,6 +70,14 @@ private:
     };
     QString designTab_="solid";
     void registerCommands();
+    void registerSketchChamferCommands();
+    QJsonObject sketchChamfer(const QJsonObject& args,const QString& operation);
+    QJsonObject chamferGesture(const QJsonObject& pixel,bool commit);
+    void cancelChamfer();
+    void buildChamferControls(QVBoxLayout* layout);
+    void refreshChamferControls();
+    QWidget* sketchChamferControls_=nullptr;
+    QLineEdit* sketchChamferDistance_=nullptr;
     void refreshOrbitModeControls();
     void refreshNavigationToolControls();
     void updateCompactControls();

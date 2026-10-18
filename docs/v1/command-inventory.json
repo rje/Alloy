@@ -3129,19 +3129,26 @@
       "label": "Sketch Chamfer",
       "category": "Sketch modify",
       "scope": "proposed-v1",
-      "implementation": "missing",
-      "nativeEvidence": "unknown",
-      "gap": "No sketch chamfer command is registered.",
-      "apiIds": [],
+      "implementation": "partial",
+      "nativeEvidence": "macos-qt-input-and-gpu-capture",
+      "gap": "One Equal Distance corner with typed palette editing is accepted. Two Distance, Distance And Angle, multiple corners and on-canvas drag/dimension editing remain open.",
+      "apiIds": ["sketch.chamfer", "sketch.chamferUpdate", "sketch.chamferPreview", "sketch.chamferAccept", "sketch.chamferCancel"],
       "issueKeys": [
         "ADV-005",
-        "SKT-096"
+        "SKT-096",
+        "SKT-110",
+        "SKT-111",
+        "SKT-112",
+        "SKT-113"
       ],
       "sourceFiles": [
-        "docs/backlog/issues.json"
+        "src/SketchChamfer.cpp",
+        "src/SketchChamferControls.cpp",
+        "src/SketchGeometry.cpp",
+        "src/ReferenceView.cpp"
       ],
-      "receipts": [],
-      "planningStatus": "Scope review: needs bounded v1 issue"
+      "receipts": ["docs/validation/sketch-equal-chamfer.md"],
+      "planningStatus": "Accepted bounded Equal Distance slice; four linked Todo owners for remaining modes and interaction"
     },
     {
       "id": "sketch.break",

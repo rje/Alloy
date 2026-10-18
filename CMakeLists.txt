@@ -38,7 +38,7 @@ add_library(alloy_kernel STATIC
     src/GeometryKernel.cpp src/GeometryKernel.h src/PrimitiveTopology.cpp src/PrimitiveTopology.h src/PlanarFaces.cpp src/PlanarFaces.h src/JoinRootEdges.cpp src/JoinRootEdges.h src/SolidFillet.cpp src/SolidFillet.h src/RuledCornerFillet.cpp src/RuledCornerFillet.h src/HalfThicknessFillet.cpp src/HalfThicknessFillet.h src/SolidChamfer.cpp src/SolidChamfer.h src/SolidShell.cpp src/SolidShell.h src/SolidThicken.cpp src/SolidThicken.h src/ClosedBlendShell.cpp src/ClosedBlendShell.h src/SolidSplit.cpp src/SolidSplit.h src/RevolvedShellCap.cpp src/RevolvedShellCap.h src/SolidSphere.cpp src/SolidSphere.h src/SolidHole.cpp src/SolidHole.h src/SolidLoft.cpp src/SolidLoft.h src/SurfaceClosedLoft.cpp src/SurfaceClosedLoft.h src/SurfaceRailLoft.cpp src/SurfaceRailLoft.h src/SurfaceExtrude.cpp src/SurfaceExtrude.h src/BoundaryFill.cpp src/BoundaryFill.h src/SurfaceTrim.cpp src/SurfaceTrim.h src/SolidRevolve.cpp src/SolidRevolve.h src/SolidSweep.cpp src/SolidSweep.h src/FeaturePattern.cpp src/FeaturePattern.h src/SolidMirror.cpp src/SolidTransform.cpp src/CircularPattern.cpp src/SolidMirror.h src/JoinResults.cpp
     src/MeshExport.cpp src/MeshExport.h src/ExportScope.cpp src/ExportScope.h
     src/StepExchange.cpp src/StepExchange.h
-    src/SketchSpline.cpp src/SketchSpline.h src/SketchSplineOffset.cpp src/SketchSplineOffset.h src/SketchOpenChainOffset.cpp src/SketchOpenChainOffset.h src/SketchConic.cpp src/SketchConic.h src/SketchGeometry.cpp src/SketchTrim.cpp src/SketchExtend.cpp src/SketchGeometry.h src/SketchText.cpp src/SketchText.h src/RoundedLoopOffset.cpp src/RoundedLoopOffset.h src/PlanarBoundaryInset.cpp src/PlanarBoundaryInset.h
+    src/SketchSpline.cpp src/SketchSpline.h src/SketchSplineOffset.cpp src/SketchSplineOffset.h src/SketchOpenChainOffset.cpp src/SketchOpenChainOffset.h src/SketchConic.cpp src/SketchConic.h src/SketchGeometry.cpp src/SketchChamfer.cpp src/SketchChamfer.h src/SketchTrim.cpp src/SketchExtend.cpp src/SketchGeometry.h src/SketchText.cpp src/SketchText.h src/RoundedLoopOffset.cpp src/RoundedLoopOffset.h src/PlanarBoundaryInset.cpp src/PlanarBoundaryInset.h
     src/SketchProfiles.cpp src/SketchProfiles.h src/SketchRegions.cpp)
 target_include_directories(alloy_kernel PUBLIC src)
 target_include_directories(alloy_kernel SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
@@ -50,6 +50,7 @@ add_library(alloy_application STATIC
     src/AlloyTheme.cpp src/AlloyTheme.h
     src/ThreeTangentCircleControls.cpp
     src/TwoTangentCircleControls.cpp
+    src/SketchChamferControls.cpp
     src/ThreePointCircleControls.cpp
     src/ThreePointRectangleControls.cpp
     src/AlloyWindow.cpp src/AlloyWindow.h src/SplitBodyControls.cpp src/AssemblyControls.cpp src/PointControls.cpp src/SplineControls.cpp src/SlotDragControls.cpp src/ConicControls.cpp src/SketchTextControls.cpp src/CommandIcons.cpp src/CommandIcons.h src/SolidFilletControls.cpp src/SolidChamferControls.cpp src/SphereControls.cpp src/SolidHoleControls.cpp src/SolidThreadControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/SurfaceExtrudeControls.cpp src/SketchEvaluation.cpp src/BoundaryFillControls.cpp src/SurfaceTrimControls.cpp src/RemoveBodyControls.cpp src/ThickenControls.cpp src/RevolveCommands.cpp src/SweepCommands.cpp src/SweepSelection.cpp src/PatternControls.cpp src/CircularPatternControls.cpp src/SolidMirrorControls.cpp src/SolidFeatureMirrorControls.cpp src/CanvasControls.cpp src/ReferenceCanvasView.cpp src/SectionAnalysisControls.cpp src/ReferenceSection.cpp src/MoveControls.cpp src/ComponentCopyControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
@@ -88,6 +89,13 @@ if(ALLOY_BUILD_SPIKES)
         TKernel TKMath TKBRep TKPrim TKTopAlgo TKLCAF TKCAF TKBin TKBinL TKCDF)
 endif()
 if(BUILD_TESTING)
+    add_executable(sketch_chamfer_test tests/sketch_chamfer.cpp)
+    target_link_libraries(sketch_chamfer_test PRIVATE alloy_application Qt6::Core)
+    add_test(NAME sketch_chamfer COMMAND sketch_chamfer_test)
+    add_executable(sketch_chamfer_controls_test tests/sketch_chamfer_controls.cpp)
+    target_link_libraries(sketch_chamfer_controls_test PRIVATE alloy_application Qt6::Test)
+    add_test(NAME sketch_chamfer_controls COMMAND sketch_chamfer_controls_test)
+    set_tests_properties(sketch_chamfer_controls PROPERTIES TIMEOUT 90 LABELS "widget;gpu" RUN_SERIAL TRUE)
     add_executable(recovery_store_test tests/recovery_store.cpp src/RecoveryStore.cpp src/RecoveryStore.h)
     target_include_directories(recovery_store_test PRIVATE src)
     target_link_libraries(recovery_store_test PRIVATE Qt6::Core alloy_local_security)

@@ -122,6 +122,10 @@ remain open.
 [Straight-line Extend](docs/validation/sketch-line-extend.md) now previews and
 closes sketch gaps while preserving endpoint identity and constraints. Its
 focused workflow closes a rectangle and creates a verified solid.
+[Equal Distance sketch Chamfer](docs/validation/sketch-equal-chamfer.md) now
+retains a typed setback on one connected line corner through source edits,
+history/reopen and printable extrusion. Other modes, multiple corners and
+direct canvas editing have bounded Todo issues.
 
 [Extrude Distance formulas](docs/validation/extrude-distance-expression.md) now
 retain arithmetic such as `Width*2` through parameter edits, undo and reopening.

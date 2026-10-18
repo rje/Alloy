@@ -584,7 +584,7 @@ AlloyWindow::AlloyWindow() {
     auto* projectAction=projectMenu->addAction("Project\tP");projectAction->setObjectName("sketch.action.project");
     connect(projectAction,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.projectBegin"));});
     create->addSeparator();toolAction(create,"Sketch Dimension\tD","dimension");
-    auto* modify=sketchMenu("Modify","modify");toolAction(modify,"Fillet","fillet");toolAction(modify,"Trim","trim");toolAction(modify,"Extend","extend");toolAction(modify,"Offset\tO","offset");
+    auto* modify=sketchMenu("Modify","modify");toolAction(modify,"Fillet","fillet");auto* sketchChamferMenu=modify->addMenu("Chamfer");sketchChamferMenu->setObjectName("sketch.menu.chamfer");toolAction(sketchChamferMenu,"Equal Distance Chamfer","chamfer");toolAction(modify,"Trim","trim");toolAction(modify,"Extend","extend");toolAction(modify,"Offset\tO","offset");
     auto* sketchMirrorAction=modify->addAction("Mirror");sketchMirrorAction->setObjectName("sketch.action.mirror");
     connect(sketchMirrorAction,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.mirrorStart"));});
     auto* construction=modify->addAction("Normal/Construction\tX");construction->setObjectName("sketch.action.constructionToggle");
@@ -1594,7 +1594,7 @@ QString AlloyWindow::tabSwitchBlocker() const {
         || session_.value("command")=="joint.cylindrical")return "Complete or cancel the active joint before switching designs";
     if(session_.value("command")!="sketch.edit")return "Complete or cancel the active command before switching designs";
     if(session_.value("tool")!="select" || session_.contains("firstPoint") || session_.contains("secondPoint")
-        || session_.contains("pendingDimension") || session_.contains("pendingDrivenOffer") || session_.contains("pendingCircleDiameter") || session_.contains("pendingLineLength") || session_.contains("pendingCenterRectangle") || session_.contains("pendingTwoPointRectangle") || session_.contains("pendingFillet"))return "Finish or cancel the current sketch input before switching designs";
+        || session_.contains("pendingDimension") || session_.contains("pendingDrivenOffer") || session_.contains("pendingCircleDiameter") || session_.contains("pendingLineLength") || session_.contains("pendingCenterRectangle") || session_.contains("pendingTwoPointRectangle") || session_.contains("pendingFillet") || session_.contains("pendingChamfer"))return "Finish or cancel the current sketch input before switching designs";
     const auto* focused=QApplication::focusWidget();
     if((focused && sketchPanel_ && sketchPanel_->isAncestorOf(focused) && qobject_cast<const QLineEdit*>(focused))
         || (dimensionEditor_ && dimensionEditor_->isVisible())
@@ -1872,6 +1872,7 @@ void AlloyWindow::registerCommands() {
                      std::function<QJsonObject(const QJsonObject&)> run) {
         commands_.push_back({id, title, description, parameters, true, std::move(run)});
     };
+    registerSketchChamferCommands();
     registerCanvasCommands();
     registerBoundaryFillCommands();
     registerSectionCommands();
@@ -3322,7 +3323,8 @@ void AlloyWindow::registerCommands() {
             if(a.contains("size"))pending["sizeMm"]=CadDocument::millimeters(a["size"].toDouble(),a.value("units").toString(session_.value("inputs").toObject()["units"].toString()));
             pending.remove("size");session_["polygonInput"]=pending;session_.remove("polygonInputError");session_.remove("polygonTypedInput");
             if(session_.contains("pointerPoint") && session_.contains("firstPoint"))polygonGesture(session_.value("pointerPoint").toObject(),false);
-            refreshPolygonControls();return QJsonObject{{"input",pending},{"authoredChange",false}};
+            refreshPolygonControls();
+            return QJsonObject{{"input",pending},{"authoredChange",false}};
         });
     add("sketch.polygonTypedInput","Polygon native numeric fields","Validate raw count, size and angle text; invalid fields block placement and preserve the last accepted preview.",
         {{"countText",parameter("string","Integer sides 3..128.")},{"sizeText",parameter("string","Positive size or empty to follow the pointer.")},
@@ -3867,7 +3869,7 @@ void AlloyWindow::registerCommands() {
         const auto draft=session_["draftSketch"].toObject();view_->showSketchDraft(evaluateSketchDraft(draft));displayedSketchDraft_=draft;
         refreshSketchControls();view_->setFocus(Qt::OtherFocusReason);return QJsonObject{{"pending",false},{"authoredChange",false}};
     });
-    auto sketchTool=parameter("string","Drawing tool in the active sketch context.");sketchTool["enum"]=QJsonArray{"select","point","line","rectangle","centerRectangle","threePointRectangle","overallSlot","centerPointSlot","centerToCenterSlot","centerPointArcSlot","centerPointEllipse","inscribedPolygon","circumscribedPolygon","edgePolygon","circle","twoPointCircle","threePointCircle","twoTangentCircle","threeTangentCircle","centerArc","threePointArc","dimension","fillet","trim","extend","offset","mirror","fitSpline","controlSpline","insertFitPoint","conic"};
+    auto sketchTool=parameter("string","Drawing tool in the active sketch context.");sketchTool["enum"]=QJsonArray{"select","point","line","rectangle","centerRectangle","threePointRectangle","overallSlot","centerPointSlot","centerToCenterSlot","centerPointArcSlot","centerPointEllipse","inscribedPolygon","circumscribedPolygon","edgePolygon","circle","twoPointCircle","threePointCircle","twoTangentCircle","threeTangentCircle","centerArc","threePointArc","dimension","fillet","chamfer","trim","extend","offset","mirror","fitSpline","controlSpline","insertFitPoint","conic"};
     add("sketch.tool","Sketch drawing tool","Choose a tool and clear its pending first point.",{{"tool",sketchTool}},[this](const auto& a){
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         if(session_.contains("pendingProject"))execute("sketch.projectCancel");
@@ -3882,6 +3884,7 @@ void AlloyWindow::registerCommands() {
             session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}},{"profileIds",QJsonArray{}}};
         const bool leavingFillet=session_.value("tool")=="fillet";
         const bool leavingMirror=session_.value("tool")=="mirror" && a["tool"]!="mirror";
+        cancelChamfer();
         clearFilletPreview();session_.remove("pendingFillet");
         cancelCircleOffset();cancelLoopOffset();cancelSplineOffset();cancelOpenChainOffset();cancelClosedRectOffset();
         cancelDimension();
@@ -4262,6 +4265,7 @@ void AlloyWindow::registerCommands() {
         }
         if(tool=="trim") {const auto inputs=trimPointerInput(a);if(inputs.isEmpty())return failure("trim_target_required","Pick an authored line interval");const auto response=execute("sketch.trim",inputs);return response["ok"].toBool() ? response["result"].toObject() : response;}
         if(tool=="extend") {const auto inputs=trimPointerInput(a);if(inputs.isEmpty())return failure("extend_target_required","Pick an authored straight line near the endpoint to extend");const auto response=execute("sketch.extend",inputs);return response["ok"].toBool() ? response["result"].toObject() : response;}
+        if(tool=="chamfer")return chamferGesture(a,true);
         if(tool=="fillet") {
             const auto plane=session_.value("inputs").toObject()["plane"].toString();
             const auto corner=resolveFilletCorner(a["x"].toDouble(),a["y"].toDouble(),plane);
@@ -4632,6 +4636,7 @@ void AlloyWindow::registerCommands() {
             return QJsonObject{{"authoredChange",false}};
         if(tool=="trim") {const auto inputs=trimPointerInput(a);if(inputs.isEmpty()){session_.remove("pendingTrim");view_->clearSketchCursor();return QJsonObject{{"authoredChange",false}};}return previewTrim(inputs);}
         if(tool=="extend") {const auto inputs=trimPointerInput(a);if(inputs.isEmpty()){session_.remove("pendingExtend");view_->clearSketchCursor();return QJsonObject{{"authoredChange",false}};}return previewExtend(inputs);}
+        if(tool=="chamfer")return chamferGesture(a,false);
         if(tool=="fillet") {
             const auto corner=resolveFilletCorner(a["x"].toDouble(),a["y"].toDouble(),plane);
             session_["snap"]=corner;
@@ -7287,6 +7292,7 @@ void AlloyWindow::refresh() {
         const auto splinePreview=session_.value("pendingSplineDrag").toObject();if(splinePreview.contains("previewDraft")){auto selected=session_.value("selection").toObject();selected["tool"]="select";view_->decorateSketch(splinePreview["previewDraft"].toObject(),selected,splinePreview["diagnostics"].toObject(),inputs["units"].toString());}
         const auto tool=session_.value("tool").toString();if(auto* complete=findChild<QPushButton*>("sketch.spline.complete")){complete->setVisible(tool=="fitSpline"||tool=="controlSpline");complete->setEnabled(session_.value("pendingSplinePoints").toArray().size()>=2);}
         refreshPolygonControls();
+        refreshChamferControls();
         QString prompt="Click the first point";
         if(sketchFilletControls_)sketchFilletControls_->setVisible(tool=="fillet");
         if(sketchFilletControls_)if(auto* impact=sketchFilletControls_->findChild<QLabel*>("sketch.fillet.referenceChanges")) {
@@ -7427,6 +7433,7 @@ void AlloyWindow::refresh() {
                 "Pick lower projected chain, then both shoulders · leave original top unselected";
         else if(tool=="offset")prompt=session_.value("pendingOffset").toObject()["valid"].toBool() || session_.value("pendingSplineOffset").toObject()["valid"].toBool() ?
                 "One Side · Set signed distance or Flip · OK accepts" : "Select one circle or open fit spline · Set distance · Flip changes side";
+        else if(tool=="chamfer")prompt="Select a corner or two sides · Distance · Enter accepts · Escape cancels";
         else if(tool=="fillet")prompt=fillet["sidePair"].toBool() || fillet["corners"].toArray().size()==2 ? "Enter the common radius, then press Enter" :
             fillet.contains("firstSideId") ? "Click the adjacent second side" :
             fillet["corners"].toArray().size()==1 ? "Enter radius and press Enter, or click another corner" : "Click the first side or corner";
@@ -8675,6 +8682,7 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     if(commit && target=="solid.featureMirror" && !session_.value("previewed").toBool())
         return failure("mirror_preview_required","Select earlier Cut features and a mirror plane with a valid preview");
     if(commit && target=="sketch.edit") {
+        if(!session_.value("pendingChamfer").toObject().isEmpty())return failure("pending_input_active","Accept or cancel Chamfer before finishing");
         if(!session_.value("pendingFillet").toObject().isEmpty())
             return failure("pending_input_active","Accept or cancel the sketch fillet before finishing");
         if(session_.contains("pendingCircleDiameter"))
@@ -10780,7 +10788,7 @@ QJsonObject AlloyWindow::traverseSketchHistory(int direction) {
             if(!response["ok"].toBool())return response;
             return {{"action","cancelled_tool"},{"tool",previous},{"changed",false},{"draftHistory",session_["draftHistory"]}};
         }
-    } else if(session_.value("tool")!="select" || session_.contains("pendingDimension") || session_.contains("pendingCircleDiameter") || session_.contains("pendingLineLength") || session_.contains("pendingCenterRectangle") || session_.contains("pendingTwoPointRectangle") || session_.contains("pendingFillet") || session_.contains("firstPoint"))
+    } else if(session_.value("tool")!="select" || session_.contains("pendingDimension") || session_.contains("pendingCircleDiameter") || session_.contains("pendingLineLength") || session_.contains("pendingCenterRectangle") || session_.contains("pendingTwoPointRectangle") || session_.contains("pendingFillet") || session_.contains("pendingChamfer") || session_.contains("firstPoint"))
         return failure("pending_input_active","Complete or cancel the current sketch tool before Redo");
     const int next=sketchHistoryIndex_+direction;
     if(next<0 || next>=static_cast<int>(sketchHistory_.size()))return {{"action","none"},{"changed",false},{"draftHistory",session_["draftHistory"]}};
@@ -12013,6 +12021,7 @@ void AlloyWindow::showCurveEntry() {
 void AlloyWindow::showSketch() {
     if(sketchDock_)delete sketchDock_;
     sketchInputs_.clear();sketchInfo_=nullptr;sketchProfileInfo_=nullptr;sketchName_=nullptr;sketchCurveEntry_=nullptr;
+    sketchChamferControls_=nullptr;sketchChamferDistance_=nullptr;
     sketchSelectionTree_=nullptr;sketchFilletControls_=nullptr;sketchFilletRadius_=nullptr;sketchOffsetControls_=nullptr;sketchOffsetDistance_=nullptr;sketchMirrorControls_=nullptr;sketchMirrorSummary_=nullptr;sketchMirrorRows_=nullptr;sketchDimensionKind_=nullptr;sketchDimensionValue_=nullptr;sketchDimensionDriving_=nullptr;
     sketchShowConstraints_=nullptr;sketchShowDimensions_=nullptr;splineDegreeControls_=nullptr;splineCombControls_=nullptr;splineDegree_=nullptr;splineComb_=nullptr;splineCombDensity_=nullptr;splineCombScale_=nullptr;splineCombInfo_=nullptr;
     sketchDimensionList_=nullptr;sketchDimensionEdit_=nullptr;sketchDimensionMeasure_=nullptr;sketchWidgetDraft_={};sketchWidgetSelection_={};sketchWidgetUnits_.clear();
@@ -12150,6 +12159,7 @@ void AlloyWindow::showSketch() {
         sketchCurveEntry_=new QPushButton("Enter curve values…");sketchCurveEntry_->setObjectName("sketch.curveEntry");sketchCurveEntry_->hide();layout->addWidget(sketchCurveEntry_);
         connect(sketchCurveEntry_,&QPushButton::clicked,this,[this]{showCurveEntry();});
         layout->addLayout(form);buildSplinePalette(layout);sketchInfo_=new QLabel;sketchInfo_->setObjectName("sketch.info");sketchInfo_->setWordWrap(true);layout->addWidget(sketchInfo_);sketchProfileInfo_=new QLabel;sketchProfileInfo_->setObjectName("sketch.profileStatus");sketchProfileInfo_->setWordWrap(true);layout->addWidget(sketchProfileInfo_);
+        buildChamferControls(layout);
         sketchFilletControls_=new QWidget;auto* filletForm=new QFormLayout(sketchFilletControls_);filletForm->setSizeConstraint(QLayout::SetMinimumSize);
         sketchFilletRadius_=new QLineEdit;sketchFilletRadius_->setObjectName("sketch.fillet.radius");
         sketchFilletRadius_->setPlaceholderText("Select a corner or two adjacent sides, then enter a radius");

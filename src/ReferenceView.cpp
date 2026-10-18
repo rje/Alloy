@@ -1411,8 +1411,9 @@ void ReferenceView::clearSketchDraft() {
     profileModels_.clear();draftProfiles_.clear();
     sketchDraft_.Nullify();sketchConstructionDraft_.Nullify();sketchCenterlineDraft_.Nullify();projectedDraft_.Nullify();draftNormalEdgeCount_=0;projectedLines_={};projectedCircles_={};supportPoints_={};constructionDraftLineIds_={};centerlineDraftLineIds_={};draftSketchId_.clear();clearSketchCursor();applyEditDisplay();
 }
-QJsonObject ReferenceView::pickSketch(const QJsonObject& feature,double x,double y,const QString& filter,const QJsonObject& resolvedFrame) const {
+QJsonObject ReferenceView::pickSketch(const QJsonObject& sourceFeature,double x,double y,const QString& filter,const QJsonObject& resolvedFrame) const {
     if(view_.IsNull() || x<0 || y<0 || x>=width() || y>=height())return {};
+    const auto feature=SketchGeometry::chamferPresentation(sourceFeature);
     const auto parameters=feature["parameters"].toObject();const auto plane=parameters["plane"].toString();
     const auto frame=resolvedFrame.isEmpty() ? frameFor(plane) : resolvedFrame;
     auto world=[&](double u,double v){const auto o=frame["origin"].toArray(),a=frame["uAxis"].toArray(),b=frame["vAxis"].toArray();return gp_Pnt(o[0].toDouble()+u*a[0].toDouble()+v*b[0].toDouble(),o[1].toDouble()+u*a[1].toDouble()+v*b[1].toDouble(),o[2].toDouble()+u*a[2].toDouble()+v*b[2].toDouble());};
@@ -1827,8 +1828,9 @@ QJsonObject ReferenceView::pickConstraint(double x,double y) const {
 void ReferenceView::setSketchAnnotationVisibility(bool showConstraints,bool showDimensions) {
     showConstraints_=showConstraints;showDimensions_=showDimensions;
 }
-void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject& selection,const QJsonObject& diagnostics,const QString& units,const QJsonObject& pending) {
-    decorationFeature_=feature;decorationSelection_=selection;decorationDiagnostics_=diagnostics;decorationUnits_=units;decorationPending_=pending;
+void ReferenceView::decorateSketch(const QJsonObject& sourceFeature,const QJsonObject& selection,const QJsonObject& diagnostics,const QString& units,const QJsonObject& pending) {
+    const auto feature=SketchGeometry::chamferPresentation(sourceFeature);
+    decorationFeature_=sourceFeature;decorationSelection_=selection;decorationDiagnostics_=diagnostics;decorationUnits_=units;decorationPending_=pending;
     clearSketchDecorations();if(context_.IsNull())return;
     const bool insetPresentation=std::any_of(draftProfiles_.begin(),draftProfiles_.end(),[](const auto& profile){
         return profile.summary.contains("signedDistanceMm") && profile.summary.contains("sourceLoopId");});
@@ -1892,7 +1894,7 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
         const auto entity=entry.toObject();if(entity["type"]=="point" || !selection["entityIds"].toArray().contains(entity["id"]))continue;
         const auto edge=SketchGeometry::analyticEdge(parameters,entity,sketchFrame_);
         const auto highlight=entity.value("construction").toBool() ? constructionPresentation(edge,true) : entity.value("centerline").toBool() ? centerlinePresentation(edge,true) : sketchPresentation(edge);
-        if(!entity.value("construction").toBool() && !entity.value("centerline").toBool()){highlight->SetColor(Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB));highlight->SetWidth(4);}
+        if(!entity.value("construction").toBool() && !entity.value("centerline").toBool()){highlight->SetColor(selection.value("tool")=="chamfer" ? Quantity_Color(0.88,0.16,0.12,Quantity_TOC_RGB) : Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB));highlight->SetWidth(4);}
         highlight->SetZLayer(Graphic3d_ZLayerId_Topmost);
         context_->Display(highlight,AIS_WireFrame,-1,false);context_->Deactivate(highlight);sketchDecorations_.push_back(highlight);
     }
@@ -2127,7 +2129,7 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
     }
     QMap<QString,QJsonObject> measurements;
     for(const auto& entry:diagnostics["dimensionValues"].toArray()){const auto value=entry.toObject();measurements[value["id"].toString()]=value;}
-    auto layoutFeature=SketchGeometry::expandedProjectionFeature(feature,{{"lines",projectedLines_},{"circles",projectedCircles_},{"points",supportPoints_}});
+    auto layoutFeature=SketchGeometry::expandedProjectionFeature(sourceFeature,{{"lines",projectedLines_},{"circles",projectedCircles_},{"points",supportPoints_}});
     auto layoutParameters=layoutFeature["parameters"].toObject();
     layoutParameters["dimensions"]=feature["parameters"].toObject()["dimensions"].toArray();
     layoutFeature["parameters"]=layoutParameters;
@@ -2190,6 +2192,19 @@ aspect->ArrowAspect()->SetLength(7*size);aspect->SetArrowTailSize(8*size);aspect
         label->SetPosition(sketchWorld(plane,anchor.value("uMm").toDouble(),anchor.value("vMm").toDouble()));label->SetHeight(13);label->SetFont("Arial");label->SetAngle(text.value("angleDegrees").toDouble()*std::acos(-1.0)/180);
         label->SetHJustification(Graphic3d_HTA_CENTER);label->SetVJustification(Graphic3d_VTA_CENTER);label->SetZoomable(false);label->SetDisplayType(Aspect_TODT_NORMAL);
         label->SetColor(color);label->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(label,0,-1,false);context_->Deactivate(label);sketchDecorations_.push_back(label);
+    }
+    if(showDimensions_)for(const auto& row:parameters.value("chamferGroups").toArray()){
+        const auto group=row.toObject();
+        for(const auto& id:group.value("pointIds").toArray()){
+            const auto p=points.value(id.toString());
+            Handle(AIS_TextLabel) label=new AIS_TextLabel;
+            const auto text=QString("%1 %2").arg(group.value("distanceMm").toDouble()/(units=="in" ? 25.4 : 1.0),0,'g',6).arg(units);
+            label->SetText(TCollection_ExtendedString(text.toUtf8().constData(),true));
+            label->SetPosition(sketchWorld(plane,p.value("uMm").toDouble()+2,p.value("vMm").toDouble()+3));
+            label->SetHeight(13);label->SetFont("Arial");label->SetZoomable(false);
+            label->SetColor(Quantity_Color(0.10,0.34,0.84,Quantity_TOC_RGB));label->SetZLayer(Graphic3d_ZLayerId_Topmost);
+            context_->Display(label,0,-1,false);context_->Deactivate(label);sketchDecorations_.push_back(label);
+        }
     }
     context_->UpdateCurrentViewer();
 }
