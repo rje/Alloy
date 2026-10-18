@@ -1824,7 +1824,7 @@ QJsonObject ReferenceView::pickAnnotation(double x,double y) const {
     return {};
 }
 QJsonObject ReferenceView::pickConstraint(double x,double y) const {
-    if(!showConstraints_ || sketchPlane_.isEmpty())return {};
+    if(sketchPlane_.isEmpty())return {};
     QJsonObject best;double bestDistance=std::numeric_limits<double>::infinity();
     for(const auto& value:constraintGlyphs_) {
         const auto glyph=value.toObject(),bounds=glyph.value("bounds").toObject();
@@ -1840,6 +1840,10 @@ QJsonObject ReferenceView::pickConstraint(double x,double y) const {
             {"bounds",bounds},{"anchorEntityId",glyph.value("anchorEntityId")}};
     }
     return best;
+}
+bool ReferenceView::constraintBadgeVisible(const QString& id) const {
+    for(const auto& value:constraintGlyphs_)if(value.toObject().value("constraintId")==id)return true;
+    return false;
 }
 void ReferenceView::setSketchDisplayOptions(const QJsonObject& options) {
     sketchDisplayOptions_=options;
@@ -1907,15 +1911,17 @@ void ReferenceView::decorateSketch(const QJsonObject& sourceFeature,const QJsonO
     if(!projectedDraft_.IsNull()){
         if(sketchDisplayOptions_.value("showProjectedGeometries").toBool(true) && !sketchDisplayOptions_.value("hideFullyConstrained").toBool())context_->Display(projectedDraft_,false);else context_->Erase(projectedDraft_,false);
     }
-    QMap<QString,QJsonObject> points;QSet<QString> fixed;
+    QMap<QString,QJsonObject> points;QSet<QString> fixed,coincidentPoints;
     for(const auto& entry:parameters["constraints"].toArray()) {
         const auto constraint=entry.toObject();if(constraint["type"]=="fixed")for(const auto& id:constraint["pointIds"].toArray())fixed.insert(id.toString());
+        if(constraint["type"]=="coincident")for(const auto& id:constraint["pointIds"].toArray())coincidentPoints.insert(id.toString());
     }
     for(const auto& entry:parameters["points"].toArray()) {
         const auto point=entry.toObject();const auto id=point["id"].toString();points[id]=point;
         if(!sketchPointVisible(id))continue;
         bool selected=selection["pointIds"].toArray().contains(id);
         for(const auto& e:parameters["entities"].toArray())if(e.toObject()["type"]=="point" && e.toObject()["pointId"]==id && selection["entityIds"].toArray().contains(e.toObject()["id"]))selected=true;
+        if(coincidentPoints.contains(id) && !selected)continue;
         const Quantity_Color color=selected ? Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB)
             : fixed.contains(id) ? Quantity_Color(0.10,0.52,0.24,Quantity_TOC_RGB)
             : solvedPoint(diagnostics,id) ? Quantity_Color(0.12,0.14,0.16,Quantity_TOC_sRGB) : Quantity_Color(0.10,0.34,0.84,Quantity_TOC_RGB);
@@ -2037,10 +2043,25 @@ void ReferenceView::decorateSketch(const QJsonObject& sourceFeature,const QJsonO
     };
     QMap<QString,int> badgeSlots;
     QMap<QString,double> originShiftPixels;
-    if(showConstraints_)for(const auto& entry:parameters["constraints"].toArray()) {
+    for(const auto& entry:parameters["constraints"].toArray()) {
         const auto relation=entry.toObject();const auto kind=relation["type"].toString();
         const bool selectedBadge=selection["constraintIds"].toArray().contains(relation["id"]);
         const bool hoveredBadge=selection.value("hoveredConstraintId")==relation.value("id");
+        bool selectedPoint=false,relatedEntity=false;
+        const auto relationPoints=relation.value("pointIds").toArray();
+        for(const auto& id:selection.value("pointIds").toArray())selectedPoint |= relationPoints.contains(id);
+        for(const auto& id:selection.value("entityIds").toArray()) {
+            relatedEntity |= relation.value("entityIds").toArray().contains(id);
+            const auto entity=entities.value(id.toString());
+            for(const auto& key:QStringList{"startPointId","endPointId","centerPointId","pointId","majorPointId","minorPointId"})
+                relatedEntity |= entity.contains(key) && relationPoints.contains(entity.value(key));
+            for(const auto& point:entity.value("pointIds").toArray())relatedEntity |= relationPoints.contains(point);
+        }
+        // Point-to-point Coincident has no persistent glyph, even with Show
+        // Constraints on. A selected point reveals its retained relation only.
+        if(kind=="coincident" && !selectedPoint && !selectedBadge)continue;
+        if(!showConstraints_ && !selectedPoint && !relatedEntity && !selectedBadge)continue;
+
         if(kind=="tangent" || kind=="arcTangent" || kind=="circleTangent" || kind=="arcEndpointArcTangent" || kind=="arcEndpointCircleTangent" || kind=="arcCircleTangent" || kind=="arcArcTangent") {
             const auto ids=relation["entityIds"].toArray();if(ids.size()!=2)continue;
             const auto circle=entities.value(ids[0].toString()),line=entities.value(ids[1].toString());
@@ -2104,14 +2125,14 @@ void ReferenceView::decorateSketch(const QJsonObject& sourceFeature,const QJsonO
                 top=std::min(top,corner["y"].toDouble());bottom=std::max(bottom,corner["y"].toDouble());
             }
             constraintGlyphs_.append(QJsonObject{{"constraintId",relation["id"]},{"entityIds",ids},{"pointIds",relation["pointIds"]},{"anchorEntityId",ids[1]},
-                {"kind",kind},{"selected",selectedBadge},{"hovered",hoveredBadge},{"contactMm",QJsonObject{{"uMm",contact.x()},{"vMm",contact.y()}}},
+                {"kind",kind},{"contextual",!showConstraints_},{"selected",selectedBadge},{"hovered",hoveredBadge},{"contactMm",QJsonObject{{"uMm",contact.x()},{"vMm",contact.y()}}},
                 {"anchorMm",QJsonObject{{"uMm",u},{"vMm",shiftedV}}},{"originAvoidanceApplied",originAvoidanceApplied},{"bounds",QJsonObject{{"x",left},{"y",top},
                     {"width",right-left},{"height",bottom-top}}},
                 {"viewportLocal",true},{"units","logicalPixels"}});
             continue;
         }
-        if(kind!="equal" && kind!="horizontal" && kind!="vertical" && kind!="concentric" && kind!="perpendicular" && kind!="parallel" && kind!="collinear" && kind!="midpoint" && kind!="pointOnCurve" && kind!="circleOffset" && kind!="symmetry")continue;
-        const bool pointAlignment=(kind=="horizontal" || kind=="vertical") && relation.contains("pointIds");
+        if(kind!="coincident" && kind!="equal" && kind!="horizontal" && kind!="vertical" && kind!="concentric" && kind!="perpendicular" && kind!="parallel" && kind!="collinear" && kind!="midpoint" && kind!="pointOnCurve" && kind!="circleOffset" && kind!="symmetry")continue;
+        const bool pointAlignment=(kind=="coincident" || kind=="horizontal" || kind=="vertical") && relation.contains("pointIds");
         // Concentric has one semantic center shared by the pair. One badge
         // near that center is clearer than a badge on each distant arc rim.
         const auto targets=pointAlignment ? QJsonArray{relation["pointIds"].toArray().at(1)}
@@ -2156,7 +2177,7 @@ void ReferenceView::decorateSketch(const QJsonObject& sourceFeature,const QJsonO
             }
             TopoDS_Compound strokes;BRep_Builder builder;builder.MakeCompound(strokes);
             auto stroke=[&](double x1,double y1,double x2,double y2){builder.Add(strokes,BRepBuilderAPI_MakeEdge(sketchWorld(plane,u+x1*size,v+y1*size),sketchWorld(plane,u+x2*size,v+y2*size)).Edge());};
-            if(kind=="pointOnCurve"){stroke(-3,-3,3,-3);stroke(3,-3,3,3);stroke(3,3,-3,3);stroke(-3,3,-3,-3);stroke(-1,0,1,0);}
+            if(kind=="pointOnCurve" || kind=="coincident"){stroke(-3,-3,3,-3);stroke(3,-3,3,3);stroke(3,3,-3,3);stroke(-3,3,-3,-3);stroke(-1,0,1,0);}
             else if(kind=="midpoint"){stroke(-5,4,5,4);stroke(5,4,0,-5);stroke(0,-5,-5,4);}
             else if(kind=="symmetry"){stroke(0,-5,0,5);stroke(-5,-3,-2,0);stroke(-2,0,-5,3);stroke(5,-3,2,0);stroke(2,0,5,3);}
             else if(kind=="collinear"){stroke(-6,0,-1,0);stroke(1,0,6,0);stroke(-1,-3,1,-3);stroke(-1,3,1,3);}
@@ -2172,7 +2193,7 @@ void ReferenceView::decorateSketch(const QJsonObject& sourceFeature,const QJsonO
             else if(kind=="vertical")stroke(0,-5,0,5);
             else if(kind=="perpendicular"){stroke(-4,4,-4,-4);stroke(-4,-4,4,-4);}
             else {stroke(-4,-4,0,4);stroke(0,-4,4,4);}
-            const bool selectedGeometry=selection[pointAlignment ? "pointIds" : "entityIds"].toArray().contains(target) ||
+            const bool selectedGeometry=selectedPoint || selection[pointAlignment ? "pointIds" : "entityIds"].toArray().contains(target) ||
                 (kind=="midpoint" && selection["pointIds"].toArray().contains(relation["pointIds"].toArray().at(0)));
             highlightRelation(relation,selectedBadge,hoveredBadge);
             auto badge=sketchPresentation(strokes);badge->SetColor(selectedBadge ? Quantity_Color(0.08,0.43,0.91,Quantity_TOC_sRGB)
@@ -2186,7 +2207,7 @@ void ReferenceView::decorateSketch(const QJsonObject& sourceFeature,const QJsonO
             for(const double x:{-6.0,6.0})for(const double y:{-6.0,6.0}) {
                 const auto corner=projectSketchPoint(u+x*size,v+y*size,plane);left=std::min(left,corner["x"].toDouble());right=std::max(right,corner["x"].toDouble());top=std::min(top,corner["y"].toDouble());bottom=std::max(bottom,corner["y"].toDouble());
             }
-            constraintGlyphs_.append(QJsonObject{{"constraintId",relation["id"]},{"pointIds",relation["pointIds"]},{"entityIds",relation["entityIds"]},{"anchorEntityId",target},{"kind",kind},{"selected",selectedBadge},{"hovered",hoveredBadge},{"originAvoidanceApplied",originAvoidanceApplied},{"anchorMm",QJsonObject{{"uMm",u},{"vMm",v}}},{"bounds",QJsonObject{{"x",left},{"y",top},{"width",right-left},{"height",bottom-top}}},{"viewportLocal",true},{"units","logicalPixels"}});
+            constraintGlyphs_.append(QJsonObject{{"constraintId",relation["id"]},{"pointIds",relation["pointIds"]},{"entityIds",relation["entityIds"]},{"anchorEntityId",target},{"kind",kind},{"contextual",kind=="coincident" || !showConstraints_},{"selected",selectedBadge},{"hovered",hoveredBadge},{"originAvoidanceApplied",originAvoidanceApplied},{"anchorMm",QJsonObject{{"uMm",u},{"vMm",v}}},{"bounds",QJsonObject{{"x",left},{"y",top},{"width",right-left},{"height",bottom-top}}},{"viewportLocal",true},{"units","logicalPixels"}});
         }
     }
     QMap<QString,QJsonObject> measurements;
@@ -3817,7 +3838,7 @@ void ReferenceView::contextMenuEvent(QContextMenuEvent* e) {
         e->accept();return;
     }
     if(sketchActive && selectTool && decorationSelection_["entityIds"].toArray().size()==1){const auto id=decorationSelection_.value("entityIds").toArray().at(0);for(const auto& value:decorationFeature_["parameters"].toObject()["entities"].toArray())if(value.toObject()["id"]==id&&value.toObject()["type"]=="fitSpline"){QMenu menu(this);auto* insert=menu.addAction("Insert Spline Fit Point");insert->setObjectName("sketch.spline.insertFitPoint");if(menu.exec(e->globalPos())==insert)dispatch("sketch.splineInsertMode",{{"entityId",id}});e->accept();return;}}
-    if(sketchActive && selectTool && showConstraints_) {
+    if(sketchActive && selectTool) {
         const auto badge=pickConstraint(e->pos().x(),e->pos().y());
         const auto selected=decorationSelection_.value("constraintIds").toArray();
         if(!badge.isEmpty() || !selected.isEmpty()) {
@@ -3847,15 +3868,34 @@ void ReferenceView::contextMenuEvent(QContextMenuEvent* e) {
         if(!entities.isEmpty() || !points.isEmpty()) {
             auto* menu=new QMenu(this);menu->setObjectName("context.sketchGeometry");menu->setAttribute(Qt::WA_DeleteOnClose);
             auto* remove=menu->addAction("Delete");remove->setObjectName("sketch.action.deleteGeometry");
+            QMap<QAction*,QString> coincidentActions;
+            for(const auto& value:decorationFeature_.value("parameters").toObject().value("constraints").toArray()) {
+                const auto relation=value.toObject();const auto kind=relation.value("type").toString();
+                if(kind!="coincident" && kind!="pointOnCurve")continue;
+                bool attached=false;for(const auto& point:points)attached |= relation.value("pointIds").toArray().contains(point);
+                if(!attached)continue;
+                auto* action=menu->addAction("Delete Coincident");
+                action->setObjectName("sketch.action.deleteCoincident");action->setData(relation.value("id").toString());
+                // Multiple relations remain individually addressable by stable ID.
+                action->setToolTip(relation.value("id").toString());
+                coincidentActions.insert(action,relation.value("id").toString());
+            }
             QAction* toggle=nullptr;if(!entities.isEmpty()) {
                 toggle=menu->addAction("Normal/Construction  X");toggle->setObjectName("sketch.action.constructionToggle");
             }
             lastContextMenu_["phase"]="open";lastContextMenu_["origin"]="sketch";
             lastContextMenu_["actions"]=QJsonArray{QJsonObject{{"id",remove->objectName()},{"enabled",true}}};
+            auto actions=lastContextMenu_.value("actions").toArray();
+            for(auto i=coincidentActions.begin();i!=coincidentActions.end();++i)actions.append(QJsonObject{{"id",i.key()->objectName()},{"constraintId",i.value()},{"enabled",true}});
+            lastContextMenu_["actions"]=actions;
             ++contextMenuShownCount_;
-            connect(menu,&QMenu::triggered,this,[this,remove,toggle,entities,points](QAction* action){
+            connect(menu,&QMenu::triggered,this,[this,remove,toggle,entities,points,coincidentActions](QAction* action){
                 lastContextMenu_["result"]=action->objectName();
                 if(action==remove)QTimer::singleShot(0,this,[this,entities,points]{dispatch("sketch.deleteSelection",{{"entityIds",entities},{"pointIds",points}});});
+                else if(coincidentActions.contains(action)) {
+                    const auto id=coincidentActions.value(action);lastContextMenu_["constraintId"]=id;
+                    QTimer::singleShot(0,this,[this,id]{dispatch("sketch.deleteCoincident",{{"constraintId",id}});});
+                }
                 else if(action==toggle)QTimer::singleShot(0,this,[this]{dispatch("sketch.constructionToggle",{});});
             });
             connect(menu,&QMenu::aboutToHide,this,[this]{lastContextMenu_["phase"]="closed";

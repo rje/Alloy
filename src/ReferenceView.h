@@ -144,6 +144,7 @@ public:
     QJsonObject splineHandles() const { return splineHandleState_; }
     QJsonObject pickAnnotation(double x, double y) const;
     QJsonObject pickConstraint(double x, double y) const;
+    bool constraintBadgeVisible(const QString& id) const;
     void setSketchAnnotationVisibility(bool showConstraints, bool showDimensions);
     void setSketchDisplayOptions(const QJsonObject& options);
     bool sketchEntityVisible(const QString& id) const;

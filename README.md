@@ -48,6 +48,9 @@ now show freedom/status by curve and provide a live Find Under-Constrained list.
 [Independent sketch visibility](docs/validation/sketch-visibility.md)
 now controls profiles, points, dimensions, constraints, construction and projected
 geometry separately, with hidden targets excluded from viewport selection.
+[Contextual point relations](docs/validation/sketch-point-relations.md)
+now reveal attached constraints on selection and offer Delete Coincident from a
+point's context menu.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,

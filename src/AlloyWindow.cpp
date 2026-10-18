@@ -5087,7 +5087,7 @@ void AlloyWindow::registerCommands() {
             if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
             if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","Restart this sketch");
             if(session_.value("tool")!="select" || session_.contains("pendingDimension"))return failure("pending_input_active","Return to Select before selecting a badge");
-            if(!session_.value("displayOptions").toObject().value("showConstraints").toBool(true))return failure("annotation_hidden","Show Constraints before selecting a badge");
+            if(!session_.value("displayOptions").toObject().value("showConstraints").toBool(true) && !view_->constraintBadgeVisible(a.value("constraintId").toString()))return failure("annotation_hidden","Select geometry to reveal this relation first");
             bool found=false;for(const auto& entry:session_.value("draftSketch").toObject()["parameters"].toObject()["constraints"].toArray())found |= entry.toObject()["id"]==a["constraintId"];
             if(!found)return failure("stale_constraint","Constraint does not exist","constraintId");
             auto ids=a.value("additive").toBool() ? session_.value("selection").toObject().value("constraintIds").toArray() : QJsonArray{};
@@ -5101,7 +5101,7 @@ void AlloyWindow::registerCommands() {
         const auto id=a.value("constraintId").toString();
         if(!id.isEmpty()) {
             if(session_.value("tool")!="select")return failure("pending_input_active","Return to Select before hovering a badge");
-            if(!session_.value("displayOptions").toObject().value("showConstraints").toBool(true))return failure("annotation_hidden","Show Constraints before hovering a badge");
+            if(!session_.value("displayOptions").toObject().value("showConstraints").toBool(true) && !view_->constraintBadgeVisible(id))return failure("annotation_hidden","Select geometry to reveal this relation first");
             bool found=false;for(const auto& entry:session_.value("draftSketch").toObject()["parameters"].toObject()["constraints"].toArray())found |= entry.toObject()["id"]==id;
             if(!found)return failure("stale_constraint","Constraint does not exist","constraintId");
         }
@@ -5145,7 +5145,8 @@ void AlloyWindow::registerCommands() {
             }
             if(!explicitTargets && ids.isEmpty() && dim.isEmpty() && !session_.value("hoveredConstraintId").toString().isEmpty())ids.append(session_["hoveredConstraintId"]);
             if(ids.isEmpty() && dim.isEmpty())return failure("annotation_required","Select or hover a constraint, or select a dimension");
-            if(!ids.isEmpty() && !session_.value("displayOptions").toObject().value("showConstraints").toBool(true))return failure("annotation_hidden","Show Constraints before deleting badges");
+            if(!session_.value("displayOptions").toObject().value("showConstraints").toBool(true))
+                for(const auto& id:ids)if(!view_->constraintBadgeVisible(id.toString()))return failure("annotation_hidden","Select geometry to reveal this relation first");
             if(!dim.isEmpty() && !session_.value("displayOptions").toObject().value("showDimensions").toBool(true))return failure("annotation_hidden","Show Dimensions before deleting an annotation");
             auto candidate=session_.value("draftSketch").toObject();auto parameters=candidate["parameters"].toObject();
             QSet<QString> wanted,available;
@@ -5165,6 +5166,20 @@ void AlloyWindow::registerCommands() {
             if(result.value("ok").isBool() && !result.value("ok").toBool())return result;
             session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}}};session_.remove("hoveredConstraintId");
             auto response=result;response["removedConstraintIds"]=ids;if(!dim.isEmpty())response["removedDimensionId"]=dim;return response;
+        });
+    add("sketch.deleteCoincident","Delete Coincident","Remove one retained Coincident relation attached to a selected point by stable ID.",
+        {{"constraintId",badgeId}},[this](const auto& a){
+            if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+            const auto selected=session_.value("selection").toObject().value("pointIds").toArray();
+            for(const auto& value:session_.value("draftSketch").toObject().value("parameters").toObject().value("constraints").toArray()) {
+                const auto relation=value.toObject();if(relation.value("id")!=a.value("constraintId"))continue;
+                if(relation.value("type")!="coincident" && relation.value("type")!="pointOnCurve")return failure("invalid_constraint_target","Choose a Coincident relation");
+                bool attached=false;for(const auto& point:selected)attached |= relation.value("pointIds").toArray().contains(point);
+                if(!attached)return failure("point_selection_required","Select a point attached to this Coincident relation");
+                const auto response=execute("sketch.deleteSelection",{{"constraintIds",QJsonArray{a.value("constraintId")}}});
+                return response.value("ok").toBool() ? response.value("result").toObject() : response;
+            }
+            return failure("stale_constraint","Constraint does not exist","constraintId");
         });
     auto annotationCoordinate=parameter("number","Canonical sketch-plane placement in millimeters.");annotationCoordinate["minimum"]=-100000;annotationCoordinate["maximum"]=100000;
     add("sketch.annotationMove","Move dimension annotation","Change canonical placement through the shared sketch draft, preserving geometry and dimension value.",
