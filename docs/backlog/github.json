@@ -1,7 +1,7 @@
 {
   "repository": "rje/Alloy",
   "project_url": "https://github.com/users/rje/projects/1",
-  "updated": "2026-10-18T16:04:37.351198+00:00",
+  "updated": "2026-10-18T16:08:53.295757+00:00",
   "issues": {
     "HIS-008": {
       "number": 474,
@@ -2936,6 +2936,21 @@
     "GEO-024": {
       "number": 590,
       "url": "https://github.com/rje/Alloy/issues/590",
+      "state": "open"
+    },
+    "HIS-009": {
+      "number": 591,
+      "url": "https://github.com/rje/Alloy/issues/591",
+      "state": "open"
+    },
+    "SKT-160": {
+      "number": 592,
+      "url": "https://github.com/rje/Alloy/issues/592",
+      "state": "open"
+    },
+    "SKT-161": {
+      "number": 593,
+      "url": "https://github.com/rje/Alloy/issues/593",
       "state": "open"
     }
   }

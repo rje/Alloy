@@ -7,8 +7,8 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **587 issues**: **464 implementation, 24 research,
-2 research/design, 22 epics, and 75 validation gates**. Counts describe decomposition, not coverage.
+The current local backlog contains **590 issues**: **466 implementation, 24 research,
+3 research/design, 22 epics, and 75 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 GEO-006/#309 accepts the circular-seam provenance repair with both retained brackets reopening. REL-051/#586 now accepts the native sketch→Extrude→Undo→Browser popup prefix plus separate API STL/readback; see [its receipt](../validation/ordinary-bracket-input-prefix.md). REL-012/#415 remains Todo/blocked on REL-052/#587 for Save As Mesh modal focus and OS chooser. The strict native probe now stops before user input because the private macOS test process lacks AppKit activation/key window; FND-028/#589 owns that prerequisite. External `../Alloy-reference-records/validation/rel012-ordinary-input-2026-10-18/README.md` retains both failure and accepted evidence.
 SKT-115–121 and SKT-123–124/#540–546, #548–549 are accepted analytic constraint pairs and endpoint contacts; SKT-129/#554 accepts distinct-ID arc/line endpoint Tangent and SKT-022/#163 is closed for its declared v1 analytic scope. SKT-122/#547 and SKT-130–132/#555–557 retain later multi-pair Symmetry, spline constraints and branch-control research.
@@ -49,7 +49,7 @@ is accepted for straight and circular pairs under
 [SKT-156](../validation/sketch-face-projection-delete.md). SKT-144–147/#570–573
 now have independently accepted bounded Offset owner deletion, including the
 single-owner support-face loop under SKT-145/#571. Its planar-inset actual-app variant is now accepted under SKT-152/#578
-with a retained 18-edge enclosure fixture, native/API input, exact history and GPU captures. Two classic annulus owners in one face sketch are accepted under [SKT-153](../validation/sketch-multiple-loop-offset-delete.md), with both schemas passing core. Multiple-owner planar-inset real-app/native qualification is now accepted under [SKT-158](../validation/sketch-multiple-planar-inset-delete.md); stale-support recovery text is SKT-154/#580, blocked until a reachable in-session stale-support or explicit repair path exists under SKT-025/#159.
+with a retained 18-edge enclosure fixture, native/API input, exact history and GPU captures. Two classic annulus owners in one face sketch are accepted under [SKT-153](../validation/sketch-multiple-loop-offset-delete.md), with both schemas passing core. Multiple-owner planar-inset real-app/native qualification is now accepted under [SKT-158](../validation/sketch-multiple-planar-inset-delete.md); stale-support recovery text is SKT-154/#580, blocked on the transient failed-edit session HIS-009/#591. SKT-160/#592 owns ordinary explicit plane reassignment and SKT-161/#593 owns generated-boundary repair policy under broad SKT-025/#159.
 SKT-148/#574 now accepts
 fit-spline Mirror Delete through core, real-app API, native Qt and independent
 review. SKT-149/#575 accepts explicit fit-spline Offset Break Link, retaining both curves and converting the result to independently editable geometry; see [its receipt](../validation/sketch-fit-spline-offset-association.md).

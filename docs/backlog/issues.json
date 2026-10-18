@@ -2780,6 +2780,61 @@
       "body": "## Problem and result\nQualify the migrated renderer from packaged Alloy entrypoints on macOS arm64/Intel, Windows x64 and Linux x64 hardware. Metal is required on Mac and Vulkan on the other targets. Backend fallback or hosted compilation alone cannot satisfy this gate.\n\n## Scope\nQualify native Metal/Vulkan from packaged entrypoints and preserve supported CAD workflows.\n\n## Acceptance criteria\nActual backend, hardware, package and cumulative workflow evidence must pass on every declared target.\n\n## Proposed verification and evidence\nUse local agent commands and bounded computer-use input to create/edit/select a representative object, pan/zoom/fit, preview/cancel, undo/redo and save/reopen. Include all previously accepted modeling workflows at the selected milestone. Verify pre-capture native display, resize/display scale, geometry/identity consistency, screenshot capture and useful interactive performance. Record exact package/candidate and hardware/backend receipts, native input limits, regressions and independent review. Promotion uses the identical qualified archives through CI-003; no per-commit native build or automatic release follows from issue closure.\n\n## Public reference evidence\n- [Apple graphics direction](https://developer.apple.com/library/archive/documentation/GraphicsImaging/Conceptual/OpenGL-MacProgGuide/opengl_intro/opengl_intro.html) \u2014 retrieved 2026-10-11.\n\n## Limits and open questions\nNo RHI is integrated today. This gate remains open until native hardware and packaged cumulative evidence exists.\n"
     },
     {
+      "key": "HIS-009",
+      "title": "Retain a failed upstream edit in a cancellable repair session",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P0",
+      "depends_on": [
+        "DOC-003",
+        "SKT-013",
+        "SOL-002"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P0",
+        "area:his"
+      ],
+      "body": "## Problem and result\nAn upstream edit that removes a face-sketch support is correctly refused atomically, but the candidate and its exact diagnostic vanish before a user can inspect the affected sketch or choose an explicit repair. Add a transient repair session while preserving the last committed valid document; do not persist a broken document.\n\n## Bounded acceptance\n- On the existing saved `support-failure` fixture, change the prior Combine tool to its split/deletion tool through the real edit command. The committed authored state, evaluated solid, revision and history remain unchanged; the failed candidate retains its base revision, exact support diagnostic and last valid prefix in an explicitly marked session.\n- Shared local API and UI expose stable session/candidate IDs, inspectable failed command and impacted sketch IDs, last accepted sketch/profile presentation for selection, and Cancel. Selection/cached geometry must be visibly distinguished from evaluated candidate geometry. A second edit/revision invalidates the session rather than applying stale results.\n- Selecting a cached generated owner can reach the existing exact-support Delete refusal without mutating committed state. This issue does not add recovery wording or perform support reassignment; SKT-154 owns the former and SKT-160 the latter.\n- Cancel restores the exact committed state/selection and closes the session. Verify API and focused Qt input through the real entrypoint, exact authored/history/geometry summaries and one GPU capture if the desktop session allows it; physical input remains with the native release gate. Keep diagnostics/actionability and no silent nearest-face remap.\n\n## Boundaries and evidence\nThe current commit/open/evaluation guards intentionally reject unresolved support; do not weaken normal atomic refusal or save invalid authored JSON. Architecture audit identified `tests/multi_face_fixtures.h` and `tests/multi_face_gate.cpp` as the real trigger. Public support-redefinition behavior and unknowns are in the external SKT-025 knowledge spec. Persisted broken documents and generated Offset lineage mapping are separate decisions."
+    },
+    {
+      "key": "SKT-160",
+      "title": "Redefine an ordinary face-sketch plane as one atomic repair",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P0",
+      "depends_on": [
+        "HIS-009",
+        "SKT-013"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P0",
+        "area:skt"
+      ],
+      "body": "## Problem and result\nProvide an explicit support replacement for one ordinary authored sketch after an upstream edit would remove its planar face, without automatically attaching to the nearest face or accepting a broken document.\n\n## Bounded acceptance\n- In HIS-009's repair session for an ordinary face-supported sketch without projected or generated-boundary owners, offer Redefine Sketch Plane. Select only an earlier existing planar face/plane in the candidate prefix, show its frame/normal and downstream preview, and Cancel without changing the committed document.\n- Commit upstream edit plus explicit support reassignment as one transaction. Preserve authored sketch entity IDs and local coordinates under a stated frame policy; recompute dependent feature geometry, then verify one Undo/Redo and save/reopen with stable references. Reject missing, curved, ambiguous and later-history support atomically.\n- UI and local API use the same command/session state. Verify one real fixture through API, focused native Qt controls, exact geometry/history and inspected GPU capture; physical OS input and wider support modes remain separate.\n\n## Boundaries\nThis child excludes projected-edge relink, support-derived loop Offset owners, persisted unresolved documents, side/inclined/reversed face breadth and automatic topology matching. SKT-025 retains those requirements; SKT-161 owns generated-boundary policy. Public redefinition instructions and uncertainties are recorded outside the repository under the clean-room knowledge archive."
+    },
+    {
+      "key": "SKT-161",
+      "title": "Define generated loop Offset repair across support-boundary changes",
+      "kind": "research/design",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-160",
+        "SKT-076"
+      ],
+      "labels": [
+        "kind:research/design",
+        "phase:P2",
+        "priority:P1",
+        "area:skt"
+      ],
+      "body": "## Problem and result\nA retained loop Offset owner uses support and boundary identities in `outerLoopId`. Changing only a sketch's support cannot preserve that owner across arbitrary deleted/split/replaced faces. Define a bounded explicit repair policy before implementing a successful generated-loop reassignment.\n\n## Acceptance\n- On the existing multi-face fixture extended with one retained loop Offset owner, classify exact same-boundary support, changed-boundary replacement and missing/ambiguous boundary. Specify when owner/source IDs can be preserved, when the user must explicitly recreate the owner, and when the candidate is refused; never silently spatially remap.\n- Record one finishable implementation child and a real fixture for each required first-v1 route, including edit/Cancel, history/Undo and save/reopen consequences. Keep public documented behavior separate from Alloy policy where reference evidence is insufficient.\n- Reuse HIS-009 repair-session and SKT-160 ordinary-plane evidence without declaring generated-loop repair accepted. SKT-154 remains only the actionable stale Delete refusal.\n\n## Evidence and limits\nThe current `RoundedLoopOffset` identity check and the independent architecture audit establish the technical ambiguity. Public source redefinition docs do not specify generated Offset owner lineage after a support replacement; record that unknown in the external knowledge archive."
+    },
+    {
       "key": "SKT-025",
       "title": "Extend planar sketch support and add explicit support repair",
       "kind": "implementation",
@@ -2787,7 +2842,10 @@
       "priority": "P0",
       "depends_on": [
         "SKT-013",
-        "SKT-075"
+        "SKT-075",
+        "HIS-009",
+        "SKT-160",
+        "SKT-161"
       ],
       "labels": [
         "kind:implementation",
@@ -9716,7 +9774,7 @@
       "priority": "P2",
       "depends_on": [
         "SKT-145",
-        "SKT-025"
+        "HIS-009"
       ],
       "labels": [
         "kind:implementation",
