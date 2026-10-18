@@ -493,3 +493,4 @@ This is a publication snapshot. Use `python3 tools/backlog.py ready` for the liv
 | [#483 REL-040: Keep large-history sketch edit and Finish responsive](https://github.com/rje/Alloy/issues/483) | P4 Initial release | implementation | P0 | [#478](https://github.com/rje/Alloy/issues/478) |
 | [#484 REL-041: Keep downstream recompute responsive after sketch source edit](https://github.com/rje/Alloy/issues/484) | P4 Initial release | implementation | P0 | [#478](https://github.com/rje/Alloy/issues/478) |
 | [#488 REL-042: Verify historical sketch Finish on the saved iron checkpoint](https://github.com/rje/Alloy/issues/488) | P4 Initial release | validation | P0 | [#483](https://github.com/rje/Alloy/issues/483) |
+| [#489 REL-043: Make Surface Trim preview match committed partition across viewport mesh states](https://github.com/rje/Alloy/issues/489) | P4 Initial release | implementation | P1 | [#481](https://github.com/rje/Alloy/issues/481) |

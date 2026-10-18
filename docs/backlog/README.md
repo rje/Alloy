@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **485 issues**: **374 implementation, 23 research,
+The current publication contains **486 issues**: **375 implementation, 23 research,
 22 epics, and 66 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
@@ -39,6 +39,10 @@ evaluation with responsive status/pan/GUI heartbeat, exact changed solid,
 stable face IDs, one history operation and reopen. See
 [the receipt](../validation/responsive-sketch-source-edit.md). This does not
 close cumulative REL-016.
+REL-043/#489 separately tracks a pre-existing Surface Trim preview/commit
+geometry mismatch caused by viewport-dependent bounds. REL-038's background
+partition matches the accepted committed geometry; its runtime gate must use
+that committed baseline, not the stale live-preview extent.
 
 ## Active delivery order
 

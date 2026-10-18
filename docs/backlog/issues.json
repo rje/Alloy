@@ -8176,6 +8176,22 @@
         "priority:P0"
       ],
       "body": "## Remaining gate\nREL-040/#483 moved changed historical Sketch Finish evaluation to the serial worker and passed focused command tests, but the actual corrected-iron saved-fixture Finish was never reached. Two responsive Edit-open runs stopped at initial native-window focus checks; a third setup attempt stopped before file open when AppKit activation of the owned PID returned true but Qt still reported no active window/focus owner. Preserve those receipts; do not count focused checks as the real workflow.\n\n## Bounded work\nEstablish one reliable initial activation of the single private editor before demonstrated steps, with no focus or selection repair between steps. Use the saved corrected-iron pre-bottom checkpoint: historical Sketch Edit, add the exact bottom line (-20,0) to (240,0), and Finish. If initial native activation cannot be made reliable after bounded diagnosis, report the gate as blocked without repeated costly full model runs. Fix any actual Finish/adoption failure found, retaining private candidate evaluation, revision/session guards, visible error and Cancel-result-discard semantics.\n\n## Acceptance\nMeasure status/navigation/GUI heartbeat during Edit and Finish. Compare exact sketch entities/constraints, three-tool geometry and references to the accepted stage ledger; verify one atomic history operation, Undo/Redo and native reopen. Keep the later Extrude/Fill suffix and complete movie out of this gate unless a new failure requires them. Obtain independent source/geometry review and a concise receipt. REL-016/#419 remains the broader responsiveness owner.\n\n## Dependency\nREL-040/#483 provides the worker implementation and focused command foundation.\n"
+    },
+    {
+      "key": "REL-043",
+      "title": "Make Surface Trim preview match committed partition across viewport mesh states",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [
+        "REL-038"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P4",
+        "priority:P1"
+      ],
+      "body": "## Observed mismatch\nThe saved corrected-iron panel Trim live preview used viewport-tessellated target bounds and reported sketch-normal projection extent about \u00b170.4769 mm. The accepted committed Trim recomputed from fresh unmeshed geometry and used \u00b1118.2178 mm, with different preview region areas. The REL-038 private-worker partition matches the committed regions and projection exactly, exposing a pre-existing preview-versus-commit inconsistency. Evidence: accepted candidate14 transcript entries 115/121/123 and external validation/rel038-responsive-trim-2026-10-17/saved-fixtures/ first stopped replay.\n\n## Bounded work\nMake Surface Trim partition bounds and region presentation independent of incidental viewport triangulation. Use a stable geometry-based bounding method or a deliberately controlled tessellation policy on both live and private sources. Preserve exact committed removal semantics, target/tool identity, region ancestry and stable references. A preview must show the regions and extent that OK will actually commit, even after view navigation or first mesh generation. Do not change kernel geometry merely to make a stale preview oracle pass.\n\n## Verification\nUse the saved panel checkpoint with and without viewport tessellation; compare preview region provenance/area/projection to the exact committed result, then verify one history operation, Undo/Redo and native reopen. Add a focused bound-policy regression and independently inspect before/after app captures. Avoid a full tutorial replay solely for this child.\n\n## Dependency\nREL-038/#481 establishes the background partition/commit path. REL-016/#419 retains cumulative responsiveness.\n"
     }
   ]
 }
