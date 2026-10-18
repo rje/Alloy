@@ -9804,7 +9804,6 @@
       ],
       "labels": [
         "kind:implementation",
-        "status:ready",
         "area:rel",
         "phase:P4",
         "priority:P0"
