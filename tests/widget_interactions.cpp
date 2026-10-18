@@ -1180,6 +1180,66 @@ private slots:
         QTRY_COMPARE(params().value("entities").toArray().size(),0);QCOMPARE(params().value("points").toArray().size(),0);
         QVERIFY2(run(window,"sketch.cancel"),error_.constData());
     }
+    void sketchConstructorGroupDelete() {
+        AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+#ifdef Q_OS_MACOS
+        QProcess activation;activation.start("osascript",{"-e",QString("tell application \"System Events\" to set frontmost of first application process whose unix id is %1 to true").arg(QCoreApplication::applicationPid())});
+        QVERIFY(activation.waitForFinished(5000));QCOMPARE(activation.exitCode(),0);
+#endif
+        window.raise();window.activateWindow();window.windowHandle()->requestActivate();QApplication::setActiveWindow(&window);QTRY_VERIFY(window.isActiveWindow());
+        auto* view=viewport(window);QVERIFY(view);
+        auto params=[&]{return session(window).value("draftSketch").toObject().value("parameters").toObject();};
+        for(const auto* family:{"slotGroups","arcSlotGroups","polygonGroups","chamferGroups"}) {
+            QVERIFY2(run(window,"sketch.begin",{{"plane","XY"}}),error_.constData());
+            QString target;QPointF pick;const auto key=QString::fromLatin1(family);qInfo()<<"Native constructor fixture"<<key;
+            if(key=="slotGroups") {
+                QVERIFY2(run(window,"sketch.centerPointSlot",{{"centerX",0},{"centerY",0},{"endX",20},{"endY",0},{"width",10},{"units","mm"}}),error_.constData());
+                target=params().value(key).toArray()[0].toObject().value("sideIds").toArray()[0].toString();pick={-10,5};
+            } else if(key=="arcSlotGroups") {
+                QVERIFY2(run(window,"sketch.centerPointArcSlot",{{"centerX",0},{"centerY",0},{"firstX",20},{"firstY",0},{"lastX",0},{"lastY",20},{"width",6},{"units","mm"}}),error_.constData());
+                target=params().value(key).toArray()[0].toObject().value("outerArcId").toString();pick={23/std::sqrt(2.0),23/std::sqrt(2.0)};
+            } else if(key=="polygonGroups") {
+                QVERIFY2(run(window,"sketch.polygon",{{"mode","edge"},{"x",-10},{"y",-10},{"size",20},{"count",4},{"angleDeg",0},{"units","mm"}}),error_.constData());
+                target=params().value(key).toArray()[0].toObject().value("entityIds").toArray()[0].toString();pick={0,-10};
+            } else {
+                QVERIFY2(run(window,"sketch.centerRectangle",{{"centerX",0},{"centerY",0},{"width",40},{"height",40},{"units","mm"}}),error_.constData());
+                const auto es=params().value("entities").toArray();
+                QVERIFY2(run(window,"sketch.chamfer",{{"entityIds",QJsonArray{es[1].toObject().value("id"),es[2].toObject().value("id")}},{"value",15},{"units","mm"}}),error_.constData());
+                target=params().value(key).toArray()[0].toObject().value("lineId").toString();pick={17,8};
+            }
+            const auto original=params();const auto index=session(window).value("draftHistory").toObject().value("index").toInt();
+            if(key=="polygonGroups") {
+                auto* tree=window.findChild<QTreeWidget*>("sketch.selection");QVERIFY(tree);QTreeWidgetItem* row=nullptr;
+                for(QTreeWidgetItemIterator it(tree);*it;++it)if((*it)->data(0,Qt::UserRole+1).toString()==target)row=*it;
+                QVERIFY(row);tree->scrollToItem(row);QTest::mouseClick(tree->viewport(),Qt::LeftButton,Qt::NoModifier,tree->visualItemRect(row).center());
+                QCOMPARE(session(window).value("selection").toObject().value("entityIds").toArray(),QJsonArray{target});QVERIFY(tree->hasFocus());QTest::keyClick(tree,Qt::Key_Delete);
+            } else if(key=="chamferGroups") {
+                // Use the documented context route; left press near the
+                // retained cut can invoke its existing dimension/drag handles.
+                const auto pixel=sketchPixel(view,pick.x(),pick.y());
+                QContextMenuEvent context(QContextMenuEvent::Mouse,pixel,view->mapToGlobal(pixel));QApplication::sendEvent(view,&context);
+                auto* menu=view->findChild<QMenu*>("context.sketchGeometry");QVERIFY(menu);QTRY_COMPARE(QApplication::activePopupWidget(),menu);
+                QCOMPARE(session(window).value("selection").toObject().value("entityIds").toArray(),QJsonArray{target});
+                auto* remove=menu->findChild<QAction*>("sketch.action.deleteGeometry");QVERIFY(remove);
+                QTest::mouseClick(menu,Qt::LeftButton,Qt::NoModifier,menu->actionGeometry(remove).center());QTRY_VERIFY(QApplication::activePopupWidget()==nullptr);
+            } else {
+                QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,sketchPixel(view,pick.x(),pick.y()));
+                QCOMPARE(session(window).value("selection").toObject().value("entityIds").toArray(),QJsonArray{target});QVERIFY(view->hasFocus());QTest::keyClick(view,Qt::Key_Delete);
+            }
+            QTRY_VERIFY(!params().contains(key));QCOMPARE(session(window).value("draftHistory").toObject().value("index").toInt(),index+1);
+            const auto removed=params();QVERIFY2(run(window,"history.undo"),error_.constData());QCOMPARE(params(),original);
+            if(key=="chamferGroups") {
+                auto* tree=window.findChild<QTreeWidget*>("sketch.selection");QVERIFY(tree);QTreeWidgetItem* row=nullptr;
+                for(QTreeWidgetItemIterator it(tree);*it;++it)if((*it)->data(0,Qt::UserRole+1).toString()==target)row=*it;
+                QVERIFY(row);tree->scrollToItem(row);QTest::mouseClick(tree->viewport(),Qt::LeftButton,Qt::NoModifier,tree->visualItemRect(row).center());
+                QCOMPARE(session(window).value("selection").toObject().value("entityIds").toArray(),QJsonArray{target});QVERIFY(tree->hasFocus());QTest::keyClick(tree,Qt::Key_Delete);
+                QTRY_COMPARE(params(),removed);QVERIFY2(run(window,"history.undo"),error_.constData());QCOMPARE(params(),original);
+            }
+            QVERIFY2(run(window,"history.redo"),error_.constData());QCOMPARE(params(),removed);
+            QVERIFY2(run(window,"sketch.cancel"),error_.constData());
+        }
+    }
     void pressPullProfileModifierToggle() {
         AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
         QVERIFY(QTest::qWaitForWindowExposed(&window));

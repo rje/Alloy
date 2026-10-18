@@ -67,13 +67,14 @@ with application(a.app,out) as (call,ledger):
     assert reopened['evaluation']['bodies'][0]['bodyId']==body['bodyId']
     call('view.home');call('view.fit')
     call('capture.screenshot',{'path':str(out/'reopened-solid.png')})
-    # Retained constructor ownership blocks deletion atomically.
+    # Constructor groups now dispatch through their owning operation (SKT-141).
     call('sketch.begin',{'plane':'XY','name':'Owner refusal'});call('sketch.centerPointSlot',{'centerX':55,'centerY':0,'endX':75,'endY':0,'width':10,'units':'mm'})
     side=last();call('sketch.selectionSet',{'entityIds':[side['id']]});before=session()
-    call('sketch.deleteSelection',error='sketch_solve_failed');after=session()
-    for key in ['draftSketch','draftHistory','selection']:assert before[key]==after[key]
-    call('capture.screenshot',{'path':str(out/'owner-refusal.png')});call('sketch.cancel')
+    call('sketch.deleteSelection');after=session();assert not params().get('slotGroups')
+    assert not params()['entities']
+    call('history.undo');assert draft()==before['draftSketch']
+    call('sketch.cancel')
     gpu=call('app.state')['viewport']['gpu'];assert gpu['hardwareAccelerated']
-    (out/'receipt.json').write_text(json.dumps({'status':'pass','appSha256':hashlib.sha256(Path(a.app).read_bytes()).hexdigest(),'gpu':gpu,'body':body,'sketchId':sketch_id,'fitSplineSharedPoint':shared,'refusedSlotMemberId':side['id']},indent=2)+'\n')
+    (out/'receipt.json').write_text(json.dumps({'status':'pass','appSha256':hashlib.sha256(Path(a.app).read_bytes()).hexdigest(),'gpu':gpu,'body':body,'sketchId':sketch_id,'fitSplineSharedPoint':shared,'deletedSlotMemberId':side['id']},indent=2)+'\n')
     (out/'transcript.json').write_text(json.dumps(ledger,indent=2)+'\n')
-print('PASS: authored curves, shared point, fit-point route, owner refusal, history/reopen and solid')
+print('PASS: authored curves, shared point, fit-point route, owner dispatch, history/reopen and solid')

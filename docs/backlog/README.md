@@ -36,8 +36,10 @@ and extensions. SOL-059/#504 has a bounded
 [modeled external Thread receipt](../validation/modeled-external-thread.md).
 SKT-102/#525 accepts authored spline, ellipse and conic deletion after the
 [ordinary line/circle/arc/point SKT-099 slice](../validation/sketch-geometry-delete.md).
-Generated-group deletion remains linked Todo SKT-141–143/#567–569, so a
-safe refusal cannot be mistaken for implementation.
+SKT-141/#567 accepts whole-owner Slot, Arc Slot, Polygon and Chamfer deletion
+after core, API, native Qt and independent review. Generated Mirror/Offset and
+linked/projected deletion remain Todo SKT-142–143/#568–569, so refusal cannot
+be mistaken for implementation.
 DOC-016/#167 has a bounded [native exchange-sheet receipt](../validation/native-exchange-sheet.md);
 DOC-035/#516 has a bounded [File-menu export receipt](../validation/native-exchange-menu.md);
 DOC-036/#517 has a bounded [Browser body mesh receipt](../validation/native-browser-mesh.md).

@@ -71,7 +71,10 @@ and sweep locks through native interaction and a downstream rounded solid.
 consumed tool names in history and allows a valid retry after an empty result.
 [Authored curve Delete](docs/validation/sketch-authored-curve-delete.md) now
 removes selected ellipses, conics and splines while preserving shared sketch
-relations and refusing generated groups safely.
+relations. [Constructor-group Delete](docs/validation/sketch-constructor-group-delete.md)
+now removes a selected Slot, Arc Slot, Polygon or Chamfer member through its
+whole owning group, with undo/reopen and shared-reference checks; mirrored,
+offset and projected groups remain separate work.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,

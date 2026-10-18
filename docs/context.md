@@ -4,7 +4,10 @@
 
 The user reviewed the private printable-part v1 design as a reasonable working
 direction and asked that partial work stop accumulating. REL-030 remains open
-for row-by-row gap ownership and final scope reconciliation. Work one bounded
+for final scope reconciliation after a [150-row inventory audit](v1/inventory-reconciliation.md)
+identified broad owners and release-gate gaps. GATE-050/#86 and REL-018/#421
+now explicitly require packaged STL/STEP/3MF from an edited, reopened modeled
+external-thread fixture; actual package evidence remains open. Work one bounded
 active issue to its stated acceptance, create linked Todo children for any
 explicit remainder, and move the board item to Done only after real-app
 evidence. DOC-013 local New/Open/Save As/dirty-close now has real API and
@@ -18,7 +21,7 @@ disposition remain open under REL-030. Six additional Todo owners
 [#518–#523](backlog/github.md) cover previously unowned sketch
 deletion/diagnosis/intersection, interference inspection, OBJ output and
 active-preview visibility responsiveness. XCH-011/#524 adds a bounded required
-3MF export owner. SKT-102/#525 accepts authored ellipse/conic/fit/control-spline Delete with native/API, exact history/reopen and a downstream solid; see [its receipt](validation/sketch-authored-curve-delete.md). Grouped constructor, Mirror/Offset and linked/projected deletion remain linked Todo SKT-141–143/#567–569. SKT-103/#526 owns the Polygon's first retained
+3MF export owner. SKT-102/#525 accepts authored ellipse/conic/fit/control-spline Delete with native/API, exact history/reopen and a downstream solid; see [its receipt](validation/sketch-authored-curve-delete.md). SKT-141/#567 now accepts whole-owner Slot, Arc Slot, Polygon and Chamfer Delete through core, real-app API and Qt-delivered native routes, with exact Undo/Redo/reopen and shared-identity preservation; see [its receipt](validation/sketch-constructor-group-delete.md). Chamfer left-click selection remains unqualified; context and list Delete pass. Mirror/Offset and linked/projected deletion remain Todo SKT-142–143/#568–569. SKT-103/#526 owns the Polygon's first retained
 placement anchor, SKT-104/#527 its canvas annotations, and SKT-105/#528 the
 second placement driver and size/orientation conflict contract. REL-049/#529 records the user's sequencing: finish v1
 functionality and packaging gates first, then audit intrinsic cost across

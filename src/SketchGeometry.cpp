@@ -1616,9 +1616,9 @@ SketchGeometry::SolveResult SketchGeometry::deleteEntities(const QJsonObject& dr
     const QJsonArray& pointIds,const QJsonObject& projectionContext) {
     try {
         validateDraft(draft);
-        const auto parameters=draft["parameters"].toObject();
-        const auto authoredEntities=parameters["entities"].toArray();
-        const auto authoredPoints=parameters["points"].toArray();
+        auto parameters=draft["parameters"].toObject();
+        const auto authoredEntities=parameters.value("entities").toArray();
+        const auto authoredPoints=parameters.value("points").toArray();
         auto mentions=[](const QJsonValue& value,const QSet<QString>& ids,const auto& self)->bool {
             if(value.isString())return ids.contains(value.toString());
             if(value.isArray())for(const auto& item:value.toArray())if(self(item,ids,self))return true;
@@ -1628,6 +1628,10 @@ SketchGeometry::SolveResult SketchGeometry::deleteEntities(const QJsonObject& dr
         QSet<QString> targets,requestedPoints,availableEntities,availablePoints;
         for(const auto& value:authoredEntities)availableEntities.insert(value.toObject()["id"].toString());
         for(const auto& value:authoredPoints)availablePoints.insert(value.toObject()["id"].toString());
+        // Chamfer members exist only in evaluated presentation. Its authored
+        // source lines remain unchanged and must never become deletion targets.
+        for(const auto& row:parameters.value("chamferGroups").toArray())
+            availableEntities.insert(row.toObject().value("lineId").toString());
         for(const auto& value:entityIds) {
             if(!value.isString() || value.toString().isEmpty() || targets.contains(value.toString()))reject("Entity targets must be distinct authored IDs");
             if(!availableEntities.contains(value.toString()))reject("Selected entity is not authored in this sketch");
@@ -1639,6 +1643,42 @@ SketchGeometry::SolveResult SketchGeometry::deleteEntities(const QJsonObject& dr
             requestedPoints.insert(value.toString());
         }
         if(targets.isEmpty() && requestedPoints.isEmpty())reject("Select sketch geometry to delete");
+        // Alloy policy: selecting a constructor member removes that complete
+        // owner. Only explicit generated-member fields participate; source/snap
+        // references never expand the target set. Unsupported owners still fail
+        // the survivor/metadata checks below, before any draft is published.
+        QSet<QString> ownerPoints,ownerRelations,ownerIds;
+        QJsonArray removedGroups;
+        const auto requestedEntities=targets;
+        for(const auto& key:{"slotGroups","arcSlotGroups","polygonGroups","chamferGroups"}) {
+            QJsonArray kept;
+            for(const auto& row:parameters.value(key).toArray()) {
+                const auto group=row.toObject();QSet<QString> members;
+                const auto add=[&](const char* field){
+                    const auto value=group.value(field);
+                    if(value.isString())members.insert(value.toString());
+                    else for(const auto& id:value.toArray())members.insert(id.toString());
+                };
+                const auto family=QString::fromLatin1(key);
+                if(family=="slotGroups"){add("centerlineId");add("sideIds");add("arcIds");}
+                else if(family=="arcSlotGroups"){add("pathArcId");add("outerArcId");add("innerArcId");add("capIds");}
+                else if(family=="polygonGroups")add("entityIds");
+                else add("lineId");
+                if(!members.intersects(requestedEntities)){kept.append(row);continue;}
+                targets.unite(members);ownerIds.insert(group.value("id").toString());removedGroups.append(group.value("id"));
+                if(family=="slotGroups")ownerPoints.insert(group.value("centerPointId").toString());
+                if(family=="polygonGroups" || family=="chamferGroups")
+                    for(const auto& id:group.value("pointIds").toArray())ownerPoints.insert(id.toString());
+                if(family=="polygonGroups") {
+                    for(const auto& field:{"anchorPointId","driverPointId"})
+                        if(group.contains(field))ownerPoints.insert(group.value(field).toString());
+                    for(const auto& id:group.value("constraintIds").toArray())ownerRelations.insert(id.toString());
+                    for(const auto& field:{"anchorConstraintId","driverConstraintId"})
+                        if(group.contains(field))ownerRelations.insert(group.value(field).toString());
+                }
+            }
+            if(kept.isEmpty())parameters.remove(key);else parameters[key]=kept;
+        }
         for(const auto& value:authoredEntities) {
             const auto entity=value.toObject();const auto id=entity["id"].toString();
             if(!targets.contains(id))continue;
@@ -1659,7 +1699,7 @@ SketchGeometry::SolveResult SketchGeometry::deleteEntities(const QJsonObject& dr
         // A selected dependent endpoint or center cannot be removed independently.
         // A standalone Point entity is its own deletion target.
         for(const auto& pointId:requestedPoints) {
-            if(pointId==parameters["originPointId"].toString())reject("The sketch origin cannot be deleted");
+            if(pointId==parameters.value("originPointId").toString())reject("The sketch origin cannot be deleted");
             for(const auto& value:authoredEntities) {
                 const auto entity=value.toObject();const auto id=entity["id"].toString();
                 if(!mentions(entity,{{pointId}},mentions))continue;
@@ -1668,7 +1708,7 @@ SketchGeometry::SolveResult SketchGeometry::deleteEntities(const QJsonObject& dr
             }
         }
         QJsonArray survivors,removedEntities;
-        QSet<QString> candidatePoints;
+        QSet<QString> candidatePoints=ownerPoints;
         for(const auto& value:authoredEntities) {
             const auto entity=value.toObject();const auto id=entity["id"].toString();
             if(!targets.contains(id)){survivors.append(value);continue;}
@@ -1680,11 +1720,11 @@ SketchGeometry::SolveResult SketchGeometry::deleteEntities(const QJsonObject& dr
         for(const auto& pointId:requestedPoints)candidatePoints.insert(pointId);
         QSet<QString> retiredPoints;
         for(const auto& pointId:candidatePoints) {
-            if(pointId==parameters["originPointId"].toString())continue;
+            if(pointId==parameters.value("originPointId").toString())continue;
             bool used=false;for(const auto& entity:survivors)used|=mentions(entity,{{pointId}},mentions);
             if(!used)retiredPoints.insert(pointId);
         }
-        QSet<QString> retired=targets;retired.unite(retiredPoints);
+        QSet<QString> retired=targets;retired.unite(retiredPoints);retired.unite(ownerIds);retired.unite(ownerRelations);
         // Retained feature/group metadata and other entities may own references
         // beyond the ordinary relation arrays. Refuse rather than corrupt them.
         for(const auto& value:survivors)if(mentions(value,retired,mentions))
@@ -1698,11 +1738,11 @@ SketchGeometry::SolveResult SketchGeometry::deleteEntities(const QJsonObject& dr
             const auto id=value.toObject()["id"].toString();
             if(retiredPoints.contains(id))removedPoints.append(id);else points.append(value);
         }
-        for(const auto& value:parameters["constraints"].toArray()) {
+        for(const auto& value:parameters.value("constraints").toArray()) {
             const auto relation=value.toObject();
             if(mentions(relation,retired,mentions))removedConstraints.append(relation["id"]);else constraints.append(value);
         }
-        for(const auto& value:parameters["dimensions"].toArray()) {
+        for(const auto& value:parameters.value("dimensions").toArray()) {
             const auto dimension=value.toObject();
             if(mentions(dimension,retired,mentions))removedDimensions.append(dimension["id"]);else dimensions.append(value);
         }
@@ -1711,6 +1751,7 @@ SketchGeometry::SolveResult SketchGeometry::deleteEntities(const QJsonObject& dr
         auto candidate=draft;candidate["parameters"]=changed;
         auto result=solveDraft(candidate,projectionContext);
         if(!result.ok)return {false,draft,result.diagnostics,result.error};
+        result.diagnostics["removedGroupIds"]=removedGroups;
         result.diagnostics["removedEntityIds"]=removedEntities;
         result.diagnostics["removedPointIds"]=removedPoints;
         result.diagnostics["removedConstraintIds"]=removedConstraints;

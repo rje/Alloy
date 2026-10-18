@@ -5131,7 +5131,7 @@ void AlloyWindow::registerCommands() {
         });
     add("sketch.deleteSelection","Delete sketch selection","Remove selected sketch geometry or annotations in one solved draft edit.",
         {{"constraintIds",optional(parameter("array","Distinct stable constraint UUIDs to remove."))},{"dimensionId",optional(dimensionId)},
-         {"entityIds",optional(parameter("array","Distinct authored entity UUIDs to remove."))},{"pointIds",optional(parameter("array","Distinct authored point UUIDs to remove."))}},[this](const auto& a){
+         {"entityIds",optional(parameter("array","Distinct sketch entity UUIDs; a constructor member removes its whole owning group."))},{"pointIds",optional(parameter("array","Distinct authored point UUIDs to remove."))}},[this](const auto& a){
             if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
             if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","Restart this sketch");
             if(session_.value("tool")!="select" || session_.contains("pendingDimension") || session_.contains("pendingCircleDiameter"))return failure("pending_input_active","Return to Select before deleting sketch selection");
@@ -10917,7 +10917,7 @@ QJsonObject AlloyWindow::applySketchConstraint(const QString& type,const QJsonOb
 QJsonObject AlloyWindow::setSketchSelection(const QJsonObject& selection) {
     if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
     if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
-    const auto parameters=SketchGeometry::expandedProjectionFeature(session_.value("draftSketch").toObject(),session_.value("projectionContext").toObject())["parameters"].toObject();
+    const auto parameters=SketchGeometry::chamferPresentation(SketchGeometry::expandedProjectionFeature(session_.value("draftSketch").toObject(),session_.value("projectionContext").toObject()))["parameters"].toObject();
     QJsonObject normalized;
     for(const auto& field:QStringList{"pointIds","entityIds","profileIds"}) {
         QSet<QString> available;
@@ -12023,7 +12023,8 @@ void AlloyWindow::refreshSketchControls() {
     }
     if(changed || unitChanged) {
         const QSignalBlocker block(sketchSelectionTree_);
-        const auto pointEntries=parameters["points"].toArray(),entityEntries=parameters["entities"].toArray();
+        const auto presented=SketchGeometry::chamferPresentation(draft).value("parameters").toObject();
+        const auto pointEntries=presented.value("points").toArray(),entityEntries=presented.value("entities").toArray();
         auto* pointGroup=sketchSelectionTree_->topLevelItemCount()==2 ? sketchSelectionTree_->topLevelItem(0) : nullptr;
         auto* lineGroup=sketchSelectionTree_->topLevelItemCount()==2 ? sketchSelectionTree_->topLevelItem(1) : nullptr;
         bool accessibleRowsChanged=false,accessibleLabelsChanged=false;
