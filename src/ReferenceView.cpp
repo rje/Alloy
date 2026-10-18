@@ -1409,6 +1409,8 @@ void ReferenceView::showSketchDraft(const EvaluatedSketch& sketch) {
     applyEditDisplay();
 }
 void ReferenceView::clearSketchDraft() {
+    if(sketchSelectOtherTimer_)sketchSelectOtherTimer_->stop();
+    sketchSelectOtherPending_=false;sketchSelectOtherOpened_=false;
     draftEntityShapes_.clear();
     cancelSlotPointDrag();
     clearSketchDecorations();
@@ -1427,7 +1429,7 @@ void ReferenceView::clearSketchDraft() {
     profileModels_.clear();draftProfiles_.clear();
     sketchDraft_.Nullify();sketchConstructionDraft_.Nullify();sketchCenterlineDraft_.Nullify();projectedDraft_.Nullify();draftNormalEdgeCount_=0;projectedLines_={};projectedCircles_={};supportPoints_={};constructionDraftLineIds_={};centerlineDraftLineIds_={};draftSketchId_.clear();clearSketchCursor();applyEditDisplay();
 }
-QJsonObject ReferenceView::pickSketch(const QJsonObject& sourceFeature,double x,double y,const QString& filter,const QJsonObject& resolvedFrame) const {
+QJsonObject ReferenceView::pickSketch(const QJsonObject& sourceFeature,double x,double y,const QString& filter,const QJsonObject& resolvedFrame,QJsonArray* candidates) const {
     if(view_.IsNull() || x<0 || y<0 || x>=width() || y>=height())return {};
     const auto feature=SketchGeometry::chamferPresentation(sourceFeature);
     const auto parameters=feature["parameters"].toObject();const auto plane=parameters["plane"].toString();
@@ -1491,6 +1493,7 @@ QJsonObject ReferenceView::pickSketch(const QJsonObject& sourceFeature,double x,
             const auto p=projection.NearestPoint();int px,py;view_->Convert(p.X(),p.Y(),p.Z(),px,py);const auto scale=windowScale();nearest={px/scale.x(),py/scale.y()};
         }
         const double distance=std::hypot(nearest.x()-x,nearest.y()-y);
+        if(candidates && distance<=6)candidates->append(QJsonObject{{"kind","entity"},{"entityId",entity["id"]},{"type",entity["type"]},{"projected",false},{"distancePixels",distance}});
         if(distance<=best){best=distance;picked=entity["id"].toString();pickedProjection={};}
     }
     if(resolvedFrame.isEmpty())for(const auto& value:projectedLines_) {
@@ -1501,6 +1504,7 @@ QJsonObject ReferenceView::pickSketch(const QJsonObject& sourceFeature,double x,
         const auto delta=end-start;const double length2=delta.x()*delta.x()+delta.y()*delta.y();if(length2<1e-12)continue;
         const double t=std::clamp(((x-start.x())*delta.x()+(y-start.y())*delta.y())/length2,0.0,1.0);
         const auto nearest=start+delta*t;const double distance=std::hypot(nearest.x()-x,nearest.y()-y);
+        if(candidates && distance<=6)candidates->append(QJsonObject{{"kind","entity"},{"entityId",line["id"]},{"type","line"},{"projected",true},{"source",line["source"]},{"distancePixels",distance}});
         if(distance<=best){best=distance;picked=line["id"].toString();pickedProjection=line;}
     }
     if(filter!="line")for(const auto& value:projectedCircles_) {
@@ -1508,6 +1512,7 @@ QJsonObject ReferenceView::pickSketch(const QJsonObject& sourceFeature,double x,
         const auto rim=projectSketchPoint(circle["uMm"].toDouble()+circle["radiusMm"].toDouble(),circle["vMm"].toDouble(),plane,resolvedFrame);
         const double radius=std::hypot(rim["x"].toDouble()-center["x"].toDouble(),rim["y"].toDouble()-center["y"].toDouble());
         const double distance=std::abs(std::hypot(x-center["x"].toDouble(),y-center["y"].toDouble())-radius);
+        if(candidates && distance<=6)candidates->append(QJsonObject{{"kind","entity"},{"entityId",circle["id"]},{"type","circle"},{"projected",true},{"source",circle["source"]},{"distancePixels",distance}});
         if(distance<=best){best=distance;picked=circle["id"].toString();pickedProjection=circle;}
     }
     if(!picked.isEmpty()){
@@ -1523,6 +1528,11 @@ QJsonObject ReferenceView::pickSketch(const QJsonObject& sourceFeature,double x,
         if(classifier.State()==TopAbs_IN)return {{"kind","profile"},{"profileId",profile.profileId}};
     }
     return {};
+}
+QJsonArray ReferenceView::sketchSelectionCandidates(const QJsonObject& feature,double x,double y) const {
+    QJsonArray candidates;
+    pickSketch(feature,x,y,"entity",{},&candidates);
+    return candidates;
 }
 QJsonObject ReferenceView::selectSketchWindow(const QJsonObject& feature,double x1,double y1,double x2,double y2,const QJsonObject& resolvedFrame) const {
     if(view_.IsNull() || std::abs(x2-x1)<4 || std::abs(y2-y1)<4)return {};
@@ -1979,6 +1989,16 @@ void ReferenceView::decorateSketch(const QJsonObject& sourceFeature,const QJsonO
         highlight->SetColor(Quantity_Color(selected ? 0.81 : 0.68,selected ? 0.40 : 0.30,selected ? 0.98 : 0.84,Quantity_TOC_sRGB));
         highlight->SetWidth((selected ? 4.0 : 3.0)*devicePixelRatioF());
         highlight->SetZLayer(Graphic3d_ZLayerId_Topmost);
+        context_->Display(highlight,AIS_WireFrame,-1,false);context_->Deactivate(highlight);sketchDecorations_.push_back(highlight);
+    }
+    for(const auto& value:projectedCircles_) {
+        const auto circle=value.toObject();const auto id=circle.value("id");
+        if(!sketchEntityVisible(id.toString()) || !selection.value("entityIds").toArray().contains(id))continue;
+        const auto normal=sketchFrame_.value("normal").toArray();
+        const auto center=sketchWorld(plane,circle.value("uMm").toDouble(),circle.value("vMm").toDouble());
+        auto highlight=sketchPresentation(BRepBuilderAPI_MakeEdge(gp_Circ(gp_Ax2(center,gp_Dir(normal[0].toDouble(),normal[1].toDouble(),normal[2].toDouble())),circle.value("radiusMm").toDouble())).Edge());
+        highlight->SetColor(Quantity_Color(0.81,0.40,0.98,Quantity_TOC_sRGB));
+        highlight->SetWidth(4.0*devicePixelRatioF());highlight->SetZLayer(Graphic3d_ZLayerId_Topmost);
         context_->Display(highlight,AIS_WireFrame,-1,false);context_->Deactivate(highlight);sketchDecorations_.push_back(highlight);
     }
     // Independently authored retained-relation badges, anchored to their real
@@ -3340,6 +3360,37 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
             setFocus(Qt::MouseFocusReason);e->accept();return;
         }
     }
+    // Delay an ambiguous curve click until release so holding it can open
+    // Select Other without transiently changing the authoritative selection.
+    if(e->button()==Qt::LeftButton && e->modifiers()==Qt::NoModifier && navigationTool_=="select"
+        && !sketchPlane_.isEmpty() && decorationSelection_.value("tool")=="select"
+        && pickConstraint(e->position().x(),e->position().y()).isEmpty()
+        && pickAnnotation(e->position().x(),e->position().y()).isEmpty()
+        && sketchSelectionCandidates(decorationFeature_,e->position().x(),e->position().y()).size()>1) {
+        sketchSelectOtherPress_=e->position();sketchSelectOtherPending_=true;sketchSelectOtherOpened_=false;
+        if(!sketchSelectOtherTimer_) {
+            sketchSelectOtherTimer_=new QTimer(this);sketchSelectOtherTimer_->setSingleShot(true);
+            connect(sketchSelectOtherTimer_,&QTimer::timeout,this,[this]{
+                if(!sketchSelectOtherPending_ || decorationSelection_.value("tool")!="select" || sketchPlane_.isEmpty())return;
+                const auto candidates=sketchSelectionCandidates(decorationFeature_,sketchSelectOtherPress_.x(),sketchSelectOtherPress_.y());
+                if(candidates.size()<2)return;
+                sketchSelectOtherOpened_=true;
+                auto* menu=new QMenu(this);menu->setObjectName("sketch.selectOther");menu->setAttribute(Qt::WA_DeleteOnClose);
+                menu->addSection("Select Other");
+                for(const auto& value:candidates) {
+                    const auto row=value.toObject();const auto id=row.value("entityId").toString();
+                    const auto source=row.value("source").toObject();
+                    const QString role=row.value("projected").toBool() ? "Projected" : "Authored";
+                    auto* action=menu->addAction(QString("%1 %2 · %3").arg(role,row.value("type").toString(),id.first(8)));
+                    action->setData(row);action->setToolTip(id+(source.isEmpty() ? QString{} : "\nSource: "+QString::fromUtf8(QJsonDocument(source).toJson(QJsonDocument::Compact))));
+                    connect(action,&QAction::triggered,this,[this,id]{QTimer::singleShot(0,this,[this,id]{dispatch("sketch.selectionSet",{{"entityIds",QJsonArray{id}}});});});
+                }
+                connect(menu,&QMenu::aboutToHide,this,[this]{sketchSelectOtherPending_=false;sketchSelectOtherOpened_=false;});
+                menu->popup(mapToGlobal(sketchSelectOtherPress_.toPoint()));
+            });
+        }
+        setFocus(Qt::MouseFocusReason);sketchSelectOtherTimer_->start(500);e->accept();return;
+    }
     if(e->button()==Qt::LeftButton && navigationTool_!="select") {
         navigationSuppressRelease_=false;navigationPressActive_=true;navigationMoved_=false;
         navigationPress_=navigationLast_=e->position();
@@ -3541,6 +3592,12 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
     else QWidget::mousePressEvent(e);
 }
 void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
+    if(sketchSelectOtherPending_ && !sketchSelectOtherOpened_) {
+        if(QLineF(e->position(),sketchSelectOtherPress_).length()>QApplication::startDragDistance()) {
+            sketchSelectOtherTimer_->stop();sketchSelectOtherPending_=false;
+        } else {e->accept();return;}
+    }
+
     if(!chamferDrag_.isEmpty() && e->buttons().testFlag(Qt::LeftButton)){
         const auto point=sketchPoint(e->position().x(),e->position().y(),sketchPlane_,sketchFrame_);
         const QPointF axis(chamferDrag_.value("axisU").toDouble(),chamferDrag_.value("axisV").toDouble());
@@ -3697,6 +3754,10 @@ void ReferenceView::leaveEvent(QEvent* e) {
     QWidget::leaveEvent(e);
 }
 void ReferenceView::keyPressEvent(QKeyEvent* e) {
+    if(e->key()==Qt::Key_Escape && sketchSelectOtherPending_) {
+        sketchSelectOtherTimer_->stop();sketchSelectOtherPending_=false;sketchSelectOtherOpened_=false;e->accept();return;
+    }
+
     if(e->key()==Qt::Key_Escape && !chamferDrag_.isEmpty()){
         chamferDrag_={};dispatch("sketch.chamferHandle",{{"phase","cancel"}});e->accept();return;
     }
@@ -3724,6 +3785,12 @@ void ReferenceView::keyReleaseEvent(QKeyEvent* e) {
     QWidget::keyReleaseEvent(e);
 }
 void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
+    if(e->button()==Qt::LeftButton && sketchSelectOtherPending_) {
+        sketchSelectOtherTimer_->stop();sketchSelectOtherPending_=false;
+        if(!sketchSelectOtherOpened_)dispatch("sketch.selectionPick",{{"x",e->position().x()},{"y",e->position().y()}});
+        e->accept();return;
+    }
+
     if(e->button()==Qt::LeftButton && !chamferDrag_.isEmpty()){
         const auto drag=chamferDrag_;chamferDrag_={};
         dispatch("sketch.chamferHandle",drag.contains("requestedValue") ? QJsonObject{{"phase","end"},{"value",drag.value("requestedValue")}}:QJsonObject{{"phase","cancel"}});
@@ -3884,7 +3951,10 @@ void ReferenceView::contextMenuEvent(QContextMenuEvent* e) {
         if(hit["kind"]=="point" || hit["kind"]=="entity") {
             const auto field=hit["kind"]=="point" ? QString("pointIds") : QString("entityIds");
             const auto id=hit[hit["kind"]=="point" ? "pointId" : "entityId"];
-            if(!decorationSelection_.value(field).toArray().contains(id))
+            bool selectedCandidate=false;
+            if(field=="entityIds")for(const auto& row:sketchSelectionCandidates(decorationFeature_,e->pos().x(),e->pos().y()))
+                selectedCandidate |= decorationSelection_.value(field).toArray().contains(row.toObject().value("entityId"));
+            if(!selectedCandidate && !decorationSelection_.value(field).toArray().contains(id))
                 dispatch("sketch.selectionSet",{{field,QJsonArray{id}}});
         }
         const auto entities=decorationSelection_.value("entityIds").toArray();

@@ -4140,6 +4140,10 @@ void AlloyWindow::registerCommands() {
         if(session_.value("tool")=="offset" && selected.size()>1)return previewOpenChainOffset({});
         return result;
     });
+    add("sketch.selectionCandidates","Inspect overlapping sketch curves","Visible authored and projected curve candidates at logical pixels, with stable IDs and source references.",sketchPixels,[this](const auto& a){
+        if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+        return QJsonObject{{"candidates",view_->sketchSelectionCandidates(session_.value("draftSketch").toObject(),a.value("x").toDouble(),a.value("y").toDouble())}};
+    });
     add("sketch.selectionPick","Pick sketch geometry","Pick an authored point or curve, or a locked projected support edge or endpoint, in logical pixels.",sketchPickSchema,[this](const auto& a){
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         const bool constraint=session_.value("tool")=="constraint";
@@ -11976,6 +11980,18 @@ void AlloyWindow::dimensionSelectionChanged() {
 void AlloyWindow::refreshSketchControls() {
     if(session_.value("tool")!="twoTangentCircle" && tangentCircleRadius_)tangentCircleRadius_->hide();
     if(!sketchSelectionTree_ || session_.value("command")!="sketch.edit")return;
+    if(auto* cue=sketchPanel_->findChild<QLabel*>("sketch.selectionIdentity")) {
+        const auto selected=session_.value("selection").toObject().value("entityIds").toArray();
+        QStringList labels;
+        for(const auto& id:selected) {
+            bool projected=false;
+            for(const auto& key:{"projections","circleProjections"})for(const auto& value:session_.value("draftSketch").toObject().value("parameters").toObject().value(key).toArray())
+                projected |= value.toObject().value("id")==id;
+            labels.append(QString("%1 · %2").arg(projected ? "Projected" : "Authored",id.toString()));
+        }
+        cue->setText(labels.join('\n'));cue->setVisible(!labels.isEmpty());
+    }
+
     if(auto* options=sketchPanel_->findChild<QWidget*>("sketch.circle.featureOptions")) {
         auto* mode=options->findChild<QComboBox*>("sketch.circle.mode");
         const int index=mode->findData(session_.value("tool").toString());
@@ -12534,7 +12550,9 @@ void AlloyWindow::showSketch() {
         mirrorEscape->setContext(Qt::WidgetWithChildrenShortcut);
         connect(mirrorEscape,&QShortcut::activated,this,[this]{sketchResponse(execute("sketch.mirrorExit"));});
         layout->addWidget(sketchMirrorControls_);sketchMirrorControls_->hide();
-        auto* guidance=new QLabel("Select geometry in the canvas or below.\nShift-click adds to the selection.");guidance->setObjectName("sketch.selectionGuidance");guidance->setWordWrap(true);layout->addWidget(guidance);
+        auto* guidance=new QLabel("Select geometry in the canvas or below.\nShift-click adds to the selection.\nHold a curve to Select Other.");guidance->setObjectName("sketch.selectionGuidance");guidance->setWordWrap(true);layout->addWidget(guidance);
+        auto* identity=new QLabel;identity->setObjectName("sketch.selectionIdentity");identity->setWordWrap(true);
+        identity->setTextInteractionFlags(Qt::TextSelectableByMouse);identity->hide();layout->addWidget(identity);
         sketchSelectionTree_=new QTreeWidget;sketchSelectionTree_->setObjectName("sketch.selection");sketchSelectionTree_->setHeaderHidden(true);
         sketchSelectionTree_->installEventFilter(this);
         sketchSelectionTree_->setSelectionMode(QAbstractItemView::ExtendedSelection);sketchSelectionTree_->setMaximumHeight(145);layout->addWidget(sketchSelectionTree_);

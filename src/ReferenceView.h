@@ -25,6 +25,7 @@ class QKeyEvent;
 class QRubberBand;
 class QToolButton;
 class QLabel;
+class QTimer;
 
 // Value-only pick geometry captured on the GUI thread. No view/camera handle.
 struct ViewPickSnapshot {
@@ -127,7 +128,8 @@ public:
     void showSweepPath(const EvaluatedSketch& sketch,const QJsonArray& entityIds);
     void clearSweepPath();
     void setEditDisplay(const QString& sourceSketchId, const QJsonArray& hiddenBodyIds);
-    QJsonObject pickSketch(const QJsonObject& feature, double x, double y, const QString& filter = {}, const QJsonObject& resolvedFrame = {}) const;
+    QJsonObject pickSketch(const QJsonObject& feature, double x, double y, const QString& filter = {}, const QJsonObject& resolvedFrame = {}, QJsonArray* candidates = nullptr) const;
+    QJsonArray sketchSelectionCandidates(const QJsonObject& feature, double x, double y) const;
     QJsonObject selectSketchWindow(const QJsonObject& feature, double x1, double y1, double x2, double y2,
         const QJsonObject& resolvedFrame = {}) const;
     void decorateSketch(const QJsonObject& feature, const QJsonObject& selection,
@@ -358,6 +360,10 @@ private:
     QJsonObject chamferDrag_;
     QJsonObject conicHandleState_;
     bool conicDragging_=false;
+    QTimer* sketchSelectOtherTimer_ = nullptr;
+    QPointF sketchSelectOtherPress_;
+    bool sketchSelectOtherPending_ = false;
+    bool sketchSelectOtherOpened_ = false;
     int contextMenuEventCount_ = 0;
     int contextMenuShownCount_ = 0;
     QJsonObject lastContextMenu_;
