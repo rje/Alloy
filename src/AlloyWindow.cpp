@@ -4950,6 +4950,7 @@ void AlloyWindow::registerCommands() {
         if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         if(!session_.value("displayOptions").toObject().value("showDimensions").toBool(true))return failure("annotation_hidden","Show Dimensions before selecting an annotation");
         bool found=false;for(const auto& entry:session_.value("draftSketch").toObject()["parameters"].toObject()["dimensions"].toArray())found|=entry.toObject()["id"]==a["dimensionId"];
+        for(const auto& group:session_.value("draftSketch").toObject()["parameters"].toObject()["polygonGroups"].toArray())found|=group.toObject()["id"]==a["dimensionId"];
         if(!found)return failure("stale_entity","Dimension does not exist");
         auto selection=session_.value("selection").toObject();selection.remove("constraintIds");session_.remove("hoveredConstraintId");selection["dimensionId"]=a["dimensionId"];session_["selection"]=selection;return selection;
     });
@@ -5055,6 +5056,8 @@ void AlloyWindow::registerCommands() {
         {{"dimensionId",dimensionId},{"uMm",annotationCoordinate},{"vMm",annotationCoordinate},{"gestureId",optional(parameter("string","Optional native drag gesture identity for one undo step."))},{"session",optionalSession}},[this](const auto& a){
             if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
             if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
+            for(const auto& group:session_.value("draftSketch").toObject()["parameters"].toObject()["polygonGroups"].toArray())
+                if(group.toObject()["id"]==a["dimensionId"])return failure("polygon_annotation_fixed","Polygon labels follow their retained center or base edge; double-click the label to edit size");
             return publishSketchSolve(SketchGeometry::updateAnnotation(session_.value("draftSketch").toObject(),
                 {{"dimensionId",a["dimensionId"]},{"annotation",QJsonObject{{"uMm",a["uMm"]},{"vMm",a["vMm"]}}}},session_.value("projectionContext").toObject()),
                 a.value("gestureId").toString().isEmpty() ? QString{} : "annotation:"+a["dimensionId"].toString()+":"+a["gestureId"].toString());
@@ -11388,6 +11391,21 @@ QJsonObject AlloyWindow::acceptDimension(const QJsonObject& args) {
     if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
     if(args.contains("session") && args["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
     const auto pending=session_.value("pendingDimension").toObject();if(pending.value("phase")!="editing")return failure("no_pending_dimension","Place or edit a dimension first");
+    if(pending.contains("polygonId")){
+        if(args.contains("valueDeg") || (args.contains("text") && args.contains("value")))return failure("invalid_arguments","Enter one Polygon length quantity");
+        auto units=args.value("units").toString(session_.value("inputs").toObject()["units"].toString());double value=0;
+        if(args.contains("value"))value=args["value"].toDouble();
+        else {
+            const QRegularExpression expression(QStringLiteral(R"(^\s*([+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)\s*(mm|in)?\s*$)"),QRegularExpression::CaseInsensitiveOption);
+            const auto match=expression.match(args.value("text").toString(dimensionEditorValue_ ? dimensionEditorValue_->text() : QString{}));
+            if(!match.hasMatch())return failure("invalid_dimension_value","Enter a positive Polygon size with optional mm or in");
+            bool valid=false;value=match.captured(1).toDouble(&valid);if(!valid)return failure("invalid_dimension_value","Polygon size is outside the supported range");
+            if(!match.captured(2).isEmpty())units=match.captured(2).toLower();
+        }
+        const auto response=execute("sketch.polygonUpdate",{{"polygonId",pending["polygonId"]},{"size",value},{"units",units}});
+        if(!response["ok"].toBool())return response;
+        cancelDimension();session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}}};view_->setFocus();return response["result"].toObject();
+    }
     const bool angular=pending["kind"]=="arcSweep" || pending["kind"]=="angle" || pending["kind"]=="overallSlotAngle";
     if((args.contains("text") && (args.contains("value") || args.contains("valueDeg"))) || args.contains(angular ? "value" : "valueDeg"))
         return failure("invalid_arguments","Choose text or a numeric quantity with appropriate units");
@@ -11451,6 +11469,11 @@ QJsonObject AlloyWindow::editDimension(const QString& id) {
     if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
     if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
     QJsonObject dimension;for(const auto& entry:session_.value("draftSketch").toObject()["parameters"].toObject()["dimensions"].toArray())if(entry.toObject()["id"]==id){dimension=entry.toObject();break;}
+    if(dimension.isEmpty())for(const auto& row:session_.value("draftSketch").toObject()["parameters"].toObject()["polygonGroups"].toArray()){
+        const auto group=row.toObject();if(group["id"]!=id)continue;
+        dimension={{"id",id},{"polygonId",id},{"kind","polygonSize"},{"driving",true},{"valueMm",group["sizeMm"]},
+            {"name",group["mode"]=="edge" ? "Polygon base edge" : group["mode"]=="circumscribed" ? "Polygon inradius" : "Polygon circumradius"}};break;
+    }
     if(dimension.isEmpty())return failure("stale_entity","Dimension does not exist");
     const auto valueKey=dimension["kind"]=="arcSweep" || dimension["kind"]=="angle" || dimension["kind"]=="overallSlotAngle" ? "valueDeg" : "valueMm";
     double value=dimension.value(valueKey).toDouble();for(const auto& entry:session_.value("solverDiagnostics").toObject().value("dimensionValues").toArray())if(entry.toObject().value("id")==id)value=entry.toObject().value(valueKey).toDouble();

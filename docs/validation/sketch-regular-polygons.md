@@ -46,7 +46,9 @@ Evidence from the Release `build-preview-release` app (binary SHA-256
 Public examples and Alloy both show filled closed polygon regions and the
 three basic placements. Exact styling/default parity remains unknown because
 the available public frames are not matched in size, theme or state. Actual
-placement snaps and retained relations are Todo [SKT-103](https://github.com/rje/Alloy/issues/526).
+placement snaps and retained relations are Todo
+[SKT-103](https://github.com/rje/Alloy/issues/526) for a first anchor and
+[SKT-105](https://github.com/rje/Alloy/issues/528) for the second driver.
 Canvas size annotations and center/anchor markers are Todo
 [SKT-104](https://github.com/rje/Alloy/issues/527). The fixed solver status
 and its edge color are reported honestly rather than recolored to resemble

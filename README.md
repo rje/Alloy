@@ -9,7 +9,8 @@ now have a retained native/control workflow and independently checked printable
 STL; broader thread modes and print fit remain open.
 [Regular sketch polygons](docs/validation/sketch-regular-polygons.md) now have
 three retained creation modes, editable size/count, and a verified extrusion
-and STL path; placement relations and canvas annotations remain tracked gaps.
+and STL path. [Canvas size annotations](docs/validation/sketch-polygon-annotations.md)
+are editable for all three modes; retained placement relations remain tracked gaps.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,

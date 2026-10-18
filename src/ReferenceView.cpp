@@ -1563,6 +1563,37 @@ void ReferenceView::clearSketchDecorations() {
 QJsonObject ReferenceView::dimensionLayout(const QJsonObject& feature,const QJsonObject& dimension,double valueMm,const QString& units) const {
     if(view_.IsNull())return {};
     const auto parameters=feature.value("parameters").toObject();const auto plane=parameters.value("plane").toString();
+    if(dimension["kind"]=="polygonSize") {
+        QJsonObject group;for(const auto& row:parameters["polygonGroups"].toArray())
+            if(row.toObject()["id"]==dimension["id"]){group=row.toObject();break;}
+        const auto ids=group["pointIds"].toArray();if(ids.size()<3)return {};
+        QMap<QString,QPointF> vertices;for(const auto& row:parameters["points"].toArray()){
+            const auto p=row.toObject();vertices[p["id"].toString()]={p["uMm"].toDouble(),p["vMm"].toDouble()};}
+        const auto mode=group["mode"].toString();const bool edge=mode=="edge";
+        const QPointF first=vertices.value(ids[0].toString()),second=vertices.value(ids[1].toString());
+        const QPointF anchor=edge ? first : QPointF(group["uMm"].toDouble(),group["vMm"].toDouble());
+        const QPointF endpoint=edge ? second : mode=="circumscribed" ? (first+second)/2 : first;
+        const QPointF delta=endpoint-anchor;const double length=std::hypot(delta.x(),delta.y());if(length<1e-9)return {};
+        auto derived=feature,pp=parameters;auto points=pp["points"].toArray();
+        const QString startId=group["id"].toString()+"-annotation-start",endId=group["id"].toString()+"-annotation-end";
+        points.append(QJsonObject{{"id",startId},{"uMm",anchor.x()},{"vMm",anchor.y()}});
+        points.append(QJsonObject{{"id",endId},{"uMm",endpoint.x()},{"vMm",endpoint.y()}});pp["points"]=points;derived["parameters"]=pp;
+        QJsonObject span{{"id",group["id"]},{"kind","linear"},{"pointIds",QJsonArray{startId,endId}},{"driving",true}};
+        auto layout=dimensionLayout(derived,span,group["sizeMm"].toDouble(),units);if(layout.isEmpty())return {};
+        const QPointF perpendicular(-delta.y()/length,delta.x()/length);
+        const double offset=edge ? -group["side"].toInt(1)*36 : layout["lineClearancePixels"].toDouble();
+        const auto textAnchor=(anchor+endpoint)/2+perpendicular*(offset*layout["mmPerPixel"].toDouble());
+        span["annotation"]=QJsonObject{{"uMm",textAnchor.x()},{"vMm",textAnchor.y()}};
+        layout=dimensionLayout(derived,span,group["sizeMm"].toDouble(),units);
+        const auto displayedUnits=units=="in" ? QString("in") : QString("mm");
+        const QString text=(edge ? QString{} : QString("R"))+QString::number(group["sizeMm"].toDouble()/(units=="in" ? 25.4 : 1),'g',6)+" "+displayedUnits;
+        auto label=layout["label"].toObject();QFont font("Arial");font.setPixelSize(13);const QFontMetricsF metrics(font);label["text"]=text;label["width"]=metrics.horizontalAdvance(text)+12;layout["label"]=label;
+        layout["polygonId"]=group["id"];layout["sizeBasis"]=edge ? "edgeLength" : mode=="circumscribed" ? "inradius" : "circumradius";
+        layout["anchor"]=QJsonObject{{"uMm",anchor.x()},{"vMm",anchor.y()}};
+        layout["sizeEndpoint"]=QJsonObject{{"uMm",endpoint.x()},{"vMm",endpoint.y()}};
+        layout["anchorKind"]=edge ? "baseEndpoint" : "center";layout["units"]=displayedUnits;layout["editable"]=true;
+        return layout;
+    }
     if(dimension["kind"]=="angle")return angleDimensionLayout(feature,dimension,valueMm);
     if(dimension["kind"]=="overallSlotAngle") {
         auto derived=feature,pp=parameters;const auto ids=dimension["pointIds"].toArray();if(ids.size()!=2)return {};
@@ -1768,7 +1799,8 @@ QJsonObject ReferenceView::pickAnnotation(double x,double y) const {
         const double dx=x-label.value("x").toDouble(),dy=y-label.value("y").toDouble();
         if(std::abs(dx*std::cos(angle)-dy*std::sin(angle))<=label.value("width").toDouble()/2
             && std::abs(dx*std::sin(angle)+dy*std::cos(angle))<=label.value("height").toDouble()/2)
-            return {{"kind","dimension"},{"dimensionId",layout.value("dimensionId")},{"part","label"},{"annotation",layout.value("annotation")}};
+            return {{"kind","dimension"},{"dimensionId",layout.value("dimensionId")},{"part","label"},{"annotation",layout.value("annotation")},
+                {"polygonId",layout.value("polygonId")},{"sizeBasis",layout.value("sizeBasis")}};
     }
     return {};
 }
@@ -2098,12 +2130,22 @@ void ReferenceView::decorateSketch(const QJsonObject& feature,const QJsonObject&
     layoutParameters["dimensions"]=feature["parameters"].toObject()["dimensions"].toArray();
     layoutFeature["parameters"]=layoutParameters;
     auto dimensions=parameters.value("dimensions").toArray();
+    // Polygon drivers are retained group parameters, not extra solver dimensions.
+    for(const auto& row:parameters["polygonGroups"].toArray()){
+        const auto group=row.toObject();dimensions.append(QJsonObject{{"id",group["id"]},{"kind","polygonSize"},{"valueMm",group["sizeMm"]},{"driving",true}});
+    }
     if(!pending.isEmpty() && !pending.contains("dimensionId")){auto preview=pending;preview["id"]="pending";dimensions.append(preview);}
     if(showDimensions_)for(const auto& entry:dimensions) {
         const auto dimension=entry.toObject();const auto measured=measurements.value(dimension.value("id").toString());
         const bool angular=dimension["kind"]=="arcSweep" || dimension["kind"]=="angle" || dimension["kind"]=="overallSlotAngle";const auto valueKey=angular ? "valueDeg" : "valueMm";
         const double value=dimension.value("id")=="pending" ? pending.value(angular ? "measuredValueDeg" : "measuredValueMm").toDouble() : measured.value(valueKey).toDouble(dimension.value(valueKey).toDouble());
         const auto layout=dimensionLayout(layoutFeature,dimension,value,units);if(layout.isEmpty())continue;annotationLayouts_.append(layout);
+        if(layout["anchorKind"]=="center"){
+            const auto anchor=layout["anchor"].toObject();
+            Handle(AIS_Point) marker=new AIS_Point(new Geom_CartesianPoint(sketchWorld(plane,anchor["uMm"].toDouble(),anchor["vMm"].toDouble())));
+            marker->Attributes()->SetPointAspect(new Prs3d_PointAspect(Aspect_TOM_PLUS,Quantity_Color(0.12,0.14,0.16,Quantity_TOC_sRGB),3*devicePixelRatioF()));
+            marker->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(marker,0,-1,false);context_->Deactivate(marker);sketchDecorations_.push_back(marker);
+        }
         const bool selected=selection.value("dimensionId")==dimension.value("id");
         const Quantity_Color color=selected || dimension.value("id")=="pending" ? Quantity_Color(0.10,0.34,0.84,Quantity_TOC_RGB) : Quantity_Color(0.10,0.11,0.12,Quantity_TOC_sRGB);
         const auto line=layout.value("line").toArray();auto world=[&](const QJsonValue& v){const auto p=v.toObject();return sketchWorld(plane,p.value("uMm").toDouble(),p.value("vMm").toDouble());};
@@ -3298,7 +3340,7 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
                 }
             }
         }
-        if(!sketchPlane_.isEmpty() && decorationSelection_.value("tool")!="point" && decorationSelection_.value("tool")!="line" && decorationSelection_.value("tool")!="rectangle" && decorationSelection_.value("tool")!="circle" && decorationSelection_.value("tool")!="twoPointCircle" && decorationSelection_.value("tool")!="centerArc" && decorationSelection_.value("tool")!="threePointArc" && decorationPending_.value("phase")!="placing") {
+        if(!sketchPlane_.isEmpty() && !decorationSelection_.value("tool").toString().endsWith("Polygon") && decorationSelection_.value("tool")!="point" && decorationSelection_.value("tool")!="line" && decorationSelection_.value("tool")!="rectangle" && decorationSelection_.value("tool")!="circle" && decorationSelection_.value("tool")!="twoPointCircle" && decorationSelection_.value("tool")!="centerArc" && decorationSelection_.value("tool")!="threePointArc" && decorationPending_.value("phase")!="placing") {
             const auto picked=pickAnnotation(e->position().x(),e->position().y());
             if(!picked.isEmpty()) {
                 draggedAnnotation_=picked.value("dimensionId").toString();annotationGestureId_=QString::number(++nextAnnotationGesture_);annotationPress_=e->position();annotationDragged_=false;

@@ -19,16 +19,23 @@ disposition remain open under REL-030. Six additional Todo owners
 deletion/diagnosis/intersection, interference inspection, OBJ output and
 active-preview visibility responsiveness. XCH-011/#524 adds a bounded required
 3MF export owner. SKT-102/#525 preserves non-ordinary and grouped geometry
-deletion after SKT-099. SKT-103/#526 and SKT-104/#527 retain Polygon placement
-relations and canvas annotation work after the bounded three-mode tool;
-the backlog now contains 524 issues.
+deletion after SKT-099. SKT-103/#526 owns the Polygon's first retained
+placement anchor, SKT-104/#527 its canvas annotations, and SKT-105/#528 the
+second placement driver and size/orientation conflict contract; the backlog
+now contains 525 issues.
 SKT-093/#498 now accepts Inscribed, Circumscribed and Edge Polygon creation,
 retained edits, native numeric refusal, three closed regions, downstream
 extrusion, history/reopen and independently read STL. Astra reviewed the
 final app captures and accepted the bounded slice; see
 [the receipt](validation/sketch-regular-polygons.md). Actual placement relations
-and editable canvas annotations remain Todo under SKT-103/#526 and
-SKT-104/#527. Physical input and other-platform qualification remain open.
+remain Todo under SKT-103/#526 and SKT-105/#528. Physical input and
+other-platform qualification remain open.
+SKT-104/#527 now accepts true circumradius, inradius and fixed-base-edge canvas
+annotations with native double-click editing, unit conversion, visibility,
+refusal, downstream extrusion and independently read STL. Astra accepted the
+actual capture and shared-command route; see
+[the receipt](validation/sketch-polygon-annotations.md). Label drag and exact
+styling remain unqualified; anchor relations remain SKT-103/SKT-105 work.
 Broad parent splits and the 13 partial rows with accepted subsets are recorded
 in [the ownership audit](v1/ownership-audit.md). Final v1 option decisions and
 release disposition remain open under REL-030; do not infer readiness from the

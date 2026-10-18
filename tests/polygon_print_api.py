@@ -30,6 +30,15 @@ def main():
         assert [g['mode'] for g in groups] == ['inscribed', 'circumscribed', 'edge']
         sketch_id = draft['id']
         call('view.orientation', {'name': 'top'})
+        call('view.fit')
+        call('view.zoom', {'factor': 3})
+        annotations = [a for a in call('app.state')['viewport']['sketchAnnotations']
+                       if a.get('polygonId')]
+        assert len(annotations) == 3, annotations
+        assert {a['sizeBasis'] for a in annotations} == {
+            'circumradius', 'inradius', 'edgeLength'}
+        assert all(a['editable'] and a['driving'] and a['units'] == 'mm'
+                   and abs(a['valueMm'] - 10) < 1e-6 for a in annotations)
         call('capture.screenshot', {'path': str(out/'three-polygons.png')})
         call('sketch.finish')
         source = call('document.inspect')
@@ -52,6 +61,12 @@ def main():
              error='invalid_arguments')
         assert call('app.state')['activeSession']['draftSketch']['parameters'] == before
         call('sketch.polygonUpdate', {'polygonId': groups[1]['id'], 'size': 12, 'units': 'mm'})
+        call('capture.screenshot', {'path': str(out/'edited-annotation.png')})
+        edited_annotations = [a for a in call('app.state')['viewport']['sketchAnnotations']
+                              if a.get('polygonId') == groups[1]['id']]
+        assert len(edited_annotations) == 1
+        assert edited_annotations[0]['sizeBasis'] == 'inradius'
+        assert abs(edited_annotations[0]['valueMm'] - 12) < 1e-6
         call('sketch.finish')
         edited = call('document.inspect')
         assert edited['evaluation']['sketches'][0]['profiles']

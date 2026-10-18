@@ -8737,7 +8737,7 @@
       "labels": [
         "area:skt"
       ],
-      "body": "## Bounded result\nMake all three retained Polygon placement tools acquire genuine sketch snaps and retain the corresponding geometric relation. This is the explicit placement-inference remainder of SKT-093/#498 under ADV-005/#101.\n\n## Acceptance\n- Show a point/edge/origin snap cue only when the authored relation will be retained; no visual-only coincidence or frozen-coordinate substitute.\n- On commit record stable source references and the appropriate coincident/on-entity relation. Move an upstream reference and verify the Polygon follows or refuses atomically. Count/size edits must not silently drop the relation.\n- Verify native pointer focus, cues and shared control result, Undo/Redo, save/reopen and closed profile. Use the dated external Polygon public record and distinguish input, geometry and visual evidence.\n\n## Dependency\nSKT-093 supplies the retained three-mode foundation. SKT-021 retains general sketch inference."
+      "body": "## Bounded result\nRetain one genuine Polygon placement anchor in each of the three modes. Inscribed and Circumscribed anchor their center; Edge anchors the first endpoint of its fixed base edge. This is the first-anchor snap/relation remainder of SKT-093/#498 under ADV-005/#101.\n\n## Acceptance\n- Acquire supported origin, authored-point or line-midpoint snaps with a cue only when the relation will be retained. Grid alignment is a coordinate choice, not an authored relation.\n- A snapped anchor stores stable source references and Coincident/Midpoint relation; an unsnapped anchor may remain explicitly fixed. Polygon vertices maintain exact relative size/orientation from the solved anchor, rather than carrying absolute vertex fixes that prevent upstream motion.\n- Move the upstream reference and verify the Polygon, its closed profile and one downstream extrusion follow. Count/size edits preserve the anchor relation or refuse atomically; keep surviving boundary IDs and dependent constraints.\n- Missing, ambiguous, self-referential and removed targets refuse without changing authored geometry or history. Verify native cue/click, shared control result, Undo/Redo and save/reopen. Use dated public Polygon evidence and distinguish input, geometry and visual acceptance.\n\n## Explicit split\nSKT-093/#498 supplies the retained three-mode foundation. [SKT-105/#528](https://github.com/rje/Alloy/issues/528) owns second-driver snaps: radial vertex or edge midpoint in center modes and second base endpoint in Edge, including size/angle ownership and conflict behavior. This issue does not claim that second-driver behavior.\n"
     },
     {
       "key": "SKT-104",
@@ -8752,6 +8752,20 @@
         "area:skt"
       ],
       "body": "## Bounded result\nDisplay and edit retained Polygon size/anchor annotations on the sketch canvas, following the dated public visual examples recorded outside the repository. This is the visible dimension/center marker remainder after SKT-093/#498 establishes the functional three-mode tool.\n\n## Scope and acceptance\n- Show a readable center-to-vertex circumradius for Inscribed, center-to-edge-midpoint inradius for Circumscribed, and base-edge length for Edge Polygon, with a center/anchor marker that corresponds to authored geometry. The label must reflect units and the actual retained parameter.\n- Native annotation edit and the shared control command update the same retained polygon size, preserve its closed profile, and propagate to one downstream extrusion. Verify Undo/Redo and save/reopen.\n- Compare an Alloy capture at a comparable state to the public frames in the external SKT-093 knowledge record; record line color/constraint-state differences honestly. Do not recolor absolutely fixed edges to imitate an underconstrained reference. Actual snap-following and relational constraint behavior are SKT-103/#526.\n\n## Dependency\n- SKT-093/#498 supplies the retained Polygon foundation.\n"
+    },
+    {
+      "key": "SKT-105",
+      "title": "Retain Polygon second-driver snaps and size/orientation ownership",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-103"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Bounded result\nRetain genuine Polygon second-driver snaps after SKT-103/#526 establishes the first anchor relation. The second radial vertex/edge-midpoint in center modes, or second first-edge endpoint in Edge mode, determines size and orientation through an authored geometric relation rather than a frozen coordinate.\n\n## Acceptance\n- Inscribed: the radial vertex can snap to a stable sketch point. Circumscribed: the edge midpoint can snap to a stable point or supported edge midpoint. Edge: the second base endpoint can snap to a stable point. Only show a relation cue when it will be retained.\n- Upstream movement recomputes the same Polygon, closed profile and downstream extrusion. Snapped driver IDs persist through count edits, Undo/Redo and save/reopen.\n- A typed size or angle incompatible with two retained drivers refuses transactionally with an actionable error. No edit silently drops a relation. Missing, ambiguous or self-referential targets refuse.\n- Verify native pointer input, shared control results, geometry, history and saved file separately. Keep grid-coordinate alignment distinct from an authored relation.\n\n## Dependency and split\nSKT-103/#526 owns one retained center/base anchor and its upstream motion. This issue owns the independent second-driver/scale-orientation contract; do not claim it from first-anchor behavior.\n"
     }
   ]
 }

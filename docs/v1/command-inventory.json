@@ -3024,7 +3024,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Three retained modes and downstream solids pass; actual placement snaps/relations and editable canvas size/anchor annotations remain open.",
+      "gap": "Three retained modes, canvas size editing and downstream solids pass; actual placement snaps/relations remain open, while label drag and exact styling are unqualified.",
       "apiIds": [
         "sketch.polygon",
         "sketch.polygonInput",
@@ -3037,7 +3037,8 @@
         "ADV-005",
         "SKT-093",
         "SKT-103",
-        "SKT-104"
+        "SKT-104",
+        "SKT-105"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -3045,7 +3046,8 @@
         "src/AlloyWindow.cpp"
       ],
       "receipts": [
-        "docs/validation/sketch-regular-polygons.md"
+        "docs/validation/sketch-regular-polygons.md",
+        "docs/validation/sketch-polygon-annotations.md"
       ],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },
