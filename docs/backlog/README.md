@@ -11,6 +11,12 @@ The current publication contains **492 issues**: **380 implementation, 23 resear
 22 epics, and 67 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
+DOC-009/#21 now has a bounded, independently reviewed two-body Browser
+identity, visibility, selection and reopen receipt in
+[browser-document-workflow](../validation/browser-document-workflow.md).
+Native body selection matches Browser rows and GPU highlighting; wider assembly
+Browser and physical-interaction parity retain their own owners.
+
 CI-010/#494 and CI-011/#495 retain the bounded Mac and Windows signing work
 identified in [the build/distribution plan](../build-distribution.md). Both
 are Todo; GitHub Actions already supplies tag/manual build runners, while

@@ -16,6 +16,11 @@ under TUT-035 passes measured 0.5 mm clearance to each half. The governing
 [final receipt](validation/enclosure-connector-clearance.md) records the actual
 −1.5 mm Cut offset and rebuilt R0.4 rim. TUT-016 keeps the full tutorial gate;
 physical fit and exact source connector parity remain unclaimed.
+DOC-009/#21 now passes its bounded two-body Browser gate: names and IDs,
+visibility policy, Browser/viewport body-selection synchronization, exact
+undo/redo and native-file reopen. A real-app API workflow plus native captures
+received independent review; see [the receipt](validation/browser-document-workflow.md).
+Broader assembly Browser and physical interaction parity remain separate work.
 
 GitHub Actions already compiles tag/manual candidates for macOS, Windows and
 Linux. [The build/distribution plan](build-distribution.md) distinguishes
