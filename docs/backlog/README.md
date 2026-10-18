@@ -7,9 +7,17 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **490 issues**: **378 implementation, 23 research,
+The current publication contains **492 issues**: **380 implementation, 23 research,
 22 epics, and 67 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
+
+CI-010/#494 and CI-011/#495 retain the bounded Mac and Windows signing work
+identified in [the build/distribution plan](../build-distribution.md). Both
+are Todo; GitHub Actions already supplies tag/manual build runners, while
+trusted signatures, clean-host qualification and release promotion remain open.
+DOC-013/#25 has a [focused local file-workflow receipt](../validation/document-local-files.md)
+covering native dialogs and the shared API, including identified pending
+Save/Discard/Cancel decisions.
 
 REL-033/#476 independently fixes the observed 119.4-second Surface Extrude
 edit-preview stall for command sessions; see the bounded real-app

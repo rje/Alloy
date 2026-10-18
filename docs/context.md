@@ -1,5 +1,23 @@
 # Continuation context
 
+## Current v1 delivery direction (2026-10-17)
+
+The user reviewed the private printable-part v1 design as a reasonable working
+direction and asked that partial work stop accumulating. REL-030 remains open
+for row-by-row gap ownership and final scope reconciliation. Work one bounded
+active issue to its stated acceptance, create linked Todo children for any
+explicit remainder, and move the board item to Done only after real-app
+evidence. DOC-013 local New/Open/Save As/dirty-close now has real API and
+native-dialog evidence, including API inspection/answering of an open native
+decision; see [the receipt](validation/document-local-files.md).
+
+GitHub Actions already compiles tag/manual candidates for macOS, Windows and
+Linux. [The build/distribution plan](build-distribution.md) distinguishes
+temporary build artifacts, relocatable test archives, signing/notarization,
+clean-host runtime qualification and promoted GitHub Release assets. CI-010/011
+track bounded Mac and Windows signing follow-ups; CI-002–009/GATE-005 retain
+bundling and cross-platform runtime gates. No signed public release is claimed.
+
 ## Active user order (2026-10-17)
 
 REL-046/#492 is independently accepted for the corrected-iron cumulative

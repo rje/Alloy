@@ -561,7 +561,7 @@
         "priority:P0",
         "area:doc"
       ],
-      "body": "## Problem and result\nComplete local document New/Open/Save As and dirty-close behavior. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nExpose file dialogs and explicit paths through the same commands, unsaved-change decisions and active-document identity; keep local files authoritative.\n\n## Acceptance criteria\n- Cancel preserves work; Save As changes path only after successful write; automation can inspect and answer pending document decisions.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nExercise new/open/save-as/close via API, plus physical file dialog save; test cancel, unwritable destination and reopen without data loss.\n\nAdd/execute `python3 tests/workflows/run.py --case DOC-013 --evidence build/evidence/DOC-013` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- [Qt Widgets](https://doc.qt.io/qt-6/qtwidgets-index.html) \u2014 retrieved 2026-10-11.\n- Public import/open workflow (reference `open`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n\n\n## Tutorial delivery order\nFollow `docs/backlog/tutorial-sequence.json`. Implement tutorial-required slices first; retain full issue acceptance and dependencies. Record each source step separately as passed, mismatch, blocked or unknown, with API/geometry, native-input and visual evidence distinguished.\n"
+      "body": "## Problem and result\nComplete local document New/Open/Save As and dirty-close behavior. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nExpose file dialogs and explicit paths through the same commands, unsaved-change decisions and active-document identity; keep local files authoritative.\n\n## Acceptance criteria\n- Cancel preserves work; Save As changes path only after successful write; automation can inspect and answer pending document decisions.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nExercise new/open/save-as/close via API, plus physical file dialog save; test cancel, unwritable destination and reopen without data loss.\n\nExecute `python3 tests/document_file_workflow_api.py --app <alloy executable> --output <private evidence dir>` and inspect the native file dialogs and dirty-close prompt. Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- [Qt Widgets](https://doc.qt.io/qt-6/qtwidgets-index.html) \u2014 retrieved 2026-10-11.\n- Public import/open workflow (reference `open`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. The accepted bounded result and validation limits are in docs/validation/document-local-files.md. Native dialog checks used accessibility input; physical hand-operated hardware and other platforms are separate gates.\n\n\n## Tutorial delivery order\nFollow `docs/backlog/tutorial-sequence.json`. Implement tutorial-required slices first; retain full issue acceptance and dependencies. Record each source step separately as passed, mismatch, blocked or unknown, with API/geometry, native-input and visual evidence distinguished.\n\n\n## Independently reviewed completion 2026-10-17\nAstra reviewed the API schema and real-entrypoint file workflow and identified the missing pending-native-decision control before closure. The final implementation exposes an identified live Qt prompt to the shared API. Real native Cancel/Save As/Close/Open/Cmd+N and API answer Cancel/Discard were observed; `api-final/report.json` records 35 responses. The focused receipt is docs/validation/document-local-files.md.\n"
     },
     {
       "key": "DOC-014",
@@ -7328,6 +7328,41 @@
         "area:ci"
       ],
       "body": "## Bounded runtime readiness scope\nRetain the remaining CI-004 cross-platform scope explicitly. Resolve applicability of the admitted Qt item-view patch and platform-specific Cocoa patch; use verified source/patch/config recipes and effective compiler/feature manifests on Windows/Linux rather than silently assuming stock archives match validated behavior. Keep exact solver/OCCT/font/plugin provenance. Verify native candidate builds at a deliberate matrix milestone and targeted applicable regression; no per-commit runs. Distinguish platform-specific patch admission, compilation, packaged launch and actual GPU/input evidence. Packaging remains CI-006/007 and GATE-005.\n\nDetailed source handoff remains external at knowledge/specs/runtime-reproducibility-2026-10-14.md. Independent Astra review and proportional verification required.\n"
+    },
+    {
+      "key": "CI-010",
+      "title": "Sign and notarize the relocatable macOS candidate in the release job",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "depends_on": [
+        "CI-005",
+        "CI-004"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P4",
+        "priority:P0",
+        "area:ci"
+      ],
+      "body": "## Problem and result\nTurn the qualified relocatable Mac archive into a signed, notarized and stapled milestone candidate without rebuilding during promotion.\n\n## Acceptance\n- Parameterize the existing package recipe for the coherent CI-built Qt/OCCT inputs and record source, dependency, toolchain and package hashes. Keep an unsigned/ad-hoc local archive route for testing without secrets.\n- In a protected manual/tag release job, sign nested owned code and the app with Developer ID, hardened runtime and timestamp, submit via notarytool, inspect the result, staple the app, then archive the exact final bytes and SHA-256 manifest. Keep signing credentials in the protected release environment and clean the temporary keychain.\n- Extract the final archive at a new path and verify signature, notarization ticket, bundled library closure, app launch, local API and GPU state on a clean Mac. The issue stays Todo until actual credentials and clean-host evidence exist; a dry run cannot close it.\n\n## Boundaries\nDepends on CI-005's local package foundation and CI-004's reproducible runtime recipe. Publisher identity, Apple membership and minimum macOS version are release inputs, not guesses. See docs/build-distribution.md. Runtime qualification remains GATE-005; GitHub Release promotion remains CI-003. CI triggers stay tags/manual only."
+    },
+    {
+      "key": "CI-011",
+      "title": "Sign owned Windows binaries in a qualified release archive",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "depends_on": [
+        "CI-006"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P4",
+        "priority:P0",
+        "area:ci"
+      ],
+      "body": "## Problem and result\nAdd timestamped signing of owned Windows executables to the relocatable release archive after a signing provider and publisher identity are approved.\n\n## Acceptance\n- Select an eligible provider and document identity validation, cost, OIDC or certificate custody, timestamping and source/runner trust boundary. Prefer Azure Artifact Signing with its official GitHub Action and narrowly scoped federation if eligible; record an approved alternative otherwise.\n- Sign the exact packaged Alloy EXE and local client, verify each signature and timestamp, archive the final bytes with SHA-256 and a dependency/package manifest. Never sign untrusted PR code; keep manual/tag release dispatch.\n- Extract the final archive on a clean Windows host and check launch, GPU vendor/backend, local API, document save/reopen and printable export. Signing does not imply SmartScreen reputation. The issue stays Todo until actual signature and clean-host evidence exist.\n\n## Boundaries\nDepends on CI-006 Windows runtime archive. CI-009 SDK policy, CI-002 runtime bundle, GATE-005 broad platform qualification and CI-003 publication remain separate. See docs/build-distribution.md."
     },
     {
       "key": "NAV-009",

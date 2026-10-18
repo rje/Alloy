@@ -43,6 +43,7 @@ class QFrame;
 class QTimer;
 class QAction;
 class QToolButton;
+class QMessageBox;
 class TutorialRecorder;
 class RecoveryStore;
 
@@ -590,6 +591,18 @@ private:
     QJsonObject inlineEditorState() const;
     bool confirmDiscard();
     bool confirmAllDiscard();
+    int askDocumentDecision(const QString& title, const QString& message, const QString& scope);
+    QJsonObject pendingDocumentDecision() const;
+    QPointer<QMessageBox> pendingDocumentDecisionDialog_;
+    QString pendingDocumentDecisionId_;
+    QString pendingDocumentDecisionScope_;
+    QString pendingDocumentDecisionTabId_;
+    QString pendingDocumentDecisionDocumentId_;
+    quint64 pendingDocumentDecisionRevision_ = 0;
+    bool documentDecisionBusy_ = false;
+    int documentDecisionOriginDepth_ = 0;
+    int apiRequestDepth_ = 0;
+    bool documentDecisionTargetValid() const;
     QJsonObject documentTabs() const;
     QJsonObject activateTab(const QString& tabId);
     QJsonObject closeTab(const QString& tabId, bool discard);

@@ -42,6 +42,7 @@
 #include <QFileDialog>
 #include <QInputDialog>
 #include <QMessageBox>
+#include <QScopedValueRollback>
 #include <QCloseEvent>
 #include <QDir>
 #include <QFileInfo>
@@ -1886,6 +1887,20 @@ void AlloyWindow::registerCommands() {
     });
     add("document.settings", "Document Settings", "Open a shared display-unit editing session.", {}, [this](const auto&) { return beginSession("document.units", {}); });
     add("document.tabs","List design tabs","Inspect open local designs and the active tab.",{},[this](const auto&){return documentTabs();});
+    add("document.pendingDecision","Inspect document decision","Inspect an open native Save/Discard/Cancel prompt.",{},
+        [this](const auto&){return pendingDocumentDecision();});
+    auto decisionChoice=parameter("string","Answer the open native document decision.");
+    decisionChoice["enum"]=QJsonArray{"save","discard","cancel"};
+    add("document.answerDecision","Answer document decision","Answer the identified open native Save/Discard/Cancel prompt.",
+        {{"id",parameter("string","Pending decision ID.")},{"choice",decisionChoice}},[this](const auto& a){
+            if(!pendingDocumentDecisionDialog_ || a.value("id").toString()!=pendingDocumentDecisionId_)
+                return failure("no_pending_decision","No matching document decision is open","id");
+            const auto choice=a.value("choice").toString();
+            const auto button=choice=="save" ? QMessageBox::Save : choice=="discard" ? QMessageBox::Discard : QMessageBox::Cancel;
+            const auto result=pendingDocumentDecision();
+            pendingDocumentDecisionDialog_->done(button);
+            return QJsonObject{{"answered",true},{"id",result.value("id")},{"choice",choice}};
+        });
     add("document.recoveryList","List recoverable work","Inspect stale committed-state snapshots, including malformed or newer records.",{},
         [this](const auto&){return recoveryState();});
     add("document.recover","Recover committed work","Open a stale snapshot in a separate dirty, pathless design tab; never write its original file.",
@@ -1924,7 +1939,7 @@ void AlloyWindow::registerCommands() {
     add("document.tabClose","Close design tab","Close one local design; dirty work needs explicit discard or Save.",
         {{"tabId",parameter("string","Stable local design tab ID.")},{"discard",QJsonObject{{"type","boolean"},{"required",false},{"description","Explicitly discard unsaved work."}}}},
         [this](const auto& a){return closeTab(a["tabId"].toString(),a.value("discard").toBool());});
-    add("document.new", "New document", "Create a fresh authored document; dirty replacement requires explicit discard.", {{"discard", parameter("boolean", "Explicitly discard unsaved edits.")}}, [this](const auto& a) {
+    add("document.new", "New document", "Create a fresh authored document; dirty replacement requires explicit discard.", {{"discard", optional(parameter("boolean", "Explicitly discard unsaved edits."))}}, [this](const auto& a) {
         if (tabHasUnsavedWork(activeTabId_) && !a.value("discard").toBool()) return failure("unsaved_changes", "Save or explicitly discard the current document");
         if(!session_.isEmpty())finishSession(session_.value("id").toString(),false);
         document_->reset();view_->rebindDocument();displayedDocumentRevision_=std::numeric_limits<quint64>::max();
@@ -6194,6 +6209,13 @@ QString AlloyWindow::geometryWorkLabel(const QString& id,const QJsonObject& args
 }
 
 QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
+    if(documentDecisionBusy_ && apiRequestDepth_>documentDecisionOriginDepth_) {
+        const bool safe=id=="document.pendingDecision" || id=="document.answerDecision"
+            || id=="document.inspect" || id=="document.tabs" || id=="app.state"
+            || id=="app.identity" || id=="commands.list" || id=="command.status"
+            || id.startsWith("capture.");
+        if(!safe)return failure("document_decision_pending","Answer or cancel the open document decision before changing the model or tabs");
+    }
     // Status remains shape-free while the serial worker owns kernel evaluation.
     if(id=="command.status") {
         const auto argumentError=validateArguments(*findCommand(id),args);
@@ -6365,9 +6387,9 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
 }
 
 QJsonObject AlloyWindow::executeApi(const QString& id,const QJsonObject& args) {
-    const bool prior=apiExecuting_;apiExecuting_=true;
+    const QScopedValueRollback<int> depth(apiRequestDepth_,apiRequestDepth_+1);
+    const QScopedValueRollback<bool> api(apiExecuting_,true);
     auto result=execute(id,args);
-    apiExecuting_=prior;
     return publicPreviewDocuments(result).toObject();
 }
 
@@ -11886,23 +11908,57 @@ void AlloyWindow::showSketch() {
     canvasWindow_->addDockWidget(Qt::RightDockWidgetArea,dock);dock->show();
 }
 
+QJsonObject AlloyWindow::pendingDocumentDecision() const {
+    if(!pendingDocumentDecisionDialog_)return {{"pending",false},{"busy",documentDecisionBusy_}};
+    return {{"pending",true},{"id",pendingDocumentDecisionId_},{"scope",pendingDocumentDecisionScope_},
+        {"tabId",pendingDocumentDecisionTabId_},{"message",pendingDocumentDecisionDialog_->text()},
+        {"choices",QJsonArray{"save","discard","cancel"}},{"busy",documentDecisionBusy_}};
+}
+bool AlloyWindow::documentDecisionTargetValid() const {
+    return activeTabId_==pendingDocumentDecisionTabId_
+        && document_->authored().value("documentId").toString()==pendingDocumentDecisionDocumentId_
+        && document_->revision()==pendingDocumentDecisionRevision_;
+}
+int AlloyWindow::askDocumentDecision(const QString& title, const QString& message, const QString& scope) {
+    QMessageBox dialog(QMessageBox::Warning,title,message,
+        QMessageBox::Save|QMessageBox::Discard|QMessageBox::Cancel,this);
+    dialog.setDefaultButton(QMessageBox::Save);
+    pendingDocumentDecisionDialog_=&dialog;
+    pendingDocumentDecisionId_=CadDocument::newId();
+    pendingDocumentDecisionScope_=scope;
+    pendingDocumentDecisionTabId_=activeTabId_;
+    pendingDocumentDecisionDocumentId_=document_->authored().value("documentId").toString();
+    pendingDocumentDecisionRevision_=document_->revision();
+    const auto choice=dialog.exec();
+    pendingDocumentDecisionDialog_.clear();
+    pendingDocumentDecisionId_.clear();
+    pendingDocumentDecisionScope_.clear();
+    return choice;
+}
 bool AlloyWindow::confirmDiscard() {
     if(!tabHasUnsavedWork(activeTabId_))return true;
-    const auto choice=QMessageBox::warning(this,"Unsaved Design",QString("Save changes to %1?").arg(document_->state()["label"].toString()),
-        QMessageBox::Save|QMessageBox::Discard|QMessageBox::Cancel,QMessageBox::Save);
-    if(choice==QMessageBox::Cancel)return false;
+    const QScopedValueRollback<bool> busy(documentDecisionBusy_,true);
+    const QScopedValueRollback<int> origin(documentDecisionOriginDepth_,apiRequestDepth_);
+    const auto choice=askDocumentDecision("Unsaved Design",QString("Save changes to %1?").arg(document_->state()["label"].toString()),"active-tab");
+    if(!documentDecisionTargetValid())return false;
+    if(choice!=QMessageBox::Save && choice!=QMessageBox::Discard)return false;
     if(choice==QMessageBox::Discard)return true;
     if(session_.value("command")=="sketch.edit") {
         QMessageBox::information(this,"Finish Sketch","Finish or Cancel the sketch before saving this design.");return false;
     }
-    execute("document.saveDialog");return !document_->isDirty();
+    const auto response=execute("document.saveDialog");
+    return response.value("ok").toBool() && !document_->isDirty()
+        && activeTabId_==pendingDocumentDecisionTabId_
+        && document_->authored().value("documentId").toString()==pendingDocumentDecisionDocumentId_;
 }
 bool AlloyWindow::confirmAllDiscard() {
     bool dirty=false;for(const auto& tab:designTabs_)dirty|=tabHasUnsavedWork(tab->id);
     if(!dirty)return true;
-    const auto choice=QMessageBox::warning(this,"Unsaved Designs","Save changes in open designs before quitting?",
-        QMessageBox::Save|QMessageBox::Discard|QMessageBox::Cancel,QMessageBox::Save);
-    if(choice==QMessageBox::Cancel)return false;
+    const QScopedValueRollback<bool> busy(documentDecisionBusy_,true);
+    const QScopedValueRollback<int> origin(documentDecisionOriginDepth_,apiRequestDepth_);
+    const auto choice=askDocumentDecision("Unsaved Designs","Save changes in open designs before quitting?","all-tabs");
+    if(!documentDecisionTargetValid())return false;
+    if(choice!=QMessageBox::Save && choice!=QMessageBox::Discard)return false;
     if(choice==QMessageBox::Discard)return true;
     for(const auto& tab:designTabs_)if(tabHasUnsavedWork(tab->id)) {
         const auto session=tab->id==activeTabId_ ? session_ : tab->session;
