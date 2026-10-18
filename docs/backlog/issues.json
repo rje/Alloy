@@ -9724,7 +9724,7 @@
     },
     {
       "key": "SKT-157",
-      "title": "Extend Select Other grouping and hover preview",
+      "title": "Preview Select Other sketch candidates on hover",
       "kind": "implementation",
       "phase": "P2 Parametric modeling",
       "priority": "P2",
@@ -9737,7 +9737,7 @@
         "phase:P2",
         "priority:P2"
       ],
-      "body": "## Acceptance\nResearch public row labels, membership/ordering and hover/reset/cancel behavior; keep dated provenance and unknowns outside the repository. Hover each retained row and visibly preview the intended geometry; leaving or Escape clears preview without changing committed selection, document or history. Depth and Parents show the same live model identities with correct parent relationships; hidden/unavailable targets do not silently substitute. Reuse coincident authored/projected line and circle fixtures plus one nested body/occurrence fixture. Through native input, inspect hover, grouping, choice, cancel and subsequent shared Delete with counterpart/source survival and readable GPU captures. Report exact layout/styling parity separately from functional acceptance. Split additional target families explicitly.\n\n## Dependency\n- SKT-155\n\n## Provenance\nExplicit documented Select Other presentation remainder from SKT-155/#581. Dated public evidence and bounded proposal: ../Alloy-reference-records/knowledge/specs/skt155-select-other-remainder-proposal-2026-10-18.md.\n"
+      "body": "## Acceptance\nResearch documented hover/reset/cancel behavior with dated public provenance outside the repository. Hover each retained row and show the intended visible geometry with a readable preview color; moving between rows updates it. Leaving the chooser, hovering a noncandidate/header, Escape, drag cancellation and choosing a row clear the preview. Cancellation preserves prior authoritative selection, focus and history. Choosing a row still invokes the shared stable-ID selection route; shared Delete removes the intended target and preserves its coincident counterpart/source. Verify through native input and actual-app inspection, readable hardware GPU captures, exact saved/Undo behavior as relevant, and compare matched public visual evidence where available. Do not introduce fake parent/source groups.\n\n## Dependency\n- SKT-155\n\n## Explicit split\nActual Depth ordering and Face/Body/Component Parents navigation require a mixed-model candidate and parent-selection foundation; retained separately as SKT-159/#585, dependent on DOC-006/#18. This issue closes only the coherent hover-preview slice.\n\n## Provenance\nPublic hover evidence and bounded contract: ../Alloy-reference-records/knowledge/specs/skt157-select-other-hover-2026-10-18.md. Original broader proposal: ../Alloy-reference-records/knowledge/specs/skt155-select-other-remainder-proposal-2026-10-18.md.\n"
     },
     {
       "key": "SKT-158",
@@ -9755,6 +9755,25 @@
         "priority:P2"
       ],
       "body": "## Acceptance\nUse a retained supported face with two distinct inset distances and stable lineage. Through the actual app create both owners, select/delete each generated profile in separate native runs, and check exact sibling/source/support IDs, changed source geometry, one-step Undo/Redo and save/reopen. Refuse a stale or downstream-consumed target atomically; deleting an unconsumed sibling beside a consumed profile must keep the solid exact. Inspect readable hardware GPU captures and distinguish native/API/geometry evidence. Keep arbitrary multiwire and exact reference styling outside this bounded fixture unless separately supported.\n\n## Dependency\n- SKT-153\n\n## Provenance\nExplicit unqualified real-app variant from SKT-153/#579 receipt; the same sketch's two planar-inset owners currently pass focused core only. See docs/validation/sketch-multiple-loop-offset-delete.md and external dated contract ../Alloy-reference-records/knowledge/specs/skt153-multiple-loop-owners-2026-10-18.md.\n\n## Accepted 2026-10-18\nTwo same-sketch planarInsetV1 owners on the retained 18-edge split cap pass actual-app API and native viewport pick/Delete in either order. Exact sibling/source/support identities, source-width edit, one-step Undo/Redo, save/reopen, atomic stale/consumed refusal and safe deletion beside a consumed sibling pass. Native and API saved deletion documents match exactly; Apple M4 GPU captures show selected, deleted, undone and reopened states. Independent Sol review reran 3/3 native tests, matched hashes and inspected captures with no blocker. Physical OS input, other-platform runtime, broader support/offset cases and exact styling remain unqualified. Receipt: docs/validation/sketch-multiple-planar-inset-delete.md.\n"
+    },
+    {
+      "key": "SKT-159",
+      "title": "Add Select Other Depth and Parents for model hierarchy",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P2",
+      "depends_on": [
+        "SKT-157",
+        "DOC-006"
+      ],
+      "labels": [
+        "kind:implementation",
+        "status:blocked",
+        "area:skt",
+        "phase:P2",
+        "priority:P2"
+      ],
+      "body": "## Acceptance\nResearch public row labels, depth ordering, hierarchy, hover and cancel behavior; keep dated sources and unknowns outside the repository. Use one shared stable-ID candidate model for UI and API. Depth orders intersected targets along the camera ray, including behind-object candidates; Parents exposes actual Face \u2192 Body \u2192 Component \u2192 Parent Component identities. Choosing a parent selects that parent through the authoritative route rather than its child. Hidden/unavailable targets follow explicit policy. Native hold must expose both controls; verify leaf/parent identity, hover preview/reset without document/history mutation, natural focus on cancel, accepted leaf Delete and counterpart/source survival, explicit parent-selection/Delete policy, history/reopen and hardware GPU captures. Reuse overlapping line/circle regression plus one nested occurrence fixture. Split further topology/assembly families explicitly and mark exact styling unknown without a matched reference.\n\n## Dependencies\n- SKT-157\n- DOC-006\n\n## Provenance\nExplicit Depth/Parents remainder split from SKT-157/#583 after public evidence showed Parents is actual model ancestry. Contract and dated sources: ../Alloy-reference-records/knowledge/specs/select-other-depth-parents-child-2026-10-18.md.\n"
     }
   ]
 }
