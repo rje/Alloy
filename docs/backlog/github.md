@@ -488,3 +488,7 @@ This is a publication snapshot. Use `python3 tools/backlog.py ready` for the liv
 | [#478 REL-035: Keep Boundary Fill cell enumeration responsive](https://github.com/rje/Alloy/issues/478) | P4 Initial release | implementation | P0 | [#477](https://github.com/rje/Alloy/issues/477) |
 | [#479 REL-036: Keep large native-document reopen responsive](https://github.com/rje/Alloy/issues/479) | P4 Initial release | implementation | P0 | [#477](https://github.com/rje/Alloy/issues/477) |
 | [#480 REL-037: Reduce large-model Open final presentation pause](https://github.com/rje/Alloy/issues/480) | P4 Initial release | implementation | P1 | [#479](https://github.com/rje/Alloy/issues/479) |
+| [#481 REL-038: Keep corrected-iron Surface Trim interactions responsive](https://github.com/rje/Alloy/issues/481) | P4 Initial release | implementation | P0 | [#478](https://github.com/rje/Alloy/issues/478) |
+| [#482 REL-039: Keep corrected-iron Loft selection and commit responsive](https://github.com/rje/Alloy/issues/482) | P4 Initial release | implementation | P0 | [#478](https://github.com/rje/Alloy/issues/478) |
+| [#483 REL-040: Keep large-history sketch edit and Finish responsive](https://github.com/rje/Alloy/issues/483) | P4 Initial release | implementation | P0 | [#478](https://github.com/rje/Alloy/issues/478) |
+| [#484 REL-041: Keep downstream recompute responsive after sketch source edit](https://github.com/rje/Alloy/issues/484) | P4 Initial release | implementation | P0 | [#478](https://github.com/rje/Alloy/issues/478) |

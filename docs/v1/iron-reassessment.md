@@ -5,6 +5,13 @@ must not be advertised as a finished source tutorial. Existing valid-solid,
 history and export receipts remain bounded capability evidence. They do not
 establish the intended object.
 
+The replacement candidate14 is independently accepted on 2026-10-17 for a
+bounded corrected Alloy workflow: pointed silhouette, broad panel, high grip,
+enclosed rear web, full 44-stage creation movie, editable history and checked
+STL/STEP. See [the cumulative receipt](../validation/iron-corrected-cumulative.md).
+The old complete-03 artifact remains withdrawn; exact public dimensions and
+native-input parity remain qualified.
+
 A read-only comparison of actual saved captures, authored JSON and STL against
 public recorded tutorial frames found three material differences:
 

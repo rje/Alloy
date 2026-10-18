@@ -851,6 +851,11 @@ def main():
                 call('history.redo'); assert call('document.inspect')['authored'] == edited['authored']
                 call('document.open', {'path': str(model), 'discard': True})
                 assert call('document.inspect')['authored'] == original
+                # Export the restored accepted source after recording and history
+                # qualification; keep the creation movie's steps unchanged.
+                final_solid, = call('document.inspect')['evaluation']['bodies']
+                result['stepExport'] = call('document.exportStep', {'bodyId': final_solid['bodyId'],
+                    'path': str(out / 'iron-mm.step'), 'units': 'mm'})
             (out / 'result.json').write_text(json.dumps({'passed': True, 'stages': stages,
                 'result': result, 'video': video, 'scope': ('Corrected source trial/closure candidate; see explicit checkpoint, resume provenance and artifacts. API evidence, not native input or independent tutorial acceptance.' if advanced else 'Corrected exterior only; panel/grip and closure pending.' if a.checkpoint == 'exterior' else 'Prepared broad panel and high tilted ellipse; no Trim or bridge yet.' if a.checkpoint == 'panel' else 'Corrected exterior, large retained bilateral panel Trim and preauthored tilted ellipse; bridge not evaluated in this checkpoint.' if a.checkpoint == 'trimmed-panel' else 'Corrected outer and inner surfaces only; closing sheet/trial recipe and final closure unqualified.')}, indent=2))
         except Exception as error:

@@ -26,7 +26,7 @@
     "TUT-034": {
       "number": 470,
       "url": "https://github.com/rje/Alloy/issues/470",
-      "state": "open"
+      "state": "closed"
     },
     "REL-030": {
       "number": 469,
@@ -866,7 +866,7 @@
     "TUT-018": {
       "number": 302,
       "url": "https://github.com/rje/Alloy/issues/302",
-      "state": "open"
+      "state": "closed"
     },
     "TUT-017": {
       "number": 301,
@@ -2401,6 +2401,26 @@
     "REL-037": {
       "number": 480,
       "url": "https://github.com/rje/Alloy/issues/480",
+      "state": "open"
+    },
+    "REL-038": {
+      "number": 481,
+      "url": "https://github.com/rje/Alloy/issues/481",
+      "state": "open"
+    },
+    "REL-039": {
+      "number": 482,
+      "url": "https://github.com/rje/Alloy/issues/482",
+      "state": "open"
+    },
+    "REL-040": {
+      "number": 483,
+      "url": "https://github.com/rje/Alloy/issues/483",
+      "state": "open"
+    },
+    "REL-041": {
+      "number": 484,
+      "url": "https://github.com/rje/Alloy/issues/484",
       "state": "open"
     }
   }

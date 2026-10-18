@@ -7197,7 +7197,11 @@
         "REL-034",
         "REL-035",
         "REL-036",
-        "REL-037"
+        "REL-037",
+        "REL-038",
+        "REL-039",
+        "REL-040",
+        "REL-041"
       ],
       "labels": [
         "area:rel"
@@ -8092,6 +8096,70 @@
         "priority:P1"
       ],
       "body": "## Observed result\nREL-036/#479 moves the saved corrected-iron native Open's 30.607-second evaluation off the Qt UI thread. Pending status calls and viewport navigation stay responsive. The terminal completion response still takes 1.278542 seconds, including GUI-thread adoption, presentation/rebind and serialization. This is a bounded final-presentation pause, distinct from background heartbeat evidence. External receipt: `validation/rel036-responsive-2026-10-17/receipt.json`.\n\n## Bounded scope\nProfile the accepted large-model completion into document adoption, viewport actor rebuild, Browser/timeline refresh, Fit and API response serialization. Retain atomic document replacement, exact geometry and reference IDs, same-tab behavior, history reset and failure/Cancel preservation. Reduce avoidable main-thread presentation work or stage it safely across event-loop ticks while reporting explicit terminal completion only when the document is ready. Do not rerun kernel evaluation, weaken geometry checks or claim a global latency budget from pending-only metrics.\n\n## Verification\nOne bounded saved-iron Open replay measures GUI heartbeat through final adoption separately from background evaluation, compares exact authored/geometry/history and inspects readable final presentation. A focused regression covers completion identity and no partial visible document. Independent review before closure. Broader startup/STEP import remain outside this child.\n\n## Parent\nREL-016/#419 cumulative responsiveness; REL-036/#479 provides the accepted asynchronous Open foundation.\n"
+    },
+    {
+      "key": "REL-038",
+      "title": "Keep corrected-iron Surface Trim interactions responsive",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "depends_on": [
+        "REL-035"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P4",
+        "priority:P0"
+      ],
+      "body": "## Observed workflow stall\nThe independently accepted corrected-iron candidate14 movie has three synchronous Surface Trim gaps: opening the panel Trim dialog 20.2099 s, committing that Trim 24.6365 s, and committing connected rear Trim 25.7987 s. Actual frame-capture gaps enclose those commands; repeated frames preserve movie completeness but the Qt UI is unavailable. Evidence: external `deliverables/iron-reassessment-2026-10-17/candidate-14-from-blank-recording/{long-command-timings.json,capture-gaps.json,transcript.json}`. REL-016/#419 owns cumulative responsiveness.\n\n## Bounded scope\nKeep these exact Surface Trim edit/open/commit paths responsive while preserving selected target/tool, region choice, Remove versus retain semantics, stable references and one atomic history operation. Reuse the accepted serial geometry worker and explicit pending/completed/failed status where possible. Avoid races with live viewport topology and do not weaken exact Trim admission. If dialog opening and commit need separate increments, split before leaving this issue In Progress.\n\n## Verification\nUse one saved corrected-iron Trim checkpoint with status/navigation/GUI heartbeat during each affected step, exact region/geometry/reference comparison, Cancel/stale-result behavior, undo/redo and native reopen. Add focused command-state checks and independent source/geometry review. The full 44-stage movie need not be repeated merely to close this latency child.\n\n## Dependency\nREL-035/#478 provides the shared worker and selected-cell completion pattern; REL-016/#419 retains broader responsiveness.\n"
+    },
+    {
+      "key": "REL-039",
+      "title": "Keep corrected-iron Loft selection and commit responsive",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "depends_on": [
+        "REL-035"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P4",
+        "priority:P0"
+      ],
+      "body": "## Observed workflow stall\nThe independently accepted corrected-iron candidate14 movie has two synchronous Loft gaps: selecting the third Loft boundary 26.5564 s and committing the Inner handle Loft 27.4697 s. Actual frame-capture gaps enclose both commands. The final geometry is accepted; this issue concerns UI-thread blocking in the qualified source workflow. Evidence: external `deliverables/iron-reassessment-2026-10-17/candidate-14-from-blank-recording/{long-command-timings.json,capture-gaps.json,transcript.json}`. REL-016/#419 owns cumulative responsiveness.\n\n## Bounded scope\nKeep exact boundary selection, guided/no-rail Loft preview and final commit responsive on the saved accepted handle fixture. Preserve source sections/rail identity, ordered boundaries, owner, preview/Cancel and downstream stable references. Use the shared serial geometry worker and explicit pending/completed/failed state; do not substitute an approximate sheet or race live viewport topology. Split selection versus commit if they cannot be finished as one bounded increment.\n\n## Verification\nA saved handle-bridge fixture shows status/navigation/GUI heartbeat during the two slow commands and exact accepted surface/solid lineage after completion, with stale-input/Cancel safety, undo/redo and reopen. Focused command-state check and independent architecture/geometry review. No complete movie rerun required solely for this child.\n\n## Dependency\nREL-035/#478 provides the accepted serial worker pattern; REL-016/#419 retains broader responsiveness.\n"
+    },
+    {
+      "key": "REL-040",
+      "title": "Keep large-history sketch edit and Finish responsive",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "depends_on": [
+        "REL-035"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P4",
+        "priority:P0"
+      ],
+      "body": "## Observed workflow stall\nThe independently accepted corrected-iron candidate14 movie blocks the Qt UI when reopening the closing sketch for edit (22.0678 s) and finishing after adding only the bottom line (35.6757 s). The finished model and history are accepted; the visible movie preserves these waits with repeated frames. Evidence: external `deliverables/iron-reassessment-2026-10-17/candidate-14-from-blank-recording/{long-command-timings.json,capture-gaps.json,transcript.json}`. REL-016/#419 owns cumulative responsiveness.\n\n## Bounded scope\nKeep edit opening and Finish responsive on the saved large-history closing-sketch fixture. Preserve the exact original sketch, solved entities/constraints, downstream Surface Extrude/Trim/Fill references, atomic history and error handling. Evaluate private authored candidates through the shared serial worker with revision/session guards; Cancel must not claim to interrupt an active kernel operation. Split edit opening and Finish into separate Todo children if needed to make a finishable increment.\n\n## Verification\nOne saved accepted fixture shows status/navigation/GUI heartbeat during both operations, the same solved sketch and final solid after Finish, exact undo/redo/reopen and one invalid/stale case. Focused command-state test and independent source/geometry review. The full tutorial movie is already complete and need not be repeated for this child.\n\n## Dependency\nREL-035/#478 provides the accepted worker foundation; REL-016/#419 retains broad responsiveness.\n"
+    },
+    {
+      "key": "REL-041",
+      "title": "Keep downstream recompute responsive after sketch source edit",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "depends_on": [
+        "REL-035"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P4",
+        "priority:P0"
+      ],
+      "body": "## Observed workflow stall\nAfter the independently accepted corrected-iron candidate14 movie, a meaningful source edit to sketch `Back and notch sheets` changes one upper fit point from (192,40) to (192,40.5). Direct `feature.edit` then synchronously reevaluates downstream Surface Extrude and Boundary Fill for 55.8253 s on the Qt UI thread. The final edited solid, stable face IDs, Undo/Redo and restored reopen pass; this issue concerns interaction blocking. Evidence: external `deliverables/iron-reassessment-2026-10-17/candidate-14-from-blank-recording/{long-command-timings.json,transcript.json,receipt.json}`. Earlier REL-028/#460 covered surface-Loft edit opening only, not this source-edit recomputation.\n\n## Bounded scope\nMake this one direct sketch source-edit transaction nonblocking to the Qt event loop while preserving exact solved sketch, downstream feature order, stable references, one atomic history operation, Undo/Redo and native reopen. Reuse the serial geometry worker and explicit pending/completed/failed state with document/feature/revision guards. Allow navigation/status/Cancel-result-discard while evaluation runs; do not claim to interrupt OCCT. Avoid duplicating full document evaluation or weakening geometry checks merely to reduce wall time.\n\n## Verification\nOne saved candidate14 native model replay edits the same point, measures status/navigation/GUI heartbeat, and confirms exact accepted edited volume, IDs, history and restored reopen. Add focused stale/Cancel contract coverage and independent source/geometry review. No full creation movie rerun is needed for this child.\n\n## Dependency\nREL-035/#478 provides the worker foundation. REL-016/#419 retains cumulative responsiveness.\n"
     }
   ]
 }

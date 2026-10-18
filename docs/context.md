@@ -64,9 +64,17 @@ independently accepts background evaluation for interactive native Open on the
 same iron fixture: 30.607 s background work with responsive status/navigation,
 exact authored/geometry/history/save, and a disclosed 1.279 s final presentation
 pause. See [the receipt](validation/responsive-native-open.md).
-REL-037/#480 tracks the final presentation pause. TUT-034/#470 is now active
-for one corrected from-blank recording against the accepted responsiveness fixes;
-no new complete movie is accepted yet.
+REL-037/#480 tracks the final presentation pause. TUT-034/#470 now has an
+independently accepted corrected from-blank recording: 44 stages, 562 seconds,
+2,810 frames, exact final native solid, checked closed genus-1 STL and
+independent STEP readback. Meaningful source edit, Undo/Redo and reopen pass.
+See [the receipt](validation/iron-corrected-cumulative.md) and external gallery
+`#surface-iron-corrected`. TUT-018's adapted tutorial result is restored within
+the disclosed source/native-input limits; seven 20–36 s synchronous Trim/Loft/
+sketch stalls and a post-movie 55.825 s source edit remain REL-016 work.
+REL-038–041/#481–484 split these measured Trim, Loft, sketch and source-edit
+stalls into finishable Todo children; recording completeness does not close
+the cumulative responsiveness gate.
 
 Finish the current tutorials and prepare a comprehensive web-reviewable v1 plan for dependable 3D-printing creation workflows. TUT-018/#302 is reopened: the user rejects the final iron shape. Prior API/mesh checks prove only the adapted fixture, not visual/tutorial acceptance. Correct the silhouette and sculpted handle against public final tutorial evidence. Full enclosure TUT-016 remains open. The proposed v1 inventory and backlog mapping live in docs/v1; scope is pending user review.
 

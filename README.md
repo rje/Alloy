@@ -20,7 +20,10 @@ The [complete surface shoehorn](docs/validation/shoehorn-complete.md) now has
 an independently accepted full creation movie, editable model and checked STL:
 guided surface, exact corner/perimeter rounds and retained hanging hole. Source
 length edits, history and reopening pass. Physical Browser gestures remain a
-separate gate. The [surface iron evidence](docs/validation/surface-iron-complete.md) covers a valid adapted model and prior recording. **Tutorial acceptance was withdrawn on 2026-10-17:** the final shape does not match the intended object. See [reassessment](docs/v1/iron-reassessment.md); TUT-018 and TUT-034 track correction.
+separate gate. The [corrected surface iron](docs/validation/iron-corrected-cumulative.md)
+now has an independently accepted 44-stage full creation movie, editable model
+and checked STL/STEP. The earlier adapted recording remains marked withdrawn
+after the user rejected its shape; see [reassessment](docs/v1/iron-reassessment.md).
 
 The [bilateral surface exterior](docs/validation/surface-bilateral-rail-loft.md)
 now supports the iron tutorial's retained mirrored outline, guide rail and two
@@ -30,8 +33,8 @@ now passes source edits, native selection and reopening. The
 sequential cuts, tool Remove and exact undo. The new
 [corrected iron shape](docs/validation/iron-corrected-shape.md) passes independent
 visual, source-edit, solid, history and export review. Its cumulative creation
-recording and replacement gallery entry remain pending, so TUT-018/TUT-034
-remain open.
+recording and replacement gallery entry are now accepted under
+[the corrected cumulative receipt](docs/validation/iron-corrected-cumulative.md).
 
 [Open fit-spline Mirror](docs/validation/fit-spline-mirror.md) now retains
 reflected points and tangent handles through source/axis edits and reopening.
@@ -138,7 +141,7 @@ and retained Remove through shared native/API controls.
 two-point calibration and portable embedded saving for sketch reference. The
 [three-section no-rail Loft](docs/validation/surface-closed-loft.md) now retains
 closed spline/ellipse sections through source edits and reopening. These are
-accepted ingredients; the complete surface iron workflow remains ahead.
+accepted ingredients used by the corrected complete surface iron workflow.
 
 [Guided surface Loft](docs/validation/surface-loft.md) and
 [retained Thicken](docs/validation/surface-thicken.md) now create an editable
