@@ -2,7 +2,7 @@
 
 ## Current v1 delivery direction (2026-10-17)
 
-REL-012/#415 native bracket input gate is Todo/blocked on GEO-006/#309: both retained full-size and angle-bracket checkpoints fail document.open before input with ambiguous cylindrical-prism face provenance. Exact models and failure evidence are external under ../Alloy-reference-records/validation/rel012-ordinary-input-2026-10-18/. No UI defect or product fix was accepted; resume after the geometry owner restores an existing checkpoint.
+GEO-006/#309 now fixes the circular-seam provenance collision that blocked both retained bracket checkpoints. Exact OCCT history canonicalizes artificial seams, preserving authored contacts and legacy IDs; 20 original actual-app Opens, edits/reopen, focused core 4/4 and Apple M4 captures passed independent Astra review. See [the receipt](validation/prism-provenance.md). REL-012/#415 is ready to resume its native input gate on an opening checkpoint; the earlier failure evidence remains external under ../Alloy-reference-records/validation/rel012-ordinary-input-2026-10-18/.
 
 The user reviewed the private printable-part v1 design as a reasonable working
 direction and asked that partial work stop accumulating. REL-030 remains open

@@ -49,8 +49,10 @@ contains `baseline/`, `candidate-probe/` and `api-final/receipt.json`, both proc
 transcripts, captures and saved radius-90 models. The original failed fixtures
 remain in `validation/rel012-ordinary-input-2026-10-18/` outside the repository.
 
-This qualifies the bounded provenance repair on macOS. Independent review is
-pending. REL-012's native focus/selection/popup/export workflow, physical OS input,
+This qualifies the bounded provenance repair on macOS. Independent Astra review
+reran the four focused core tests, matched binary and fixture hashes, audited
+the two actual-app transcripts and inspected GPU captures; it found no blocker.
+REL-012's native focus/selection/popup/export workflow, physical OS input,
 other-platform runtime and broader topology repair remain separate gates.
 
 Reproduce the actual-app check with explicit paths:

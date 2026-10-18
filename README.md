@@ -115,6 +115,8 @@ now removes selected retained line, circle or point results through the shared
 sketch command, with native canvas/list/context routes, source preservation,
 dependency refusal and exact history/reopen.
 
+[Rounded bracket provenance](docs/validation/prism-provenance.md) now preserves exact circular contacts through region union; both saved brackets reopen and survive source edits without ambiguous prism faces.
+
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,
 alongside completion of the advanced modeling tutorials.
