@@ -383,7 +383,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Packaged saved-fixture refusals preserve authored work and exact support IDs; native repair/discoverability and general rebind remain open. Enclosure rim boundary repair remains unresolved in TUT-035.",
+      "gap": "Packaged saved-fixture refusals preserve authored work and exact support IDs; native repair/discoverability and general rebind remain open. TUT-035's bounded enclosure-clearance adaptation is accepted; general upstream reference repair remains open.",
       "apiIds": [],
       "issueKeys": [
         "HIS-002",
@@ -397,7 +397,8 @@
       ],
       "receipts": [
         "docs/validation/geometric-references.md",
-        "docs/validation/actionable-failures-packaged.md"
+        "docs/validation/actionable-failures-packaged.md",
+        "docs/validation/enclosure-connector-clearance.md"
       ],
       "planningStatus": "Packaged Mac refusal slice accepted; native repair/rebind owners remain open"
     },
@@ -1033,7 +1034,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Selection, hover, moving/deleting annotations and visibility exist; complete per-entity DOF/status and all glyph presentation remain incomplete.",
+      "gap": "Aggregate sketch DOF remains distinct; per-entity semantic roles/status and the supported glyph inventory are accepted. Numeric per-entity DOF and exact reference colors remain unknown. Fix/UnFix is accepted for point/line, circle and arc modes; ellipse/conic, spline and grouped/projected variants remain open.",
       "apiIds": [
         "sketch.annotationEndGesture",
         "sketch.annotationMove",
@@ -1047,7 +1048,19 @@
       ],
       "issueKeys": [
         "SKT-008",
-        "SKT-023"
+        "SKT-023",
+        "SKT-125",
+        "SKT-126",
+        "SKT-127",
+        "SKT-128",
+        "SKT-133",
+        "SKT-134",
+        "SKT-135",
+        "SKT-136",
+        "SKT-137",
+        "SKT-138",
+        "SKT-139",
+        "SKT-140"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -1055,9 +1068,16 @@
       ],
       "receipts": [
         "docs/validation/sketch-annotations.md",
-        "docs/validation/tangent-badges.md"
+        "docs/validation/tangent-badges.md",
+        "docs/validation/sketch-entity-roles.md",
+        "docs/validation/sketch-glyph-inventory.md",
+        "docs/validation/sketch-fix-unfix.md",
+        "docs/validation/sketch-fix-circle.md",
+        "docs/validation/sketch-fix-two-point-circle.md",
+        "docs/validation/sketch-fix-circle-modes.md",
+        "docs/validation/sketch-fix-arc.md"
       ],
-      "planningStatus": "Existing scope owners; verify accepted subset before pulling"
+      "planningStatus": "Accepted semantic-role/glyph and selected Fix subsets; remaining Fix variants are tracked by SKT-136–138"
     },
     {
       "id": "sketch.project",
@@ -1912,7 +1932,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Several bounded loft modes exist. General continuity/rails and arbitrary sections remain incomplete; rejected full iron outcome cannot be treated as acceptance of cumulative visual quality. Corrected asymmetric retained-boundary/ellipse bridge compatibility is independently accepted; final iron shape and closure remain open.",
+      "gap": "Several bounded loft modes exist. General continuity/rails and arbitrary sections remain incomplete. The corrected iron shape, 44-stage tutorial workflow and final solid/export result are accepted under TUT-034/TUT-018; source dimensions, matched camera views and native-input parity remain qualified.",
       "apiIds": [
         "solid.loft",
         "solid.loftBoundary",
@@ -1927,7 +1947,8 @@
         "SRF-015",
         "SRF-017",
         "SRF-019",
-        "GEO-023"
+        "GEO-023",
+        "TUT-034"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -1939,7 +1960,9 @@
         "docs/validation/surface-bilateral-rail-loft.md",
         "docs/validation/surface-handle-bridge.md",
         "docs/validation/surface-closed-loft.md",
-        "docs/validation/asymmetric-handle-bridge.md"
+        "docs/validation/asymmetric-handle-bridge.md",
+        "docs/validation/iron-corrected-shape.md",
+        "docs/validation/iron-corrected-cumulative.md"
       ],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },
@@ -1986,7 +2009,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "One selected local sheet-bounded cell exists. Solid/mixed tools and multiple selected cells are open; full iron tutorial presentation is rejected/reopened despite prior accepted receipts.",
+      "gap": "One selected local sheet-bounded cell exists. Solid/mixed tools and multiple selected cells remain open. The corrected iron's cumulative Boundary Fill and final tutorial workflow are accepted under TUT-018/TUT-034.",
       "apiIds": [
         "surface.boundaryFill",
         "surface.boundaryFillCell",
@@ -2000,7 +2023,8 @@
         "SRF-024",
         "TUT-032",
         "TUT-033",
-        "TUT-018"
+        "TUT-018",
+        "TUT-034"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -2008,7 +2032,8 @@
       ],
       "receipts": [
         "docs/validation/retained-boundary-fill.md",
-        "docs/validation/iron-enclosed-handle.md"
+        "docs/validation/iron-enclosed-handle.md",
+        "docs/validation/iron-corrected-cumulative.md"
       ],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },

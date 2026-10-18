@@ -103,7 +103,7 @@ admission, independently of Windows/Linux CI-009. Its distinct-path extraction,
 loaded-library and GPU/workflow evidence qualifies only that local platform;
 external tester and whole-release gates remain open.
 
-## Advanced tutorial chains remain required work
+## Advanced tutorial status
 
 1. **Electronics enclosure:** GEO-017 is now accepted at `6d9b8dc` for the exact
    inset kernel and source-derived identities. SKT-076 is accepted at `c625649`
@@ -122,20 +122,16 @@ external tester and whole-release gates remain open.
    has measured 0.5 mm model separation from each half. Exact connector-source
    parity and physical fit remain unclaimed. Reuse the accepted board, ports and
    snaps checkpoints.
-2. **Surface shoehorn:** finish exact R12 corner geometry ([GEO-019](https://github.com/rje/Alloy/issues/352)), generated
-   Fillet endpoint references ([GEO-018](https://github.com/rje/Alloy/issues/350)), tangent-plane/hole support ([GEO-004](https://github.com/rje/Alloy/issues/286)),
-   Browser organization ([ASM-012](https://github.com/rje/Alloy/issues/343)) and [TUT-017](https://github.com/rje/Alloy/issues/301). Do not replace the specified
-   finishing operation with an easier look-alike.
-3. **Surface iron:** correct exterior topology/adherence ([SRF-017](https://github.com/rje/Alloy/issues/361)), then retained
-   handle bridge ([SRF-015](https://github.com/rje/Alloy/issues/359)), sheet-tool Trim ([SRF-016](https://github.com/rje/Alloy/issues/360)), Boundary Fill ([SRF-011](https://github.com/rje/Alloy/issues/289)) and
-   [TUT-018](https://github.com/rje/Alloy/issues/302). Keep the prepared-sketch/source-dimension adaptation explicit.
+2. **Surface shoehorn:** [TUT-017](https://github.com/rje/Alloy/issues/301)'s complete functional/API workflow is accepted, including the exact R12/R16 and perimeter rounds, retained tangent support, constrained hole, component organization and checked STL ([receipt](validation/shoehorn-complete.md)). [GEO-018](https://github.com/rje/Alloy/issues/350), [GEO-019](https://github.com/rje/Alloy/issues/352) and [GEO-004](https://github.com/rje/Alloy/issues/286) are accepted. Physical Browser drag remains open under [ASM-012](https://github.com/rje/Alloy/issues/343); exact spline interpolation and full native/visual parity remain unclaimed.
+3. **Surface iron:** corrected shape and the complete 44-stage creation workflow are accepted under [TUT-034](https://github.com/rje/Alloy/issues/470) and [TUT-018](https://github.com/rje/Alloy/issues/302), including the retained exterior/bridge, sheet-tool Trim, Boundary Fill, closed solid and independent STL/STEP checks ([shape receipt](validation/iron-corrected-shape.md), [cumulative receipt](validation/iron-corrected-cumulative.md)). The responsive cumulative replay is accepted under REL-046; broader model responsiveness remains under REL-016. Public-source dimensions, matched camera views and exact native-input parity remain qualified.
 4. **Piston and sliding lid:** accepted workflows become practical responsiveness
    and package fixtures. Their broader feature-family limitations remain tracked;
    no unchanged solver/tutorial reruns merely to produce another receipt.
 
-Packaging can progress while these modeling blockers are investigated. They are
-not silently dropped from the delivery queue if a limited preview is packaged
-first. A successful ingredient does not close the cumulative tutorial.
+The accepted shoehorn and corrected-iron workflows close their cumulative
+functional tutorial gates. Their separate native-input, exact-reference,
+platform and package qualifications remain release work; the full-source
+enclosure tutorial remains open under TUT-016.
 
 ## Delivery and verification policy
 

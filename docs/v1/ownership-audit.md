@@ -17,9 +17,9 @@ six gaps that were not owned by their mapped issues and added them as Todo:
 | `exchange.obj-output` | XCH-010/#522 | OBJ export with independent readback |
 | `history.visibility` | REL-048/#523 | Active-preview visibility responsiveness, beyond accepted idle reuse |
 
-`sketch.rectangle` and `sketch.circle` also now link the already open
-SKT-094/#499 and SKT-095/#500 variant owners. Those were inventory mapping
-omissions, not new work.
+`sketch.rectangle` and `sketch.circle` link SKT-094/#499 and SKT-095/#500;
+both are closed with accepted bounded workflows. Their earlier absence was an
+inventory mapping omission, now resolved.
 
 The following open implementation parents still combine multiple distinct
 tools. Before pulling one, split its remaining accepted-v1 scope into
@@ -58,7 +58,7 @@ printable-part plan. The user required 3MF export and modeled threads for the
 first stable v1 on 2026-10-17. XCH-011/#524 now owns a bounded 3MF export path;
 XCH-005 retains import and wider format options. The bounded Core export now
 passes [local Mac evidence](../validation/3mf-export.md), including native
-Save As Mesh and a separate consumer. SOL-059/#504 owns modeled printable
-threads, with wider thread modes on ADV-005; that work remains Todo.
+Save As Mesh and a separate consumer. SOL-059/#504's bounded modeled external
+thread workflow is accepted and closed; wider thread modes remain on ADV-005.
 No tag, build matrix or release
 promotion follows from this audit.
