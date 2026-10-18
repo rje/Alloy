@@ -9677,16 +9677,17 @@
       "phase": "P2 Parametric modeling",
       "priority": "P2",
       "depends_on": [
-        "SKT-145"
+        "SKT-145",
+        "SKT-025"
       ],
       "labels": [
         "kind:implementation",
-        "status:ready",
+        "status:blocked",
         "area:skt",
         "phase:P2",
         "priority:P2"
       ],
-      "body": "## Bounded result\nWhen deleting a selected generated support-face loop Offset profile, a stale face or changed retained boundary lineage refuses atomically with a concise recovery action. The accepted SKT-145 path already refuses but forwards terse evaluator text without telling the user to cancel, reopen or reselect.\n\n## Acceptance\nKeep existing owner and lineage validation; add recovery guidance only to the Delete command error path so normal evaluation diagnostics remain unchanged. Check one stale support and one changed-boundary Delete refusal through the shared command, including stable error code, recovery message, exact active draft/history/selection and committed document preservation. Inspect the native error presentation and verify one valid Delete still succeeds. Use proportionate focused tests and real-app captures; physical input and other-platform runtime stay in release gates.\n\n## Provenance\nMinor explicit remainder from independent SKT-145/#571 review, also noted by SKT-152/#578 qualification. Do not claim it as accepted in either gate.\n\n## Dependency\n- SKT-145"
+      "body": "## Bounded result\nWhen deleting a selected generated support-face loop Offset profile, a stale face or changed retained boundary lineage refuses atomically with a concise recovery action. The accepted SKT-145 path already refuses but forwards terse evaluator text without telling the user to cancel, reopen or reselect.\n\n## Acceptance\nKeep existing owner and lineage validation; add recovery guidance only to the Delete command error path so normal evaluation diagnostics remain unchanged. Check one stale support and one changed-boundary Delete refusal through the shared command, including stable error code, recovery message, exact active draft/history/selection and committed document preservation. Inspect the native error presentation and verify one valid Delete still succeeds. Use proportionate focused tests and real-app captures; physical input and other-platform runtime stay in release gates.\n\n## Provenance\nMinor explicit remainder from independent SKT-145/#571 review, also noted by SKT-152/#578 qualification. Do not claim it as accepted in either gate.\n\n## Dependency\n- SKT-145\n## Blocked audit \u2014 2026-10-18\nThe current real-app invalid-support fixture cannot reach sketch.deleteSelection: document.open evaluates the altered support and returns open_failed with nested support_unavailable before sketch editing starts. No product/test change was accepted; focused core still passes. Exact attempt and evidence: ../Alloy-reference-records/knowledge/specs/skt154-loop-delete-recovery-blocker-2026-10-18.md. A reachable in-session stale-support transition or explicit support-repair state is needed; SKT-025/#159 owns that foundational repair path. Keep this issue Todo/blocked until such a trigger exists, then qualify the actual user-facing recovery route rather than a synthetic unreachable catch.\n"
     },
     {
       "key": "SKT-155",

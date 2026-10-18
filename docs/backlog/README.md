@@ -46,7 +46,7 @@ source repair remains SKT-026/#160. Overlapping projected/authored selection
 and multi-boundary face-projection Delete remain Todo SKT-155–156/#581–582. SKT-144–147/#570–573
 now have independently accepted bounded Offset owner deletion, including the
 single-owner support-face loop under SKT-145/#571. Its planar-inset actual-app variant is now accepted under SKT-152/#578
-with a retained 18-edge enclosure fixture, native/API input, exact history and GPU captures. Multiple owners in one sketch remain Todo SKT-153/#579; stale-support recovery text is SKT-154/#580.
+with a retained 18-edge enclosure fixture, native/API input, exact history and GPU captures. Multiple owners in one sketch remain Todo SKT-153/#579; stale-support recovery text is SKT-154/#580, blocked until a reachable in-session stale-support or explicit repair path exists under SKT-025/#159.
 SKT-148/#574 now accepts
 fit-spline Mirror Delete through core, real-app API, native Qt and independent
 review. SKT-149/#575 retains fit-spline Offset association-only removal as
