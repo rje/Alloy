@@ -44,7 +44,7 @@ with native/API, exact history/reopen and GPU evidence; its independent Astra
 review found one palette overlap, corrected in final native captures. Broad
 source repair remains SKT-026/#160. Overlapping projected/authored selection
 is accepted for straight and circular pairs under
-[SKT-155](../validation/sketch-overlap-selection.md). Hover preview is active SKT-157/#583; real Depth/Parents hierarchy is blocked Todo SKT-159/#585 on DOC-006/#18; multi-boundary face-projection selected-edge Delete is accepted under
+[SKT-155](../validation/sketch-overlap-selection.md). Hover preview is accepted under [SKT-157](../validation/sketch-select-other-hover.md); real Depth/Parents hierarchy is blocked Todo SKT-159/#585 on DOC-006/#18; multi-boundary face-projection selected-edge Delete is accepted under
 [SKT-156](../validation/sketch-face-projection-delete.md). SKT-144–147/#570–573
 now have independently accepted bounded Offset owner deletion, including the
 single-owner support-face loop under SKT-145/#571. Its planar-inset actual-app variant is now accepted under SKT-152/#578

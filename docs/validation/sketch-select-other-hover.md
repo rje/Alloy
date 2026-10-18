@@ -1,6 +1,10 @@
 # SKT-157: Select Other sketch hover preview
 
-Bounded candidate, 2026-10-18; independent review pending. Holding overlapping
+Accepted bounded slice, 2026-10-18. Independent Sol review reran the final
+native test (3/3 in 18.804 s), matched the final app SHA, inspected line/circle
+captures and found no blocker. Header, within-popup row transitions and drag
+cancellation have source-reviewed reset paths but no dedicated native assertion.
+Holding overlapping
 visible authored/projected sketch curves still opens the SKT-155 chooser.
 Pointing at a row now cross-highlights its current curve in cyan through a
 separate GPU presentation. Leaving the popup, hovering its nongeometry header,

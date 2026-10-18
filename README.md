@@ -108,7 +108,7 @@ history/reopen checks.
 also passes on a retained 18-edge enclosure support through the real app,
 native viewport input, exact history/reopen and GPU captures. The [multiple-owner planar-inset variant](docs/validation/sketch-multiple-planar-inset-delete.md)
 also passes real-app/native both-order Delete, source edit, history and reopen.
-[Overlapping sketch selection](docs/validation/sketch-overlap-selection.md) now lets a native hold choose independently between coincident authored and projected lines/circles, with stable identity cues and checked Delete/history/reopen. Broader Select Other grouping and hover preview remain Todo.
+[Overlapping sketch selection](docs/validation/sketch-overlap-selection.md) now lets a native hold choose independently between coincident authored and projected lines/circles, with stable identity cues and checked Delete/history/reopen. [Hover preview](docs/validation/sketch-select-other-hover.md) now cross-highlights the current candidate without changing selection or history; actual Depth/Parents hierarchy remains Todo.
 [Face projection groups](docs/validation/sketch-face-projection-delete.md) now retain stable source and boundary membership; deleting a selected projected boundary preserves sibling results, with native/API history and reopen evidence.
 [Linked projection Delete](docs/validation/sketch-linked-projection-delete.md)
 now removes selected retained line, circle or point results through the shared
