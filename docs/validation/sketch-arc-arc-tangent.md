@@ -1,0 +1,9 @@
+# Finite arc-pair Tangent — SKT-120
+
+Accepted 2026-10-18 for two distinct authored circular arcs through the shared Tangent command. The retained relation records internal or external contact and a signed finite-sweep contact for each arc. The solver checks that both arcs still meet at the same contact after edits and refuses an edit that moves contact outside either retained sweep. The initial nearest-branch choice is an explicit Alloy policy; broad public family descriptions do not specify native tie-breaking.
+
+Focused kernel gates passed both pick orders, signed sweep directions, internal and external branches, malformed contacts and atomic refusal. The real Alloy fixture used radii 10 and 4 mm at 14 mm center distance, changed the second radius 4→6 mm and center vertical offset 3→4 mm, then independently checked matching contact coordinates on both 180° sweeps. Two out-of-sweep edits refused without draft/document mutation. Relation ID, Undo/Redo and exact authored save/reopen passed. A closed profile/solid was optional for this isolated pair fixture and is not claimed.
+
+Native Qt picks in both orders and badge selection/deletion passed; the focused pair-feedback regression also passed after arc-arc support replaced its previous unavailable message. Inspected captures show contact and readable dimensions on an Apple M4 hardware-accelerated OCCT OpenGL 4.1 Metal viewport. Physical OS input, exact reference styling and other-platform runtime remain unqualified.
+
+Evidence and saved model: `../Alloy-reference-records/validation/sketch-arc-arc-tangent-2026-10-18/` (`checks.json`, `api/result.json`, `api/arc-arc-tangent.alloy`, native receipt and captures). Dated public evidence and uncertainty: `../Alloy-reference-records/knowledge/specs/skt-022-remaining-curve-pairs-2026-10-18.md`.

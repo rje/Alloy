@@ -10899,12 +10899,12 @@ QJsonObject AlloyWindow::setSketchSelection(const QJsonObject& selection) {
             if(constraintType=="symmetry" && first!=second)
                 return rejectPick("unsupported_pair","Symmetry requires matching line-line, circle-circle or arc-arc geometry");
             if(constraintType=="tangent" && !((first=="circle" && second=="circle")
-                || (first=="arc" && second=="circle") || (first=="circle" && second=="arc")
+                || (first=="arc" && second=="arc") || (first=="arc" && second=="circle") || (first=="circle" && second=="arc")
                 || (first=="line" && (second=="circle" || second=="arc"))
                 || (second=="line" && (first=="circle" || first=="arc"))))
                 return rejectPick("unsupported_pair",first=="line" && second=="line"
                     ? "Line-line Tangent is unavailable; use Collinear for a common line"
-                    : "Arc-arc Tangent is not yet supported; select a circle or line with the arc");
+                    : "Select two authored circular curves, or one circular curve and a line");
         }
         session_["constraintPickStatus"]=targets.isEmpty() ? "pending_first" : "pending_next";
     }
@@ -11886,7 +11886,7 @@ void AlloyWindow::refreshSketchControls() {
     QMap<QString,QStringList> relations;
     for(const auto& entry:parameters["constraints"].toArray()) {
         const auto constraint=entry.toObject();const auto type=constraint["type"]=="pointOnCurve" ? QString("coincident") :
-            (constraint["type"]=="arcTangent" || constraint["type"]=="circleTangent" || constraint["type"]=="arcCircleTangent") ? QString("tangent") :
+            (constraint["type"]=="arcTangent" || constraint["type"]=="circleTangent" || constraint["type"]=="arcCircleTangent" || constraint["type"]=="arcArcTangent") ? QString("tangent") :
             constraint["type"]=="supportLine" ? QString("support line (internal)") : constraint["type"].toString();
         for(const auto& id:constraint["entityIds"].toArray())relations[id.toString()].append(type.first(1).toUpper()+type.sliced(1));
         for(const auto& id:constraint["pointIds"].toArray())relations[id.toString()].append(type.first(1).toUpper()+type.sliced(1));

@@ -2102,6 +2102,18 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 for(const auto& ref:refs){bool circle=false;for(const auto& value:parameters["entities"].toArray())
                     if(value.toObject()["id"]==ref && value.toObject()["type"]=="circle")circle=true;
                     if(!circle)return "Circle tangency references must be circles";}
+            } else if(type=="arcArcTangent") {
+                if(constraint.size()!=5 || !checkReferences(constraint,"entityIds",2,arcIds)
+                    || constraint["entityIds"].toArray()[0]==constraint["entityIds"].toArray()[1]
+                    || !constraint["side"].isDouble() || std::abs(constraint["side"].toDouble())!=1
+                    || !constraint["contacts"].isArray() || constraint["contacts"].toArray().size()!=2)
+                    return "Arc-arc tangency requires two distinct arcs and retained branch";
+                for(const auto& value:constraint["contacts"].toArray()){
+                    const auto contact=value.toObject();
+                    if(contact.size()!=2 || !contact["arcParameter"].isDouble() || contact["arcParameter"].toDouble()<=0
+                        || contact["arcParameter"].toDouble()>=1 || !contact["sweepSign"].isDouble()
+                        || std::abs(contact["sweepSign"].toDouble())!=1)return "Arc-arc tangency requires both finite sweep contacts";
+                }
             } else if(type=="arcCircleTangent") {
                 if(constraint.size()!=5 || !checkReferences(constraint,"entityIds",2,entityIds)
                     || !constraint["side"].isDouble() || (constraint["side"].toDouble()!=1 && constraint["side"].toDouble()!=-1))return "Arc-circle tangency requires a retained branch";
@@ -2441,16 +2453,17 @@ SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& dra
         if(constraint["type"]=="tangent"){
             const auto ids=constraint["entityIds"].toArray();
             if(ids.size()!=2 || ids[0]==ids[1])reject("Tangent needs two distinct supported curves");
-            QJsonObject arc,circle,line;QJsonArray circles;QMap<QString,QJsonObject> points;
+            QJsonObject arc,circle,line;QJsonArray circles,arcs;QMap<QString,QJsonObject> points;
             for(const auto& value:parameters["entities"].toArray()){
                 const auto entity=value.toObject();if(entity["id"]!=ids[0] && entity["id"]!=ids[1])continue;
-                if(entity["type"]=="arc")arc=entity;else if(entity["type"]=="circle"){circle=entity;circles.append(entity);}
+                if(entity["type"]=="arc"){arc=entity;arcs.append(entity);}else if(entity["type"]=="circle"){circle=entity;circles.append(entity);}
                 else if(entity["type"]=="line")line=entity;
             }
             for(const auto& value:parameters["points"].toArray()){const auto point=value.toObject();points[point["id"].toString()]=point;}
-            if(circles.size()==2 || (!arc.isEmpty() && !circle.isEmpty())){
+            if(circles.size()==2 || arcs.size()==2 || (!arc.isEmpty() && !circle.isEmpty())){
                 if(arguments.contains("side"))reject("Tangent derives its branch from current solved geometry");
-                auto first=arc.isEmpty() ? circles[0].toObject() : arc,second=arc.isEmpty() ? circles[1].toObject() : circle;
+                auto first=arcs.size()==2 ? arcs[0].toObject() : arc.isEmpty() ? circles[0].toObject() : arc,
+                    second=arcs.size()==2 ? arcs[1].toObject() : arc.isEmpty() ? circles[1].toObject() : circle;
                 const auto a=points.value(first["centerPointId"].toString()),b=points.value(second["centerPointId"].toString());
                 const double distance=std::hypot(a["uMm"].toDouble()-b["uMm"].toDouble(),a["vMm"].toDouble()-b["vMm"].toDouble());
                 const double r1=first["radiusMm"].toDouble(),r2=second["radiusMm"].toDouble();
@@ -2460,19 +2473,23 @@ SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& dra
                 if(inside ? r1<r2 : first["id"].toString()>second["id"].toString())std::swap(first,second);
                 const QJsonArray pair{first["id"],second["id"]};
                 for(const auto& value:parameters["constraints"].toArray()){const auto row=value.toObject();const auto refs=row["entityIds"].toArray();
-                    if((row["type"]=="circleTangent" || row["type"]=="arcCircleTangent") && refs.contains(pair[0]) && refs.contains(pair[1]))reject("Tangent relation already exists for this pair");}
+                    if((row["type"]=="circleTangent" || row["type"]=="arcCircleTangent" || row["type"]=="arcArcTangent") && refs.contains(pair[0]) && refs.contains(pair[1]))reject("Tangent relation already exists for this pair");}
                 constraint["type"]="circleTangent";constraint["entityIds"]=pair;constraint["side"]=inside ? -1 : 1;
-                if(!arc.isEmpty()){
-                    const auto ac=points.value(arc["centerPointId"].toString()),cc=points.value(circle["centerPointId"].toString());
-                    const double direction=inside && second["id"]==arc["id"] ? -1 : 1;
+                QJsonArray contacts;
+                for(int index=0;index<2;++index){
+                    const auto curve=index==0 ? first : second,other=index==0 ? second : first;
+                    if(curve["type"]!="arc")continue;
+                    const auto ac=points.value(curve["centerPointId"].toString()),cc=points.value(other["centerPointId"].toString());
+                    const double direction=inside && index==1 ? -1 : 1;
                     const double angle=std::atan2(direction*(cc["vMm"].toDouble()-ac["vMm"].toDouble()),direction*(cc["uMm"].toDouble()-ac["uMm"].toDouble()))*180/std::acos(-1.0);
-                    const double sweep=arc["sweepAngleDeg"].toDouble(),sign=sweep<0 ? -1 : 1;
-                    double offset=std::fmod(sign*(angle-arc["startAngleDeg"].toDouble()),360.0);if(offset<0)offset+=360;
+                    const double sweep=curve["sweepAngleDeg"].toDouble(),sign=sweep<0 ? -1 : 1;
+                    double offset=std::fmod(sign*(angle-curve["startAngleDeg"].toDouble()),360.0);if(offset<0)offset+=360;
                     const double parameter=offset/std::abs(sweep);
-                    if(parameter<=1e-6 || parameter>=1-1e-6)reject("Tangent contact must be strictly inside the arc sweep");
-                    constraint["type"]="arcCircleTangent";
-                    constraint["contact"]=QJsonObject{{"arcParameter",parameter},{"sweepSign",sign}};
+                    if(parameter<=1e-6 || parameter>=1-1e-6)reject("Tangent contact must be strictly inside each arc sweep");
+                    contacts.append(QJsonObject{{"arcParameter",parameter},{"sweepSign",sign}});
                 }
+                if(contacts.size()==2){constraint["type"]="arcArcTangent";constraint["contacts"]=contacts;}
+                else if(contacts.size()==1){constraint["type"]="arcCircleTangent";constraint["contact"]=contacts[0];}
             }else{
                 if(line.isEmpty() || (arc.isEmpty()==circle.isEmpty()))reject("Tangent needs one arc or circle and one straight line");
                 if(arguments.contains("side"))reject("Tangent derives its side from the current solved geometry");

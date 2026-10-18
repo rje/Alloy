@@ -35,6 +35,8 @@ edits, with a retained constraint and native badge.
 [Finite arc-circle Tangent](docs/validation/sketch-arc-circle-tangent.md) now
 retains a contact branch through radius and center edits and refuses edits that
 move contact off the arc sweep.
+[Finite arc-pair Tangent](docs/validation/sketch-arc-arc-tangent.md) now retains
+contact on both arc sweeps through radius and center edits.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,
