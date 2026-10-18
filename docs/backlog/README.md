@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **520 issues**: **406 implementation, 23 research,
+The current publication contains **522 issues**: **408 implementation, 23 research,
 22 epics, and 69 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
@@ -21,6 +21,12 @@ The subsequent ownership audit added six narrow Todo implementation issues
 inspection, OBJ output and active-preview visibility responsiveness. Other
 broader parent issues must be split when pulled; see
 [the ownership audit](../v1/ownership-audit.md).
+The user's first-v1 scope decision requires 3MF export and modeled printable
+threads. XCH-011/#524 is a bounded 3MF export child under XCH-005; SOL-059/#504
+already owns the modeled thread. Both remain Todo and require actual app/output
+validation.
+SKT-102/#525 preserves spline, ellipse, conic and grouped/derived geometry
+deletion after the [accepted ordinary line/circle/arc/point SKT-099 slice](../validation/sketch-geometry-delete.md).
 DOC-016/#167 has a bounded [native exchange-sheet receipt](../validation/native-exchange-sheet.md);
 DOC-035/#516 has a bounded [File-menu export receipt](../validation/native-exchange-menu.md);
 DOC-036/#517 has a bounded [Browser body mesh receipt](../validation/native-browser-mesh.md).

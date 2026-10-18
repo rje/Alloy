@@ -3584,15 +3584,34 @@ void ReferenceView::contextMenuEvent(QContextMenuEvent* e) {
             e->accept();return;
         }
     }
-    if(sketchActive && selectTool && selectedEntities>0) {
-        ++contextMenuShownCount_;
-        QMenu menu(this);auto* toggle=menu.addAction("Normal/Construction  X");
-        lastContextMenu_["phase"]="open";
-        const auto selected=menu.exec(e->globalPos());
-        lastContextMenu_["phase"]="closed";
-        lastContextMenu_["result"]=selected==toggle ? "selected" : "cancelled";
-        if(selected==toggle)dispatch("sketch.constructionToggle",{});
-        e->accept();return;
+    if(sketchActive && selectTool) {
+        const auto hit=pickSketch(decorationFeature_,e->pos().x(),e->pos().y());
+        if(hit["kind"]=="point" || hit["kind"]=="entity") {
+            const auto field=hit["kind"]=="point" ? QString("pointIds") : QString("entityIds");
+            const auto id=hit[hit["kind"]=="point" ? "pointId" : "entityId"];
+            if(!decorationSelection_.value(field).toArray().contains(id))
+                dispatch("sketch.selectionSet",{{field,QJsonArray{id}}});
+        }
+        const auto entities=decorationSelection_.value("entityIds").toArray();
+        const auto points=decorationSelection_.value("pointIds").toArray();
+        if(!entities.isEmpty() || !points.isEmpty()) {
+            auto* menu=new QMenu(this);menu->setObjectName("context.sketchGeometry");menu->setAttribute(Qt::WA_DeleteOnClose);
+            auto* remove=menu->addAction("Delete");remove->setObjectName("sketch.action.deleteGeometry");
+            QAction* toggle=nullptr;if(!entities.isEmpty()) {
+                toggle=menu->addAction("Normal/Construction  X");toggle->setObjectName("sketch.action.constructionToggle");
+            }
+            lastContextMenu_["phase"]="open";lastContextMenu_["origin"]="sketch";
+            lastContextMenu_["actions"]=QJsonArray{QJsonObject{{"id",remove->objectName()},{"enabled",true}}};
+            ++contextMenuShownCount_;
+            connect(menu,&QMenu::triggered,this,[this,remove,toggle,entities,points](QAction* action){
+                lastContextMenu_["result"]=action->objectName();
+                if(action==remove)QTimer::singleShot(0,this,[this,entities,points]{dispatch("sketch.deleteSelection",{{"entityIds",entities},{"pointIds",points}});});
+                else if(action==toggle)QTimer::singleShot(0,this,[this]{dispatch("sketch.constructionToggle",{});});
+            });
+            connect(menu,&QMenu::aboutToHide,this,[this]{lastContextMenu_["phase"]="closed";
+                if(!lastContextMenu_.contains("result"))lastContextMenu_["result"]="cancelled";});
+            menu->popup(e->globalPos());e->accept();return;
+        }
     }
     const auto menuProfile=sketchActive ? QJsonObject{} : pickFinishedProfile(e->pos().x(),e->pos().y());
     if(!menuProfile.isEmpty()) {

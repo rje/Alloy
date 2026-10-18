@@ -1079,6 +1079,57 @@ private slots:
         QVERIFY2(run(window,"history.undo"),error_.constData());QCOMPARE(params(),original);
         QVERIFY2(run(window,"sketch.cancel"),error_.constData());
     }
+    void sketchGeometryDeleteAndUndo() {
+        AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QTRY_VERIFY(window.isActiveWindow());
+        auto* view=viewport(window);QVERIFY(view);
+        QVERIFY2(run(window,"sketch.begin",{{"plane","XY"}}),error_.constData());
+        QVERIFY2(run(window,"sketch.line",{{"x1",-30},{"y1",-15},{"x2",30},{"y2",-15},{"units","mm"}}),error_.constData());
+        QVERIFY2(run(window,"sketch.addCircle",{{"centerX",0},{"centerY",20},{"diameter",16},{"units","mm"}}),error_.constData());
+        auto params=[&]{return session(window)["draftSketch"].toObject()["parameters"].toObject();};
+        const auto line=params()["entities"].toArray().first().toObject();
+        const auto circle=params()["entities"].toArray().last().toObject();
+        QVERIFY2(run(window,"sketch.constraint",{{"type","horizontal"},{"entityIds",QJsonArray{line["id"]}}}),error_.constData());
+        QVERIFY2(run(window,"sketch.dimension",{{"kind","diameter"},{"entityId",circle["id"]},{"value",16},{"driving",true}}),error_.constData());
+        const auto original=params();
+        const auto history=session(window)["draftHistory"].toObject()["index"].toInt();
+        QVERIFY2(run(window,"sketch.selectionSet",{{"pointIds",QJsonArray{line["startPointId"]}}}),error_.constData());
+        QVERIFY(!run(window,"sketch.deleteSelection"));QCOMPARE(params(),original);
+        QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,sketchPixel(view,0,-15));
+        QCOMPARE(session(window)["selection"].toObject()["entityIds"].toArray(),QJsonArray{line["id"]});
+        QTest::mouseClick(view,Qt::LeftButton,Qt::ShiftModifier,sketchPixel(view,8,20));
+        QCOMPARE(session(window)["selection"].toObject()["entityIds"].toArray().size(),2);
+        QVERIFY(view->hasFocus());
+        QTest::keyClick(view,Qt::Key_Delete);
+        QTRY_COMPARE(params()["entities"].toArray().size(),0);
+        QCOMPARE(params()["constraints"].toArray().size(),0);
+        QCOMPARE(params()["dimensions"].toArray().size(),0);
+        QCOMPARE(params()["points"].toArray().size(),0);
+        QCOMPARE(session(window)["draftHistory"].toObject()["index"].toInt(),history+1);
+        QVERIFY2(run(window,"history.undo"),error_.constData());QCOMPARE(params(),original);
+        QVERIFY2(run(window,"history.redo"),error_.constData());QCOMPARE(params()["entities"].toArray().size(),0);
+        QVERIFY2(run(window,"history.undo"),error_.constData());
+        const auto circlePixel=sketchPixel(view,8,20);
+        QContextMenuEvent context(QContextMenuEvent::Mouse,circlePixel,view->mapToGlobal(circlePixel));
+        QApplication::sendEvent(view,&context);
+        auto* menu=view->findChild<QMenu*>("context.sketchGeometry");QVERIFY(menu);
+        QTRY_VERIFY(menu->isVisible());
+        auto* remove=menu->findChild<QAction*>("sketch.action.deleteGeometry");QVERIFY(remove);
+        QTest::mouseClick(menu,Qt::LeftButton,Qt::NoModifier,menu->actionGeometry(remove).center());
+        QTRY_COMPARE(params()["entities"].toArray().size(),1);
+        QCOMPARE(params()["entities"].toArray().first().toObject()["id"],line["id"]);
+        QCOMPARE(params()["dimensions"].toArray().size(),0);
+        auto* tree=window.findChild<QTreeWidget*>("sketch.selection");QVERIFY(tree);
+        auto* lineRow=tree->topLevelItem(1)->child(0);QVERIFY(lineRow);
+        tree->scrollToItem(lineRow);
+        QTest::mouseClick(tree->viewport(),Qt::LeftButton,Qt::NoModifier,tree->visualItemRect(lineRow).center());
+        QCOMPARE(session(window)["selection"].toObject()["entityIds"].toArray(),QJsonArray{line["id"]});
+        QVERIFY(tree->hasFocus());
+        QTest::keyClick(tree,Qt::Key_Delete);
+        QTRY_COMPARE(params()["entities"].toArray().size(),0);
+        QVERIFY2(run(window,"sketch.cancel"),error_.constData());
+    }
     void pressPullProfileModifierToggle() {
         AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
         QVERIFY(QTest::qWaitForWindowExposed(&window));

@@ -1326,6 +1326,14 @@ void AlloyWindow::updateTimelineDrop(const QPoint& globalPosition) {
 }
 
 bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
+    if(watched==sketchSelectionTree_ && session_.value("command")=="sketch.edit"
+        && (event->type()==QEvent::ShortcutOverride || event->type()==QEvent::KeyPress)) {
+        const auto* key=static_cast<QKeyEvent*>(event);
+        if(key->key()==Qt::Key_Delete || key->key()==Qt::Key_Backspace) {
+            if(event->type()==QEvent::ShortcutOverride){event->accept();return true;}
+            sketchResponse(execute("sketch.deleteSelection"));return true;
+        }
+    }
     if(watched==view_ && geometryEvaluationRunning_ && (geometryEvaluationRunning_->command=="sketch.edit" || geometryEvaluationRunning_->command=="sketch.finish" || geometryEvaluationRunning_->command=="feature.edit" || geometryEvaluationRunning_->command=="surface.trim" || geometryEvaluationRunning_->command=="solid.loft")){
         if(event->type()==QEvent::ContextMenu)return true;
         if(event->type()==QEvent::ShortcutOverride){event->accept();return true;}
@@ -4887,16 +4895,33 @@ void AlloyWindow::registerCommands() {
             const auto response=execute("sketch.constraintSelect",{{"constraintId",picked["constraintId"]},{"additive",a.value("additive").toBool()}});
             return response["ok"].toBool() ? picked : response;
         });
-    add("sketch.deleteSelection","Delete sketch annotations","Remove selected relation badges or one dimension in one solved draft edit; geometry is retained.",
-        {{"constraintIds",optional(parameter("array","Distinct stable constraint UUIDs to remove."))},{"dimensionId",optional(dimensionId)}},[this](const auto& a){
+    add("sketch.deleteSelection","Delete sketch selection","Remove selected sketch geometry or annotations in one solved draft edit.",
+        {{"constraintIds",optional(parameter("array","Distinct stable constraint UUIDs to remove."))},{"dimensionId",optional(dimensionId)},
+         {"entityIds",optional(parameter("array","Distinct authored entity UUIDs to remove."))},{"pointIds",optional(parameter("array","Distinct authored point UUIDs to remove."))}},[this](const auto& a){
             if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
             if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","Restart this sketch");
-            if(session_.value("tool")!="select" || session_.contains("pendingDimension") || session_.contains("pendingCircleDiameter"))return failure("pending_input_active","Return to Select before deleting annotations");
-            const bool explicitTargets=a.contains("constraintIds") || a.contains("dimensionId");
+            if(session_.value("tool")!="select" || session_.contains("pendingDimension") || session_.contains("pendingCircleDiameter"))return failure("pending_input_active","Return to Select before deleting sketch selection");
+            const bool explicitTargets=a.contains("constraintIds") || a.contains("dimensionId") || a.contains("entityIds") || a.contains("pointIds");
             const auto selected=session_.value("selection").toObject();
-            if(!explicitTargets && selected.value("pointIds").toArray().size()==1){const auto pointId=selected.value("pointIds").toArray().at(0);for(const auto& v:session_.value("draftSketch").toObject()["parameters"].toObject()["entities"].toArray()){const auto e=v.toObject();if(e["type"]=="fitSpline" && e["pointIds"].toArray().contains(pointId))return splineCommand("remove",{{"entityId",e["id"]},{"pointId",pointId}});}}
+            if(!explicitTargets && selected.value("pointIds").toArray().size()==1 && selected.value("entityIds").toArray().isEmpty()){
+                const auto pointId=selected.value("pointIds").toArray().at(0);
+                for(const auto& v:session_.value("draftSketch").toObject()["parameters"].toObject()["entities"].toArray()){
+                    const auto e=v.toObject();if(e["type"]=="fitSpline" && e["pointIds"].toArray().contains(pointId))return splineCommand("remove",{{"entityId",e["id"]},{"pointId",pointId}});
+                }
+            }
             auto ids=explicitTargets ? a.value("constraintIds").toArray() : selected.value("constraintIds").toArray();
             const auto dim=explicitTargets ? a.value("dimensionId").toString() : selected.value("dimensionId").toString();
+            const auto geometryIds=explicitTargets ? a.value("entityIds").toArray() : selected.value("entityIds").toArray();
+            const auto pointIds=explicitTargets ? a.value("pointIds").toArray() : selected.value("pointIds").toArray();
+            if((!geometryIds.isEmpty() || !pointIds.isEmpty()) && (!ids.isEmpty() || !dim.isEmpty()))
+                return failure("ambiguous_delete_target","Select geometry or annotations, then Delete");
+            if(!geometryIds.isEmpty() || !pointIds.isEmpty()) {
+                const auto result=publishSketchSolve(SketchGeometry::deleteEntities(session_.value("draftSketch").toObject(),geometryIds,pointIds,
+                    session_.value("projectionContext").toObject()));
+                if(result.value("ok").isBool() && !result.value("ok").toBool())return result;
+                session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}}};
+                return result;
+            }
             if(!explicitTargets && ids.isEmpty() && dim.isEmpty() && !session_.value("hoveredConstraintId").toString().isEmpty())ids.append(session_["hoveredConstraintId"]);
             if(ids.isEmpty() && dim.isEmpty())return failure("annotation_required","Select or hover a constraint, or select a dimension");
             if(!ids.isEmpty() && !session_.value("displayOptions").toObject().value("showConstraints").toBool(true))return failure("annotation_hidden","Show Constraints before deleting badges");
@@ -11805,6 +11830,7 @@ void AlloyWindow::showSketch() {
         layout->addWidget(sketchMirrorControls_);sketchMirrorControls_->hide();
         auto* guidance=new QLabel("Select geometry in the canvas or below.\nShift-click adds to the selection.");guidance->setWordWrap(true);layout->addWidget(guidance);
         sketchSelectionTree_=new QTreeWidget;sketchSelectionTree_->setObjectName("sketch.selection");sketchSelectionTree_->setHeaderHidden(true);
+        sketchSelectionTree_->installEventFilter(this);
         sketchSelectionTree_->setSelectionMode(QAbstractItemView::ExtendedSelection);sketchSelectionTree_->setMaximumHeight(145);layout->addWidget(sketchSelectionTree_);
         connect(sketchSelectionTree_,&QTreeWidget::itemSelectionChanged,this,[this]{
             QJsonArray points,entities;for(auto* item:sketchSelectionTree_->selectedItems()) {

@@ -10,7 +10,7 @@ six gaps that were not owned by their mapped issues and added them as Todo:
 
 | Inventory row | New owner | Missing result |
 | --- | --- | --- |
-| `sketch.delete-geometry` | SKT-099/#518 | Delete selected authored curves with dependent relation repair |
+| `sketch.delete-geometry` | SKT-099/#518, SKT-102/#525 | Ordinary authored entity Delete accepted under SKT-099; spline/conic/ellipse/grouped remainder is Todo |
 | `sketch.solver-status` | SKT-100/#519 | Explain and recover from an overconstrained fixture |
 | `sketch.intersection` | SKT-101/#520 | Retained intersection geometry from supported references |
 | `inspection.interference` | DOC-037/#521 | User-facing solid collision and clearance inspection |
@@ -54,5 +54,9 @@ readable GPU presentation, representative-model responsiveness, exact
 geometry/edit/undo/save/reopen/export, and actual packaged runtime on macOS,
 Windows and Linux. The accepted local macOS Open/export receipts do not
 qualify physical input or other platforms. STL and STEP are core to the
-printable-part plan; 3MF export and modeled threads need explicit first-v1
-disposition. No tag, build matrix or release promotion follows from this audit.
+printable-part plan. The user required 3MF export and modeled threads for the
+first stable v1 on 2026-10-17. XCH-011/#524 now owns a bounded 3MF export path;
+XCH-005 retains import and wider format options. SOL-059/#504 owns modeled
+printable threads, with wider thread modes on ADV-005. Both remain Todo and
+must pass real-workflow gates before release. No tag, build matrix or release
+promotion follows from this audit.

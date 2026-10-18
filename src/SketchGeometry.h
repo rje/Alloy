@@ -107,6 +107,10 @@ public:
     static double centerlineDiameterValue(const QJsonObject& draft, const QJsonArray& entityIds, const QJsonObject& projectionContext = {});
     static SolveResult setCenterline(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});
     static SolveResult setConstruction(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});
+    // Remove ordinary authored geometry and its dependent relations as one solved edit.
+    // Grouped/derived references are refused until their owning operation can repair them.
+    static SolveResult deleteEntities(const QJsonObject& draft,const QJsonArray& entityIds,
+        const QJsonArray& pointIds = {},const QJsonObject& projectionContext = {});
     static SolveResult solveDraft(const QJsonObject& draft, const QJsonObject& projectionContext = {}, const QString& initialReferencePointId = {});
     static SolveResult addConstraint(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});
     // Line angles use kind=angle, two entityIds, optional raySigns (+1/-1),

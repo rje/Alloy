@@ -1507,6 +1507,103 @@ SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& 
     } catch (const std::exception& error) {return invalidDraft(draft,QString::fromUtf8(error.what()));}
 }
 
+SketchGeometry::SolveResult SketchGeometry::deleteEntities(const QJsonObject& draft,const QJsonArray& entityIds,
+    const QJsonArray& pointIds,const QJsonObject& projectionContext) {
+    try {
+        validateDraft(draft);
+        const auto parameters=draft["parameters"].toObject();
+        const auto authoredEntities=parameters["entities"].toArray();
+        const auto authoredPoints=parameters["points"].toArray();
+        auto mentions=[](const QJsonValue& value,const QSet<QString>& ids,const auto& self)->bool {
+            if(value.isString())return ids.contains(value.toString());
+            if(value.isArray())for(const auto& item:value.toArray())if(self(item,ids,self))return true;
+            if(value.isObject())for(const auto& item:value.toObject())if(self(item,ids,self))return true;
+            return false;
+        };
+        QSet<QString> targets,requestedPoints,availableEntities,availablePoints;
+        for(const auto& value:authoredEntities)availableEntities.insert(value.toObject()["id"].toString());
+        for(const auto& value:authoredPoints)availablePoints.insert(value.toObject()["id"].toString());
+        for(const auto& value:entityIds) {
+            if(!value.isString() || value.toString().isEmpty() || targets.contains(value.toString()))reject("Entity targets must be distinct authored IDs");
+            if(!availableEntities.contains(value.toString()))reject("Selected entity is not authored in this sketch");
+            targets.insert(value.toString());
+        }
+        for(const auto& value:pointIds) {
+            if(!value.isString() || value.toString().isEmpty() || requestedPoints.contains(value.toString()))reject("Point targets must be distinct authored IDs");
+            if(!availablePoints.contains(value.toString()))reject("Selected point is not authored in this sketch");
+            requestedPoints.insert(value.toString());
+        }
+        if(targets.isEmpty() && requestedPoints.isEmpty())reject("Select sketch geometry to delete");
+        for(const auto& value:authoredEntities) {
+            const auto entity=value.toObject();const auto id=entity["id"].toString();
+            if(!targets.contains(id))continue;
+            if(!QSet<QString>{"line","circle","arc","point"}.contains(entity["type"].toString()))
+                reject("This derived sketch entity requires its owning tool to remove it: "+id);
+        }
+        // A selected dependent endpoint or center cannot be removed independently.
+        // A standalone Point entity is its own deletion target.
+        for(const auto& pointId:requestedPoints) {
+            if(pointId==parameters["originPointId"].toString())reject("The sketch origin cannot be deleted");
+            for(const auto& value:authoredEntities) {
+                const auto entity=value.toObject();const auto id=entity["id"].toString();
+                if(!mentions(entity,{{pointId}},mentions))continue;
+                if(entity["type"]=="point" && entity["pointId"]==pointId)targets.insert(id);
+                else if(!targets.contains(id))reject("Point "+pointId+" is required by entity "+id+"; delete that entity instead");
+            }
+        }
+        QJsonArray survivors,removedEntities;
+        QSet<QString> candidatePoints;
+        for(const auto& value:authoredEntities) {
+            const auto entity=value.toObject();const auto id=entity["id"].toString();
+            if(!targets.contains(id)){survivors.append(value);continue;}
+            removedEntities.append(id);
+            for(const auto& key:{"pointId","startPointId","endPointId","centerPointId","diameterStartPointId"})
+                if(entity[key].isString())candidatePoints.insert(entity[key].toString());
+        }
+        for(const auto& pointId:requestedPoints)candidatePoints.insert(pointId);
+        QSet<QString> retiredPoints;
+        for(const auto& pointId:candidatePoints) {
+            if(pointId==parameters["originPointId"].toString())continue;
+            bool used=false;for(const auto& entity:survivors)used|=mentions(entity,{{pointId}},mentions);
+            if(!used)retiredPoints.insert(pointId);
+        }
+        QSet<QString> retired=targets;retired.unite(retiredPoints);
+        // Retained feature/group metadata and other entities may own references
+        // beyond the ordinary relation arrays. Refuse rather than corrupt them.
+        for(const auto& value:survivors)if(mentions(value,retired,mentions))
+            reject("A surviving entity depends on selected geometry; remove its owning operation first");
+        for(auto it=parameters.begin();it!=parameters.end();++it) {
+            if(QSet<QString>{"points","entities","constraints","dimensions"}.contains(it.key()))continue;
+            if(mentions(it.value(),retired,mentions))reject("Retained sketch metadata depends on selected geometry: "+it.key());
+        }
+        QJsonArray points,constraints,dimensions,removedConstraints,removedDimensions,removedPoints;
+        for(const auto& value:authoredPoints) {
+            const auto id=value.toObject()["id"].toString();
+            if(retiredPoints.contains(id))removedPoints.append(id);else points.append(value);
+        }
+        for(const auto& value:parameters["constraints"].toArray()) {
+            const auto relation=value.toObject();
+            if(mentions(relation,retired,mentions))removedConstraints.append(relation["id"]);else constraints.append(value);
+        }
+        for(const auto& value:parameters["dimensions"].toArray()) {
+            const auto dimension=value.toObject();
+            if(mentions(dimension,retired,mentions))removedDimensions.append(dimension["id"]);else dimensions.append(value);
+        }
+        auto changed=parameters;changed["points"]=points;changed["entities"]=survivors;
+        changed["constraints"]=constraints;changed["dimensions"]=dimensions;
+        auto candidate=draft;candidate["parameters"]=changed;
+        auto result=solveDraft(candidate,projectionContext);
+        if(!result.ok)return {false,draft,result.diagnostics,result.error};
+        result.diagnostics["removedEntityIds"]=removedEntities;
+        result.diagnostics["removedPointIds"]=removedPoints;
+        result.diagnostics["removedConstraintIds"]=removedConstraints;
+        result.diagnostics["removedDimensionIds"]=removedDimensions;
+        return result;
+    } catch(const std::exception& error) {
+        return {false,draft,{{"operation","deleteGeometry"},{"status","invalid"}},QString::fromUtf8(error.what())};
+    }
+}
+
 QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<QString>& authoredIds, const QSet<QString>& derivedPointIds) {
     const auto plane = parameters["plane"].toString();
     if (plane != "XY" && plane != "XZ" && plane != "YZ" && plane != "face" && plane != "construction") return "Unsupported sketch plane";

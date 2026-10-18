@@ -17,11 +17,22 @@ or completed partial children. Their contracts/fixtures and final v1 release
 disposition remain open under REL-030. Six additional Todo owners
 [#518–#523](backlog/github.md) cover previously unowned sketch
 deletion/diagnosis/intersection, interference inspection, OBJ output and
-active-preview visibility responsiveness; count is now 520 issues total.
+active-preview visibility responsiveness. XCH-011/#524 adds a bounded required
+3MF export owner. SKT-102/#525 preserves non-ordinary and grouped geometry
+deletion after SKT-099; count is now 522 issues total.
 Broad parent splits and the 13 partial rows with accepted subsets are recorded
 in [the ownership audit](v1/ownership-audit.md). Final v1 option decisions and
 release disposition remain open under REL-030; do not infer readiness from the
 larger issue count.
+The user confirmed 3MF export and modeled printable threads as required first-v1
+capabilities on 2026-10-17. XCH-011/#524 is the narrow 3MF export owner under
+XCH-005; SOL-059/#504 is the modeled-thread owner. Both are Todo, not accepted.
+SKT-099/#518 now accepts ordinary line/circle/arc/Point deletion through the
+shared command, canvas Delete and sketch context menu. A real-app retained
+profile/extrude/save/reopen gate and a slot-group transactional refusal passed;
+see [the bounded receipt](validation/sketch-geometry-delete.md). SKT-102/#525
+retains spline/conic/ellipse and grouped/derived Delete. Physical hand input,
+other platforms and exact reference cascade/visual parity remain open.
 DOC-016/#167 now passes the bounded actual STEP Open and export-sheet controls:
 inch STEP, nondefault STL, native Save/Cancel, independent readback and exact
 authored/undo preservation. Export sheets were launched through the local API;

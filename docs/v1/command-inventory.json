@@ -2956,20 +2956,25 @@
       "label": "Delete sketch curves and points",
       "category": "Sketch modify",
       "scope": "proposed-v1",
-      "implementation": "missing",
-      "nativeEvidence": "unknown",
-      "gap": "sketch.deleteSelection removes annotations or a selected fit-spline point; no general selected-geometry Delete route was found.",
-      "apiIds": [],
+      "implementation": "partial",
+      "nativeEvidence": "partial",
+      "gap": "Ordinary authored line/circle/arc/Point Delete is accepted; ellipse, conic, spline and grouped/derived geometry remain SKT-102.",
+      "apiIds": [
+        "sketch.deleteSelection"
+      ],
       "issueKeys": [
         "SKT-011",
         "SKT-021",
-        "SKT-099"
+        "SKT-099",
+        "SKT-102"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
       ],
-      "receipts": [],
-      "planningStatus": "Existing scope owners; verify accepted subset before pulling"
+      "receipts": [
+        "docs/validation/sketch-geometry-delete.md"
+      ],
+      "planningStatus": "SKT-099 accepted bounded ordinary subset; SKT-102 Todo for curve/group remainder"
     },
     {
       "id": "sketch.solver-status",
@@ -3218,7 +3223,7 @@
         "docs/backlog/issues.json"
       ],
       "receipts": [],
-      "planningStatus": "Scope review: needs bounded v1 issue"
+      "planningStatus": "Required v1 modeled thread: SOL-059; other thread modes remain ADV-005"
     },
     {
       "id": "solid.coil",
@@ -3715,13 +3720,14 @@
       "gap": "No registered 3MF path; explicit units, objects and consumer readback are required.",
       "apiIds": [],
       "issueKeys": [
-        "XCH-005"
+        "XCH-005",
+        "XCH-011"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
       ],
       "receipts": [],
-      "planningStatus": "Existing scope owners; verify accepted subset before pulling"
+      "planningStatus": "Required v1 export: XCH-011; import and broader options remain XCH-005"
     },
     {
       "id": "exchange.dxf",
@@ -9568,14 +9574,15 @@
     },
     {
       "id": "sketch.deleteSelection",
-      "title": "Delete sketch annotations",
-      "description": "Remove selected relation badges or one dimension in one solved draft edit; geometry is retained.",
+      "title": "Delete sketch selection",
+      "description": "Remove selected sketch geometry or annotations in one solved draft edit.",
       "available": true,
       "sourceFile": "src/AlloyWindow.cpp",
-      "sourceLine": 4823,
+      "sourceLine": 4890,
       "registration": "literal",
       "toolIds": [
-        "sketch.annotations"
+        "sketch.annotations",
+        "sketch.delete-geometry"
       ],
       "surface": "shared-command-or-interaction",
       "parameters": {
@@ -9588,6 +9595,16 @@
           "description": "Stable authored dimension UUID.",
           "required": false,
           "type": "string"
+        },
+        "entityIds": {
+          "description": "Distinct authored entity UUIDs to remove.",
+          "required": false,
+          "type": "array"
+        },
+        "pointIds": {
+          "description": "Distinct authored point UUIDs to remove.",
+          "required": false,
+          "type": "array"
         }
       }
     },

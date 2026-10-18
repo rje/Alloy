@@ -34,9 +34,10 @@ input. The JSON pins the source commit and records the cross-check.
 
 Important gaps visible before any final burndown:
 
-- Sketch geometry deletion is not established by `sketch.deleteSelection`, which
-  removes annotations and a bounded fit-spline point. Additional drawing modes,
-  sketch patterns/transforms and full solver diagnostics remain gaps.
+- [Ordinary sketch geometry Delete](../validation/sketch-geometry-delete.md)
+  now supports authored lines/circles/arcs/Point with dependent relation repair;
+  ellipse/conic/spline and grouped/derived Delete remain SKT-102. Additional
+  drawing modes, sketch patterns/transforms and full solver diagnostics remain gaps.
 - Solid tools remain specialized: countersink-only Hole, New Body-only bounded
   Revolve/Sweep, circular-section solid Loft, equal-distance Chamfer, inward
   Shell, Origin-Z full body pattern and selected feature Mirror groups. Missing

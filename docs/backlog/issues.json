@@ -8624,7 +8624,7 @@
       "labels": [
         "area:skt"
       ],
-      "body": "## Bounded result\nOwn the remaining proposed-v1 `sketch.delete-geometry` gap as a finishable feature slice; existing related tools and broader family coverage remain separate.\n\n## Acceptance\nDelete one or multiple selected ordinary sketch entities through the native canvas/Browser route and shared command, removing dependent dimensions/constraints transactionally. Preserve unrelated entities and stable IDs; refuse an unsupported external dependency with an actionable diagnostic rather than corrupting authored history. Verify Undo/Redo, save/reopen and a representative profile/extrude after deletion. Research public selection/Delete behavior and keep provenance in the external knowledge record.\n\n## Ownership\nInventory row `sketch.delete-geometry`. Start with a dated public workflow contract in `../Alloy-reference-records/knowledge`; keep references and images outside the repository. Native input, authored history, geometry/output and visual evidence must be distinguished."
+      "body": "## Bounded result\nOwn the ordinary authored line/circle/arc/point subset of the proposed-v1 `sketch.delete-geometry` gap. SKT-102/#525 owns spline, conic, ellipse and grouped/derived deletion as the explicit Todo remainder.\n\n## Acceptance\nDelete one or multiple selected authored lines, circles, arcs or standalone points through the native canvas/sketch-list route and shared command, removing dependent dimensions/constraints transactionally. Preserve unrelated entities and stable IDs; refuse an unsupported external dependency with an actionable diagnostic rather than corrupting authored history. Verify Undo/Redo, save/reopen and a representative profile/extrude after deletion. Research public selection/Delete behavior and keep provenance in the external knowledge record. Synthetic pointer coverage and one actual macOS pointer/keyboard/menu path are required; other platforms remain release gates.\n\n## Ownership\nInventory row `sketch.delete-geometry`. Start with a dated public workflow contract in `../Alloy-reference-records/knowledge`; keep references and images outside the repository. Native input, authored history, geometry/output and visual evidence must be distinguished.\n\n## Explicit remainder\nSKT-102/#525 retains ellipse, conic, spline and grouped/derived curve Delete; their current structured refusal is not full-family completion."
     },
     {
       "key": "SKT-100",
@@ -8696,6 +8696,34 @@
         "area:rel"
       ],
       "body": "## Bounded result\nOwn the remaining proposed-v1 `history.visibility` gap as a finishable feature slice; existing related tools and broader family coverage remain separate.\n\n## Acceptance\nMeasure body visibility changes while a representative Combine or other active geometry preview is open, then remove the observed UI pause without changing preview result, selection or authored state. Verify actual app frame cadence/status/navigation, exact geometry before/after, Cancel, Undo/Redo and reopen where a committed visibility change exists. This is the active-preview remainder after accepted idle visibility reuse; broader REL-016 performance stays open.\n\n## Ownership\nInventory row `history.visibility`. Start with a dated public workflow contract in `../Alloy-reference-records/knowledge`; keep references and images outside the repository. Native input, authored history, geometry/output and visual evidence must be distinguished."
+    },
+    {
+      "key": "XCH-011",
+      "title": "Export selected printable bodies to 3MF",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "PRT-001"
+      ],
+      "labels": [
+        "area:xch"
+      ],
+      "body": "## Bounded result\nExport one or more selected committed bodies to a local 3MF file as a first-v1 printable-part workflow. This is the export slice of XCH-005/#73; 3MF import and broader extensions remain on that parent.\n\n## Acceptance\n- Research public format and command behavior with dated provenance outside the repository. Choose a library and record license/dependency notices compatible with Alloy distribution.\n- Preserve millimeter scale, multiple separate objects/build items and their transforms in the 3MF core package. Expose a native Save As Mesh format/selection path and the shared local command with structured errors, pending/completion and Cancel; never change authored geometry/history during export.\n- Independently parse a one-body and two-body export, compare mesh bounds, build transforms, watertightness and slice-ready physical size with the source solids. Check a source edit/re-export and native file chooser Cancel. Include a separate consumer when available.\n- Document unsupported materials, colors and optional extensions explicitly. Keep import and any remaining XCH-005 options as Todo before claiming the format family complete.\n\n## Ownership\nRequired for first stable printable-part v1 by the user's 2026-10-17 scope decision. Inventory row `exchange.3mf`; cumulative XCH-005 and print/export release gates remain open until qualified."
+    },
+    {
+      "key": "SKT-102",
+      "title": "Delete spline and grouped sketch geometry safely",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-099"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Bounded result\nComplete selected-geometry Delete for authored ellipse, conic and spline curves and for retained grouped/derived sketch geometry after SKT-099/#518 establishes ordinary line/circle/arc/point deletion. Group and generated-reference removal must be an explicit owning-operation policy, never a partial JSON cleanup.\n\n## Acceptance\n- Research public selection/Delete behavior for these curve families and preserve dated sources outside the repository. Specify when Delete removes a single curve, an entire generated group, or refuses with actionable guidance.\n- Native canvas and sketch list selection, Delete key and right-click action invoke the shared command. Retain surviving control points, dimensions, constraints, source relationships and stable IDs; remove only dependents owned by the deleted geometry.\n- Verify one spline and one grouped/derived case through edit, undo/redo, save/reopen and downstream profile or surface/solid use. Verify a transactional refusal for an unsupported cross-feature dependency.\n- Inspect actual GPU selection and post-delete presentation separately from authored geometry. Preserve further unsupported generated families as linked Todo before closing.\n\n## Ownership\nExplicit remainder split from SKT-099/#518; the first slice covers authored line/circle/arc/point. Do not infer full sketch-family parity from either bounded issue alone."
     }
   ]
 }

@@ -12,6 +12,10 @@ The [ownership audit](ownership-audit.md) added six missing narrow owners
 [#518–#523](../backlog/github.md) and identified broad parent issues that must be
 split before implementation. Thirteen partial rows have accepted subsets but
 still need an explicit v1-versus-later option decision under REL-030.
+The user explicitly included 3MF export and modeled printable threads in the
+first stable v1 on 2026-10-17. [XCH-011/#524](../backlog/github.md) and
+[SOL-059/#504](../backlog/github.md) own those bounded deliverables; both are
+unimplemented and require native and independent output validation.
 The [DOC-016 native exchange-sheet gate](../validation/native-exchange-sheet.md)
 now has independently checked STEP/STL output. The
 [File-menu export path](../validation/native-exchange-menu.md) passes; DOC-036/#517
