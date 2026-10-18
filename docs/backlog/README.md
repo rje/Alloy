@@ -154,7 +154,7 @@ relocatable packages, interleaved with enclosure/shoehorn/surface-iron completio
 Twenty-two new bounded children #407–428 reuse existing broader owners and gates.
 NAV-001/#407 is independently accepted at2d1a699. GEO-017/#347 is independently accepted at6d9b8dc for exact inset geometry
 and derived source lineage, unblocking SKT-076 authoring. CI-008/#426 is independently accepted at `098e485` for the macOS runtime recipe;
-CI-009 retains Windows/Linux alignment and CI-004 stays Todo; CI-012/#588 owns the bounded package-to-runtime inventory join. SKT-076/#346 is
+CI-009 retains Windows/Linux alignment and CI-004 stays Todo. CI-012/#588 accepts the bounded package-to-runtime inventory join on the unchanged local macOS arm64 archive; other platform and current-build provenance gates remain open. SKT-076/#346 is
 accepted at `c625649` for retained inset and exact Join2/selected R0.5 downstream
 lineage. NAV-002/#408 is accepted for source/API/GPU camera behavior; NAV-009/#428 retains
 the blocked native-input route. TUT-023/#324 final-stage rim/Cut/export gate is accepted. NAV-018/#439
