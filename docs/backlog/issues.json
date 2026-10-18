@@ -8302,6 +8302,286 @@
         "priority:P0"
       ],
       "body": "## Observed stall\nThe first REL-046 corrected-iron cumulative replay stopped at the frozen 2 s actual-frame-gap gate. `document.exportStl` took 2034.890 ms synchronously on the UI command path, across an actual frame interval of 2088 ms. No encoder/capture failure occurred. The resulting STL is valid, but the full replay did not reach STEP, postmovie source edit or reopen. Independent review found `MeshExport::writeStl` invoked directly from the UI handler and doing geometry copy/meshing/serialization/atomic publication there. Evidence: external candidate15 `failure-diagnosis.json`, operation metrics and frame events.\n\n## Bounded work\nMove a committed single-solid STL export's expensive kernel/mesh/file work to a private worker with explicit pending/completion semantics. Keep the existing millimeter binary-STL geometry, validation, structured errors, destination/atomic-publish policy, and shared API/UI command behavior. Snapshot only immutable evaluated geometry/parameters on the GUI thread; measure that boundary. Guard completion against stale document/tab/revision and cancellation as result-discard; do not publish a stale export. Keep one export job at a time if needed. Avoid speculative generalized export framework.\n\n## Verification\nOn the saved corrected iron, measure submit, pending status/navigation/GUI heartbeat and final publication separately; require real frame gaps under the REL-046 2 s gate. Compare STL bytes or canonical triangle/volume/bounds/closedness to accepted output, inspect cancellation/stale behavior, errors and no partial destination, with a focused test for the core contract. One saved-model real-app gate before rerunning the full 44-stage movie. Independent source and evidence review.\n\n## Dependency\nREL-036 supplies the established serial worker pattern. REL-046/#492 waits on this fix; REL-016/#419 retains broader responsiveness.\n"
+    },
+    {
+      "key": "DOC-034",
+      "title": "Qualify display-unit editing across supported modeling fields",
+      "kind": "implementation",
+      "phase": "P1 Geometry/document",
+      "priority": "P1",
+      "depends_on": [
+        "DOC-002"
+      ],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "## Bounded result\nQualify display-unit editing across supported modeling fields. This proposed printable-part v1 gap is a child of `DOC-002`; remaining modes stay on the parent roadmap.\n\n## Reference and scope\nBefore coding, record public command inputs, selection rules, defaults, preview, commit/cancel, history/edit behavior and visual examples in `../Alloy-reference-records/knowledge`, with dated provenance. Define a supported option subset and retain other noncloud modes on the parent.\n\n## Acceptance\n- Switch mm/in in sketch dimensions, feature distance and properties; typed/displayed values convert while canonical geometry and save/reopen stay exact.\n- Native UI and local control use the same retained authored command. Check a meaningful upstream edit, one transactional refusal, Undo/Redo and save/reopen.\n- Inspect actual GPU presentation and native controls. For a printable solid, independently read back STL. Keep geometry, input and export evidence distinct.\n\n## Ownership\nInventory row `document.units`; parent `DOC-002`. Todo until its public command contract and real-object fixture are accepted. Its closure does not complete the whole capability family or release gate.\n"
+    },
+    {
+      "key": "PAR-009",
+      "title": "Bind additional model fields to typed parameters",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "PAR-002"
+      ],
+      "labels": [
+        "area:par"
+      ],
+      "body": "## Bounded result\nBind additional model fields to typed parameters. This proposed printable-part v1 gap is a child of `PAR-001`; remaining modes stay on the parent roadmap.\n\n## Reference and scope\nBefore coding, record public command inputs, selection rules, defaults, preview, commit/cancel, history/edit behavior and visual examples in `../Alloy-reference-records/knowledge`, with dated provenance. Define a supported option subset and retain other noncloud modes on the parent.\n\n## Acceptance\n- Bind one sketch angle and one solid length field; edit, rename, unbind and reject unit mismatch without corrupting downstream geometry.\n- Native UI and local control use the same retained authored command. Check a meaningful upstream edit, one transactional refusal, Undo/Redo and save/reopen.\n- Inspect actual GPU presentation and native controls. For a printable solid, independently read back STL. Keep geometry, input and export evidence distinct.\n\n## Ownership\nInventory row `parameter.model`; parent `PAR-001`. Todo until its public command contract and real-object fixture are accepted. Its closure does not complete the whole capability family or release gate.\n"
+    },
+    {
+      "key": "SKT-093",
+      "title": "Author retained inscribed, circumscribed and edge polygons",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-008"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Bounded result\nAuthor retained inscribed, circumscribed and edge polygons. This proposed printable-part v1 gap is a child of `ADV-005`; remaining modes stay on the parent roadmap.\n\n## Reference and scope\nBefore coding, record public command inputs, selection rules, defaults, preview, commit/cancel, history/edit behavior and visual examples in `../Alloy-reference-records/knowledge`, with dated provenance. Define a supported option subset and retain other noncloud modes on the parent.\n\n## Acceptance\n- Create all three polygon modes; edit count/radius or edge length and extrude a closed region.\n- Native UI and local control use the same retained authored command. Check a meaningful upstream edit, one transactional refusal, Undo/Redo and save/reopen.\n- Inspect actual GPU presentation and native controls. For a printable solid, independently read back STL. Keep geometry, input and export evidence distinct.\n\n## Ownership\nInventory row `sketch.polygon`; parent `ADV-005`. Todo until its public command contract and real-object fixture are accepted. Its closure does not complete the whole capability family or release gate.\n"
+    },
+    {
+      "key": "SKT-094",
+      "title": "Author three-point rectangle and parallelogram modes",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-008"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Bounded result\nAuthor three-point rectangle and parallelogram modes. This proposed printable-part v1 gap is a child of `ADV-005`; remaining modes stay on the parent roadmap.\n\n## Reference and scope\nBefore coding, record public command inputs, selection rules, defaults, preview, commit/cancel, history/edit behavior and visual examples in `../Alloy-reference-records/knowledge`, with dated provenance. Define a supported option subset and retain other noncloud modes on the parent.\n\n## Acceptance\n- Create each mode with documented point order; edit size/angle and extrude the resulting region.\n- Native UI and local control use the same retained authored command. Check a meaningful upstream edit, one transactional refusal, Undo/Redo and save/reopen.\n- Inspect actual GPU presentation and native controls. For a printable solid, independently read back STL. Keep geometry, input and export evidence distinct.\n\n## Ownership\nInventory row `sketch.additional-rectangles`; parent `ADV-005`. Todo until its public command contract and real-object fixture are accepted. Its closure does not complete the whole capability family or release gate.\n"
+    },
+    {
+      "key": "SKT-095",
+      "title": "Author three-point and tangent circle modes",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-008"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Bounded result\nAuthor three-point and tangent circle modes. This proposed printable-part v1 gap is a child of `ADV-005`; remaining modes stay on the parent roadmap.\n\n## Reference and scope\nBefore coding, record public command inputs, selection rules, defaults, preview, commit/cancel, history/edit behavior and visual examples in `../Alloy-reference-records/knowledge`, with dated provenance. Define a supported option subset and retain other noncloud modes on the parent.\n\n## Acceptance\n- Make a three-point circle and a circle tangent to supported curves; edit a source and verify retained relation/profile.\n- Native UI and local control use the same retained authored command. Check a meaningful upstream edit, one transactional refusal, Undo/Redo and save/reopen.\n- Inspect actual GPU presentation and native controls. For a printable solid, independently read back STL. Keep geometry, input and export evidence distinct.\n\n## Ownership\nInventory row `sketch.additional-circles`; parent `ADV-005`. Todo until its public command contract and real-object fixture are accepted. Its closure does not complete the whole capability family or release gate.\n"
+    },
+    {
+      "key": "SKT-096",
+      "title": "Add a retained sketch chamfer",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-008"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Bounded result\nAdd a retained sketch chamfer. This proposed printable-part v1 gap is a child of `ADV-005`; remaining modes stay on the parent roadmap.\n\n## Reference and scope\nBefore coding, record public command inputs, selection rules, defaults, preview, commit/cancel, history/edit behavior and visual examples in `../Alloy-reference-records/knowledge`, with dated provenance. Define a supported option subset and retain other noncloud modes on the parent.\n\n## Acceptance\n- Chamfer a dimensioned rectangle corner; edit distance/source lines and retain a closed extrudable profile.\n- Native UI and local control use the same retained authored command. Check a meaningful upstream edit, one transactional refusal, Undo/Redo and save/reopen.\n- Inspect actual GPU presentation and native controls. For a printable solid, independently read back STL. Keep geometry, input and export evidence distinct.\n\n## Ownership\nInventory row `sketch.chamfer`; parent `ADV-005`. Todo until its public command contract and real-object fixture are accepted. Its closure does not complete the whole capability family or release gate.\n"
+    },
+    {
+      "key": "SKT-097",
+      "title": "Add retained rectangular and circular sketch patterns",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-008"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Bounded result\nAdd retained rectangular and circular sketch patterns. This proposed printable-part v1 gap is a child of `ADV-005`; remaining modes stay on the parent roadmap.\n\n## Reference and scope\nBefore coding, record public command inputs, selection rules, defaults, preview, commit/cancel, history/edit behavior and visual examples in `../Alloy-reference-records/knowledge`, with dated provenance. Define a supported option subset and retain other noncloud modes on the parent.\n\n## Acceptance\n- Pattern a hole circle in a 2\u00d73 grid and around a center; edit count/spacing/angle and verify source/instance identities.\n- Native UI and local control use the same retained authored command. Check a meaningful upstream edit, one transactional refusal, Undo/Redo and save/reopen.\n- Inspect actual GPU presentation and native controls. For a printable solid, independently read back STL. Keep geometry, input and export evidence distinct.\n\n## Ownership\nInventory row `sketch.patterns`; parent `ADV-005`. Todo until its public command contract and real-object fixture are accepted. Its closure does not complete the whole capability family or release gate.\n"
+    },
+    {
+      "key": "SKT-098",
+      "title": "Move, copy, rotate and scale selected sketch geometry",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-008"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Bounded result\nMove, copy, rotate and scale selected sketch geometry. This proposed printable-part v1 gap is a child of `ADV-005`; remaining modes stay on the parent roadmap.\n\n## Reference and scope\nBefore coding, record public command inputs, selection rules, defaults, preview, commit/cancel, history/edit behavior and visual examples in `../Alloy-reference-records/knowledge`, with dated provenance. Define a supported option subset and retain other noncloud modes on the parent.\n\n## Acceptance\n- Transform a connected sketch group; preserve or explicitly refuse incompatible constraints and verify resulting profiles.\n- Native UI and local control use the same retained authored command. Check a meaningful upstream edit, one transactional refusal, Undo/Redo and save/reopen.\n- Inspect actual GPU presentation and native controls. For a printable solid, independently read back STL. Keep geometry, input and export evidence distinct.\n\n## Ownership\nInventory row `sketch.transform`; parent `ADV-005`. Todo until its public command contract and real-object fixture are accepted. Its closure does not complete the whole capability family or release gate.\n"
+    },
+    {
+      "key": "SOL-059",
+      "title": "Create modeled printable threads on cylindrical faces",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-002"
+      ],
+      "labels": [
+        "area:sol"
+      ],
+      "body": "## Bounded result\nCreate modeled printable threads on cylindrical faces. This proposed printable-part v1 gap is a child of `ADV-005`; remaining modes stay on the parent roadmap.\n\n## Reference and scope\nBefore coding, record public command inputs, selection rules, defaults, preview, commit/cancel, history/edit behavior and visual examples in `../Alloy-reference-records/knowledge`, with dated provenance. Define a supported option subset and retain other noncloud modes on the parent.\n\n## Acceptance\n- Add a bounded modeled thread to a boss; edit size/pitch/length and independently read back a watertight scaled STL.\n- Native UI and local control use the same retained authored command. Check a meaningful upstream edit, one transactional refusal, Undo/Redo and save/reopen.\n- Inspect actual GPU presentation and native controls. For a printable solid, independently read back STL. Keep geometry, input and export evidence distinct.\n\n## Ownership\nInventory row `solid.thread`; parent `ADV-005`. Todo until its public command contract and real-object fixture are accepted. Its closure does not complete the whole capability family or release gate.\n"
+    },
+    {
+      "key": "SOL-060",
+      "title": "Create an editable coil or spring solid",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P2",
+      "depends_on": [
+        "SOL-002"
+      ],
+      "labels": [
+        "area:sol"
+      ],
+      "body": "## Bounded result\nCreate an editable coil or spring solid. This proposed printable-part v1 gap is a child of `ADV-005`; remaining modes stay on the parent roadmap.\n\n## Reference and scope\nBefore coding, record public command inputs, selection rules, defaults, preview, commit/cancel, history/edit behavior and visual examples in `../Alloy-reference-records/knowledge`, with dated provenance. Define a supported option subset and retain other noncloud modes on the parent.\n\n## Acceptance\n- Create a helix with radius/pitch/turns/section; edit one parameter and verify valid printable output.\n- Native UI and local control use the same retained authored command. Check a meaningful upstream edit, one transactional refusal, Undo/Redo and save/reopen.\n- Inspect actual GPU presentation and native controls. For a printable solid, independently read back STL. Keep geometry, input and export evidence distinct.\n\n## Ownership\nInventory row `solid.coil`; parent `ADV-005`. Todo until its public command contract and real-object fixture are accepted. Its closure does not complete the whole capability family or release gate.\n"
+    },
+    {
+      "key": "SOL-061",
+      "title": "Sweep an editable pipe along a retained path",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-002"
+      ],
+      "labels": [
+        "area:sol"
+      ],
+      "body": "## Bounded result\nSweep an editable pipe along a retained path. This proposed printable-part v1 gap is a child of `ADV-005`; remaining modes stay on the parent roadmap.\n\n## Reference and scope\nBefore coding, record public command inputs, selection rules, defaults, preview, commit/cancel, history/edit behavior and visual examples in `../Alloy-reference-records/knowledge`, with dated provenance. Define a supported option subset and retain other noncloud modes on the parent.\n\n## Acceptance\n- Create a hollow pipe along a line-arc path; edit diameter/wall/path and verify openings, solid validity and STL scale.\n- Native UI and local control use the same retained authored command. Check a meaningful upstream edit, one transactional refusal, Undo/Redo and save/reopen.\n- Inspect actual GPU presentation and native controls. For a printable solid, independently read back STL. Keep geometry, input and export evidence distinct.\n\n## Ownership\nInventory row `solid.pipe`; parent `ADV-005`. Todo until its public command contract and real-object fixture are accepted. Its closure does not complete the whole capability family or release gate.\n"
+    },
+    {
+      "key": "SOL-062",
+      "title": "Add cone and torus primitive solids",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P2",
+      "depends_on": [
+        "SOL-002"
+      ],
+      "labels": [
+        "area:sol"
+      ],
+      "body": "## Bounded result\nAdd cone and torus primitive solids. This proposed printable-part v1 gap is a child of `ADV-005`; remaining modes stay on the parent roadmap.\n\n## Reference and scope\nBefore coding, record public command inputs, selection rules, defaults, preview, commit/cancel, history/edit behavior and visual examples in `../Alloy-reference-records/knowledge`, with dated provenance. Define a supported option subset and retain other noncloud modes on the parent.\n\n## Acceptance\n- Create cone and torus with native/API controls; edit defining dimensions and verify geometry/history/STL.\n- Native UI and local control use the same retained authored command. Check a meaningful upstream edit, one transactional refusal, Undo/Redo and save/reopen.\n- Inspect actual GPU presentation and native controls. For a printable solid, independently read back STL. Keep geometry, input and export evidence distinct.\n\n## Ownership\nInventory row `solid.cone-torus`; parent `ADV-005`. Todo until its public command contract and real-object fixture are accepted. Its closure does not complete the whole capability family or release gate.\n"
+    },
+    {
+      "key": "SOL-063",
+      "title": "Emboss and deboss retained sketch geometry on a face",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P2",
+      "depends_on": [
+        "SOL-002"
+      ],
+      "labels": [
+        "area:sol"
+      ],
+      "body": "## Bounded result\nEmboss and deboss retained sketch geometry on a face. This proposed printable-part v1 gap is a child of `ADV-005`; remaining modes stay on the parent roadmap.\n\n## Reference and scope\nBefore coding, record public command inputs, selection rules, defaults, preview, commit/cancel, history/edit behavior and visual examples in `../Alloy-reference-records/knowledge`, with dated provenance. Define a supported option subset and retain other noncloud modes on the parent.\n\n## Acceptance\n- Project bounded text/profile onto a supported face; edit depth/source and verify raised/recessed topology and STL.\n- Native UI and local control use the same retained authored command. Check a meaningful upstream edit, one transactional refusal, Undo/Redo and save/reopen.\n- Inspect actual GPU presentation and native controls. For a printable solid, independently read back STL. Keep geometry, input and export evidence distinct.\n\n## Ownership\nInventory row `solid.emboss`; parent `ADV-005`. Todo until its public command contract and real-object fixture are accepted. Its closure does not complete the whole capability family or release gate.\n"
+    },
+    {
+      "key": "SOL-064",
+      "title": "Support variable-radius or chordal fillet options",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P2",
+      "depends_on": [
+        "SOL-002"
+      ],
+      "labels": [
+        "area:sol"
+      ],
+      "body": "## Bounded result\nSupport variable-radius or chordal fillet options. This proposed printable-part v1 gap is a child of `ADV-005`; remaining modes stay on the parent roadmap.\n\n## Reference and scope\nBefore coding, record public command inputs, selection rules, defaults, preview, commit/cancel, history/edit behavior and visual examples in `../Alloy-reference-records/knowledge`, with dated provenance. Define a supported option subset and retain other noncloud modes on the parent.\n\n## Acceptance\n- Implement one publicly specified advanced mode first; retain edge references/control values through edit and diagnose other unsupported modes.\n- Native UI and local control use the same retained authored command. Check a meaningful upstream edit, one transactional refusal, Undo/Redo and save/reopen.\n- Inspect actual GPU presentation and native controls. For a printable solid, independently read back STL. Keep geometry, input and export evidence distinct.\n\n## Ownership\nInventory row `solid.advanced-fillet`; parent `ADV-005`. Todo until its public command contract and real-object fixture are accepted. Its closure does not complete the whole capability family or release gate.\n"
+    },
+    {
+      "key": "SOL-065",
+      "title": "Pattern bodies or features along a retained path",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P2",
+      "depends_on": [
+        "SOL-002"
+      ],
+      "labels": [
+        "area:sol"
+      ],
+      "body": "## Bounded result\nPattern bodies or features along a retained path. This proposed printable-part v1 gap is a child of `ADV-005`; remaining modes stay on the parent roadmap.\n\n## Reference and scope\nBefore coding, record public command inputs, selection rules, defaults, preview, commit/cancel, history/edit behavior and visual examples in `../Alloy-reference-records/knowledge`, with dated provenance. Define a supported option subset and retain other noncloud modes on the parent.\n\n## Acceptance\n- Pattern a hole or boss along a line-arc path; edit count/spacing/path and verify stable results and STL.\n- Native UI and local control use the same retained authored command. Check a meaningful upstream edit, one transactional refusal, Undo/Redo and save/reopen.\n- Inspect actual GPU presentation and native controls. For a printable solid, independently read back STL. Keep geometry, input and export evidence distinct.\n\n## Ownership\nInventory row `solid.path-pattern`; parent `ADV-005`. Todo until its public command contract and real-object fixture are accepted. Its closure does not complete the whole capability family or release gate.\n"
+    },
+    {
+      "key": "SOL-066",
+      "title": "Create a retained rib or web feature",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-002"
+      ],
+      "labels": [
+        "area:sol"
+      ],
+      "body": "## Bounded result\nCreate a retained rib or web feature. This proposed printable-part v1 gap is a child of `ADV-006`; remaining modes stay on the parent roadmap.\n\n## Reference and scope\nBefore coding, record public command inputs, selection rules, defaults, preview, commit/cancel, history/edit behavior and visual examples in `../Alloy-reference-records/knowledge`, with dated provenance. Define a supported option subset and retain other noncloud modes on the parent.\n\n## Acceptance\n- Join a thickness-controlled rib between sketch line and walls; edit thickness/support and verify printable geometry.\n- Native UI and local control use the same retained authored command. Check a meaningful upstream edit, one transactional refusal, Undo/Redo and save/reopen.\n- Inspect actual GPU presentation and native controls. For a printable solid, independently read back STL. Keep geometry, input and export evidence distinct.\n\n## Ownership\nInventory row `solid.rib-web`; parent `ADV-006`. Todo until its public command contract and real-object fixture are accepted. Its closure does not complete the whole capability family or release gate.\n"
+    },
+    {
+      "key": "SOL-067",
+      "title": "Offset a selected planar face with history",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-002"
+      ],
+      "labels": [
+        "area:sol"
+      ],
+      "body": "## Bounded result\nOffset a selected planar face with history. This proposed printable-part v1 gap is a child of `ADV-001`; remaining modes stay on the parent roadmap.\n\n## Reference and scope\nBefore coding, record public command inputs, selection rules, defaults, preview, commit/cancel, history/edit behavior and visual examples in `../Alloy-reference-records/knowledge`, with dated provenance. Define a supported option subset and retain other noncloud modes on the parent.\n\n## Acceptance\n- Offset a planar face on a solid; retain reference, verify volume/bounds and later hole, plus refusal/undo/reopen.\n- Native UI and local control use the same retained authored command. Check a meaningful upstream edit, one transactional refusal, Undo/Redo and save/reopen.\n- Inspect actual GPU presentation and native controls. For a printable solid, independently read back STL. Keep geometry, input and export evidence distinct.\n\n## Ownership\nInventory row `solid.face-offset`; parent `ADV-001`. Todo until its public command contract and real-object fixture are accepted. Its closure does not complete the whole capability family or release gate.\n"
+    },
+    {
+      "key": "SOL-068",
+      "title": "Move a selected solid face with history",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P2",
+      "depends_on": [
+        "SOL-002"
+      ],
+      "labels": [
+        "area:sol"
+      ],
+      "body": "## Bounded result\nMove a selected solid face with history. This proposed printable-part v1 gap is a child of `ADV-001`; remaining modes stay on the parent roadmap.\n\n## Reference and scope\nBefore coding, record public command inputs, selection rules, defaults, preview, commit/cancel, history/edit behavior and visual examples in `../Alloy-reference-records/knowledge`, with dated provenance. Define a supported option subset and retain other noncloud modes on the parent.\n\n## Acceptance\n- Translate one planar face without moving the whole body; check support correspondence and later feature behavior.\n- Native UI and local control use the same retained authored command. Check a meaningful upstream edit, one transactional refusal, Undo/Redo and save/reopen.\n- Inspect actual GPU presentation and native controls. For a printable solid, independently read back STL. Keep geometry, input and export evidence distinct.\n\n## Ownership\nInventory row `solid.face-edit`; parent `ADV-001`. Todo until its public command contract and real-object fixture are accepted. Its closure does not complete the whole capability family or release gate.\n"
+    },
+    {
+      "key": "SOL-069",
+      "title": "Replace a selected face with a supported surface",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P2",
+      "depends_on": [
+        "SOL-002"
+      ],
+      "labels": [
+        "area:sol"
+      ],
+      "body": "## Bounded result\nReplace a selected face with a supported surface. This proposed printable-part v1 gap is a child of `ADV-001`; remaining modes stay on the parent roadmap.\n\n## Reference and scope\nBefore coding, record public command inputs, selection rules, defaults, preview, commit/cancel, history/edit behavior and visual examples in `../Alloy-reference-records/knowledge`, with dated provenance. Define a supported option subset and retain other noncloud modes on the parent.\n\n## Acceptance\n- Replace one planar face with a bounded supported surface; verify closure, reference diagnostics and downstream behavior.\n- Native UI and local control use the same retained authored command. Check a meaningful upstream edit, one transactional refusal, Undo/Redo and save/reopen.\n- Inspect actual GPU presentation and native controls. For a printable solid, independently read back STL. Keep geometry, input and export evidence distinct.\n\n## Ownership\nInventory row `solid.face-edit`; parent `ADV-001`. Todo until its public command contract and real-object fixture are accepted. Its closure does not complete the whole capability family or release gate.\n"
+    },
+    {
+      "key": "SOL-070",
+      "title": "Delete a selected face with explicit heal options",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P2",
+      "depends_on": [
+        "SOL-002"
+      ],
+      "labels": [
+        "area:sol"
+      ],
+      "body": "## Bounded result\nDelete a selected face with explicit heal options. This proposed printable-part v1 gap is a child of `ADV-001`; remaining modes stay on the parent roadmap.\n\n## Reference and scope\nBefore coding, record public command inputs, selection rules, defaults, preview, commit/cancel, history/edit behavior and visual examples in `../Alloy-reference-records/knowledge`, with dated provenance. Define a supported option subset and retain other noncloud modes on the parent.\n\n## Acceptance\n- Delete a face of a simple solid using a documented heal choice; verify watertightness/refusals and downstream references.\n- Native UI and local control use the same retained authored command. Check a meaningful upstream edit, one transactional refusal, Undo/Redo and save/reopen.\n- Inspect actual GPU presentation and native controls. For a printable solid, independently read back STL. Keep geometry, input and export evidence distinct.\n\n## Ownership\nInventory row `solid.face-edit`; parent `ADV-001`. Todo until its public command contract and real-object fixture are accepted. Its closure does not complete the whole capability family or release gate.\n"
     }
   ]
 }

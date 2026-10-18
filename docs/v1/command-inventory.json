@@ -150,7 +150,8 @@
         "document.units"
       ],
       "issueKeys": [
-        "DOC-002"
+        "DOC-002",
+        "DOC-034"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -237,7 +238,9 @@
         "PAR-004",
         "PAR-005",
         "PAR-007",
-        "PAR-008"
+        "PAR-008",
+        "PAR-009",
+        "PAR-001"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -782,7 +785,8 @@
         "sketch.tool"
       ],
       "issueKeys": [
-        "SKT-060"
+        "SKT-060",
+        "SKT-012"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -1703,7 +1707,8 @@
         "SOL-051",
         "SOL-053",
         "SOL-054",
-        "SOL-055"
+        "SOL-055",
+        "SOL-009"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -2288,7 +2293,8 @@
         "ASM-016",
         "ASM-017",
         "ASM-019",
-        "ASM-021"
+        "ASM-021",
+        "ASM-001"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -3002,7 +3008,8 @@
       "apiIds": [],
       "issueKeys": [
         "SKT-021",
-        "ADV-005"
+        "ADV-005",
+        "SKT-093"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3021,7 +3028,8 @@
       "apiIds": [],
       "issueKeys": [
         "SKT-021",
-        "ADV-005"
+        "ADV-005",
+        "SKT-094"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3040,7 +3048,8 @@
       "apiIds": [],
       "issueKeys": [
         "SKT-006",
-        "ADV-005"
+        "ADV-005",
+        "SKT-095"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3058,7 +3067,8 @@
       "gap": "No sketch chamfer command is registered.",
       "apiIds": [],
       "issueKeys": [
-        "ADV-005"
+        "ADV-005",
+        "SKT-096"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3094,7 +3104,8 @@
       "gap": "No registered retained sketch pattern command; solid patterns are separate.",
       "apiIds": [],
       "issueKeys": [
-        "ADV-005"
+        "ADV-005",
+        "SKT-097"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3112,7 +3123,8 @@
       "gap": "Point and spline dragging do not establish whole-selection transforms.",
       "apiIds": [],
       "issueKeys": [
-        "ADV-005"
+        "ADV-005",
+        "SKT-098"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3184,7 +3196,8 @@
       "gap": "No Thread command is registered; modeled printable threads need geometry/output verification.",
       "apiIds": [],
       "issueKeys": [
-        "ADV-005"
+        "ADV-005",
+        "SOL-059"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3202,7 +3215,8 @@
       "gap": "No Coil command is registered.",
       "apiIds": [],
       "issueKeys": [
-        "ADV-005"
+        "ADV-005",
+        "SOL-060"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3220,7 +3234,8 @@
       "gap": "Bounded circular Sweep is not a general Pipe command.",
       "apiIds": [],
       "issueKeys": [
-        "ADV-005"
+        "ADV-005",
+        "SOL-061"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3238,7 +3253,8 @@
       "gap": "No Cone or Torus primitive registration.",
       "apiIds": [],
       "issueKeys": [
-        "ADV-005"
+        "ADV-005",
+        "SOL-062"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3256,7 +3272,8 @@
       "gap": "No dedicated rib/web command; repeated Extrude constructions do not establish tool coverage.",
       "apiIds": [],
       "issueKeys": [
-        "ADV-006"
+        "ADV-006",
+        "SOL-066"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3274,7 +3291,8 @@
       "gap": "Sketch Text + Extrude does not cover wrapped Emboss/Deboss.",
       "apiIds": [],
       "issueKeys": [
-        "ADV-005"
+        "ADV-005",
+        "SOL-063"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3365,7 +3383,8 @@
       "apiIds": [],
       "issueKeys": [
         "ADV-001",
-        "SOL-016"
+        "SOL-016",
+        "SOL-067"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3383,7 +3402,10 @@
       "gap": "No registered direct face editing family.",
       "apiIds": [],
       "issueKeys": [
-        "ADV-001"
+        "ADV-001",
+        "SOL-068",
+        "SOL-069",
+        "SOL-070"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3402,7 +3424,8 @@
       "apiIds": [],
       "issueKeys": [
         "SOL-003",
-        "ADV-005"
+        "ADV-005",
+        "SOL-064"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3439,7 +3462,8 @@
       "apiIds": [],
       "issueKeys": [
         "SOL-009",
-        "ADV-005"
+        "ADV-005",
+        "SOL-065"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"

@@ -4,6 +4,11 @@ Private review site: https://alloy-v1-review.rjevans1.chatgpt.site
 
 The user reviewed this as a reasonable working direction on 2026-10-17. REL-030 still tracks reconciliation of every inventory row with a finishable implementation owner and the final release gate; this is not a claim that the listed gaps are complete. The long-term full noncloud product contract remains intact.
 
+The first ownership pass linked 20 previously broad-only proposed tool areas to
+bounded Todo issues [#496–#515](../backlog/github.md). This establishes pullable
+owners, not feature completion or a final v1 scope decision. Existing partial
+rows still require real-workflow evidence and explicit release-gate disposition.
+
 - [Command inventory](command-inventory.json): 150 capability rows and 397 runtime-cross-checked IDs, with explicit gaps and evidence.
 - [Inventory notes](inventory-notes.md): definitions and verification limits.
 - [Backlog map](backlog-map.json) and [workstreams](backlog-notes.md): dated 484-issue reconciled snapshot, not a live board. It includes corrected TUT-018/TUT-034 acceptance, bounded TUT-035 clearance acceptance and the earlier REL-033–041 responsiveness state. REL-037 has a newer [final Open receipt](../validation/open-final-presentation.md).

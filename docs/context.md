@@ -10,6 +10,11 @@ explicit remainder, and move the board item to Done only after real-app
 evidence. DOC-013 local New/Open/Save As/dirty-close now has real API and
 native-dialog evidence, including API inspection/answering of an open native
 decision; see [the receipt](validation/document-local-files.md).
+The 2026-10-17 ownership pass added 20 bounded Todo implementation issues
+[#496–#515](backlog/github.md) to the v1 inventory and GitHub project board.
+They cover proposed tools previously linked only to broad capability families
+or completed partial children. Their contracts/fixtures and final v1 release
+disposition remain open under REL-030; count is now 512 issues total.
 TUT-030/#442 research is independently accepted: the public connector
 dimensions remain unknown, while the user-approved nominal-fixture adaptation
 under TUT-035 passes measured 0.5 mm clearance to each half. The governing
