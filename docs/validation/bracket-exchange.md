@@ -42,8 +42,9 @@ independent readback. The earlier native default STL Save As Mesh sheet/save als
 12-triangle mesh, bounds and normals. A later [native-sheet check](native-exchange-sheet.md)
 qualifies STEP File Open, inch selection, nondefault mesh settings and actual
 Save/Cancel, with independently checked outputs. Export sheet activation in
-that run used Alloy's local control; physical File/Browser menu entry remains
-under DOC-035/#516. The shared command paths and format outputs above are verified.
+that run used Alloy's local control; a later [File-menu receipt](native-exchange-menu.md)
+accepts that menu-to-export path. The body Browser context menu remains under
+DOC-036/#517. The shared command paths and format outputs above are verified.
 The exact physical tutorial and multi-platform product gates remain open.
 
 The integrated main candidate a840d36 built successfully and repeated the

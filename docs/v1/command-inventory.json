@@ -2684,7 +2684,8 @@
         "XCH-003",
         "XCH-009",
         "DOC-016",
-        "DOC-035"
+        "DOC-035",
+        "DOC-036"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -2721,7 +2722,8 @@
         "PRT-009",
         "PRT-010",
         "DOC-016",
-        "DOC-035"
+        "DOC-035",
+        "DOC-036"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",

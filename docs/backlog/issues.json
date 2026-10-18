@@ -8585,7 +8585,7 @@
     },
     {
       "key": "DOC-035",
-      "title": "Qualify native File and Browser entry for STEP and mesh export",
+      "title": "Qualify physical File-menu entry for STEP and mesh export",
       "kind": "validation",
       "phase": "P4 Initial release",
       "priority": "P1",
@@ -8595,7 +8595,21 @@
       "labels": [
         "area:doc"
       ],
-      "body": "## Bounded result\nQualify the complete physical UI path from Alloy's File menu to Export STEP and Save As Mesh, plus the Browser body context-menu path to Save As Mesh. `DOC-016` independently validates native sheets, inch STEP, refined STL, Cancel and readback after shared-API sheet activation; this child retains the actual menu-entry gap.\n\n## Acceptance\n- From a loaded one-body design, use physical/native UI input to activate File > Export, File > Save As Mesh and the body context-menu Save As Mesh. Inspect actual selected body and active sheet; do not invoke the local control API to open those sheets for this gate.\n- Finish one representative native-menu export through its chooser and read the output independently; verify Cancel returns to the design without an output or authored edit.\n- Record whether a computer-control limitation or an Alloy defect prevents menu activation, with a matched native capture or human test. Keep these causes distinct and retain the issue Todo if the chain is unproven.\n\n## Existing evidence\nSee `docs/validation/native-exchange-sheet.md`. The prior computer-control binding problem is resolved for File Open and native sheets, but custom menu activation remains unqualified. Reuse the accepted source/readback fixture; do not rerun unrelated modeling or broad interchange tests."
+      "body": "## Bounded result\nQualify the physical UI path from Alloy's File menu to Export STEP and Save As Mesh. DOC-016 independently validates native sheet controls, unit/refinement choices, Save/Cancel and readback; this child verifies menu entry without using the local control API to open those sheets. Body Browser context-menu entry is separately retained by [DOC-036](https://github.com/rje/Alloy/issues/517).\n\n## Acceptance\n- On a loaded one-body design, use native pointer input to activate File > Export and File > Save As Mesh. Inspect the selected body and actual sheets; cancel a sheet and verify return to the design.\n- Complete one representative File-menu export through its native chooser, independently read the output, and show authored/undo state unchanged.\n- Record the menu-input method and limits without claiming Browser context-menu or physical mouse hardware parity.\n\n## Evidence\nSee `docs/validation/native-exchange-menu.md` and external `../Alloy-reference-records/validation/doc035-native-menu-2026-10-17/`."
+    },
+    {
+      "key": "DOC-036",
+      "title": "Qualify body Browser context-menu Save As Mesh",
+      "kind": "validation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [
+        "DOC-035"
+      ],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "## Bounded result\nVerify the remaining body Browser right-click path to Save As Mesh from a loaded design. File-menu export entry and native sheet/readback are independently accepted under DOC-035 and DOC-016.\n\n## Acceptance\n- Right-click the actual Browser body row with native pointer input, inspect the body-specific menu and activate Save As Mesh without a direct API trigger. Confirm the correct body is selected in the sheet.\n- Save a representative STL via the native chooser or cancel; compare the corresponding output/state to the already accepted DOC-016 fixture rather than rerunning unrelated exchange tests.\n- Distinguish an Alloy defect from a computer-control limitation. The current CUA click returns after the blocking `QMenu::exec` closes, leaving `lastContextMenu.result=cancelled`; a physical human interaction or a justified nonblocking menu fix may provide the missing gate. Keep this issue Todo until the actual menu action is observed."
     }
   ]
 }

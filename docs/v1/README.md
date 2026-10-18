@@ -9,8 +9,9 @@ bounded Todo issues [#496–#515](../backlog/github.md). This establishes pullab
 owners, not feature completion or a final v1 scope decision. Existing partial
 rows still require real-workflow evidence and explicit release-gate disposition.
 The [DOC-016 native exchange-sheet gate](../validation/native-exchange-sheet.md)
-now has independently checked STEP/STL output; DOC-035/#516 retains physical
-export-menu activation.
+now has independently checked STEP/STL output. The
+[File-menu export path](../validation/native-exchange-menu.md) passes; DOC-036/#517
+retains body Browser context-menu activation.
 
 - [Command inventory](command-inventory.json): 150 capability rows and 397 runtime-cross-checked IDs, with explicit gaps and evidence.
 - [Inventory notes](inventory-notes.md): definitions and verification limits.

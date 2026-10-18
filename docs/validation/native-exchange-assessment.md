@@ -48,8 +48,9 @@ reader evidence remain unchanged. No app change is justified by this result.
 Update 2026-10-17: the earlier window-binding limit was resolved. The
 [bounded native-sheet receipt](native-exchange-sheet.md) now qualifies actual
 STEP File Open, inch STEP and nondefault STL sheet controls, native Save/Cancel
-and independent outputs. DOC-035/#516 retains physical File/Browser export
-menu entry; that path remains unqualified.
+and independent outputs. A further [File-menu receipt](native-exchange-menu.md)
+qualifies File export entry. DOC-036/#517 retains the Browser body context-menu
+path.
 
 ## Evidence relocation (2026-10-14)
 

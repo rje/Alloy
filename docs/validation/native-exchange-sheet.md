@@ -45,9 +45,10 @@ check, and the imported-body capture. The STEP output SHA-256 begins
 `7296fbea`; STL begins `94a6fa03`. Prior translator and default-setting checks
 remain in [STEP exchange](step-exchange.md) and [bracket exchange](bracket-exchange.md).
 
-**Limit:** a complete physical File/Browser-menu-to-export chain was not
-observed. [DOC-035/#516](https://github.com/rje/Alloy/issues/516) retains this
-Todo gate. The menu behavior may be a computer-control limitation or an app
-defect; the present evidence does not distinguish them. No other-platform
+**Limit at this checkpoint:** export sheet activation used the local API.
+A later [File-menu receipt](native-exchange-menu.md) validates the physical
+File-menu-to-export path. Browser body context-menu Save As Mesh remains Todo
+under [DOC-036/#517](https://github.com/rje/Alloy/issues/517); the current
+computer-control limitation does not establish an app defect. No other-platform
 native runtime, original bracket modeling history or visual reference parity
 is claimed here. Astra independently checked the readbacks and state boundary.
