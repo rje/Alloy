@@ -2447,6 +2447,11 @@
       "number": 492,
       "url": "https://github.com/rje/Alloy/issues/492",
       "state": "open"
+    },
+    "REL-047": {
+      "number": 493,
+      "url": "https://github.com/rje/Alloy/issues/493",
+      "state": "open"
     }
   }
 }

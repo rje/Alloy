@@ -2,13 +2,15 @@
 
 ## Active user order (2026-10-17)
 
-REL-046/#492 is the active cumulative gate: replay the accepted 44-stage
-corrected-iron creation against the integrated responsive build, record actual
-frame cadence and former long-stage interaction, and independently check the
-native model and exports. The bounded command receipts below do not by
-themselves prove the full workflow is continuously usable. No new recording
-has passed yet. REL-016 retains wider representative-model/physical/platform
-readiness.
+REL-046/#492 is the cumulative corrected-iron creation gate. Its first
+pending-aware 44-stage replay stopped at the frozen 2-second actual-frame-gap
+threshold: a 2.035-second synchronous `document.exportStl` call produced a
+2.088-second gap near the final export. The editor closed and the partial
+recording/evidence were preserved; this is not an accepted replacement movie.
+The final solid and STL match the accepted candidate, but STEP, postmovie
+source edit/history/reopen were not reached. REL-047 addresses the bounded STL
+export stall before REL-046 resumes. See the external candidate15 failure
+receipt. REL-016 retains wider representative-model/physical/platform readiness.
 
 REL-045/#491 is independently accepted for the corrected-iron interactive
 Surface Trim target click. The original camera/ray/viewport/face intent stays

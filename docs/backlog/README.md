@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **489 issues**: **377 implementation, 23 research,
+The current publication contains **490 issues**: **378 implementation, 23 research,
 22 epics, and 67 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
@@ -47,8 +47,12 @@ REL-045/#491 now independently accepts background partitioning for the
 separately measured interactive click while preserving its original region
 through navigation. See [the receipt](../validation/responsive-interactive-trim.md).
 REL-046/#492 is the cumulative from-blank corrected-iron recording gate for
-the integrated responsive paths. Its full movie/frame-cadence and final output
-must be checked independently; bounded command receipts alone do not close it.
+the integrated responsive paths. Its first 44-stage replay stopped at a measured
+2.088 s actual-frame gap over the frozen 2 s limit: synchronous STL export took
+2.035 s on the UI thread. The final solid and STL matched, but STEP and the
+postmovie source edit/reopen were not reached. REL-047/#493 owns the bounded
+export fix before the cumulative gate resumes; the candidate15 failure evidence
+is retained externally and is not an accepted replacement recording.
 REL-038/#481 now independently accepts the panel and connected-rear
 partition/commit worker paths, exact committed geometry/ancestry and
 history/reopen; see [the receipt](../validation/responsive-surface-trim.md).
