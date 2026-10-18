@@ -14,17 +14,52 @@
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QTest>
+#include <QTemporaryDir>
+#include <QElapsedTimer>
+#include <QLineEdit>
+#include "SketchSpline.h"
+#include <cmath>
 #include <vector>
 
 class SurfaceClosedLoftControlsTest final:public QObject {
  Q_OBJECT
  QJsonObject call(AlloyWindow& window,const QString& command,const QJsonObject& arguments={}) {
-  const auto response=window.execute(command,arguments);
-  if(!response["ok"].toBool())qFatal("%s",QJsonDocument(response).toJson().constData());
+  auto response=window.execute(command,arguments);const auto initial=response.value("result").toObject();QElapsedTimer deadline;deadline.start();
+  while(response.value("completion")=="pending"){
+   QTest::qWait(25);response=window.execute("command.status",{{"session",initial.value("id")},{"generation",initial.value("previewGeneration")}});
+   if(deadline.elapsed()>180000)qFatal("Loft evaluation timed out");
+  }
+  if(!response.value("ok").toBool())qFatal("%s",QJsonDocument(response).toJson().constData());
   return response["result"].toObject();
  }
  QJsonObject session(AlloyWindow& window){return window.state()["activeSession"].toObject();}
 private slots:
+ void asynchronousNewBodyContracts(){
+  QTemporaryDir temp;QVERIFY(temp.isValid());CadDocument fixture;const auto owner=fixture.authored().value("documentId").toString();
+  auto append=[&](const QJsonObject& feature){auto authored=fixture.authored();auto features=authored.value("features").toArray();features.append(feature);authored["features"]=features;if(!fixture.commit(authored,"Fixture").isEmpty())qFatal("Fixture failed");};
+  auto lens=[&](double offset){
+   QJsonObject plane{{"id",CadDocument::newId()},{"ownerId",owner},{"type","constructionPlane"},{"name","Section plane"},{"visible",true},{"parameters",QJsonObject{{"source",QJsonObject{{"plane","XZ"}}},{"offsetMm",offset}}}};append(plane);
+   auto sketch=SketchGeometry::newConstructionPlaneFeature(owner,plane.value("id").toString(),"Lens");
+   for(int sign:{1,-1}){QJsonArray points;for(int i=0;i<5;++i){const auto angle=i*std::acos(-1.)/4;points.append(QJsonObject{{"uMm",60-40*std::cos(angle)},{"vMm",30+sign*15*std::sin(angle)}});}const auto result=SketchSpline::add(sketch,{{"points",points}});if(!result.ok)qFatal("Spline fixture failed");sketch=result.feature;}append(sketch);return sketch;
+  };
+  const auto first=lens(25),last=lens(-25);auto middle=SketchGeometry::newFeature(owner,"XZ","Ellipse");const auto ellipse=SketchGeometry::addCenterPointEllipse(middle,{{"centerUMm",60},{"centerVMm",30},{"firstUMm",100},{"firstVMm",30},{"contourUMm",60},{"contourVMm",45}});QVERIFY(ellipse.ok);middle=ellipse.feature;append(middle);
+  auto reference=[](const QJsonObject& sketch){QJsonArray ids;for(const auto& row:sketch.value("parameters").toObject().value("entities").toArray())if(row.toObject().value("type")=="fitSpline" || row.toObject().value("type")=="ellipse")ids.append(row.toObject().value("id"));return QJsonObject{{"sketchId",sketch.value("id")},{"entityIds",ids}};};
+  const QJsonArray sections{reference(first),reference(middle),reference(last)};const QJsonObject inputs{{"operation","newBody"},{"guideType","none"},{"sections",sections},{"name","Inner"}};
+  const auto path=temp.filePath("source.alloy");QVERIFY(fixture.save(path).isEmpty());AlloyWindow w;call(w,"document.open",{{"path",path},{"discard",true}});const auto before=call(w,"document.inspect");
+  auto pending=w.execute("surface.loftDialog",inputs);QCOMPARE(pending.value("completion").toString(),QString("pending"));auto operation=pending.value("result").toObject();
+  QVERIFY(w.state().value("geometryWork").toObject().value("resultDiscardAvailable").toBool());auto* name=w.findChild<QLineEdit*>("loftName");QVERIFY(name && !name->isEnabled());auto* buttons=w.findChild<QDockWidget*>("loftDock")->findChild<QDialogButtonBox*>();QVERIFY(buttons->button(QDialogButtonBox::Cancel)->isEnabled());
+  QVERIFY(call(w,"command.cancel",{{"session",operation.value("id")}}).value("resultDiscarded").toBool());QTRY_VERIFY_WITH_TIMEOUT(!w.state().value("geometryWork").toObject().value("active").toBool(),10000);QCOMPARE(call(w,"document.inspect"),before);
+  pending=w.execute("surface.loftDialog",inputs);operation=pending.value("result").toObject();name=w.findChild<QLineEdit*>("loftName");name->setText("Stale native input");QVERIFY(QMetaObject::invokeMethod(name,"editingFinished",Qt::DirectConnection));QJsonObject stale;
+  QTRY_VERIFY_WITH_TIMEOUT((stale=w.execute("command.status",{{"session",operation.value("id")}})).value("completion")!="pending",10000);QCOMPARE(stale.value("error").toObject().value("code").toString(),QString("stale_session"));QCOMPARE(call(w,"document.inspect"),before);call(w,"command.cancel",{{"session",operation.value("id")}});
+  auto invalid=inputs;invalid["sections"]=QJsonArray{reference(first),reference(middle),reference(first)};pending=w.execute("surface.loftDialog",invalid);operation=pending.value("result").toObject();QJsonObject failed;
+  QTRY_VERIFY_WITH_TIMEOUT((failed=w.execute("command.status",{{"session",operation.value("id")}})).value("completion")!="pending",10000);QCOMPARE(failed.value("completion").toString(),QString("failed"));QCOMPARE(call(w,"document.inspect"),before);call(w,"command.cancel",{{"session",operation.value("id")}});
+  const auto ready=call(w,"surface.loftDialog",inputs);QVERIFY(ready.value("previewed").toBool());QCOMPARE(ready.value("inputs").toObject().value("sections"),QJsonValue(sections));QCOMPARE(ready.value("candidateEvaluationCount").toInteger(),qint64(1));const auto repeated=call(w,"command.preview",{{"session",ready.value("id")}});QVERIFY(repeated.value("previewEvaluationReused").toBool());QCOMPARE(repeated.value("candidateEvaluationCount").toInteger(),qint64(1));
+  const auto committed=w.execute("command.commit",{{"session",ready.value("id")}});QVERIFY(committed.value("ok").toBool());QCOMPARE(committed.value("completion").toString(),QString("completed"));const auto after=call(w,"document.inspect");QCOMPARE(after.value("undo").toObject().value("count").toInt(),1);
+  const auto feature=after.value("authored").toObject().value("features").toArray().last().toObject();auto expectedArgs=inputs;expectedArgs["newFeatureId"]=feature.value("id");expectedArgs["newBodyId"]=feature.value("bodyId");QVERIFY(fixture.commit(CadDocument::loftCandidate(fixture.authored(),expectedArgs),"Baseline").isEmpty());QCOMPARE(after.value("evaluation").toObject().value("bodies"),fixture.state().value("evaluation").toObject().value("bodies"));
+  call(w,"history.undo");QCOMPARE(call(w,"document.inspect").value("authored"),before.value("authored"));call(w,"history.redo");QCOMPARE(call(w,"document.inspect").value("authored"),after.value("authored"));
+  call(w,"body.remove",{{"bodyId",feature.value("bodyId")}});const auto suffix=call(w,"document.inspect");const auto edit=call(w,"feature.editDialog",{{"featureId",feature.value("id")}});QVERIFY(edit.value("previewed").toBool());QVERIFY(edit.value("geometry").toObject().value("valid").toBool());QVERIFY(call(w,"document.inspect").value("evaluation").toObject().value("bodies").toArray().isEmpty());call(w,"command.cancel",{{"session",edit.value("id")}});QCOMPARE(call(w,"document.inspect"),suffix);
+  const auto saved=temp.filePath("saved.alloy");call(w,"document.save",{{"path",saved}});call(w,"document.open",{{"path",saved},{"discard",true}});QCOMPARE(call(w,"document.inspect").value("authored"),suffix.value("authored"));
+ }
  void nonTailPreviewAndSourceInvalidation(){
   const auto source=qEnvironmentVariable("ALLOY_CLOSED_LOFT_SOURCE");
   if(source.isEmpty())QSKIP("No prepared closed-section fixture supplied");

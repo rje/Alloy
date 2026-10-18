@@ -51,6 +51,10 @@ retains preview/commit consistency.
 REL-039/#482 is narrowed to the two measured corrected-iron no-guide New Body
 Loft waits. REL-044/#490 retains guided-rail, new-component and ordinary Loft
 responsiveness so the original broader acceptance is not silently reduced.
+REL-039 now independently accepts the 19.149 s off-thread third-boundary
+preview and 338.034 ms cached OK on the saved Inner handle fixture, with exact
+committed geometry, history and reopen; see
+[the receipt](../validation/responsive-inner-loft.md).
 
 ## Active delivery order
 

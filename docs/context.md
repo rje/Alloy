@@ -2,6 +2,16 @@
 
 ## Active user order (2026-10-17)
 
+REL-039/#482 is independently accepted for the corrected-iron Inner handle
+no-guide New Body Loft. Third-boundary preview evaluated for 19.149 s on the
+worker while status/pan/GUI heartbeat stayed responsive; cached OK took
+338.034 ms without a second kernel run. Exact accepted committed geometry,
+ordered sources and generated ancestry, one history entry, Undo/Redo and
+native reopen passed. See [the receipt](validation/responsive-inner-loft.md).
+Guided, new-component and ordinary Loft responsiveness remain Todo under
+REL-044/#490; changed historical suffix commit and physical input remain
+outside this result. REL-016 stays open.
+
 REL-038/#481 is independently accepted for fully specified Surface Trim panel
 partition and final commits on the corrected iron. Panel partition/commit and
 connected-rear partition/commit all ran off-thread with responsive status,

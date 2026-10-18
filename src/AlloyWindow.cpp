@@ -1305,13 +1305,13 @@ void AlloyWindow::updateTimelineDrop(const QPoint& globalPosition) {
 }
 
 bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
-    if(watched==view_ && geometryEvaluationRunning_ && (geometryEvaluationRunning_->command=="sketch.edit" || geometryEvaluationRunning_->command=="sketch.finish" || geometryEvaluationRunning_->command=="feature.edit" || geometryEvaluationRunning_->command=="surface.trim")){
+    if(watched==view_ && geometryEvaluationRunning_ && (geometryEvaluationRunning_->command=="sketch.edit" || geometryEvaluationRunning_->command=="sketch.finish" || geometryEvaluationRunning_->command=="feature.edit" || geometryEvaluationRunning_->command=="surface.trim" || geometryEvaluationRunning_->command=="solid.loft")){
         if(event->type()==QEvent::ContextMenu)return true;
         if(event->type()==QEvent::ShortcutOverride){event->accept();return true;}
         if(event->type()==QEvent::KeyPress || event->type()==QEvent::KeyRelease){
             const auto key=static_cast<QKeyEvent*>(event)->key();
             if(key==Qt::Key_Escape && event->type()==QEvent::KeyPress){
-                if(session_.value("command")=="surface.trim" && session_.value("evaluationStatus")=="pending")
+                if((session_.value("command")=="surface.trim" || session_.value("command")=="solid.loft") && session_.value("evaluationStatus")=="pending")
                     execute("command.cancel",{{"session",session_.value("id")}});
                 else if(sketchEvaluationOperation_.value("evaluationStatus")=="pending")
                     execute("command.cancel",{{"session",sketchEvaluationOperation_.value("id")}});
@@ -6438,7 +6438,7 @@ QJsonObject AlloyWindow::state() const {
         {"recovery",QJsonObject{{"available",recovery_->error().isEmpty()},{"warning",recoveryWarning_},
             {"staleCount",recovery_->list().size()},{"scope","committed authored state only"}}},
         {"inlineEditor",inlineEditorState()},
-        {"geometryWork",QJsonObject{{"active",geometryBusyActive_ || bool(geometryEvaluationRunning_)},{"cancellable",false},{"resultDiscardAvailable",sketchEvaluationOperation_.value("evaluationStatus")=="pending" || documentOpenOperation_.value("evaluationStatus")=="pending" || session_.value("command")=="surface.extrude" || session_.value("command")=="surface.boundaryFill" || (session_.value("command")=="surface.trim" && session_.value("evaluationStatus")=="pending")},{"last",lastGeometryWork_}}},
+        {"geometryWork",QJsonObject{{"active",geometryBusyActive_ || bool(geometryEvaluationRunning_)},{"cancellable",false},{"resultDiscardAvailable",sketchEvaluationOperation_.value("evaluationStatus")=="pending" || documentOpenOperation_.value("evaluationStatus")=="pending" || session_.value("command")=="surface.extrude" || session_.value("command")=="surface.boundaryFill" || ((session_.value("command")=="surface.trim" || session_.value("command")=="solid.loft") && session_.value("evaluationStatus")=="pending")},{"last",lastGeometryWork_}}},
         {"focus",QJsonObject{{"widgetClass",QApplication::focusWidget() ? QApplication::focusWidget()->metaObject()->className() : ""},
             {"widgetName",QApplication::focusWidget() ? QApplication::focusWidget()->objectName() : QString{}},
             {"viewport",QApplication::focusWidget()==view_},
@@ -8418,6 +8418,10 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
             static_cast<quint64>(session_["baseDocumentRevision"].toInteger()),"Surface Extrude");
         if(!error.isEmpty())return failure("evaluation_failed",error);
         result["commandResult"]=QJsonObject{{"ok",true},{"completion","completed"},{"result",document_->state()}};
+    } else if(commit && target=="solid.loft" && session_.value("inputs").toObject().value("operation")=="newBody"
+        && session_.value("inputs").toObject().value("guideType")=="none"){
+        const auto error=commitLoftPreview();if(!error.isEmpty())return failure("evaluation_failed",error);
+        result["commandResult"]=QJsonObject{{"ok",true},{"completion","completed"},{"result",document_->state()}};
     } else if (commit && target != "commands.search") {
         if (session_.value("baseDocumentRevision").toInteger() != static_cast<qint64>(document_->revision())) {
             if(target=="solid.loft"){loftSource_.reset();loftPreview_.reset();}
@@ -8450,10 +8454,10 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     const auto splitPreviousPlane=session_.value("previousPlane").toString();
     const auto midplanePreviousFace=session_.value("previousFace").toObject();
     const auto midplanePreviousPlane=session_.value("previousPlane").toString();
-    if(target=="surface.trim" && session_.value("evaluationStatus")=="pending"){
+    if((target=="surface.trim" || target=="solid.loft") && session_.value("evaluationStatus")=="pending"){
         result["resultDiscarded"]=true;result["evaluationStillRunning"]=bool(geometryEvaluationRunning_);
         geometryEvaluationTerminal_={{"id",id},{"sessionId",id},{"command",target},{"previewGeneration",session_.value("previewGeneration")},
-            {"evaluationStatus","failed"},{"status","cancelled"},{"previewError",QJsonObject{{"code","command_cancelled"},{"message","Trim result discarded; running kernel evaluation continues"}}}};
+            {"evaluationStatus","failed"},{"status","cancelled"},{"previewError",QJsonObject{{"code","command_cancelled"},{"message","Geometry result discarded; running kernel evaluation continues"}}}};
         invalidateGeometryEvaluation();
     }
     surfaceTrimSource_.reset();surfaceTrimPartition_.reset();

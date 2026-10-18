@@ -70,6 +70,8 @@ public:
         const QJsonObject& requestedCandidate, const QJsonObject& expectedBase, quint64 expectedRevision, const QString& label);
     QString commitSketchEvaluation(const CandidateEvaluation& prepared,
         const QJsonObject& requestedCandidate, const QJsonObject& expectedBase, quint64 expectedRevision, const QString& label="Edit sketch");
+    QString commitLoftEvaluation(const CandidateEvaluation& prepared,
+        const QJsonObject& requestedCandidate, const QJsonObject& expectedBase, quint64 expectedRevision);
     QString commitSurfaceTrimEvaluation(const CandidateEvaluation& prepared,
         const QJsonObject& requestedCandidate, const QJsonObject& expectedBase, quint64 expectedRevision);
     QString commitBoundaryFillEvaluation(const CandidateEvaluation& prepared,

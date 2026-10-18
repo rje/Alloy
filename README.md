@@ -26,6 +26,9 @@ references and history while navigation and status stayed responsive.
 [Surface Trim panel partitions and commits](docs/validation/responsive-surface-trim.md)
 now keep the measured corrected-iron paths responsive, with exact committed
 geometry and history; preview/commit consistency remains tracked separately.
+[Inner handle Loft preview](docs/validation/responsive-inner-loft.md) now
+evaluates off-thread, and OK commits the prepared result without repeating the
+kernel evaluation. Guided and component Loft paths remain separate work.
 
 The [complete surface shoehorn](docs/validation/shoehorn-complete.md) now has
 an independently accepted full creation movie, editable model and checked STL:

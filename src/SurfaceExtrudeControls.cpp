@@ -236,7 +236,7 @@ void AlloyWindow::startGeometryEvaluation() {
                 task->sourceMs=timer.restart();
                 if(!task->candidate.isEmpty()){
                     task->full=CadDocument::evaluateCandidate(task->candidate);task->fullMs=timer.restart();
-                    if(task->full.ok && task->command=="surface.extrude"){
+                    if(task->full.ok && (task->command=="surface.extrude" || task->command=="solid.loft")){
                         const auto features=task->candidate["features"].toArray();
                         if(!features.isEmpty() && features.last().toObject()["id"]==task->featureId)task->stage=task->full;
                         else {
@@ -257,7 +257,7 @@ void AlloyWindow::startGeometryEvaluation() {
 }
 
 void AlloyWindow::pollGeometryEvaluation() {
-    if((session_.value("command")=="surface.extrude" || session_.value("command")=="surface.boundaryFill" || session_.value("command")=="surface.trim") && session_.value("evaluationStatus")=="pending"){
+    if((session_.value("command")=="surface.extrude" || session_.value("command")=="surface.boundaryFill" || session_.value("command")=="surface.trim" || session_.value("command")=="solid.loft") && session_.value("evaluationStatus")=="pending"){
         auto heartbeat=session_.value("evaluationHeartbeat").toObject();const auto now=QDateTime::currentMSecsSinceEpoch();
         heartbeat["ticks"]=heartbeat["ticks"].toInteger()+1;
         heartbeat["maxGapMs"]=std::max(heartbeat["maxGapMs"].toInteger(),now-heartbeat["lastMs"].toInteger());
@@ -282,6 +282,7 @@ void AlloyWindow::pollGeometryEvaluation() {
         && session_.value("command")==task->command && geometryEvaluationGeneration_==task->generation;
     if(task->command=="sketch.edit" || task->command=="sketch.finish" || task->command=="feature.edit")completeSketchEvaluation(task);
     else if(task->command=="document.open")completeDocumentOpen(task);
+    else if(task->command=="solid.loft")completeLoftEvaluation(task);
     else if(task->command=="surface.trim")completeSurfaceTrimEvaluation(task);
     else if(task->command=="surface.boundaryFill"){
         if(task->phase=="partition")completeBoundaryFillPartition(task);else completeBoundaryFillCommit(task);
