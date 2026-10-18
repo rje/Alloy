@@ -51,6 +51,9 @@ geometry separately, with hidden targets excluded from viewport selection.
 [Contextual point relations](docs/validation/sketch-point-relations.md)
 now reveal attached constraints on selection and offer Delete Coincident from a
 point's context menu.
+[Sketch glyph inventory](docs/validation/sketch-glyph-inventory.md) now checks
+the supported relation marks, selection and deletion in one mixed sketch;
+geometry Fix/UnFix remains a separate tracked task.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,

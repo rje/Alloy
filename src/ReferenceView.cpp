@@ -2166,6 +2166,9 @@ void ReferenceView::decorateSketch(const QJsonObject& sourceFeature,const QJsonO
             const double pixels=std::hypot(q["x"].toDouble()-p["x"].toDouble(),q["y"].toDouble()-p["y"].toDouble());if(pixels<1e-6)continue;
             const auto anchorId=target.toString();
             const double size=100/pixels;v+=(10+15*badgeSlots[anchorId]++)*size;
+            // A Vertical stroke must clear its own vertical target line. Keep
+            // this lateral offset in the shared stroke/anchor/hit-bound frame.
+            if(kind=="vertical")u+=12*size;
             if(kind=="concentric")u-=20*size;
             bool originAvoidanceApplied=originShiftPixels.contains(anchorId);
             if(originAvoidanceApplied)v+=originShiftPixels.value(anchorId)*size;
