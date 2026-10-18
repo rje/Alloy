@@ -336,6 +336,9 @@ pointer radius; moving the source lines retains both tangencies.
 [Three-Tangent Circle](docs/validation/sketch-three-tangent-circle.md) now
 creates a source-driven circle on the third straight-line pick. The rectangle
 three-edge case, retained tangencies, source edit and downstream solid pass.
+The [Circle Feature Options selector](docs/validation/sketch-circle-feature-options.md)
+switches among all five modes in the Sketch Palette and clears incomplete picks
+while keeping completed circles.
 
 [Explicit arc-line Tangent](docs/validation/sketch-arc-line-tangent.md) now
 constrains an arc and line sharing an endpoint, with either native pick order

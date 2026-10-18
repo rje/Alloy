@@ -583,9 +583,9 @@
       "label": "Center Diameter, 2-Point, 3-Point and Tangent Circles",
       "category": "Sketch",
       "scope": "proposed-v1",
-      "implementation": "partial",
-      "nativeEvidence": "partial",
-      "gap": "Bounded Center Diameter, 2-Point, 3-Point, 2-Tangent and 3-Tangent Circle modes; the Circle Feature Options switch remains open.",
+      "implementation": "present",
+      "nativeEvidence": "accepted-bounded-macos",
+      "gap": "All five documented Circle modes and the Feature Options selector pass bounded Mac gates. Exact visual/branch parity, physical input and other-platform runtime remain unqualified.",
       "apiIds": [
         "sketch.addCircle",
         "sketch.addTwoPointCircle",
@@ -607,7 +607,8 @@
         "SKT-045",
         "SKT-095",
         "SKT-107",
-        "SKT-108"
+        "SKT-108",
+        "SKT-109"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -623,7 +624,8 @@
         "docs/validation/two-point-circle.md",
         "docs/validation/sketch-three-point-circle.md",
         "docs/validation/sketch-two-tangent-circle.md",
-        "docs/validation/sketch-three-tangent-circle.md"
+        "docs/validation/sketch-three-tangent-circle.md",
+        "docs/validation/sketch-circle-feature-options.md"
       ],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },
@@ -3099,9 +3101,9 @@
       "label": "3-Point, 2-Tangent and 3-Tangent Circle modes",
       "category": "Sketch",
       "scope": "proposed-v1",
-      "implementation": "partial",
-      "nativeEvidence": "partial",
-      "gap": "Three-Point, 2-Tangent and 3-Tangent Circle are accepted. SKT-109 owns the Circle Feature Options type switch. Public evidence limits tangent inputs to straight sketch lines.",
+      "implementation": "present",
+      "nativeEvidence": "accepted-bounded-macos",
+      "gap": "Three-Point, 2-Tangent and 3-Tangent Circle plus Circle Feature Options pass bounded Mac gates. Tangent creation is limited to authored straight sketch lines; exact branch parity and other-platform runtime remain unqualified.",
       "apiIds": ["sketch.threePointCircle", "sketch.threeTangentCircle", "sketch.tool", "sketch.twoTangentCircle"],
       "issueKeys": [
         "SKT-006",
@@ -3113,12 +3115,13 @@
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
+        "src/AlloyWindow.cpp",
         "src/SketchGeometry.cpp",
         "src/ThreePointCircleControls.cpp",
         "src/ThreeTangentCircleControls.cpp",
         "src/TwoTangentCircleControls.cpp"
       ],
-      "receipts": ["docs/validation/sketch-three-point-circle.md", "docs/validation/sketch-two-tangent-circle.md", "docs/validation/sketch-three-tangent-circle.md"],
+      "receipts": ["docs/validation/sketch-three-point-circle.md", "docs/validation/sketch-two-tangent-circle.md", "docs/validation/sketch-three-tangent-circle.md", "docs/validation/sketch-circle-feature-options.md"],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },
     {

@@ -20,5 +20,10 @@ as distinct acceptance evidence.
 
 The public Circle help also describes switching creation types through Sketch
 Palette Feature Options while a Circle tool is active. SKT-109/#533 owns this
-family-wide control after the individual modes are accepted; its pending-pick
-reset behavior requires an explicit researched or Alloy policy.
+family-wide control after the individual modes are accepted. Public evidence
+does not establish whether partial picks survive a switch. Alloy's bounded
+policy is to discard unfinished picks and disposable previews when changing
+Circle type, preserve already committed circles, activate the selected shared
+tool command, and return focus to the sketch canvas for the next first pick.
+The [bounded implementation receipt](../../validation/sketch-circle-feature-options.md)
+records native and real-entrypoint checks.

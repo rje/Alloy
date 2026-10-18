@@ -47,9 +47,11 @@ source-line and radius edits, history/reopen and actual GPU captures. See
 accepts 3-Tangent Circle on a three-edge rectangle fixture including a parallel
 pair: native third-pick commit, unique finite-solution policy, three retained
 Tangents, source edit, history/reopen and GPU captures. See
-[its receipt](validation/sketch-three-tangent-circle.md). SKT-109/#533 retains
-the Circle Feature Options switch as the next circle-family Todo. The backlog
-contains 530 issues.
+[its receipt](validation/sketch-three-tangent-circle.md). SKT-109/#533 now
+accepts switching all five Circle modes through the actual Sketch Palette:
+unfinished picks reset, committed circles persist, and the next canvas pick
+works without focus repair. See [its receipt](validation/sketch-circle-feature-options.md).
+The backlog contains 530 issues.
 SKT-093/#498 now accepts Inscribed, Circumscribed and Edge Polygon creation,
 retained edits, native numeric refusal, three closed regions, downstream
 extrusion, history/reopen and independently read STL. Astra reviewed the

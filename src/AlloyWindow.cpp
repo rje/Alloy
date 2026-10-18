@@ -3877,6 +3877,9 @@ void AlloyWindow::registerCommands() {
         if(session_.contains("pendingSplineDrag"))splineCommand("drag",{{"phase","cancel"}});
         auto badgeSelection=session_.value("selection").toObject();badgeSelection.remove("constraintIds");badgeSelection.remove("dimensionId");
         session_["selection"]=badgeSelection;session_.remove("hoveredConstraintId");
+        const QStringList circleModes{"circle","twoPointCircle","threePointCircle","twoTangentCircle","threeTangentCircle"};
+        if(circleModes.contains(session_.value("tool").toString()) && circleModes.contains(a["tool"].toString()) && session_.value("tool")!=a["tool"])
+            session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}},{"profileIds",QJsonArray{}}};
         const bool leavingFillet=session_.value("tool")=="fillet";
         const bool leavingMirror=session_.value("tool")=="mirror" && a["tool"]!="mirror";
         clearFilletPreview();session_.remove("pendingFillet");
@@ -11738,6 +11741,12 @@ void AlloyWindow::dimensionSelectionChanged() {
 void AlloyWindow::refreshSketchControls() {
     if(session_.value("tool")!="twoTangentCircle" && tangentCircleRadius_)tangentCircleRadius_->hide();
     if(!sketchSelectionTree_ || session_.value("command")!="sketch.edit")return;
+    if(auto* options=sketchPanel_->findChild<QWidget*>("sketch.circle.featureOptions")) {
+        auto* mode=options->findChild<QComboBox*>("sketch.circle.mode");
+        const int index=mode->findData(session_.value("tool").toString());
+        options->setVisible(index>=0);
+        if(index>=0){const QSignalBlocker block(mode);mode->setCurrentIndex(index);}
+    }
     if(auto* offer=sketchPanel_->findChild<QWidget*>("sketch.dimension.offer"))
         offer->setVisible(session_.contains("pendingDrivenOffer"));
     if(auto* project=sketchPanel_->findChild<QWidget*>("sketch.projectControls")) {
@@ -12050,6 +12059,21 @@ void AlloyWindow::showSketch() {
         }
     } else {
         const auto inputs=session_.value("inputs").toObject();
+        auto* circleOptions=new QWidget;circleOptions->setObjectName("sketch.circle.featureOptions");
+        auto* circleLayout=new QVBoxLayout(circleOptions);circleLayout->setContentsMargins(4,6,4,6);circleLayout->setSpacing(6);
+        auto* circleTitle=new QLabel("Feature Options");circleTitle->setStyleSheet("font-weight: 700; color: #176588;");circleLayout->addWidget(circleTitle);
+        auto* circleForm=new QFormLayout;auto* circleMode=new QComboBox;circleMode->setObjectName("sketch.circle.mode");circleMode->setAccessibleName("Circle type");
+        circleMode->addItem("Center Diameter Circle","circle");circleMode->addItem("2-Point Circle","twoPointCircle");circleMode->addItem("3-Point Circle","threePointCircle");circleMode->addItem("2-Tangent Circle","twoTangentCircle");circleMode->addItem("3-Tangent Circle","threeTangentCircle");
+        circleMode->setToolTip("Change Circle type. Unfinished picks and previews are discarded; completed circles are preserved.");
+        circleForm->addRow("Circle type",circleMode);circleLayout->addLayout(circleForm);layout->addWidget(circleOptions);
+        connect(circleMode,&QComboBox::activated,this,[this,circleMode](int index){
+            const auto tool=circleMode->itemData(index).toString(),tab=activeTabId_,session=session_.value("id").toString();
+            // Let the combo popup close before the shared command restores canvas focus.
+            QTimer::singleShot(0,this,[this,tool,tab,session]{
+                if(tab==activeTabId_ && session_.value("id")==session && session_.value("command")=="sketch.edit")
+                    sketchResponse(execute("sketch.tool",{{"tool",tool}}));
+            });
+        });
         auto* drivenOffer=new QWidget;drivenOffer->setObjectName("sketch.dimension.offer");
         drivenOffer->setStyleSheet("background: #e8f3f8; border: 1px solid #8eb8cc; border-radius: 4px;");
         auto* offerLayout=new QVBoxLayout(drivenOffer);offerLayout->setContentsMargins(8,8,8,8);
