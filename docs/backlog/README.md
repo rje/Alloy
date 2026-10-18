@@ -49,8 +49,7 @@ single-owner support-face loop under SKT-145/#571. Its planar-inset actual-app v
 with a retained 18-edge enclosure fixture, native/API input, exact history and GPU captures. Multiple owners in one sketch remain Todo SKT-153/#579; stale-support recovery text is SKT-154/#580, blocked until a reachable in-session stale-support or explicit repair path exists under SKT-025/#159.
 SKT-148/#574 now accepts
 fit-spline Mirror Delete through core, real-app API, native Qt and independent
-review. SKT-149/#575 retains fit-spline Offset association-only removal as
-Todo; linked/projected Delete remains Todo SKT-143/#569.
+review. SKT-149/#575 accepts explicit fit-spline Offset Break Link, retaining both curves and converting the result to independently editable geometry; see [its receipt](../validation/sketch-fit-spline-offset-association.md).
 DOC-016/#167 has a bounded [native exchange-sheet receipt](../validation/native-exchange-sheet.md);
 DOC-035/#516 has a bounded [File-menu export receipt](../validation/native-exchange-menu.md);
 DOC-036/#517 has a bounded [Browser body mesh receipt](../validation/native-browser-mesh.md).
