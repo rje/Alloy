@@ -3840,7 +3840,14 @@ void ReferenceView::contextMenuEvent(QContextMenuEvent* e) {
         else if(chosen==cancel)dispatch("sketch.conicCancel",{});
         e->accept();return;
     }
-    if(sketchActive && selectTool && decorationSelection_["entityIds"].toArray().size()==1){const auto id=decorationSelection_.value("entityIds").toArray().at(0);for(const auto& value:decorationFeature_["parameters"].toObject()["entities"].toArray())if(value.toObject()["id"]==id&&value.toObject()["type"]=="fitSpline"){QMenu menu(this);auto* insert=menu.addAction("Insert Spline Fit Point");insert->setObjectName("sketch.spline.insertFitPoint");if(menu.exec(e->globalPos())==insert)dispatch("sketch.splineInsertMode",{{"entityId",id}});e->accept();return;}}
+    // A retained Mirror result is edited through its source. Let its context
+    // request reach the shared geometry menu (including whole-owner Delete).
+    QSet<QString> mirroredEntities;
+    if(sketchActive && selectTool)
+        for(const auto& row:decorationFeature_.value("parameters").toObject().value("mirrorGroups").toArray())
+            for(const auto& pair:row.toObject().value("entityPairs").toArray())
+                mirroredEntities.insert(pair.toObject().value("resultEntityId").toString());
+    if(sketchActive && selectTool && decorationSelection_["entityIds"].toArray().size()==1){const auto id=decorationSelection_.value("entityIds").toArray().at(0);for(const auto& value:decorationFeature_["parameters"].toObject()["entities"].toArray())if(value.toObject()["id"]==id&&value.toObject()["type"]=="fitSpline"&&!mirroredEntities.contains(id.toString())){QMenu menu(this);auto* insert=menu.addAction("Insert Spline Fit Point");insert->setObjectName("sketch.spline.insertFitPoint");if(menu.exec(e->globalPos())==insert)dispatch("sketch.splineInsertMode",{{"entityId",id}});e->accept();return;}}
     if(sketchActive && selectTool) {
         const auto badge=pickConstraint(e->pos().x(),e->pos().y());
         const auto selected=decorationSelection_.value("constraintIds").toArray();

@@ -40,8 +40,9 @@ SKT-141/#567 accepts whole-owner Slot, Arc Slot, Polygon and Chamfer deletion
 after core, API, native Qt and independent review. SKT-142/#568 accepts
 line/arc Mirror and open-chain Offset owner deletion after the same bounded
 checks. Linked/projected deletion remains Todo SKT-143/#569; four other
-Offset schemas and fit-spline Mirror remain Todo SKT-144–148/#570–574, so
-refusal cannot be mistaken for implementation.
+Offset schemas remain Todo SKT-144–147/#570–573. SKT-148/#574 now accepts
+fit-spline Mirror Delete through core, real-app API, native Qt and independent
+review; linked/projected Delete remains Todo SKT-143/#569.
 DOC-016/#167 has a bounded [native exchange-sheet receipt](../validation/native-exchange-sheet.md);
 DOC-035/#516 has a bounded [File-menu export receipt](../validation/native-exchange-menu.md);
 DOC-036/#517 has a bounded [Browser body mesh receipt](../validation/native-browser-mesh.md).

@@ -1681,14 +1681,14 @@ SketchGeometry::SolveResult SketchGeometry::deleteEntities(const QJsonObject& dr
                     if(inputs.intersects(requestedEntities))reject("Delete the generated owner separately from its source geometry");
                 }
                 if(family=="mirrorGroups") {
-                    // Fit-spline Mirror deletion has its own deferred contract.
-                    // A mixed owner must never be partially retired.
+                    // Keep owner deletion aligned with the retained Mirror schema,
+                    // including mixed line/arc/open-fit-spline owners.
                     for(const auto& pair:group.value("entityPairs").toArray()) {
                         const auto sourceId=pair.toObject().value("sourceEntityId");
                         for(const auto& value:authoredEntities) {
                             const auto source=value.toObject();
-                            if(source.value("id")==sourceId && source.value("type")!="line" && source.value("type")!="arc")
-                                reject("Mirror Delete currently supports line and arc owners only");
+                            if(source.value("id")==sourceId && !SketchMirror::supportedSource(source))
+                                reject("Mirror Delete requires supported retained source geometry");
                         }
                     }
                     for(const auto& pair:group.value("pointPairs").toArray())

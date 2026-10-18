@@ -76,10 +76,21 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
  const auto mirrorLine=sharedGroup.value("entityPairs").toArray()[0].toObject().value("resultEntityId");
  auto dependent=good(SketchGeometry::chamferCorner(shared,{{"entityIds",QJsonArray{sharedLine.value("id"),mirrorLine}},{"distanceMm",2}}));
  atomic(dependent,{sharedTarget});
- auto spline=good(SketchSpline::add(mirror,{{"points",QJsonArray{QJsonObject{{"uMm",-15},{"vMm",20}},QJsonObject{{"uMm",0},{"vMm",25}},QJsonObject{{"uMm",15},{"vMm",20}}}}}));
- const auto splineId=p(spline).value("entities").toArray().last().toObject().value("id");
- spline=good(SketchGeometry::mirrorEntities(spline,{{"sourceEntityIds",QJsonArray{splineId}},{"axisEntityId",axis}}));
- atomic(spline,{p(spline).value("mirrorGroups").toArray().last().toObject().value("entityPairs").toArray()[0].toObject().value("resultEntityId")});
+ // Mixed line/arc/fit-spline owner, an on-axis
+ // fit point: deleting any result retires the complete owner, exactly.
+ auto spline=good(SketchSpline::add([&]{auto f=shared;f["parameters"]=sharedBaseline;return f;}(),{{"points",QJsonArray{QJsonObject{{"uMm",-15},{"vMm",0}},QJsonObject{{"uMm",0},{"vMm",25}},QJsonObject{{"uMm",15},{"vMm",20}}}}}));
+ const auto splineEntity=p(spline).value("entities").toArray().last().toObject();
+ const auto splineId=splineEntity.value("id");
+ const auto splineBaseline=p(spline);
+ spline=good(SketchGeometry::mirrorEntities(spline,{{"sourceEntityIds",QJsonArray{splineId,sharedLine.value("id"),arcId}},{"axisEntityId",sharedAxis}}));
+ const auto splineGroup=p(spline).value("mirrorGroups").toArray()[0].toObject();
+ const auto splineTarget=splineGroup.value("entityPairs").toArray()[0].toObject().value("resultEntityId");
+ const auto splineLine=splineGroup.value("entityPairs").toArray()[1].toObject().value("resultEntityId");
+ check(p(good(SketchGeometry::deleteEntities(spline,{splineTarget})))==splineBaseline,"fit-spline owner lost source/on-axis IDs or retained generated data");
+ check(p(good(SketchGeometry::deleteEntities(spline,{splineLine})))==splineBaseline,"mixed owner was partially deleted");
+ atomic(spline,{splineId});atomic(spline,{sharedAxis});atomic(spline,{splineTarget,splineId});atomic(spline,{splineTarget,"stale"});
+ auto splineDependent=good(SketchGeometry::chamferCorner(spline,{{"entityIds",QJsonArray{sharedLine.value("id"),splineLine}},{"distanceMm",2}}));
+ atomic(splineDependent,{splineTarget});
  auto offset=empty;const double xy[][4]={{-12,10,-8,10},{-8,10,-6,0},{-6,0,6,0},{6,0,8,10},{8,10,12,10},{-8,10,8,10}};
  for(const auto& e:xy)offset=SketchGeometry::addLine(offset,{{"u1Mm",e[0]},{"v1Mm",e[1]},{"u2Mm",e[2]},{"v2Mm",e[3]}});
  offset=good(SketchGeometry::solveDraft(offset));auto offsetBaseline=p(offset);offsetBaseline["constraints"]=QJsonArray{};const auto offsetLines=offsetBaseline.value("entities").toArray();QJsonArray sources;
