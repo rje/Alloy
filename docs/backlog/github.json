@@ -2787,6 +2787,21 @@
       "number": 566,
       "url": "https://github.com/rje/Alloy/issues/566",
       "state": "closed"
+    },
+    "SKT-141": {
+      "number": 567,
+      "url": "https://github.com/rje/Alloy/issues/567",
+      "state": "open"
+    },
+    "SKT-142": {
+      "number": 568,
+      "url": "https://github.com/rje/Alloy/issues/568",
+      "state": "open"
+    },
+    "SKT-143": {
+      "number": 569,
+      "url": "https://github.com/rje/Alloy/issues/569",
+      "state": "open"
     }
   }
 }

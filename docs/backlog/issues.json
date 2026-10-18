@@ -8742,7 +8742,7 @@
       "labels": [
         "area:skt"
       ],
-      "body": "## Bounded result\nComplete selected-geometry Delete for authored ellipse, conic and spline curves and for retained grouped/derived sketch geometry after SKT-099/#518 establishes ordinary line/circle/arc/point deletion. Group and generated-reference removal must be an explicit owning-operation policy, never a partial JSON cleanup.\n\n## Acceptance\n- Research public selection/Delete behavior for these curve families and preserve dated sources outside the repository. Specify when Delete removes a single curve, an entire generated group, or refuses with actionable guidance.\n- Native canvas and sketch list selection, Delete key and right-click action invoke the shared command. Retain surviving control points, dimensions, constraints, source relationships and stable IDs; remove only dependents owned by the deleted geometry.\n- Verify one spline and one grouped/derived case through edit, undo/redo, save/reopen and downstream profile or surface/solid use. Verify a transactional refusal for an unsupported cross-feature dependency.\n- Inspect actual GPU selection and post-delete presentation separately from authored geometry. Preserve further unsupported generated families as linked Todo before closing.\n\n## Ownership\nExplicit remainder split from SKT-099/#518; the first slice covers authored line/circle/arc/point. Do not infer full sketch-family parity from either bounded issue alone."
+      "body": "## Bounded result\nComplete selected-geometry Delete for authored ellipse, conic and spline curves and for retained grouped/derived sketch geometry after SKT-099/#518 establishes ordinary line/circle/arc/point deletion. Group and generated-reference removal must be an explicit owning-operation policy, never a partial JSON cleanup.\n\n## Acceptance\n- Research public selection/Delete behavior for these curve families and preserve dated sources outside the repository. Specify when Delete removes a single curve, an entire generated group, or refuses with actionable guidance.\n- Native canvas and sketch list selection, Delete key and right-click action invoke the shared command. Retain surviving control points, dimensions, constraints, source relationships and stable IDs; remove only dependents owned by the deleted geometry.\n- Verify one spline and one grouped/derived case through edit, undo/redo, save/reopen and downstream profile or surface/solid use. Verify a transactional refusal for an unsupported cross-feature dependency.\n- Inspect actual GPU selection and post-delete presentation separately from authored geometry. Preserve further unsupported generated families as linked Todo before closing.\n\n## Ownership\nExplicit remainder split from SKT-099/#518; the first slice covers authored line/circle/arc/point. Do not infer full sketch-family parity from either bounded issue alone.\n## Finishable split \u2014 2026-10-18\nThis active slice qualifies whole-entity Delete for authored ellipse, conic, fit/control splines, and an atomic grouped/derived refusal. It does not implement group removal. The original grouped/derived requirement is preserved as linked Todo SKT-141 (constructor groups), SKT-142 (Mirror/Offset groups), and SKT-143 (projected/link ownership). Their dependencies and native/geometry gates remain explicit. Dated public triage is external at knowledge/specs/skt102-delete-triage-2026-10-18.md.\n"
     },
     {
       "key": "SKT-103",
@@ -9432,6 +9432,61 @@
         "priority:P1"
       ],
       "body": "## Result\nQualify everyday Combine naming and recovery on a small printable-part fixture. An explicitly named target and tool retain understandable Browser identities after supported Join, Cut and Intersect outcomes; a no-result or kernel-invalid attempt refuses atomically and leaves the authored document and available retry controls intact. This is a v1 reliability child of SOL-002, not a claim of universal Boolean topology support.\n\n## Acceptance\n- Research the affected public command workflow first and record any uncertain naming behavior; keep independent Alloy policy explicit.\n- Through the real application and shared control API, name two local bodies, exercise one valid operation of each kind and a deliberate no-result or invalid attempt. Inspect target/tool identity and visibility, geometry/body counts, actionable error, retry, undo/redo and save/reopen. Use one meaningful source edit to check retained naming.\n- Check common error recovery and exact authored-state preservation with focused tests and a bounded native GPU capture. Split any unrelated broad Boolean topology class discovered during the fixture into linked Todo work rather than expanding this issue indefinitely.\n\n## Dependencies\n- SOL-002\n- SOL-021\n- DOC-030\n\n## Provenance\nSplit from the partial `solid.combine` row in REL-030's printable-part v1 ownership audit on 2026-10-18. Existing bounded Join/Cut/Intersect and picker receipts do not qualify the general naming/error path. Bulk public research and visual references belong outside Git in `../Alloy-reference-records/knowledge`.\n\n## Bounded acceptance \u2014 2026-10-18\nA valid named-body Join previously refused `renamed_body_unavailable` when Keep Tools consumed its named tool. Evaluated Boolean consumption now retains dormant name metadata and restores the same identity through Undo or Keep Tools edit; unrelated unavailable names still refuse. Join/Cut/Intersect, source edit, exact history/reopen, empty Intersect atomic refusal and Cut retry pass focused core, a 115-call real-entrypoint API fixture and 3/3 native Qt input. An independently reviewed settled Apple M4 capture shows the full actionable error, Browser names and pinned controls; early queued-layout evidence was not accepted. Receipt: docs/validation/combine-naming-recovery.md. Physical hand input, other platforms, exact public styling and universal Boolean topology remain unqualified.\n"
+    },
+    {
+      "key": "SKT-141",
+      "title": "Delete retained sketch constructor groups through their owning operation",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-102"
+      ],
+      "labels": [
+        "kind:implementation",
+        "status:blocked",
+        "area:skt",
+        "phase:P2",
+        "priority:P1"
+      ],
+      "body": "## Bounded result\nDelete a selected Slot/Arc Slot, Polygon or Chamfer generated group without leaving orphaned members, dimensions or anchors. Resolve each owner's public workflow and actual authored metadata before coding; use a bounded fixture per distinct ownership schema. Split a concrete oversized family into its own linked Todo before closing.\n\n## Acceptance\nResearch the affected public Delete workflow first with dated sources in ../Alloy-reference-records/knowledge. Native canvas/list and local API must use the same authoritative deletion command. Preserve unrelated authored IDs and constraints; fail atomically on unsupported ownership. Use one real-app native/API fixture with Undo/Redo, save/reopen, and hardware GPU capture. Physical hand input, other-platform runtime and exact reference styling remain separate release gates.\n\n## Split provenance\nRetained from SKT-102/#525 on 2026-10-18 after separating ordinary authored curve deletion from operation-owned group/derived deletion. Public source evidence and behavior uncertainties are in the external SKT-102 triage record.\n\n## Dependencies\n- SKT-102\n"
+    },
+    {
+      "key": "SKT-142",
+      "title": "Delete mirrored and offset sketch groups through their owning operation",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-102"
+      ],
+      "labels": [
+        "kind:implementation",
+        "status:blocked",
+        "area:skt",
+        "phase:P2",
+        "priority:P1"
+      ],
+      "body": "## Bounded result\nDelete a selected Mirror or offset-generated result through its retained owner, without silently deleting its source geometry or corrupting sibling results. Cover ordinary line/arc Mirror and one supported loop/open-chain offset schema; split other schemas into linked Todo if ownership differs.\n\n## Acceptance\nResearch the affected public Delete workflow first with dated sources in ../Alloy-reference-records/knowledge. Native canvas/list and local API must use the same authoritative deletion command. Preserve unrelated authored IDs and constraints; fail atomically on unsupported ownership. Use one real-app native/API fixture with Undo/Redo, save/reopen, and hardware GPU capture. Physical hand input, other-platform runtime and exact reference styling remain separate release gates.\n\n## Split provenance\nRetained from SKT-102/#525 on 2026-10-18 after separating ordinary authored curve deletion from operation-owned group/derived deletion. Public source evidence and behavior uncertainties are in the external SKT-102 triage record.\n\n## Dependencies\n- SKT-102\n"
+    },
+    {
+      "key": "SKT-143",
+      "title": "Delete linked projected sketch geometry with explicit source-link policy",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-102",
+        "SKT-026"
+      ],
+      "labels": [
+        "kind:implementation",
+        "status:blocked",
+        "area:skt",
+        "phase:P2",
+        "priority:P1"
+      ],
+      "body": "## Bounded result\nQualify Delete for selected projected/linked sketch geometry, including source-link and support ownership. Document whether the published workflow removes a local projection, breaks a link or requires an owning command; refuse stale/upstream dependencies clearly. Do not generic-strip projected JSON.\n\n## Acceptance\nResearch the affected public Delete workflow first with dated sources in ../Alloy-reference-records/knowledge. Native canvas/list and local API must use the same authoritative deletion command. Preserve unrelated authored IDs and constraints; fail atomically on unsupported ownership. Use one real-app native/API fixture with Undo/Redo, save/reopen, and hardware GPU capture. Physical hand input, other-platform runtime and exact reference styling remain separate release gates.\n\n## Split provenance\nRetained from SKT-102/#525 on 2026-10-18 after separating ordinary authored curve deletion from operation-owned group/derived deletion. Public source evidence and behavior uncertainties are in the external SKT-102 triage record.\n\n## Dependencies\n- SKT-102\n- SKT-026\n"
     }
   ]
 }

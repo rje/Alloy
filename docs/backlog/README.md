@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **563 issues**: **443 implementation, 24 research,
+The current local backlog contains **566 issues**: **446 implementation, 24 research,
 2 research/design, 22 epics, and 72 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 SKT-115–121 and SKT-123–124/#540–546, #548–549 are accepted analytic constraint pairs and endpoint contacts; SKT-129/#554 accepts distinct-ID arc/line endpoint Tangent and SKT-022/#163 is closed for its declared v1 analytic scope. SKT-122/#547 and SKT-130–132/#555–557 retain later multi-pair Symmetry, spline constraints and branch-control research.
@@ -36,6 +36,8 @@ and extensions. SOL-059/#504 has a bounded
 [modeled external Thread receipt](../validation/modeled-external-thread.md).
 SKT-102/#525 preserves spline, ellipse, conic and grouped/derived geometry
 deletion after the [accepted ordinary line/circle/arc/point SKT-099 slice](../validation/sketch-geometry-delete.md).
+Its active authored-curve slice now retains generated-group deletion as linked
+Todo SKT-141–143/#567–569, so a refusal cannot be mistaken for implementation.
 DOC-016/#167 has a bounded [native exchange-sheet receipt](../validation/native-exchange-sheet.md);
 DOC-035/#516 has a bounded [File-menu export receipt](../validation/native-exchange-menu.md);
 DOC-036/#517 has a bounded [Browser body mesh receipt](../validation/native-browser-mesh.md).
