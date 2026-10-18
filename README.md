@@ -17,6 +17,10 @@ typed values refused.
 [Three-Point Rectangle](docs/validation/sketch-three-point-rectangle.md) now
 creates an oblique editable profile through three canvas picks, with optional
 typed lengths, source following and a verified extrusion/STL path.
+[Rounded-slot arc Symmetry](docs/validation/sketch-arc-symmetry.md) now retains
+two end arcs about a construction axis through dimensional edits, extrusion,
+history and reopen. Broader tangent pairs and unsupported-pick feedback remain
+in the sketch-constraint backlog.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,

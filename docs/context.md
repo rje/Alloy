@@ -51,7 +51,7 @@ Tangents, source edit, history/reopen and GPU captures. See
 accepts switching all five Circle modes through the actual Sketch Palette:
 unfinished picks reset, committed circles persist, and the next canvas pick
 works without focus repair. See [its receipt](validation/sketch-circle-feature-options.md).
-The backlog contains 536 issues. REL-015/#418 now accepts a packaged macOS
+The backlog contains 540 issues. REL-015/#418 now accepts a packaged macOS
 real-app/API/GPU failure-and-recovery slice and fixes a no-op over-thick open
 Shell. Five saved fixtures check atomic refusal or unavailable analysis,
 unchanged original files, valid edits, Undo/Redo and reopen; see
@@ -59,6 +59,7 @@ unchanged original files, valid edits, Undo/Redo and reopen; see
 error discoverability remains Todo REL-050/#539 after computer control failed
 to attach to the staged window. This release gate does not establish
 clean-host or Windows/Linux behavior.
+SKT-022/#163 is split into four bounded children SKT-115–118/#540–543 for rounded-slot arc Symmetry, circle-circle Tangent, interior arc-line Tangent and unsupported-pair feedback; the external dated gap contract separates these from accepted families. SKT-115 now accepts the two-arc rounded-slot relation, diameter/spacing edits, downstream solid, native Qt picks and badge, history/reopen and inspected GPU captures; see [its receipt](validation/sketch-arc-symmetry.md). The parent remains Todo, and SKT-116 is the next tangent slice.
 SKT-096/#501 now accepts one Equal Distance
 sketch Chamfer on an authored line corner, with native preview/typed edit,
 retained source dimensions, extrusion, history/reopen and independently checked

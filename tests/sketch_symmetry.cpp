@@ -42,7 +42,46 @@ int main(int argc,char** argv){
         const auto authored=document.authored();document.history().undo();check(document.sketches().empty(),"undo");document.history().redo();check(document.authored()==authored,"redo");
         QTemporaryDir dir;check(dir.isValid(),"temporary directory");const auto path=dir.path()+"/symmetry.alloy";
         check(document.save(path).isEmpty(),"save");CadDocument reopened;check(reopened.open(path).isEmpty() && reopened.authored()==authored,"reopen");
-        std::cout<<"sketch symmetry: paired endpoints, edit, refusal, history, reopen passed\n";
+        auto arcs=SketchGeometry::newFeature(document.authored()["documentId"].toString(),"XY");
+        arcs=SketchGeometry::addArc(arcs,{{"centerUMm",-20},{"centerVMm",0},{"radiusMm",10},{"startAngleDeg",90},{"sweepAngleDeg",180}});
+        const auto arcA=arcs["parameters"].toObject()["entities"].toArray().last().toObject();
+        arcs=SketchGeometry::addArc(arcs,{{"centerUMm",21},{"centerVMm",1},{"radiusMm",10},{"startAngleDeg",270},{"sweepAngleDeg",180}});
+        const auto arcB=arcs["parameters"].toObject()["entities"].toArray().last().toObject();
+        arcs=SketchGeometry::addLine(arcs,{{"u1Mm",0},{"v1Mm",-20},{"u2Mm",0},{"v2Mm",20}});
+        const auto arcAxis=arcs["parameters"].toObject()["entities"].toArray().last().toObject();
+        auto built=SketchGeometry::setConstruction(arcs,{{"entityIds",QJsonArray{arcAxis["id"]}},{"construction",true}});
+        check(built.ok,"construction axis");arcs=built.feature;
+        auto arcRelation=SketchGeometry::addConstraint(arcs,{{"type","symmetry"},{"entityIds",QJsonArray{arcA["id"],arcB["id"],arcAxis["id"]}}});
+        check(arcRelation.ok,"arc symmetry: "+arcRelation.error);arcs=arcRelation.feature;
+        const auto arcRetained=arcs["parameters"].toObject()["constraints"].toArray().last().toObject();
+        check(arcRetained["pointIds"].toArray()==QJsonArray{arcA["startPointId"],arcB["endPointId"],arcA["endPointId"],arcB["startPointId"],arcA["centerPointId"],arcB["centerPointId"]},"arc endpoint and center correspondence");
+        const auto arcMove=SketchGeometry::movePoint(arcs,{{"pointId",arcA["centerPointId"]},{"uMm",-24},{"vMm",3}});
+        check(arcMove.ok,"arc source edit: "+arcMove.error);arcs=arcMove.feature;
+        const auto aa=point(arcs,arcAxis["startPointId"].toString()),ab=point(arcs,arcAxis["endPointId"].toString());
+        const double ax=aa["uMm"].toDouble(),ay=aa["vMm"].toDouble(),vx=ab["uMm"].toDouble()-ax,vy=ab["vMm"].toDouble()-ay;
+        const auto pairs=arcRetained["pointIds"].toArray();
+        for(int i=0;i<6;i+=2){const auto a=point(arcs,pairs[i].toString()),b=point(arcs,pairs[i+1].toString());
+            const double x=a["uMm"].toDouble(),y=a["vMm"].toDouble(),t=((x-ax)*vx+(y-ay)*vy)/(vx*vx+vy*vy);
+            check(std::hypot(b["uMm"].toDouble()-(2*(ax+t*vx)-x),b["vMm"].toDouble()-(2*(ay+t*vy)-y))<1e-5,"all arc point pairs reflect after move");}
+        const auto mixed=SketchGeometry::addConstraint(arcs,{{"type","symmetry"},{"entityIds",QJsonArray{arcA["id"],arcAxis["id"],arcB["id"]}}});
+        check(!mixed.ok && mixed.feature==arcs,"mixed pairing refuses atomically");
+        auto branchCase=[&](double start,double sweep){
+            auto candidate=SketchGeometry::newFeature(document.authored()["documentId"].toString(),"XY");
+            candidate=SketchGeometry::addArc(candidate,{{"centerUMm",-20},{"centerVMm",0},{"radiusMm",10},{"startAngleDeg",90},{"sweepAngleDeg",180}});
+            const auto first=candidate["parameters"].toObject()["entities"].toArray().last().toObject();
+            candidate=SketchGeometry::addArc(candidate,{{"centerUMm",20},{"centerVMm",0},{"radiusMm",10},{"startAngleDeg",start},{"sweepAngleDeg",sweep}});
+            const auto second=candidate["parameters"].toObject()["entities"].toArray().last().toObject();
+            candidate=SketchGeometry::addLine(candidate,{{"u1Mm",0},{"v1Mm",-20},{"u2Mm",0},{"v2Mm",20}});
+            const auto axisId=candidate["parameters"].toObject()["entities"].toArray().last().toObject()["id"].toString();
+            const auto construction=SketchGeometry::setConstruction(candidate,{{"entityIds",QJsonArray{axisId}},{"construction",true}});
+            check(construction.ok,"branch construction");candidate=construction.feature;
+            const auto result=SketchGeometry::addConstraint(candidate,{{"type","symmetry"},{"entityIds",QJsonArray{first["id"],second["id"],axisId}}});
+            if(!result.ok)check(result.feature==candidate,"branch refusal atomic");return result;
+        };
+        check(branchCase(90,-180).ok,"opposite sweep uses forward endpoint mapping");
+        const auto incompatible=branchCase(90,180);check(!incompatible.ok && incompatible.error.contains("incompatible"),"incompatible sweep branch refused");
+        const auto ambiguous=branchCase(0,180);check(!ambiguous.ok && ambiguous.error.contains("ambiguous"),"equidistant endpoint branches refused");
+        std::cout<<"sketch symmetry: line and arc pairing, source edit, refusal, history, reopen passed\n";
         return 0;
     }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}
 }

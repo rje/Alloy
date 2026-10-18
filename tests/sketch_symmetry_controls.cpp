@@ -21,7 +21,9 @@ class SketchSymmetryControls final : public QObject {
     }
     QJsonObject session(AlloyWindow& window){return window.state()["activeSession"].toObject();}
 private slots:
+    void twoLinesThenConstructionAxis_data(){QTest::addColumn<bool>("arcs");QTest::newRow("lines")<<false;QTest::newRow("arcs")<<true;}
     void twoLinesThenConstructionAxis(){
+        QFETCH(bool,arcs);
         AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1500,950);window.show();
         QVERIFY(QTest::qWaitForWindowExposed(&window));
         ReferenceView* view=nullptr;for(auto* child:window.findChildren<QWidget*>())if(auto* candidate=dynamic_cast<ReferenceView*>(child))view=candidate;
@@ -31,7 +33,12 @@ private slots:
             call(window,"sketch.line",{{"x1",x1},{"y1",y1},{"x2",x2},{"y2",y2},{"units","mm"}});
             return session(window)["draftSketch"].toObject()["parameters"].toObject()["entities"].toArray().last().toObject();
         };
-        const auto left=addLine(-30,0,-30,30),right=addLine(30,30,30,0),axis=addLine(0,-5,0,35);
+        auto addArc=[&](double x,double angle){call(window,"sketch.addArc",{{"mode","center"},{"centerX",x},{"centerY",0},{"radius",10},{"startAngleDeg",angle},{"sweepAngleDeg",180},{"units","mm"}});
+            return session(window)["draftSketch"].toObject()["parameters"].toObject()["entities"].toArray().last().toObject();};
+        const auto left=arcs ? addArc(-20,90) : addLine(-30,0,-30,30);
+        const auto right=arcs ? addArc(20,270) : addLine(30,30,30,0);
+        if(arcs){addLine(-20,-10,20,-10);addLine(20,10,-20,10);}
+        const auto axis=addLine(0,-20,0,35);
         const auto other=addLine(-10,0,10,0);
         call(window,"sketch.construction",{{"entityIds",QJsonArray{axis["id"]}},{"construction",true}});
         call(window,"sketch.lookAt");
@@ -47,10 +54,17 @@ private slots:
         QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(view));
         auto pixel=[&](double u,double v){const auto p=call(window,"view.projectSketchPoint",{{"sketchId",session(window)["draftSketch"].toObject()["id"]},{"uMm",u},{"vMm",v}});
             return QPoint(qRound(p["x"].toDouble()),qRound(p["y"].toDouble()));};
-        const auto first=pixel(-30,15),second=pixel(30,15),wrong=pixel(5,0),third=pixel(0,25);
+        const auto first=arcs ? pixel(-30,0) : pixel(-30,15),second=arcs ? pixel(30,0) : pixel(30,15),wrong=pixel(5,0),third=pixel(0,25);
         for(const auto& p:{first,second,wrong,third})QVERIFY(view->rect().contains(p));
         QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,first);
         QCOMPARE(session(window)["selection"].toObject()["entityIds"].toArray(),QJsonArray{left["id"]});
+        if(arcs){
+            const auto before=session(window)["draftSketch"].toObject();
+            QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,wrong);
+            QCOMPARE(session(window)["selection"].toObject()["entityIds"].toArray(),QJsonArray{left["id"]});
+            QCOMPARE(session(window)["draftSketch"].toObject(),before);
+            QCOMPARE(QApplication::focusWidget(),static_cast<QWidget*>(view));
+        }
         QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,second);
         QCOMPARE(session(window)["selection"].toObject()["entityIds"].toArray(),(QJsonArray{left["id"],right["id"]}));
         QVERIFY(session(window)["constraintPrompt"].toString().contains("construction axis"));
@@ -64,7 +78,7 @@ private slots:
         int badges=0;for(const auto& value:glyphs)if(value.toObject()["constraintId"]==constraints[0].toObject()["id"])++badges;
         QCOMPARE(badges,1);
         const auto evidence=qEnvironmentVariable("ALLOY_SKETCH_SYMMETRY_EVIDENCE");
-        if(!evidence.isEmpty()){QDir().mkpath(evidence);call(window,"capture.screenshot",{{"path",evidence+"/native-symmetry-badge.png"}});}
+        if(!evidence.isEmpty()){QDir().mkpath(evidence);call(window,"capture.screenshot",{{"path",evidence+(arcs ? "/native-arc-symmetry-badge.png" : "/native-symmetry-badge.png")}});}
         QCOMPARE(QApplication::focusWidget(),static_cast<QWidget*>(view));
         QTest::keyClick(view,Qt::Key_Escape);QCOMPARE(session(window)["tool"].toString(),QString("select"));
         const auto badge=glyphs.last().toObject()["bounds"].toObject();

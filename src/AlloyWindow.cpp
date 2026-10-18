@@ -598,7 +598,7 @@ AlloyWindow::AlloyWindow() {
         auto* action=constraints->addAction(type=="horizontalVertical" ? "Horizontal/Vertical" : type.first(1).toUpper()+type.sliced(1));
         action->setObjectName("sketch.action.constraint."+type);
         action->setToolTip(type=="tangent" ? "Pick a circle and line, or an arc and line sharing one endpoint; Escape exits"
-            : type=="symmetry" ? "Pick two existing lines, then a construction symmetry axis; Escape exits"
+            : type=="symmetry" ? "Pick two existing lines or two arcs, then a construction symmetry axis; Escape exits"
             : type=="midpoint" ? "Pick a line or arc, then its midpoint point or sketch origin; Escape exits"
             : type=="fixed" ? "Select one point; retain its position" : type=="coincident" ? "Select two points"
             : type=="horizontalVertical" ? "Pick one line or two points; the first point is the initial reference" : type=="horizontal" || type=="vertical" ? "Pick one line" : type=="concentric" ? "Pick two circles or arcs" : "Pick a compatible pair; repeat pairs; Escape exits");
@@ -10861,11 +10861,14 @@ QJsonObject AlloyWindow::setSketchSelection(const QJsonObject& selection) {
     if(session_.value("tool")=="constraint" && session_.value("constraintType")=="symmetry"){
         const auto targets=normalized["entityIds"].toArray();
         if(!normalized["pointIds"].toArray().isEmpty() || targets.size()>3)
-            return failure("invalid_constraint_target","Symmetry requires two lines and a construction axis");
+            return failure("invalid_constraint_target","Symmetry requires two lines or two arcs and a construction axis");
+        QString pairType;
         for(int index=0;index<targets.size();++index){
             QJsonObject entity;for(const auto& row:parameters["entities"].toArray())if(row.toObject()["id"]==targets[index]){entity=row.toObject();break;}
-            if(entity["type"]!="line" || (index==2 && !entity["construction"].toBool()))
-                return failure("invalid_constraint_target",index==2 ? "Third symmetry pick must be a construction line" : "Symmetry requires two straight lines");
+            if(index==0)pairType=entity["type"].toString();
+            if(index==1 && entity["type"]!=pairType)return failure("invalid_constraint_target","Symmetry requires two matching lines or arcs");
+            if((index<2 && entity["type"]!="line" && entity["type"]!="arc") || (index==2 && (entity["type"]!="line" || !entity["construction"].toBool())))
+                return failure("invalid_constraint_target",index==2 ? "Third symmetry pick must be a construction line" : "Symmetry requires two matching lines or arcs");
         }
     }
     if(session_.value("tool")=="constraint" && session_.value("constraintType")=="tangent"){
@@ -10922,14 +10925,14 @@ QJsonObject AlloyWindow::setSketchSelection(const QJsonObject& selection) {
             : type=="tangent" ? (targets.isEmpty() ? QString("Tangent · Pick curve or line")
             : QString("Tangent · Pick matching curve or line"))
             : type=="symmetry" ? (targets.size()==2 ? QString("Symmetry · Pick construction axis · Escape exits")
-            : targets.isEmpty() ? QString("Symmetry · Pick first line · Escape exits") : QString("Symmetry · Pick second line · Escape exits"))
+            : targets.isEmpty() ? QString("Symmetry · Pick first line or arc · Escape exits") : QString("Symmetry · Pick matching line or arc · Escape exits"))
             : QString("%1 · Pick %2 %3 · Escape exits").arg(label).arg(targets.isEmpty() ? "first" : "next").arg(field=="pointIds" ? "point" : "curve");
         if(targets.size()>required)return failure("invalid_constraint_target",QString("%1 requires %2 targets").arg(label).arg(required));
-        if(type=="symmetry" && !normalized["pointIds"].toArray().isEmpty())return failure("invalid_constraint_target","Symmetry requires line picks");
+        if(type=="symmetry" && !normalized["pointIds"].toArray().isEmpty())return failure("invalid_constraint_target","Symmetry requires line or arc picks");
         if(field=="entityIds")for(int index=0;index<targets.size();++index)for(const auto& entry:parameters["entities"].toArray()) {
             const auto target=targets[index];
             const auto entity=entry.toObject();if(entity["id"]!=target)continue;
-            if(type!="equal" && type!="concentric" && type!="tangent" && entity["type"]!="line")return failure("invalid_constraint_target",label+" requires lines");
+            if(type!="equal" && type!="concentric" && type!="tangent" && type!="symmetry" && entity["type"]!="line")return failure("invalid_constraint_target",label+" requires lines");
             if(type=="concentric" && entity["type"]!="circle" && entity["type"]!="arc")return failure("invalid_constraint_target",label+" requires circles or arcs");
             if(type=="symmetry" && index==2 && !entity["construction"].toBool())return failure("invalid_constraint_target","Third symmetry pick must be a construction line");
         }
@@ -12319,7 +12322,7 @@ void AlloyWindow::showSketch() {
             const auto type=types[i];auto* button=new QPushButton(type=="horizontalVertical" ? "Horizontal/Vertical" : type.first(1).toUpper()+type.sliced(1));button->setObjectName("sketch.constraint."+type);button->setCheckable(true);
             button->setStyleSheet("QPushButton:checked { background: #deedf5; border: 1px solid #2b83ae; }");
             button->setToolTip(type=="tangent" ? "Pick a circle and line, or an arc and line sharing one endpoint; Escape exits"
-                : type=="symmetry" ? "Pick two existing lines, then a construction symmetry axis; Escape exits"
+                : type=="symmetry" ? "Pick two existing lines or two arcs, then a construction symmetry axis; Escape exits"
                 : type=="midpoint" ? "Pick a line or arc, then a point or sketch origin; Escape exits"
                 : type=="fixed" ? "Select one point; retain its position" : type=="coincident" ? "Select two points"
                 : type=="horizontalVertical" ? "Pick one line or two points; the first point is the initial reference" : type=="horizontal" || type=="vertical" ? "Pick one line" : type=="equal" ? "Pick two lines or two circles/arcs; repeat pairs; Escape exits" : type=="concentric" ? "Pick two circles or arcs; repeat pairs; Escape exits" : "Pick two lines; repeat pairs; Escape exits");

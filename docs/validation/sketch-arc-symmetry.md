@@ -1,0 +1,9 @@
+# Rounded-slot arc symmetry — SKT-115
+
+Accepted 2026-10-18 for two authored circular arcs about one straight construction axis. The existing Symmetry command and document solver retain ordered endpoint and center references, with sweep direction fixed to the selected branch. An ambiguous or incompatible pairing refuses without changing the draft. Existing two-line Symmetry still passes.
+
+The real Alloy entrypoint created a rounded slot with one closed profile, constrained its end arcs, moved a remaining center degree of freedom, edited diameter 20→24 mm and center spacing 40→50 mm, and extruded it 5 mm. Both radii remained equal at 12 mm after the edit. Solid volume changed from 5570.796326821272 to 8261.946710584049 mm³; authored Undo/Redo and save/reopen matched. A separate Equal relation on the arc pair is redundant and refuses. The focused solver check covers endpoint order, source movement, and atomic mixed/ambiguous/sweep-branch refusals.
+
+Native Qt input passed four tests, including the existing line case and arc/arc/axis picks. A wrong-type second pick and a nonconstruction axis left the valid pending selection intact; the resulting single badge could be selected and deleted without focus repair. These are Qt-delivered inputs, not physical OS qualification. The inspected app captures show a readable edited sketch, badge and solid on an Apple M4 hardware-accelerated OCCT OpenGL 4.1 Metal viewport. Exact reference glyph styling remains unqualified.
+
+Evidence and saved model: `../Alloy-reference-records/deliverables/sketch-arc-symmetry-2026-10-18/` (`api/result.json`, `api/rounded-slot.alloy`, sketch/solid captures and `native-qt.txt`). Public evidence and bounded unknowns: `../Alloy-reference-records/knowledge/specs/skt-022-remaining-analytic-constraints-2026-10-18.md`. SKT-022 retains broader symmetry, tangent and unsupported-pair scope in linked Todo children.

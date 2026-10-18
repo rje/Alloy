@@ -320,7 +320,17 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             } else if(type=="symmetry") {
                 auto& axis=line(reference(constraint,"entityIds",2));
                 solver.addConstraintP2PSymmetric(point(reference(constraint,"pointIds",0)),point(reference(constraint,"pointIds",1)),axis,t);
-                solver.addConstraintP2PSymmetric(point(reference(constraint,"pointIds",2)),point(reference(constraint,"pointIds",3)),axis,t);
+                if(constraint["pointIds"].toArray().size()==6){
+                    // Centers and one endpoint reflect; a shared signed sweep supplies
+                    // the remaining angular equation without redundant ArcRules.
+                    solver.addConstraintP2PSymmetric(point(reference(constraint,"pointIds",4)),point(reference(constraint,"pointIds",5)),axis,t);
+                    auto& first=arcMap.at(reference(constraint,"entityIds",0));
+                    auto& second=arcMap.at(reference(constraint,"entityIds",1));
+                    curveParameters.push_back(*first.endAngle-*first.startAngle);auto* sweep=&curveParameters.back();unknowns.push_back(sweep);
+                    solver.addConstraintDifference(first.startAngle,first.endAngle,sweep,t);
+                    const bool sameDirection=(*first.endAngle-*first.startAngle)*(*second.endAngle-*second.startAngle)>0;
+                    solver.addConstraintDifference(sameDirection ? second.startAngle : second.endAngle,sameDirection ? second.endAngle : second.startAngle,sweep,t);
+                }else solver.addConstraintP2PSymmetric(point(reference(constraint,"pointIds",2)),point(reference(constraint,"pointIds",3)),axis,t);
             } else if (type == "horizontal") {
                 if(constraint.contains("pointIds"))solver.addConstraintEqual(point(reference(constraint,"pointIds",0)).y,point(reference(constraint,"pointIds",1)).y,t);
                 else solver.addConstraintHorizontal(line(reference(constraint,"entityIds",0)),t);
@@ -634,7 +644,7 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 const auto& axis=line(reference(c,"entityIds",2));
                 const double dx=*axis.p2.x-*axis.p1.x,dy=*axis.p2.y-*axis.p1.y,norm=dx*dx+dy*dy;
                 require(norm>=minimumLength*minimumLength,"Symmetry axis collapsed");
-                for(int pair=0;pair<2;++pair){
+                for(int pair=0;pair<c["pointIds"].toArray().size()/2;++pair){
                     const auto& source=point(reference(c,"pointIds",2*pair));
                     const auto& target=point(reference(c,"pointIds",2*pair+1));
                     const double along=((*source.x-*axis.p1.x)*dx+(*source.y-*axis.p1.y)*dy)/norm;

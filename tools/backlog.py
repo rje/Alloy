@@ -30,7 +30,7 @@ PHASE_NAMES = {
     "P7": "Manufacturing",
     "P8": "Analysis, electronics, and presentation",
 }
-KINDS = {"implementation", "research", "epic", "validation"}
+KINDS = {"implementation", "research", "research/design", "epic", "validation"}
 
 
 def load_backlog():

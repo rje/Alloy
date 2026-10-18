@@ -2143,8 +2143,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 if(constraint.size()!=3 || !checkReferences(constraint,"entityIds",2,curveIds) || constraint.contains("pointIds"))
                     return "Concentric requires two distinct circles or arcs";
             } else if(type=="symmetry") {
-                if(constraint.size()!=4 || !checkReferences(constraint,"entityIds",3,lineIds)
-                    || !checkReferences(constraint,"pointIds",4,pointIds))return "Symmetry requires two lines, one construction axis and four endpoints";
+                if(constraint.size()!=4 || !checkReferences(constraint,"entityIds",3,entityIds))return "Symmetry requires two lines or two arcs and one construction axis";
                 const auto refs=constraint["entityIds"].toArray(),pairs=constraint["pointIds"].toArray();
                 QJsonObject first,second,axis;
                 for(const auto& value:parameters["entities"].toArray()){
@@ -2153,11 +2152,17 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                     if(e["id"]==refs[1])second=e;
                     if(e["id"]==refs[2])axis=e;
                 }
-                if(!axis["construction"].toBool())return "Symmetry axis must be a construction line";
+                const bool arcs=first["type"]=="arc" && second["type"]=="arc";
+                if(!(arcs || (first["type"]=="line" && second["type"]=="line"))
+                    || !checkReferences(constraint,"pointIds",arcs ? 6 : 4,pointIds))return "Symmetry requires matching line or arc pairs";
+                if(axis["type"]!="line" || !axis["construction"].toBool())return "Symmetry axis must be a construction line";
+                if(arcs && (pairs[4]!=first["centerPointId"] || pairs[5]!=second["centerPointId"]
+                    || ((first["sweepAngleDeg"].toDouble()*second["sweepAngleDeg"].toDouble()<0) != (pairs[1]==second["startPointId"]))))
+                    return "Symmetry arc correspondence conflicts with the retained sweep branch";
                 if(pairs[0]!=first["startPointId"] || pairs[2]!=first["endPointId"]
                     || !((pairs[1]==second["startPointId"] && pairs[3]==second["endPointId"])
                       || (pairs[1]==second["endPointId"] && pairs[3]==second["startPointId"])))
-                    return "Symmetry endpoints must match the retained line pairing";
+                    return "Symmetry endpoints must match the retained pairing";
             } else if((type=="horizontal" || type=="vertical") && constraint.contains("pointIds")) {
                 if(constraint.size()!=3 || !checkReferences(constraint,"pointIds",2,pointIds) || constraint.contains("entityIds"))
                     return "Point alignment requires two distinct sketch points";
@@ -2441,15 +2446,17 @@ SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& dra
         }
         if(constraint["type"]=="symmetry"){
             const auto ids=constraint["entityIds"].toArray();
-            if(ids.size()!=3 || ids[0]==ids[1] || ids[0]==ids[2] || ids[1]==ids[2])reject("Symmetry needs two distinct lines and one construction axis");
+            if(ids.size()!=3 || ids[0]==ids[1] || ids[0]==ids[2] || ids[1]==ids[2])reject("Symmetry needs two distinct lines or arcs and one construction axis");
             QMap<QString,QJsonObject> lines,points;
             for(const auto& value:parameters["entities"].toArray()){
-                const auto entity=value.toObject();if(entity["type"]=="line")lines[entity["id"].toString()]=entity;
+                const auto entity=value.toObject();if(entity["type"]=="line" || entity["type"]=="arc")lines[entity["id"].toString()]=entity;
             }
             for(const auto& value:parameters["points"].toArray()){const auto point=value.toObject();points[point["id"].toString()]=point;}
-            for(const auto& id:ids)if(!lines.contains(id.toString()))reject("Symmetry supports three authored straight lines");
+            for(const auto& id:ids)if(!lines.contains(id.toString()))reject("Symmetry supports two authored lines or arcs and a straight axis");
             const auto first=lines[ids[0].toString()],second=lines[ids[1].toString()],axis=lines[ids[2].toString()];
-            if(!axis["construction"].toBool())reject("Symmetry axis must be a construction line");
+            const bool arcs=first["type"]=="arc" && second["type"]=="arc";
+            if(first["type"]!=second["type"])reject("Symmetry requires matching line or arc pairs");
+            if(axis["type"]!="line" || !axis["construction"].toBool())reject("Symmetry axis must be a construction line");
             auto xy=[&](const QJsonValue& id){const auto point=points.value(id.toString());
                 if(point.isEmpty())reject("Symmetry endpoint is unavailable");return QPointF(point["uMm"].toDouble(),point["vMm"].toDouble());};
             const auto axisStart=xy(axis["startPointId"]),axisEnd=xy(axis["endPointId"]),delta=axisEnd-axisStart;
@@ -2463,9 +2470,12 @@ SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& dra
             const double lineScale=square(xy(first["endPointId"])-xy(first["startPointId"]))
                 +square(d-c);
             if(std::abs(forward-reverse)<=1e-8*std::max({1.0,lineScale,forward,reverse}))reject("Symmetry endpoint pairing is ambiguous");
+            if(arcs && ((first["sweepAngleDeg"].toDouble()*second["sweepAngleDeg"].toDouble()<0) != (forward<reverse)))
+                reject("Symmetry endpoint pairing is incompatible with arc sweep directions");
             constraint["pointIds"]=forward<reverse
                 ? QJsonArray{first["startPointId"],second["startPointId"],first["endPointId"],second["endPointId"]}
                 : QJsonArray{first["startPointId"],second["endPointId"],first["endPointId"],second["startPointId"]};
+            if(arcs){auto pairs=constraint["pointIds"].toArray();pairs.append(first["centerPointId"]);pairs.append(second["centerPointId"]);constraint["pointIds"]=pairs;}
         }
         if(arguments.contains("origin")){
             if(constraint["type"]!="midpoint" || arguments["origin"]!=true || arguments.contains("pointIds"))
