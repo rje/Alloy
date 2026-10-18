@@ -8,6 +8,10 @@ The first ownership pass linked 20 previously broad-only proposed tool areas to
 bounded Todo issues [#496–#515](../backlog/github.md). This establishes pullable
 owners, not feature completion or a final v1 scope decision. Existing partial
 rows still require real-workflow evidence and explicit release-gate disposition.
+The [ownership audit](ownership-audit.md) added six missing narrow owners
+[#518–#523](../backlog/github.md) and identified broad parent issues that must be
+split before implementation. Thirteen partial rows have accepted subsets but
+still need an explicit v1-versus-later option decision under REL-030.
 The [DOC-016 native exchange-sheet gate](../validation/native-exchange-sheet.md)
 now has independently checked STEP/STL output. The
 [File-menu export path](../validation/native-exchange-menu.md) passes; DOC-036/#517

@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **514 issues**: **400 implementation, 23 research,
+The current publication contains **520 issues**: **406 implementation, 23 research,
 22 epics, and 69 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
@@ -16,6 +16,11 @@ children, [#496–#515](github.md), for proposed tools previously owned only by
 broad capability families or already closed partial slices. All are Todo on the
 project board. Their public workflow contracts and real-object fixtures remain
 to be researched and implemented; REL-030/#469 still owns final v1 scope review.
+The subsequent ownership audit added six narrow Todo implementation issues
+[#518–#523](github.md) for sketch deletion/diagnosis/intersection, interference
+inspection, OBJ output and active-preview visibility responsiveness. Other
+broader parent issues must be split when pulled; see
+[the ownership audit](../v1/ownership-audit.md).
 DOC-016/#167 has a bounded [native exchange-sheet receipt](../validation/native-exchange-sheet.md);
 DOC-035/#516 has a bounded [File-menu export receipt](../validation/native-exchange-menu.md);
 DOC-036/#517 has a bounded [Browser body mesh receipt](../validation/native-browser-mesh.md).

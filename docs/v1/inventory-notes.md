@@ -59,10 +59,12 @@ root's live backlog reconciliation. Missing rows without a narrow child must
 receive one before implementation, rather than disappearing behind an epic.
 
 Prior tutorial receipts are retained as evidence of their exact fixtures. The
-current user rejects the complete iron outcome: TUT-018 must be reopened and its
-visual/shape mismatch inspected. This inventory does not count the prior iron
-completion statement as v1 acceptance. Enclosure clearance/physical fit and
-separate Browser/native input gates also remain explicit.
+earlier iron outcome was withdrawn after the user's shape objection; the later
+[corrected full creation gate](../validation/iron-corrected-cumulative.md) is
+accepted for its bounded fixture. It does not qualify every Surface command.
+The enclosure's approved nominal-connector clearance is measured in the model;
+physical fit remains unverified. Separate Browser/native input gates remain
+explicit where their particular route has not passed.
 
 For each proposed-v1 row, final acceptance needs a compact tool contract and a
 representative from-blank create/cancel/edit/upstream-change/undo/reopen/export

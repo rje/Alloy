@@ -8610,6 +8610,92 @@
         "area:doc"
       ],
       "body": "## Bounded result\nQualify the body Browser right-click path to Save As Mesh from a loaded design. File-menu entry and native sheet/readback are separately accepted under DOC-035 and DOC-016.\n\n## Acceptance\n- Right-click the actual Browser body row with native pointer input, inspect the body-specific menu and activate Save As Mesh without a direct API trigger. Confirm the correct body is selected in the sheet.\n- Save a representative STL via the native chooser or cancel; compare the corresponding output/state to the accepted fixture rather than rerunning unrelated exchange tests.\n- Record the input/capture limitations and preserve physical hardware and other-platform gates separately.\n\n## Evidence\nSee `docs/validation/native-browser-mesh.md` and external `../Alloy-reference-records/validation/doc036-browser-mesh-2026-10-17/`."
+    },
+    {
+      "key": "SKT-099",
+      "title": "Delete selected sketch geometry with retained repair",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P0",
+      "depends_on": [
+        "SKT-002",
+        "SKT-008"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Bounded result\nOwn the remaining proposed-v1 `sketch.delete-geometry` gap as a finishable feature slice; existing related tools and broader family coverage remain separate.\n\n## Acceptance\nDelete one or multiple selected ordinary sketch entities through the native canvas/Browser route and shared command, removing dependent dimensions/constraints transactionally. Preserve unrelated entities and stable IDs; refuse an unsupported external dependency with an actionable diagnostic rather than corrupting authored history. Verify Undo/Redo, save/reopen and a representative profile/extrude after deletion. Research public selection/Delete behavior and keep provenance in the external knowledge record.\n\n## Ownership\nInventory row `sketch.delete-geometry`. Start with a dated public workflow contract in `../Alloy-reference-records/knowledge`; keep references and images outside the repository. Native input, authored history, geometry/output and visual evidence must be distinguished."
+    },
+    {
+      "key": "SKT-100",
+      "title": "Diagnose overconstrained sketches and offer recoverable repair",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P0",
+      "depends_on": [
+        "SKT-023",
+        "REL-015"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Bounded result\nOwn the remaining proposed-v1 `sketch.solver-status` gap as a finishable feature slice; existing related tools and broader family coverage remain separate.\n\n## Acceptance\nFor a supported overconstrained sketch fixture, identify conflicting relations/entities and show actionable status in the native editor and shared API. A failed relation must preserve the last valid authored geometry and support removal/edit followed by a valid solve. Verify source edit, Undo/Redo and save/reopen; keep complete solver diagnostics beyond this supported subset tracked separately. Research public status and repair presentation first.\n\n## Ownership\nInventory row `sketch.solver-status`. Start with a dated public workflow contract in `../Alloy-reference-records/knowledge`; keep references and images outside the repository. Native input, authored history, geometry/output and visual evidence must be distinguished."
+    },
+    {
+      "key": "SKT-101",
+      "title": "Author retained sketch intersections on supported references",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-026"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Bounded result\nOwn the remaining proposed-v1 `sketch.intersection` gap as a finishable feature slice; existing related tools and broader family coverage remain separate.\n\n## Acceptance\nFrom a supported planar sketch, intersect selected solid edges/faces with the sketch plane into retained reference geometry using persistent source IDs. Show projected/intersection styling, update after an upstream edit, and fail recoverably for lost topology. Verify native selection, shared command, history, Undo/Redo and reopen. Broader include/silhouette modes remain explicit on the parent roadmap; research their public distinctions before implementation.\n\n## Ownership\nInventory row `sketch.intersection`. Start with a dated public workflow contract in `../Alloy-reference-records/knowledge`; keep references and images outside the repository. Native input, authored history, geometry/output and visual evidence must be distinguished."
+    },
+    {
+      "key": "DOC-037",
+      "title": "Inspect solid interference and minimum clearance",
+      "kind": "implementation",
+      "phase": "P1 Geometry/document",
+      "priority": "P1",
+      "depends_on": [
+        "DOC-014"
+      ],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "## Bounded result\nOwn the remaining proposed-v1 `inspection.interference` gap as a finishable feature slice; existing related tools and broader family coverage remain separate.\n\n## Acceptance\nProvide a user-facing inspection of two selected committed solids or components: report intersection volume when overlapping and minimum clearance for a supported nonoverlapping case, with units and selected identities. Inspection must not mutate history; verify native selection, shared API, exact independent BRep comparison on a small fixture, save/reopen and actionable refusal for unsupported selections. Keep the nominal enclosure connector fixture as adaptation evidence, not physical fit certification.\n\n## Ownership\nInventory row `inspection.interference`. Start with a dated public workflow contract in `../Alloy-reference-records/knowledge`; keep references and images outside the repository. Native input, authored history, geometry/output and visual evidence must be distinguished."
+    },
+    {
+      "key": "XCH-010",
+      "title": "Export selected solids to OBJ with independent readback",
+      "kind": "implementation",
+      "phase": "P3 Shapes, exchange, and printing",
+      "priority": "P2",
+      "depends_on": [
+        "PRT-001"
+      ],
+      "labels": [
+        "area:xch"
+      ],
+      "body": "## Bounded result\nOwn the remaining proposed-v1 `exchange.obj-output` gap as a finishable feature slice; existing related tools and broader family coverage remain separate.\n\n## Acceptance\nExport a selected committed solid or visible-body scope to local OBJ using documented units and axis convention; write a deterministic material-free mesh subset first. Verify native chooser/Cancel and shared command, independent OBJ parser bounds/topology and a second consumer when practical, unchanged authored/undo state and source edit/re-export. Research public workflow/settings before implementation; retain broader materials and assembly semantics as explicit later work.\n\n## Ownership\nInventory row `exchange.obj-output`. Start with a dated public workflow contract in `../Alloy-reference-records/knowledge`; keep references and images outside the repository. Native input, authored history, geometry/output and visual evidence must be distinguished."
+    },
+    {
+      "key": "REL-048",
+      "title": "Keep visibility changes responsive during active geometry previews",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [
+        "REL-031"
+      ],
+      "labels": [
+        "area:rel"
+      ],
+      "body": "## Bounded result\nOwn the remaining proposed-v1 `history.visibility` gap as a finishable feature slice; existing related tools and broader family coverage remain separate.\n\n## Acceptance\nMeasure body visibility changes while a representative Combine or other active geometry preview is open, then remove the observed UI pause without changing preview result, selection or authored state. Verify actual app frame cadence/status/navigation, exact geometry before/after, Cancel, Undo/Redo and reopen where a committed visibility change exists. This is the active-preview remainder after accepted idle visibility reuse; broader REL-016 performance stays open.\n\n## Ownership\nInventory row `history.visibility`. Start with a dated public workflow contract in `../Alloy-reference-records/knowledge`; keep references and images outside the repository. Native input, authored history, geometry/output and visual evidence must be distinguished."
     }
   ]
 }

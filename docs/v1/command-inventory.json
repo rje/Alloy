@@ -326,7 +326,8 @@
       ],
       "issueKeys": [
         "DOC-009",
-        "REL-031"
+        "REL-031",
+        "REL-048"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -555,7 +556,8 @@
         "SKT-031",
         "SKT-042",
         "SKT-049",
-        "SKT-050"
+        "SKT-050",
+        "SKT-094"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -592,7 +594,8 @@
       "issueKeys": [
         "SKT-006",
         "SKT-041",
-        "SKT-045"
+        "SKT-045",
+        "SKT-095"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -2673,7 +2676,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Bounded solid/assembly import and committed world-instance export exist; complete names/colors, arbitrary entity types, healing/loss reports and native dialog qualification remain incomplete.",
+      "gap": "Bounded solid/assembly import and committed world-instance export exist; local macOS native Open and export sheets/menus pass. Complete names/colors, arbitrary entity types, healing/loss reports and other-platform dialogs remain incomplete.",
       "apiIds": [
         "document.exportStep",
         "document.exportStepDialog",
@@ -2695,7 +2698,9 @@
         "docs/validation/step-exchange.md",
         "docs/validation/step-assembly-import.md",
         "docs/validation/linked-instance-export.md",
-        "docs/validation/native-exchange-assessment.md"
+        "docs/validation/native-exchange-assessment.md",
+        "docs/validation/native-exchange-sheet.md",
+        "docs/validation/native-exchange-menu.md"
       ],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },
@@ -2706,7 +2711,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "ASCII/binary bounded solid export exists with serialized-facet fixes. General in-app manifold audit, refinement preview, consumer qualification and all dialogs remain incomplete.",
+      "gap": "ASCII/binary bounded solid export exists with serialized-facet fixes; local macOS native File and Browser export sheets pass. General in-app manifold audit, refinement preview, broader consumer qualification and other-platform dialogs remain incomplete.",
       "apiIds": [
         "document.exportMeshDialog",
         "document.exportStl"
@@ -2734,7 +2739,9 @@
         "docs/validation/multibody-stl-independent.md",
         "docs/validation/stl-pole-facets.md",
         "docs/validation/stl-serialized-normals.md",
-        "docs/validation/component-mesh-visibility.md"
+        "docs/validation/component-mesh-visibility.md",
+        "docs/validation/native-exchange-sheet.md",
+        "docs/validation/native-browser-mesh.md"
       ],
       "options": [
         "ASCII STL",
@@ -2955,7 +2962,8 @@
       "apiIds": [],
       "issueKeys": [
         "SKT-011",
-        "SKT-021"
+        "SKT-021",
+        "SKT-099"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -2975,7 +2983,8 @@
       "issueKeys": [
         "SKT-008",
         "SKT-023",
-        "REL-015"
+        "REL-015",
+        "SKT-100"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -2993,7 +3002,8 @@
       "gap": "Product format target includes OBJ output; no OBJ export command is registered.",
       "apiIds": [],
       "issueKeys": [
-        "XCH-004"
+        "XCH-004",
+        "XCH-010"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3146,7 +3156,8 @@
       "gap": "Linked Project subset does not cover all intersect/include/silhouette tools.",
       "apiIds": [],
       "issueKeys": [
-        "SKT-026"
+        "SKT-026",
+        "SKT-101"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3649,7 +3660,8 @@
       "issueKeys": [
         "DOC-014",
         "TUT-029",
-        "TUT-030"
+        "TUT-030",
+        "DOC-037"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"

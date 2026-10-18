@@ -14,7 +14,14 @@ The 2026-10-17 ownership pass added 20 bounded Todo implementation issues
 [#496–#515](backlog/github.md) to the v1 inventory and GitHub project board.
 They cover proposed tools previously linked only to broad capability families
 or completed partial children. Their contracts/fixtures and final v1 release
-disposition remain open under REL-030; count is now 514 issues total.
+disposition remain open under REL-030. Six additional Todo owners
+[#518–#523](backlog/github.md) cover previously unowned sketch
+deletion/diagnosis/intersection, interference inspection, OBJ output and
+active-preview visibility responsiveness; count is now 520 issues total.
+Broad parent splits and the 13 partial rows with accepted subsets are recorded
+in [the ownership audit](v1/ownership-audit.md). Final v1 option decisions and
+release disposition remain open under REL-030; do not infer readiness from the
+larger issue count.
 DOC-016/#167 now passes the bounded actual STEP Open and export-sheet controls:
 inch STEP, nondefault STL, native Save/Cancel, independent readback and exact
 authored/undo preservation. Export sheets were launched through the local API;
