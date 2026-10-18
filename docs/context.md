@@ -2,20 +2,17 @@
 
 ## Active user order (2026-10-17)
 
-REL-046/#492 is the cumulative corrected-iron creation gate. Its first
-pending-aware 44-stage replay stopped at the frozen 2-second actual-frame-gap
-threshold: a 2.035-second synchronous `document.exportStl` call produced a
-2.088-second gap near the final export. The editor closed and the partial
-recording/evidence were preserved; this is not an accepted replacement movie.
-The final solid and STL match the accepted candidate, but STEP, postmovie
-source edit/history/reopen were not reached. REL-047/#493 now independently
-accepts the bounded single-solid millimeter binary-STL worker path on the saved
-iron: submit 97.443 ms, maximum actual-frame gap 389 ms, responsive
-status/navigation/heartbeat, byte-identical STL and unchanged document/history.
-See [the receipt](validation/responsive-stl-export.md). REL-046 remains open for
-the complete replay on this integrated build; candidate15 is preserved as
-failure evidence. REL-016 retains wider representative-model/physical/platform
-readiness.
+REL-046/#492 is independently accepted for the corrected-iron cumulative
+44-stage from-blank replay after REL-047/#493 moved the bounded STL export off
+the UI thread. The accepted candidate16 recording has a 686 ms maximum actual
+frame gap, responsive pending status/navigation/heartbeat, all 44 captions,
+exact authored/evaluated geometry and ancestry, byte-identical STL, checked
+STEP, and a postmovie source edit with Undo/Redo and reopen. See
+[the cumulative receipt](validation/iron-responsive-cumulative.md) and
+[the export receipt](validation/responsive-stl-export.md). The failed candidate15
+2.088-second export gap is retained as evidence; the accepted candidate14
+functional recording is retained. Physical input, other platforms/models and
+broader REL-016 readiness remain open.
 
 REL-045/#491 is independently accepted for the corrected-iron interactive
 Surface Trim target click. The original camera/ray/viewport/face intent stays

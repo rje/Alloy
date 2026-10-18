@@ -34,7 +34,8 @@ evaluates off-thread, and OK commits the prepared result without repeating the
 kernel evaluation. Guided and component Loft paths remain separate work.
 [Single-solid millimeter STL export](docs/validation/responsive-stl-export.md)
 now runs on a worker and keeps the saved corrected iron responsive; the complete
-responsive creation recording remains a separate cumulative gate.
+[responsive corrected-iron creation replay](docs/validation/iron-responsive-cumulative.md)
+also passes its cumulative frame-cadence, geometry, export and history gate.
 
 The [complete surface shoehorn](docs/validation/shoehorn-complete.md) now has
 an independently accepted full creation movie, editable model and checked STL:

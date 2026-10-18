@@ -53,8 +53,9 @@ the integrated responsive paths. Its first 44-stage replay stopped at a measured
 postmovie source edit/reopen were not reached. REL-047/#493 independently
 accepts the bounded single-solid millimeter binary-STL worker path on a saved
 iron fixture; see [the receipt](../validation/responsive-stl-export.md). The
-candidate15 failure evidence is retained externally and is not an accepted
-replacement recording. REL-046 still needs the full replay.
+candidate15 failure evidence is retained externally. REL-046 subsequently
+accepted the full 44-stage responsive candidate16 replay; see
+[the cumulative receipt](../validation/iron-responsive-cumulative.md).
 REL-038/#481 now independently accepts the panel and connected-rear
 partition/commit worker paths, exact committed geometry/ancestry and
 history/reopen; see [the receipt](../validation/responsive-surface-trim.md).
