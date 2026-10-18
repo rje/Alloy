@@ -9543,7 +9543,7 @@
         "phase:P2",
         "priority:P1"
       ],
-      "body": "## Bounded result\nA selected `fitSplineOffset` result deletes its generated curve/endpoints under an explicit owner policy while preserving the authored source spline and unrelated relations. Distinguish source selection from result selection and association removal.\n\n## Acceptance\nQualify one retained source/result spline fixture through shared native/API Delete, dependent-point refusal or safe preservation, exact Undo/Redo, save/reopen and hardware GPU captures. Public select/Delete and Offset/Mirror creation references are recorded outside the repository at ../Alloy-reference-records/knowledge/specs/skt142-mirror-offset-delete-triage-2026-10-18.md. Exact reference result-deletion cascades are unknown; record Alloy's policy without parity claims. Physical input, other-platform runtime and styling remain release gates.\n\n## Split provenance\nSplit from SKT-142/#568 on 2026-10-18 before implementing its Mirror + open-chain subset. Retain this Todo until its own owner schema and real-app evidence are accepted.\n\n## Dependencies\n- SKT-142\n"
+      "body": "## Bounded result\nA selected `fitSplineOffset` result deletes its generated curve/endpoints under an explicit owner policy while preserving the authored source spline and unrelated relations. Distinguish source selection from result selection and association removal.\n\n## Acceptance\nQualify one retained source/result spline fixture through shared native/API Delete, dependent-point refusal or safe preservation, exact Undo/Redo, save/reopen and hardware GPU captures. Public select/Delete and Offset/Mirror creation references are recorded outside the repository at ../Alloy-reference-records/knowledge/specs/skt142-mirror-offset-delete-triage-2026-10-18.md. Exact reference result-deletion cascades are unknown; record Alloy's policy without parity claims. Physical input, other-platform runtime and styling remain release gates.\n\n## Split provenance\nSplit from SKT-142/#568 on 2026-10-18 before implementing its Mirror + open-chain subset. Retain this Todo until its own owner schema and real-app evidence are accepted.\n\n## Dependencies\n- SKT-142\n\n## Linked association-only remainder\nSKT-149/#575 retains deletion of the Offset association/glyph while keeping and independently editing the generated fit-spline result. The present `fitSplineOffset` schema has no separate glyph relation or break-link representation; SKT-146 covers whole-result geometry Delete and must not claim that association-only behavior. Public/schema triage: ../Alloy-reference-records/knowledge/specs/skt146-fit-spline-offset-delete-triage-2026-10-18.md.\n"
     },
     {
       "key": "SKT-147",
@@ -9556,7 +9556,6 @@
       ],
       "labels": [
         "kind:implementation",
-        "status:ready",
         "area:skt",
         "phase:P2",
         "priority:P1"
@@ -9579,6 +9578,24 @@
         "priority:P1"
       ],
       "body": "## Bounded result\nDelete a selected generated fit-spline Mirror result through its complete retained Mirror owner. Preserve its authored source spline and mirror axis, including source points reused on the axis; retire only owned result curves, points and relations. SKT-142 initially refused this owner type rather than partially deleting it; this issue qualifies the retained fit-spline owner.\n\n## Acceptance\nResearch any additional public fit-spline Mirror Delete evidence and record uncertainty outside the repository; the exact reference result-deletion cascade is unknown, so whole-owner deletion is an explicit Alloy policy. Use the shared sketch.deleteSelection authority through native canvas/list and local API. Qualify one fit-spline Mirror with an on-axis/shared point and dependent-reference refusal, exact one-step Undo/Redo and save/reopen, hardware GPU capture, and preserved source/axis identities. Physical input, other-platform runtime and styling remain release gates.\n\n## Split provenance\nSplit from SKT-142/#568 on 2026-10-18 before closing its line/arc Mirror plus open-chain Offset scope. Public/schema triage: ../Alloy-reference-records/knowledge/specs/skt142-mirror-offset-delete-triage-2026-10-18.md.\n\n## Dependencies\n- SKT-142\n\n## Accepted 2026-10-18\nMixed line/arc/fit-spline Mirror owner Delete passes focused core, real-app API exact Undo/Redo/save/reopen, native Qt canvas/list/context (3/3) and Apple M4 GPU captures. Independent Sol review reran the core test, checked the final app hash, source, transcript, saved model and captures, and found no blocker. Source spline/line/arc, on-axis point, tangent handle, axis and unrelated geometry survive; dependent-owner and stale/mixed requests refuse atomically. Context Delete requires a prior result click; source-selected right-click retargeting remains unqualified. Exact reference cascade/styling, physical input, downstream feature-dependent deletion and Windows/Linux runtime remain separate. Receipt: docs/validation/sketch-fit-spline-mirror-delete.md.\n"
+    },
+    {
+      "key": "SKT-149",
+      "title": "Break fit-spline Offset association while retaining the curve",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-146"
+      ],
+      "labels": [
+        "kind:implementation",
+        "status:blocked",
+        "area:skt",
+        "phase:P2",
+        "priority:P1"
+      ],
+      "body": "## Bounded result\nProvide a separate association-removal action for a retained fit-spline Offset. Deleting its Offset glyph or choosing an explicit break-link action keeps the visible result curve and source curve, converts the derived result to independently editable authored geometry, and removes only the source association and its ownership rules. Deleting the result geometry remains SKT-146; deleting a distance annotation is a different action.\n\n## Acceptance\nResearch the public glyph and break-link input with dated sources outside the repository; public help documents association removal, but Alloy's current `fitSplineOffset` entity has no separate glyph relation or independent-result representation. Add the minimum authored conversion needed for one open spline result with stable IDs or an explicit mapped replacement, preserving source and curve shape. Use shared native/API command authority, distinguish geometry Delete and glyph Delete, verify source edit no longer drives result, one-step Undo/Redo, save/reopen, dependency refusal, and actual GPU capture. Keep physical input, exact styling and other-platform runtime separate.\n\n## Split provenance\nSplit from SKT-146/#572 on 2026-10-18 after schema/public-workflow triage identified distinct association-only behavior. Source record: ../Alloy-reference-records/knowledge/specs/skt146-fit-spline-offset-delete-triage-2026-10-18.md. Do not silently treat a geometry Delete as this action.\n\n## Dependencies\n- SKT-146\n"
     }
   ]
 }

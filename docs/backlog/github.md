@@ -579,3 +579,4 @@ This is a publication snapshot. Use `python3 tools/backlog.py ready` for the liv
 | [#572 SKT-146: Delete retained fit-spline Offset results](https://github.com/rje/Alloy/issues/572) | P2 Parametric modeling | implementation | P1 | [#568](https://github.com/rje/Alloy/issues/568) |
 | [#573 SKT-147: Delete retained circle Offset results](https://github.com/rje/Alloy/issues/573) | P2 Parametric modeling | implementation | P1 | [#568](https://github.com/rje/Alloy/issues/568) |
 | [#574 SKT-148: Delete retained fit-spline Mirror results](https://github.com/rje/Alloy/issues/574) | P2 Parametric modeling | implementation | P1 | [#568](https://github.com/rje/Alloy/issues/568) |
+| [#575 SKT-149: Break fit-spline Offset association while retaining the curve](https://github.com/rje/Alloy/issues/575) | P2 Parametric modeling | implementation | P1 | [#572](https://github.com/rje/Alloy/issues/572) |
