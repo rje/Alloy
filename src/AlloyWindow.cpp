@@ -4847,7 +4847,9 @@ void AlloyWindow::registerCommands() {
     constraintType["enum"]=QJsonArray{"coincident","concentric","horizontal","vertical","horizontalVertical","parallel","collinear","perpendicular","equal","fixed","midpoint","symmetry","tangent","pointOnCurve"};
     auto constraintToolType=constraintType;
     constraintToolType["enum"]=QJsonArray{"coincident","concentric","horizontal","vertical","horizontalVertical","parallel","collinear","perpendicular","equal","fixed","midpoint","symmetry","tangent"};
-    add("sketch.constraintTool","Activate sketch constraint","Apply compatible preselection, then repeatedly pick geometry; Escape returns to Select.",{{"type",constraintToolType},{"session",optionalSession}},[this](const auto& a){
+    auto tangentEndpoint=parameter("string","Explicit arc endpoint for arc-circle Tangent. Omit for interior curve contact.");
+    tangentEndpoint["enum"]=QJsonArray{"start","end"};
+    add("sketch.constraintTool","Activate sketch constraint","Apply compatible preselection, then repeatedly pick geometry; Escape returns to Select.",{{"type",constraintToolType},{"endpoint",optional(tangentEndpoint)},{"session",optionalSession}},[this](const auto& a){
         if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
         if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
@@ -4856,12 +4858,23 @@ void AlloyWindow::registerCommands() {
             session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}},{"profileIds",QJsonArray{}}};
         }
         cancelDimension();cancelCircleDiameter();view_->clearSketchCursor();session_.remove("snap");
+        if(a.contains("endpoint") && a["type"]!="tangent")return failure("invalid_constraint_target","Endpoint option requires Tangent");
+        if(a.contains("endpoint"))session_["tangentEndpoint"]=a["endpoint"];
+        else if(session_.value("tool")!="constraint" || session_.value("constraintType")!="tangent" || a["type"]!="tangent")session_.remove("tangentEndpoint");
         session_["tool"]="constraint";session_["constraintType"]=a["type"];session_.remove("constraintPickStatus");
         session_.remove("firstPoint");session_.remove("secondPoint");session_.remove("pointerPoint");session_.remove("gestureSweepDeg");
         const auto type=a["type"].toString();const auto field=type=="fixed" || type=="coincident" || (type=="horizontalVertical" && !session_.value("selection").toObject()["pointIds"].toArray().isEmpty()) ? QString("pointIds") : QString("entityIds");
         const auto selection=session_["selection"].toObject();
         const auto result=setSketchSelection({{field,selection[field].toArray()}});view_->setFocus();return result;
     });
+    add("sketch.tangentContact","Choose Tangent contact","Choose interior curve contact or an explicit arc endpoint; clears pending picks.",
+        {{"endpoint",optional(tangentEndpoint)},{"session",optionalSession}},[this](const auto& a){
+            if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+            if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
+            session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}},{"profileIds",QJsonArray{}}};
+            session_.remove("tangentEndpoint");QJsonObject args{{"type","tangent"}};if(a.contains("endpoint"))args["endpoint"]=a["endpoint"];
+            return execute("sketch.constraintTool",args);
+        });
     add("sketch.construction","Set construction geometry","Convert selected or explicit authored lines without changing their IDs or relations.",
         {{"entityIds",ids},{"construction",parameter("boolean","True for construction; false for normal profile geometry.")},{"session",optionalSession}},[this](const auto& a){
             if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
@@ -4905,7 +4918,7 @@ void AlloyWindow::registerCommands() {
                 {{"entityIds",chosen},{"centerline",!allCenterline}},session_.value("projectionContext").toObject()));
         });
     add("sketch.constraint","Constrain sketch geometry","Solve a geometric relation before replacing the usable sketch draft.",
-        {{"type",constraintType},{"pointIds",ids},{"entityIds",ids},{"origin",optional(parameter("boolean","Use the sketch origin as Midpoint's retained point."))},{"session",optionalSession}},[this](const auto& a){
+        {{"type",constraintType},{"endpoint",optional(tangentEndpoint)},{"pointIds",ids},{"entityIds",ids},{"origin",optional(parameter("boolean","Use the sketch origin as Midpoint's retained point."))},{"session",optionalSession}},[this](const auto& a){
             if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
             if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
             QJsonObject args{{"type",a["type"]}};const auto field=a.contains("pointIds") || a["type"]=="coincident" || a["type"]=="fixed" || a["type"]=="horizontalVertical" ? "pointIds" : "entityIds";
@@ -4915,6 +4928,7 @@ void AlloyWindow::registerCommands() {
                 else args["pointIds"]=a.contains("pointIds") ? a["pointIds"] : session_.value("selection").toObject().value("pointIds");
                 args["entityIds"]=a.contains("entityIds") ? a["entityIds"] : session_.value("selection").toObject().value("entityIds");
             }
+            if(a.contains("endpoint"))args["endpoint"]=a["endpoint"];
             return applySketchConstraint(a["type"].toString(),args);
         });
     auto kind=parameter("string","Dimension measurement kind.");kind["enum"]=QJsonArray{"linear","horizontal","vertical","angle","radius","diameter","arcSweep","pointLineDistance","parallelLineDistance","centerlineDiameter"};
@@ -10894,6 +10908,10 @@ QJsonObject AlloyWindow::setSketchSelection(const QJsonObject& selection) {
                 || (constraintType=="tangent" && kind!="line" && kind!="circle" && kind!="arc"))
                 return rejectPick("wrong_type",label+" requires authored lines, circles or arcs");
         }
+        if(constraintType=="tangent" && session_.contains("tangentEndpoint")){
+            for(const auto& kind:types)if(kind!="arc" && kind!="circle")return rejectPick("wrong_type","Endpoint contact needs one arc and one full circle");
+            if(types.size()==2 && !(types.contains("arc") && types.contains("circle")))return rejectPick("unsupported_pair","Endpoint contact needs one arc and one full circle");
+        }
         if(types.size()>=2){
             const auto first=types[0],second=types[1];
             if(constraintType=="symmetry" && first!=second)
@@ -10942,6 +10960,8 @@ QJsonObject AlloyWindow::setSketchSelection(const QJsonObject& selection) {
             : type=="symmetry" ? (targets.size()==2 ? QString("Symmetry · Pick construction axis · Escape exits")
             : targets.isEmpty() ? QString("Symmetry · Pick first line, circle or arc · Escape exits") : QString("Symmetry · Pick matching line, circle or arc · Escape exits"))
             : QString("%1 · Pick %2 %3 · Escape exits").arg(label).arg(targets.isEmpty() ? "first" : "next").arg(field=="pointIds" ? "point" : "curve");
+        if(type=="tangent" && session_.contains("tangentEndpoint"))session_["constraintPrompt"]=QString("Tangent · Arc %1 endpoint to circle · %2 · Escape exits")
+            .arg(session_.value("tangentEndpoint").toString()).arg(targets.isEmpty() ? "Pick arc or circle" : "Pick matching arc or circle");
         if(targets.size()>required)return failure("invalid_constraint_target",QString("%1 requires %2 targets").arg(label).arg(required));
         if(type=="symmetry" && !normalized["pointIds"].toArray().isEmpty())return failure("invalid_constraint_target","Symmetry requires line, circle or arc picks");
         if(field=="entityIds")for(int index=0;index<targets.size();++index)for(const auto& entry:parameters["entities"].toArray()) {
@@ -10952,7 +10972,9 @@ QJsonObject AlloyWindow::setSketchSelection(const QJsonObject& selection) {
             if(type=="symmetry" && index==2 && !entity["construction"].toBool())return failure("invalid_constraint_target","Third symmetry pick must be a construction line");
         }
         if(targets.size()==required) {
-            const auto result=applySketchConstraint(type,{{field,targets}});
+            QJsonObject args{{field,targets}};
+            if(type=="tangent" && session_.contains("tangentEndpoint"))args["endpoint"]=session_.value("tangentEndpoint");
+            const auto result=applySketchConstraint(type,args);
             if(result["ok"].isBool() && !result["ok"].toBool()) {
                 if(analyticConstraint){
                     auto pending=normalized;auto entities=pending["entityIds"].toArray();entities.removeLast();pending["entityIds"]=entities;
@@ -11830,6 +11852,11 @@ void AlloyWindow::refreshSketchControls() {
         const QSignalBlocker block(button);
         button->setChecked(session_.value("tool")=="constraint" && button->objectName()=="sketch.constraint."+session_.value("constraintType").toString());
     }
+    if(auto* contact=sketchPanel_->findChild<QComboBox*>("sketch.tangent.contact")){
+        const bool active=session_.value("tool")=="constraint" && session_.value("constraintType")=="tangent";
+        contact->parentWidget()->setVisible(active);const QSignalBlocker block(contact);
+        contact->setCurrentIndex(contact->findData(session_.value("tangentEndpoint").toString()));
+    }
     const auto draft=session_.value("draftSketch").toObject(),selection=session_.value("selection").toObject();
     const auto units=session_.value("inputs").toObject()["units"].toString();
     refreshSplinePalette();
@@ -11886,7 +11913,7 @@ void AlloyWindow::refreshSketchControls() {
     QMap<QString,QStringList> relations;
     for(const auto& entry:parameters["constraints"].toArray()) {
         const auto constraint=entry.toObject();const auto type=constraint["type"]=="pointOnCurve" ? QString("coincident") :
-            (constraint["type"]=="arcTangent" || constraint["type"]=="circleTangent" || constraint["type"]=="arcCircleTangent" || constraint["type"]=="arcArcTangent") ? QString("tangent") :
+            (constraint["type"]=="arcTangent" || constraint["type"]=="circleTangent" || constraint["type"]=="arcEndpointCircleTangent" || constraint["type"]=="arcCircleTangent" || constraint["type"]=="arcArcTangent") ? QString("tangent") :
             constraint["type"]=="supportLine" ? QString("support line (internal)") : constraint["type"].toString();
         for(const auto& id:constraint["entityIds"].toArray())relations[id.toString()].append(type.first(1).toUpper()+type.sliced(1));
         for(const auto& id:constraint["pointIds"].toArray())relations[id.toString()].append(type.first(1).toUpper()+type.sliced(1));
@@ -12359,6 +12386,14 @@ void AlloyWindow::showSketch() {
             });
         }
         layout->addLayout(constraints);
+        auto* tangentOptions=new QWidget;tangentOptions->setObjectName("sketch.tangent.options");auto* tangentLayout=new QFormLayout(tangentOptions);
+        tangentLayout->setContentsMargins(0,0,0,0);auto* tangentContact=new QComboBox;tangentContact->setObjectName("sketch.tangent.contact");
+        tangentContact->addItem("Curve Interior",QString{});tangentContact->addItem("Arc Start to Circle","start");tangentContact->addItem("Arc End to Circle","end");
+        tangentLayout->addRow("Contact",tangentContact);layout->addWidget(tangentOptions);tangentOptions->hide();
+        connect(tangentContact,&QComboBox::currentIndexChanged,this,[this,tangentContact]{
+            QJsonObject args;const auto endpoint=tangentContact->currentData().toString();if(!endpoint.isEmpty())args["endpoint"]=endpoint;
+            sketchResponse(execute("sketch.tangentContact",args));
+        });
         sketchShowConstraints_=new QCheckBox("Show Constraints");sketchShowConstraints_->setObjectName("sketch.showConstraints");
         sketchShowDimensions_=new QCheckBox("Show Dimensions");sketchShowDimensions_->setObjectName("sketch.showDimensions");
         for(auto* option:{sketchShowConstraints_,sketchShowDimensions_}){option->setChecked(true);layout->addWidget(option);}

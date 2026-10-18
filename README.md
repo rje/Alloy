@@ -37,6 +37,8 @@ retains a contact branch through radius and center edits and refuses edits that
 move contact off the arc sweep.
 [Finite arc-pair Tangent](docs/validation/sketch-arc-arc-tangent.md) now retains
 contact on both arc sweeps through radius and center edits.
+[Arc-endpoint to circle Tangent](docs/validation/sketch-arc-endpoint-circle-tangent.md)
+now retains an explicit start or end contact through source edits, history and reopen.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,

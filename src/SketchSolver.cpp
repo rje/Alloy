@@ -293,6 +293,13 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 auto& p = point(reference(constraint,"pointIds",0));
                 solver.addConstraintEqual(p.x,constant(number(constraint,"uMm")),t);
                 solver.addConstraintEqual(p.y,constant(number(constraint,"vMm")),t);
+            } else if(type=="arcEndpointCircleTangent") {
+                auto& a=circumference(reference(constraint,"entityIds",0));auto& b=circumference(reference(constraint,"entityIds",1));
+                auto& endpoint=point(constraint["contact"].toObject()["pointId"].toString());
+                auto& target=circleMap.contains(reference(constraint,"entityIds",0)) ? a : b;
+                solver.addConstraintPointOnCircle(endpoint,target,t);
+                GCS::Line centers;centers.p1=a.center;centers.p2=b.center;
+                solver.addConstraintPointOnLine(endpoint,centers,t);
             } else if(type=="circleTangent" || type=="arcCircleTangent" || type=="arcArcTangent") {
                 auto& a=circumference(reference(constraint,"entityIds",0));auto& b=circumference(reference(constraint,"entityIds",1));
                 solver.addConstraintTangentCircumf(a.center,b.center,a.rad,b.rad,number(constraint,"side")<0,t);
@@ -602,12 +609,21 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 check(*vertex.x-*anchor.x-number(c,"offsetUMm"),lengthTolerance);check(*vertex.y-*anchor.y-number(c,"offsetVMm"),lengthTolerance);
             }
             else if(type=="fixed") {const auto& p=point(reference(c,"pointIds",0));check(*p.x-number(c,"uMm"),lengthTolerance);check(*p.y-number(c,"vMm"),lengthTolerance);}
-            else if(type=="circleTangent" || type=="arcCircleTangent" || type=="arcArcTangent") {
+            else if(type=="circleTangent" || type=="arcCircleTangent" || type=="arcEndpointCircleTangent" || type=="arcArcTangent") {
                 const auto& a=circumference(reference(c,"entityIds",0));const auto& b=circumference(reference(c,"entityIds",1));
                 const double distance=std::hypot(*a.center.x-*b.center.x,*a.center.y-*b.center.y);
                 require(distance>=minimumLength,"Circle tangent centers became coincident");
                 if(number(c,"side")<0)require(*a.rad>*b.rad,"Internal tangent outer circle changed");
                 check(distance-(*a.rad+number(c,"side") * *b.rad),lengthTolerance);
+                if(type=="arcEndpointCircleTangent"){
+                    const bool firstArc=arcMap.contains(reference(c,"entityIds",0));
+                    const auto& arc=arcMap.at(reference(c,"entityIds",firstArc ? 0 : 1));const auto& other=firstArc ? b : a;
+                    const auto contact=c["contact"].toObject();const auto& endpoint=point(contact["pointId"].toString());
+                    require(number(contact,"sweepSign")*(*arc.endAngle-*arc.startAngle)>0,"Endpoint tangent reversed its retained sweep");
+                    const double direction=number(c,"side")<0 && !firstArc ? -1 : 1;
+                    check(*endpoint.x-(*arc.center.x+direction*(*other.center.x-*arc.center.x) * *arc.rad/distance),lengthTolerance);
+                    check(*endpoint.y-(*arc.center.y+direction*(*other.center.y-*arc.center.y) * *arc.rad/distance),lengthTolerance);
+                }
                 if(type=="arcCircleTangent" || type=="arcArcTangent")for(int index=0;index<2;++index){
                     if(!arcMap.contains(reference(c,"entityIds",index)))continue;
                     const bool firstArc=index==0;
