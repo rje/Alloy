@@ -13,6 +13,7 @@
 #include <optional>
 #include <vector>
 #include "CadDocument.h"
+#include "MeshExport.h"
 #include "AssemblyGraph.h"
 #include "SketchGeometry.h"
 
@@ -329,6 +330,7 @@ private:
         std::shared_ptr<const ViewPickSnapshot> pick;
         QString bodyId, sourceFaceId;
     };
+    friend class MeshExportControlsTest;
     struct GeometryEvaluation {
         std::atomic<bool> ready{false};
         CadDocument* document = nullptr; // Identity only; never accessed by worker.
@@ -347,6 +349,10 @@ private:
         QJsonObject trimClickResult;
         qint64 sourceMs = 0, fullMs = 0, stageMs = 0;
         QString error;
+        std::vector<EvaluatedBody> exportBodies; // Independent geometry; never live reference arrays.
+        std::shared_ptr<MeshExport::PublicationGate> exportPublication;
+        QJsonObject exportResult, exportError;
+        qint64 snapshotMs = 0;
     };
     std::shared_ptr<GeometryEvaluation> geometryEvaluationRunning_, geometryEvaluationQueued_;
     std::shared_ptr<const EvaluatedDocument> surfaceExtrudeSource_;
@@ -355,6 +361,16 @@ private:
     QString surfaceExtrudeRequestedSession_;
     quint64 geometryEvaluationGeneration_ = 0;
     QTimer* geometryEvaluationPoll_ = nullptr;
+    QJsonObject meshExportOperation_; // One terminal result, until next request/session/document mutation.
+    QList<QPointer<QWidget>> meshExportFrozenControls_;
+    QPushButton* meshExportCancel_ = nullptr;
+    QJsonObject beginMeshExport(const std::vector<EvaluatedBody>& bodies,const QJsonObject& inputs,const QString& label);
+    static void evaluateMeshExport(GeometryEvaluation& task);
+    bool meshExportCurrent(const GeometryEvaluation& task) const;
+    QJsonObject cancelMeshExport();
+    void pollMeshExport();
+    void completeMeshExport(const std::shared_ptr<GeometryEvaluation>& task);
+    void refreshMeshExportDialog();
     QJsonObject documentOpenOperation_; // One request, until next session/document change or Open.
     QList<QPointer<QWidget>> documentOpenFrozenControls_;
     QPushButton* documentOpenCancel_ = nullptr;

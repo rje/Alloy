@@ -50,9 +50,11 @@ REL-046/#492 is the cumulative from-blank corrected-iron recording gate for
 the integrated responsive paths. Its first 44-stage replay stopped at a measured
 2.088 s actual-frame gap over the frozen 2 s limit: synchronous STL export took
 2.035 s on the UI thread. The final solid and STL matched, but STEP and the
-postmovie source edit/reopen were not reached. REL-047/#493 owns the bounded
-export fix before the cumulative gate resumes; the candidate15 failure evidence
-is retained externally and is not an accepted replacement recording.
+postmovie source edit/reopen were not reached. REL-047/#493 independently
+accepts the bounded single-solid millimeter binary-STL worker path on a saved
+iron fixture; see [the receipt](../validation/responsive-stl-export.md). The
+candidate15 failure evidence is retained externally and is not an accepted
+replacement recording. REL-046 still needs the full replay.
 REL-038/#481 now independently accepts the panel and connected-rear
 partition/commit worker paths, exact committed geometry/ancestry and
 history/reopen; see [the receipt](../validation/responsive-surface-trim.md).

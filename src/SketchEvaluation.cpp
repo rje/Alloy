@@ -19,7 +19,7 @@ EvaluatedDocument AlloyWindow::sketchHistoryStage(const QString& featureId) cons
 QJsonObject AlloyWindow::queueSketchEvaluation(const QString& command,const QString& sketchId,const QJsonObject& candidate) {
     // A new modeling request ends prior completed Open/commit status lifetimes.
     // The serial-worker gate prevents invalidating a still-pending caller here.
-    documentOpenOperation_={};geometryEvaluationTerminal_={};
+    documentOpenOperation_={};geometryEvaluationTerminal_={};meshExportOperation_={};
     auto task=std::make_shared<GeometryEvaluation>();task->command=command;task->phase=command=="sketch.edit" ? "open" : command=="feature.edit" ? "edit" : "finish";
     task->document=document_;task->documentId=document_->authored().value("documentId").toString();
     task->tabId=activeTabId_;task->revision=document_->revision();task->base=document_->authored();task->retainedSession=session_;

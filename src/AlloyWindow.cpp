@@ -1229,6 +1229,10 @@ AlloyWindow::AlloyWindow() {
 }
 
 AlloyWindow::~AlloyWindow() {
+    // A detached export may be awaiting GUI authorization. Always release it
+    // without joining, including teardown that bypasses normal close guards.
+    if(geometryEvaluationRunning_ && geometryEvaluationRunning_->exportPublication)
+        geometryEvaluationRunning_->exportPublication->deny();
     // QApplication can emit focusChanged while QWidget's base destructor
     // hides children, after our session/document members have been destroyed.
     disconnect(qApp,nullptr,this,nullptr);
@@ -1762,6 +1766,7 @@ void AlloyWindow::refreshTabs() {
 }
 
 QJsonObject AlloyWindow::activateTab(const QString& tabId) {
+    if(geometryEvaluationRunning_ && geometryEvaluationRunning_->command=="document.exportStl")return failure("evaluation_busy","Wait for STL export to finish before switching designs");
     if(tabId==activeTabId_)return documentTabs();
     bool found=false;for(const auto& tab:designTabs_)found|=tab->id==tabId;
     if(!found)return failure("stale_tab","Design tab does not exist","tabId");
@@ -1770,6 +1775,7 @@ QJsonObject AlloyWindow::activateTab(const QString& tabId) {
 }
 
 QJsonObject AlloyWindow::closeTab(const QString& tabId,bool discard) {
+    if(geometryEvaluationRunning_ && geometryEvaluationRunning_->command=="document.exportStl")return failure("evaluation_busy","Wait for STL export to finish before closing designs");
     auto it=std::find_if(designTabs_.begin(),designTabs_.end(),[&](const auto& tab){return tab->id==tabId;});
     if(it==designTabs_.end())return failure("stale_tab","Design tab does not exist","tabId");
     if(tabHasUnsavedWork(tabId) && !discard)return failure("unsaved_changes","Save or explicitly discard the design before closing its tab");
@@ -2288,6 +2294,8 @@ void AlloyWindow::registerCommands() {
             if(!sliderPreviewAuthored_.isEmpty() || !jointGraphStage_.isEmpty() || transientSliderPosition_.has_value() || pendingReferenceEvaluation_)
                 return failure("staged_pose","Finish or revert staged motion before exporting the committed pose");
             try{const auto selected=ExportScope::select(document_->authored(),presentationBodies(),a);
+                if(selected.bodies.size()==1 && a.value("units")=="mm" && a.value("format")=="binary")
+                    return beginMeshExport(selected.bodies,a,selected.label);
                 auto result=MeshExport::writeStl(selected.bodies,a["path"].toString(),a["units"].toString(),a["format"]=="binary",a["surfaceDeviationMm"].toDouble(),a["normalDeviationDeg"].toDouble());
                 result["scopeLabel"]=selected.label;return result;}
             catch(const GeometryKernel::EvaluationError& error){return QJsonObject{{"ok",false},{"error",error.diagnostics()}};}
@@ -6192,7 +6200,8 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
         if(!argumentError.isEmpty())return failure("invalid_arguments",argumentError);
         // A successful asynchronous commit closes its dialog. Retain only its
         // terminal result, until another session or document change replaces it.
-        const auto operation=sketchEvaluationOperation_.value("id")==args.value("session") ? sketchEvaluationOperation_
+        const auto operation=meshExportOperation_.value("id")==args.value("session") ? meshExportOperation_
+            : sketchEvaluationOperation_.value("id")==args.value("session") ? sketchEvaluationOperation_
             : documentOpenOperation_.value("id")==args.value("session") ? documentOpenOperation_
             : session_.isEmpty() ? geometryEvaluationTerminal_ : session_;
         if(operation.isEmpty() || operation.value("id")!=args.value("session"))return failure("invalid_session","Session is no longer active");
@@ -6203,6 +6212,17 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
             {"documentRevision",static_cast<qint64>(document_->revision())}};
         if(status=="failed"){response["ok"]=false;response["error"]=operation.value("previewError");}
         return response;
+    }
+    if(geometryEvaluationRunning_ && geometryEvaluationRunning_->command=="document.exportStl"){
+        if(id=="command.cancel" && args.value("session")==meshExportOperation_.value("id")){
+            const auto error=validateArguments(*findCommand(id),args);if(!error.isEmpty())return failure("invalid_arguments",error);
+            return cancelMeshExport();
+        }
+        const bool safe=id=="commands.list" || id=="app.state" || id=="document.inspect"
+            || id=="view.orbit" || id=="view.pan" || id=="view.zoom" || id=="view.orientation" || id=="view.home" || id=="view.fit"
+            || id=="capture.screenshot" || id=="capture.viewport" || id=="capture.dialog"
+            || id.startsWith("recording.");
+        if(!safe)return failure("evaluation_busy","STL export is running; navigate or inspect command.status until it finishes");
     }
     if(sketchEvaluationOperation_.value("evaluationStatus")=="pending"
         && (id=="sketch.cancel" || (id=="command.cancel" && (args.value("session")==sketchEvaluationOperation_.value("id")
@@ -6228,7 +6248,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
             || id=="view.fit" || id=="capture.screenshot" || id=="capture.viewport" || id=="capture.dialog";
         if(!safe)return failure("evaluation_busy","A native document is opening; navigate or Cancel Open to discard its result");
     }
-    if(geometryEvaluationRunning_ && geometryEvaluationRunning_->command!="sketch.edit" && geometryEvaluationRunning_->command!="sketch.finish" && geometryEvaluationRunning_->command!="feature.edit") {
+    if(geometryEvaluationRunning_ && geometryEvaluationRunning_->command!="sketch.edit" && geometryEvaluationRunning_->command!="sketch.finish" && geometryEvaluationRunning_->command!="feature.edit" && geometryEvaluationRunning_->command!="document.exportStl") {
         const bool safe=id=="commands.list" || id=="app.state" || id=="document.inspect" || id=="command.cancel"
             || (session_.value("command")=="surface.extrude" && (id=="command.preview" || id=="command.update" || id=="command.commit"
                 || id=="surface.extrudeEntity" || id=="surface.extrudeProfile" || id=="selection.pick"))
@@ -6319,7 +6339,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     catch(const std::exception& error) { refreshConstraintFailure(); return finish(failure("command_failed",QString::fromUtf8(error.what()))); }
     if (result.value("ok").isBool() && !result.value("ok").toBool()) { refreshConstraintFailure(); return finish(result); }
     if(document_!=priorDocument || document_->revision()!=priorDocumentRevision
-        || (!session_.isEmpty() && session_.value("id")!=priorSessionId)){geometryEvaluationTerminal_={};documentOpenOperation_={};sketchEvaluationOperation_={};}
+        || (!session_.isEmpty() && session_.value("id")!=priorSessionId)){geometryEvaluationTerminal_={};documentOpenOperation_={};sketchEvaluationOperation_={};meshExportOperation_={};}
     const auto afterCommandSolves=traceGraphSolves?AssemblyGraph::solveCount():0;
     const double commandPhaseMs=traceGraphSolves?phaseTimer.nsecsElapsed()/1e6:0;
     if(document_->revision()!=priorDocumentRevision && (transientSliderPosition_.has_value() || !jointGraphStage_.isEmpty() || (sliderTimer_ && sliderTimer_->isActive()))){
@@ -6434,11 +6454,11 @@ QJsonObject AlloyWindow::state() const {
     return {{"application", "Alloy"}, {"version", "0.1.0"}, {"stage", "sketch-authoring"},
         {"runtime", QJsonObject{{"qtVersion", qVersion()}, {"occtBuildVersion", ALLOY_OCCT_VERSION}}},
         {"revision", static_cast<qint64>(revision_)},
-        {"identity", identity()}, {"sketchEvaluation",operationProgress(sketchEvaluationOperation_)}, {"documentOpen",operationProgress(documentOpenOperation_)}, {"activeSession", session_}, {"sectionEdit",sectionEdit_}, {"pendingReferencePosition",pendingReference_}, {"assembly",presentationAssembly()}, {"documentTabs",documentTabs()},
+        {"identity", identity()}, {"sketchEvaluation",operationProgress(sketchEvaluationOperation_)}, {"documentOpen",operationProgress(documentOpenOperation_)}, {"meshExport",operationProgress(meshExportOperation_)}, {"activeSession", session_}, {"sectionEdit",sectionEdit_}, {"pendingReferencePosition",pendingReference_}, {"assembly",presentationAssembly()}, {"documentTabs",documentTabs()},
         {"recovery",QJsonObject{{"available",recovery_->error().isEmpty()},{"warning",recoveryWarning_},
             {"staleCount",recovery_->list().size()},{"scope","committed authored state only"}}},
         {"inlineEditor",inlineEditorState()},
-        {"geometryWork",QJsonObject{{"active",geometryBusyActive_ || bool(geometryEvaluationRunning_)},{"cancellable",false},{"resultDiscardAvailable",sketchEvaluationOperation_.value("evaluationStatus")=="pending" || documentOpenOperation_.value("evaluationStatus")=="pending" || session_.value("command")=="surface.extrude" || session_.value("command")=="surface.boundaryFill" || ((session_.value("command")=="surface.trim" || session_.value("command")=="solid.loft") && session_.value("evaluationStatus")=="pending")},{"last",lastGeometryWork_}}},
+        {"geometryWork",QJsonObject{{"active",geometryBusyActive_ || bool(geometryEvaluationRunning_)},{"cancellable",false},{"resultDiscardAvailable",(meshExportOperation_.value("evaluationStatus")=="pending" && meshExportOperation_.value("evaluationPhase")!="publishing") || sketchEvaluationOperation_.value("evaluationStatus")=="pending" || documentOpenOperation_.value("evaluationStatus")=="pending" || session_.value("command")=="surface.extrude" || session_.value("command")=="surface.boundaryFill" || ((session_.value("command")=="surface.trim" || session_.value("command")=="solid.loft") && session_.value("evaluationStatus")=="pending")},{"last",lastGeometryWork_}}},
         {"focus",QJsonObject{{"widgetClass",QApplication::focusWidget() ? QApplication::focusWidget()->metaObject()->className() : ""},
             {"widgetName",QApplication::focusWidget() ? QApplication::focusWidget()->objectName() : QString{}},
             {"viewport",QApplication::focusWidget()==view_},
@@ -11907,7 +11927,11 @@ bool AlloyWindow::confirmAllDiscard() {
 void AlloyWindow::closeEvent(QCloseEvent* event) {
     if(geometryEvaluationRunning_) {
         event->ignore();
-        statusBar()->showMessage("Background geometry evaluation is still running. Cancel discards its result; close after it finishes.");
+        if(geometryEvaluationRunning_->command=="document.exportStl")
+            statusBar()->showMessage(geometryEvaluationRunning_->exportPublication->state()==MeshExport::PublicationGate::State::Approved
+                ? "STL publication was approved. Wait for the final save result before closing."
+                : "STL export is running. Cancel before publication preserves the destination; close after export finishes.");
+        else statusBar()->showMessage("Background geometry evaluation is still running. Cancel discards its result; close after it finishes.");
         return;
     }
     if(authorizedQuit_ || confirmAllDiscard()) {

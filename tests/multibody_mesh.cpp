@@ -28,6 +28,18 @@ int main(int argc,char** argv) {
         bool refused=false;try {MeshExport::writeStl(std::vector<EvaluatedBody>{first,invalid},protectedPath,"mm",true,0.1,10);}
         catch(const GeometryKernel::EvaluationError& error){refused=error.diagnostics()["code"]=="solid_required";}
         if(!refused || !sentinel.open(QIODevice::ReadOnly) || sentinel.readAll()!="preserve")throw std::runtime_error("Invalid second body must preserve destination");
+        sentinel.close();
+        const auto filesBefore=output.entryList(QDir::Files|QDir::Hidden,QDir::Name);
+        for(const bool throws:{false,true}){
+            bool cancelled=false;
+            try {MeshExport::writeStl(first,protectedPath,"mm",true,.1,10,[&]()->bool {
+                if(throws)throw std::runtime_error("publication callback error");return false;
+            });}
+            catch(const GeometryKernel::EvaluationError& error){cancelled=error.diagnostics().value("code")=="export_cancelled";}
+            catch(const std::runtime_error& error){cancelled=QString::fromUtf8(error.what())=="publication callback error";}
+            if(!cancelled || !sentinel.open(QIODevice::ReadOnly) || sentinel.readAll()!="preserve")throw std::runtime_error("Denied/throwing publication changed destination");sentinel.close();
+            if(output.entryList(QDir::Files|QDir::Hidden,QDir::Name)!=filesBefore)throw std::runtime_error("Publication failure leaked staging files");
+        }
         std::cout<<"Two placed body exports and atomic invalid-body refusal passed\n";
         return 0;
     } catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}

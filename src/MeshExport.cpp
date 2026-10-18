@@ -29,12 +29,12 @@ namespace {
 }
 
 QJsonObject MeshExport::writeStl(const EvaluatedBody& body,const QString& path,
-    const QString& units,bool binary,double surfaceDeviationMm,double normalDeviationDeg) {
-    return writeStl(std::vector<EvaluatedBody>{body},path,units,binary,surfaceDeviationMm,normalDeviationDeg);
+    const QString& units,bool binary,double surfaceDeviationMm,double normalDeviationDeg,const std::function<bool()>& approvePublication) {
+    return writeStl(std::vector<EvaluatedBody>{body},path,units,binary,surfaceDeviationMm,normalDeviationDeg,approvePublication);
 }
 
 QJsonObject MeshExport::writeStl(const std::vector<EvaluatedBody>& bodies,const QString& path,
-    const QString& units,bool binary,double surfaceDeviationMm,double normalDeviationDeg) {
+    const QString& units,bool binary,double surfaceDeviationMm,double normalDeviationDeg,const std::function<bool()>& approvePublication) {
     if(units!="mm" && units!="in")reject("invalid_units","STL output units must be mm or in");
     if(!std::isfinite(surfaceDeviationMm) || surfaceDeviationMm<0.001 || surfaceDeviationMm>10
         || !std::isfinite(normalDeviationDeg) || normalDeviationDeg<1 || normalDeviationDeg>45)
@@ -215,6 +215,7 @@ QJsonObject MeshExport::writeStl(const std::vector<EvaluatedBody>& bodies,const 
         flush();triangles=asciiTriangles;collapsedTriangles+=serializedCollapsed;
     }
     const auto outputBytes=output.size();
+    if(approvePublication && !approvePublication())reject("export_cancelled","STL publication cancelled; destination preserved");
     if(!output.commit())reject("export_failed",output.errorString());
     QJsonObject result{{"path",destination.absoluteFilePath()},{"format",binary ? "stlBinary" : "stlAscii"},
         {"bodyIds",bodyIds},{"instances",instances},{"bodyCount",int(bodies.size())},{"units",units},{"unitsEmbedded",false},

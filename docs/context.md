@@ -8,9 +8,14 @@ threshold: a 2.035-second synchronous `document.exportStl` call produced a
 2.088-second gap near the final export. The editor closed and the partial
 recording/evidence were preserved; this is not an accepted replacement movie.
 The final solid and STL match the accepted candidate, but STEP, postmovie
-source edit/history/reopen were not reached. REL-047 addresses the bounded STL
-export stall before REL-046 resumes. See the external candidate15 failure
-receipt. REL-016 retains wider representative-model/physical/platform readiness.
+source edit/history/reopen were not reached. REL-047/#493 now independently
+accepts the bounded single-solid millimeter binary-STL worker path on the saved
+iron: submit 97.443 ms, maximum actual-frame gap 389 ms, responsive
+status/navigation/heartbeat, byte-identical STL and unchanged document/history.
+See [the receipt](validation/responsive-stl-export.md). REL-046 remains open for
+the complete replay on this integrated build; candidate15 is preserved as
+failure evidence. REL-016 retains wider representative-model/physical/platform
+readiness.
 
 REL-045/#491 is independently accepted for the corrected-iron interactive
 Surface Trim target click. The original camera/ray/viewport/face intent stays
