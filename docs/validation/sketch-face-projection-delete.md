@@ -1,6 +1,9 @@
 # SKT-156: multi-boundary face Project and selected-edge Delete
 
-Candidate verified locally, 2026-10-18; independent compatibility review pending.
+Accepted bounded slice, 2026-10-18. Independent Astra review inspected the
+ownership and rollback code, core/API/native tests, retained binary hashes and
+GPU captures; it found no blocker. A forced final Project failure was not
+separately exercised, so that rollback path remains source-reviewed.
 One explicit Project Face action now retains `faceProjectionGroups`: a stable
 group UUID, exact producer/body/face source and ordered projected result IDs.
 Selecting a result retains the existing **selected-edge Delete** policy. Delete
