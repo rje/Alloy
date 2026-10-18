@@ -5167,8 +5167,13 @@ void AlloyWindow::registerCommands() {
             if((!geometryIds.isEmpty() || !pointIds.isEmpty()) && (!ids.isEmpty() || !dim.isEmpty()))
                 return failure("ambiguous_delete_target","Select geometry or annotations, then Delete");
             if(!geometryIds.isEmpty() || !pointIds.isEmpty()) {
-                const auto result=publishSketchSolve(SketchGeometry::deleteEntities(session_.value("draftSketch").toObject(),geometryIds,pointIds,
-                    session_.value("projectionContext").toObject()));
+                const auto solved=SketchGeometry::deleteEntities(session_.value("draftSketch").toObject(),geometryIds,pointIds,
+                    session_.value("projectionContext").toObject());
+                if(solved.ok) {
+                    const auto refusal=preflightSketchDelete(solved.feature);
+                    if(!refusal.isEmpty())return refusal;
+                }
+                const auto result=publishSketchSolve(solved);
                 if(result.value("ok").isBool() && !result.value("ok").toBool())return result;
                 session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}}};
                 return result;

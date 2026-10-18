@@ -91,6 +91,10 @@ preserving the source and sibling. [Direct curve selection through source grips]
 now passes native click and deliberate grip-drag checks. [Break Link](docs/validation/sketch-fit-spline-offset-association.md)
 keeps both curves and converts the result to an independently editable spline
 within a measured 0.001 mm tolerance.
+[Historical sketch Delete preflight](docs/validation/sketch-delete-downstream-preflight.md)
+now refuses removal of a curve whose profile is selected by a downstream
+Extrude, naming the feature before changing the draft. Unrelated Delete in the
+same sketch remains editable and preserves the saved solid.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,

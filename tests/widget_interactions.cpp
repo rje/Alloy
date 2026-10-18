@@ -4,6 +4,7 @@
 #include "SketchSpline.h"
 #include "SketchSplineOffset.h"
 #include <QApplication>
+#include <QElapsedTimer>
 #include <QAccessible>
 #include <QAction>
 #include <QMenu>
@@ -1351,6 +1352,54 @@ private slots:
             QVERIFY2(run(window,"history.redo"),error_.constData());QCOMPARE(params(),removed);
             QVERIFY2(run(window,"sketch.cancel"),error_.constData());
         }
+    }
+    void sketchDeleteDownstreamPreflight() {
+        const auto fixture=qEnvironmentVariable("ALLOY_DELETE_DOWNSTREAM_FIXTURE");
+        if(fixture.isEmpty())QSKIP("Set ALLOY_DELETE_DOWNSTREAM_FIXTURE to the API-prepared annulus fixture");
+        AlloyWindow window;window.resize(1400,900);window.show();window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+#ifdef Q_OS_MACOS
+        QProcess activation;activation.start("osascript",{"-e",QString("tell application \"System Events\" to set frontmost of first application process whose unix id is %1 to true").arg(QCoreApplication::applicationPid())});
+        QVERIFY(activation.waitForFinished(5000));QCOMPARE(activation.exitCode(),0);
+#endif
+        window.raise();window.activateWindow();window.windowHandle()->requestActivate();QApplication::setActiveWindow(&window);QTRY_VERIFY(window.isActiveWindow());
+        auto complete=[&](const QString& command,const QJsonObject& args=QJsonObject{}) {
+            auto response=window.execute(command,args);const auto initial=response.value("result").toObject();
+            QElapsedTimer timer;timer.start();
+            while(response.value("completion")=="pending" && timer.elapsed()<10000) {
+                QTest::qWait(25);response=window.execute("command.status",{{"session",initial.value("id")},{"generation",initial.value("previewGeneration")}});
+            }
+            error_=QJsonDocument(response).toJson(QJsonDocument::Compact);return response.value("ok").toBool() && response.value("completion")!="pending";
+        };
+        QVERIFY2(complete("document.open",{{"path",fixture},{"discard",true}}),error_.constData());
+        const auto authored=window.state().value("document").toObject().value("authored").toObject();
+        const auto sketch=authored.value("features").toArray()[0].toObject();const auto extrude=authored.value("features").toArray()[1].toObject();
+        const auto entities=sketch.value("parameters").toObject().value("entities").toArray();
+        const auto target=entities[1].toObject().value("id"),unrelated=entities[2].toObject().value("id");
+        QVERIFY2(complete("sketch.edit",{{"sketchId",sketch.value("id")}}),error_.constData());
+        QVERIFY2(run(window,"sketch.lookAt"),error_.constData());QVERIFY2(run(window,"view.fit"),error_.constData());QTest::qWait(150);
+        auto* view=viewport(window);QVERIFY(view);
+        const auto point=sketchPixel(view,11/std::sqrt(2.0),11/std::sqrt(2.0));
+        QCOMPARE(view->pickSketch(session(window).value("draftSketch").toObject(),point.x(),point.y()).value("entityId"),target);
+        QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,point);
+        QCOMPARE(session(window).value("selection").toObject().value("entityIds").toArray(),QJsonArray{target});QVERIFY(view->hasFocus());
+        const auto before=session(window);const auto committed=window.state().value("document");
+        QTest::keyClick(view,Qt::Key_Delete);QCOMPARE(session(window),before);QCOMPARE(window.state().value("document"),committed);
+        auto* error=window.findChild<QLabel*>("sketch.error");QVERIFY(error);QVERIFY(error->isVisible());QVERIFY(error->text().contains(extrude.value("name").toString()));QVERIFY(error->text().contains("choose a current profile"));
+        const auto capture=qEnvironmentVariable("ALLOY_DELETE_DOWNSTREAM_CAPTURE");
+        if(!capture.isEmpty()){QTest::qWait(150);QVERIFY2(run(window,"capture.screenshot",{{"path",capture+"/native-refusal.png"}}),error_.constData());}
+        // A real second canvas click establishes focus/selection; no repair.
+        QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,sketchPixel(view,35+3/std::sqrt(2.0),3/std::sqrt(2.0)));
+        QCOMPARE(session(window).value("selection").toObject().value("entityIds").toArray(),QJsonArray{unrelated});QVERIFY(view->hasFocus());
+        QTest::keyClick(view,Qt::Key_Delete);
+        const auto changed=session(window).value("draftSketch");QCOMPARE(changed.toObject().value("parameters").toObject().value("entities").toArray().size(),2);
+        QCOMPARE(session(window).value("draftHistory").toObject().value("index").toInt(),before.value("draftHistory").toObject().value("index").toInt()+1);
+        QVERIFY(error->text().isEmpty());QVERIFY2(run(window,"history.undo"),error_.constData());QCOMPARE(session(window).value("draftSketch"),before.value("draftSketch"));
+        QVERIFY2(run(window,"history.redo"),error_.constData());QCOMPARE(session(window).value("draftSketch"),changed);
+        if(!capture.isEmpty()){QTest::qWait(150);QVERIFY2(run(window,"capture.screenshot",{{"path",capture+"/native-safe-delete.png"}}),error_.constData());}
+        qInfo()<<"Historical Delete native GPU"<<window.state().value("viewport").toObject().value("gpu");
+        QVERIFY2(complete("sketch.finish"),error_.constData());
+        QCOMPARE(window.state().value("document").toObject().value("evaluation").toObject().value("bodies"),committed.toObject().value("evaluation").toObject().value("bodies"));
     }
     void sketchFitSplineOffsetDelete() {
         AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();

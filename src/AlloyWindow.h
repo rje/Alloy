@@ -574,6 +574,7 @@ private:
     void cancelClosedRectOffset();
     void cancelOpenChainOffset();
     EvaluatedSketch evaluateSketchDraft(const QJsonObject& draft) const;
+    QJsonObject preflightSketchDelete(const QJsonObject& candidate) const;
     QJsonObject previewLoopOffset(const QJsonObject& inputs);
     QJsonObject acceptLoopOffset(const QJsonObject& inputs);
     QJsonObject updateLoopOffset(const QJsonObject& inputs);
