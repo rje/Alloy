@@ -964,6 +964,20 @@ SketchGeometry::SolveResult SketchGeometry::polygon(const QJsonObject& draft,con
             auto source=resolved["source"].toObject();if(target["kind"]=="origin")source["pointId"]=p["originPointId"];
             canonical.remove("anchorSnapTarget");canonical["anchorSource"]=source;canonical["uMm"]=resolved["uMm"];canonical["vMm"]=resolved["vMm"];candidate["parameters"]=p;
         }
+        if(arguments.contains("driverSnapTarget")){
+            if(update || !arguments["driverSnapTarget"].isObject())reject("Polygon second driver is chosen only on creation");
+            const auto target=arguments["driverSnapTarget"].toObject();const auto kind=target["kind"].toString();
+            if(kind=="midpoint" && canonical["mode"]!="circumscribed")reject("Only Circumscribed Polygon accepts a second midpoint driver");
+            if(target["kind"]=="origin")candidate=withOriginReference(candidate);
+            const auto resolved=polygonAnchorTarget(candidate,target,projectionContext);if(!resolved["ok"].toBool())reject(resolved["error"].toString());
+            auto p=candidate["parameters"].toObject();if(kind=="point")retainSupportPoint(p,projectionContext,target["pointId"].toString());
+            auto source=resolved["source"].toObject();if(kind=="origin")source["pointId"]=p["originPointId"];
+            const double du=resolved["uMm"].toDouble()-canonical["uMm"].toDouble(),dv=resolved["vMm"].toDouble()-canonical["vMm"].toDouble(),size=std::hypot(du,dv),angle=std::atan2(dv,du)*180/std::numbers::pi;
+            if(size<0.001)reject("Polygon drivers must be distinct");
+            if(canonical.contains("sizeMm") && std::abs(canonical["sizeMm"].toDouble()-size)>1e-6)reject("Polygon size conflicts with its retained second driver");
+            if(canonical.contains("angleDeg") && std::abs(std::remainder(canonical["angleDeg"].toDouble()-angle,360.0))>1e-7)reject("Polygon angle conflicts with its retained second driver");
+            canonical.remove("driverSnapTarget");canonical["driverSource"]=source;canonical["sizeMm"]=size;canonical["angleDeg"]=angle;candidate["parameters"]=p;
+        }
         candidate["parameters"]=SketchPolygon::apply(candidate["parameters"].toObject(),canonical,update);
         const auto result=solveDraft(candidate,projectionContext);
         return result.ok ? result : SolveResult{false,draft,result.diagnostics,result.error};
@@ -1901,7 +1915,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 && constraint["pointIds"].toArray().size()==1)
                 usedPoints.insert(constraint["pointIds"].toArray()[0].toString());
         }
-        for(const auto& row:parameters["polygonGroups"].toArray())if(row.toObject().contains("anchorPointId"))usedPoints.insert(row.toObject()["anchorPointId"].toString());
+        for(const auto& row:parameters["polygonGroups"].toArray()){if(row.toObject().contains("anchorPointId"))usedPoints.insert(row.toObject()["anchorPointId"].toString());if(row.toObject().contains("driverPointId"))usedPoints.insert(row.toObject()["driverPointId"].toString());}
         if (usedPoints.size() != points.size()) return "Sketch contains unreferenced points";
         auto checkReferences = [](const QJsonObject& object, const QString& field, int count, const QSet<QString>& valid) {
             if (!object[field].isArray() || object[field].toArray().size() != count) return false;
@@ -2024,6 +2038,11 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 if (constraint.size() != (fixed ? 5 : 3) || constraint.contains("entityIds")
                     || !checkReferences(constraint, "pointIds", fixed ? 1 : 2, pointIds)) return "Invalid point constraint references";
                 if (fixed) { coordinate(constraint, "uMm"); coordinate(constraint, "vMm"); }
+            } else if(type=="polygonAffineVertex") {
+                if(constraint.size()!=5 || !checkReferences(constraint,"pointIds",3,pointIds))return "Polygon affine driver requires two drivers and a vertex";
+                coordinate(constraint,"coefficientU");coordinate(constraint,"coefficientV");bool owned=false;
+                for(const auto& row:parameters["polygonGroups"].toArray())owned|=row.toObject()["constraintIds"].toArray().contains(constraint["id"]);
+                if(!owned)return "Polygon affine driver has no owning Polygon";
             } else if(type=="polygonVertex") {
                 if(constraint.size()!=5 || !checkReferences(constraint,"pointIds",2,pointIds))return "Polygon relative driver requires anchor and vertex identities";
                 coordinate(constraint,"offsetUMm");coordinate(constraint,"offsetVMm");bool owned=false;

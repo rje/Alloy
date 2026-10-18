@@ -38,13 +38,21 @@ annotations with native double-click editing, unit conversion, visibility,
 refusal, downstream extrusion and independently read STL. Astra accepted the
 actual capture and shared-command route; see
 [the receipt](validation/sketch-polygon-annotations.md). Label drag and exact
-styling remain unqualified; second-driver relations remain SKT-105 work.
+styling remain unqualified; second-driver relations are accepted below under
+SKT-105.
 SKT-103/#526 now accepts a genuine first-point origin, authored-point or
 retained-line-midpoint relation. Its solver anchor moves the same Polygon and
 downstream extrusion under an upstream edit; stable IDs, external constraints,
 history/reopen and independent STL passed. Astra reviewed the solver and
 native cue evidence; see [the receipt](validation/sketch-polygon-first-anchor.md).
-Second-point size/orientation ownership remains SKT-105/#528 Todo.
+Second-point size/orientation ownership was tracked under SKT-105/#528.
+SKT-105/#528 now accepts the retained second point/midpoint in all three
+Polygon modes: moving an upstream source changes size and rotation through
+the solver, and incompatible numeric values refuse without detaching either
+relation. Native cues and source-owned reference annotations, downstream
+extrusion, undo/reopen and independently read STL passed; see
+[the receipt](validation/sketch-polygon-second-driver.md). Exact modern input
+focus/styling, physical hand input and other-platform runtime remain open.
 Broad parent splits and the 13 partial rows with accepted subsets are recorded
 in [the ownership audit](v1/ownership-audit.md). Final v1 option decisions and
 release disposition remain open under REL-030; do not infer readiness from the

@@ -4,6 +4,7 @@
 #include "SketchArcSlot.h"
 #include "SketchPolygon.h"
 #include "GCS.h"
+#include "Constraints.h"
 #include <QJsonArray>
 #include <QMap>
 #include <QSet>
@@ -269,6 +270,14 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             const auto type = constraint.value("type").toString(); const int t = tag(constraint);
             if (type == "coincident") {
                 solver.addConstraintP2PCoincident(point(reference(constraint,"pointIds",0)), point(reference(constraint,"pointIds",1)), t);
+            } else if(type=="polygonAffineVertex") {
+                auto& a=point(reference(constraint,"pointIds",0));auto& b=point(reference(constraint,"pointIds",1));auto& v=point(reference(constraint,"pointIds",2));
+                const double x=number(constraint,"coefficientU"),y=number(constraint,"coefficientV");
+                auto equation=[&](double* q,const std::vector<double>& factors){
+                    std::vector<double*> params{q,a.x,a.y,b.x,b.y};for(int i=0;i<4;++i)params.push_back(constant(1));
+                    auto* c=new GCS::ConstraintWeightedLinearCombination(4,params,factors);c->setTag(t);solver.addConstraint(c);
+                };
+                equation(v.x,{1-x,y,x,-y});equation(v.y,{-y,1-x,y,x});
             } else if(type=="polygonVertex") {
                 auto& anchor=point(reference(constraint,"pointIds",0));auto& vertex=point(reference(constraint,"pointIds",1));
                 solver.addConstraintDifference(anchor.x,vertex.x,constant(number(constraint,"offsetUMm")),t);
@@ -559,6 +568,11 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 const auto id=reference(c,"entityIds",0);const auto& p=point(reference(c,"pointIds",0));
                 if(lineMap.contains(id)){const auto& l=line(id);double dx=*l.p2.x-*l.p1.x,dy=*l.p2.y-*l.p1.y,len=std::hypot(dx,dy);check((dx*(*p.y-*l.p1.y)-dy*(*p.x-*l.p1.x))/len,lengthTolerance);double t=((*p.x-*l.p1.x)*dx+(*p.y-*l.p1.y)*dy)/(len*len);if(type=="pointOnCurve")require(t>=-1e-6 && t<=1+1e-6,"Trim contact left its finite boundary line");}
                 else {const auto& circle=circleMap.at(id);check(std::hypot(*p.x-*circle.center.x,*p.y-*circle.center.y)-*circle.rad,lengthTolerance);}
+            }
+            else if(type=="polygonAffineVertex") {
+                const auto& a=point(reference(c,"pointIds",0));const auto& b=point(reference(c,"pointIds",1));const auto& v=point(reference(c,"pointIds",2));
+                const double x=number(c,"coefficientU"),y=number(c,"coefficientV"),du=*b.x-*a.x,dv=*b.y-*a.y;
+                check(*v.x-*a.x-x*du+y*dv,lengthTolerance);check(*v.y-*a.y-y*du-x*dv,lengthTolerance);
             }
             else if(type=="polygonVertex") {
                 const auto& anchor=point(reference(c,"pointIds",0));const auto& vertex=point(reference(c,"pointIds",1));

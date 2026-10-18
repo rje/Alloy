@@ -11,8 +11,9 @@ STL; broader thread modes and print fit remain open.
 three retained creation modes, editable size/count, and a verified extrusion
 and STL path. [Canvas size annotations](docs/validation/sketch-polygon-annotations.md)
 are editable for all three modes. [First-point placement relations](docs/validation/sketch-polygon-first-anchor.md)
-now follow an upstream sketch point or midpoint; second-point ownership remains
-a tracked gap.
+now follow an upstream sketch point or midpoint. [Second-point relations](docs/validation/sketch-polygon-second-driver.md)
+also drive Polygon size and rotation through source edits, with conflicting
+typed values refused.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,

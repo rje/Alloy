@@ -1586,8 +1586,10 @@ QJsonObject ReferenceView::dimensionLayout(const QJsonObject& feature,const QJso
         span["annotation"]=QJsonObject{{"uMm",textAnchor.x()},{"vMm",textAnchor.y()}};
         layout=dimensionLayout(derived,span,group["sizeMm"].toDouble(),units);
         const auto displayedUnits=units=="in" ? QString("in") : QString("mm");
-        const QString text=(edge ? QString{} : QString("R"))+QString::number(group["sizeMm"].toDouble()/(units=="in" ? 25.4 : 1),'g',6)+" "+displayedUnits;
+        const QString content=(edge ? QString{} : QString("R"))+QString::number(group["sizeMm"].toDouble()/(units=="in" ? 25.4 : 1),'g',6)+" "+displayedUnits;
+        const QString text=group.contains("driverPointId") ? "("+content+")" : content;
         auto label=layout["label"].toObject();QFont font("Arial");font.setPixelSize(13);const QFontMetricsF metrics(font);label["text"]=text;label["width"]=metrics.horizontalAdvance(text)+12;layout["label"]=label;
+        layout["driving"]=!group.contains("driverPointId");layout["sizeOwner"]=group.contains("driverPointId") ? "secondDriver" : "polygon";
         layout["polygonId"]=group["id"];layout["sizeBasis"]=edge ? "edgeLength" : mode=="circumscribed" ? "inradius" : "circumradius";
         layout["anchor"]=QJsonObject{{"uMm",anchor.x()},{"vMm",anchor.y()}};
         layout["sizeEndpoint"]=QJsonObject{{"uMm",endpoint.x()},{"vMm",endpoint.y()}};
