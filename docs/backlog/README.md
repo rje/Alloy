@@ -7,8 +7,8 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **586 issues**: **464 implementation, 24 research,
-2 research/design, 22 epics, and 74 validation gates**. Counts describe decomposition, not coverage.
+The current local backlog contains **587 issues**: **464 implementation, 24 research,
+2 research/design, 22 epics, and 75 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 GEO-006/#309 accepts the circular-seam provenance repair with both retained brackets reopening. REL-051/#586 now accepts the native sketch→Extrude→Undo→Browser popup prefix plus separate API STL/readback; see [its receipt](../validation/ordinary-bracket-input-prefix.md). REL-012/#415 remains Todo/blocked on REL-052/#587 for Save As Mesh modal focus and OS chooser. The strict native probe now stops before user input because the private macOS test process lacks AppKit activation/key window; FND-028/#589 owns that prerequisite. External `../Alloy-reference-records/validation/rel012-ordinary-input-2026-10-18/README.md` retains both failure and accepted evidence.
 SKT-115–121 and SKT-123–124/#540–546, #548–549 are accepted analytic constraint pairs and endpoint contacts; SKT-129/#554 accepts distinct-ID arc/line endpoint Tangent and SKT-022/#163 is closed for its declared v1 analytic scope. SKT-122/#547 and SKT-130–132/#555–557 retain later multi-pair Symmetry, spline constraints and branch-control research.

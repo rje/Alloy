@@ -1,7 +1,8 @@
 # Partial capability rows in the printable-part v1 plan
 
-Working disposition, 2026-10-18. These are minimum **proposed v1** variants,
-not acceptance of each full command family or physical-input parity. The
+Implementation baseline, 2026-10-18, following the user's review of the v1
+direction. These are the retained minimum **proposed v1** variants, not
+acceptance of each full command family or physical-input parity. The
 accepted receipts prove only their named subsets. REL-030 still owns the final
 inventory, release-gate and site reconciliation.
 
@@ -19,10 +20,14 @@ inventory, release-gate and site reconciliation.
 | `body.rename` | Current local body via Browser/shared command, retaining identity | Imported/nonlocal organization policy; physical gestures stay in release input gates |
 | `construction.midplane` | Retained plane between supported parallel planar faces | Nonparallel/angular-bisector cases |
 | `construction.path-plane` | Start/End plane on supported retained fit-spline path | Arbitrary fractions and other curves |
-| `construction.tangent-plane` | Tangent plane at a retained point on a supported face | GEO-004 retains complete native interaction; broader face/point cases stay later |
+| `construction.tangent-plane` | Tangent plane at a retained point on a supported face | GEO-004's bounded constructor is accepted; GEO-024/#590 retains the ordinary native-input route, and broader face/point cases stay later |
 
 Issue ownership and accepted evidence are in [the ownership audit](ownership-audit.md),
 the [inventory](command-inventory.json) and their linked receipts. Release
 qualification must also cover actual native interaction, geometry, edit,
 undo/reopen/export and packaged runtime on each supported platform. A proposed
 subset is not a release promise until REL-030 and the cumulative gates accept it.
+The first-v1 3MF requirement means Core **export**; import and optional
+extensions remain with XCH-005 on the noncloud roadmap. Modeled external Thread
+is required in the first-v1 printable workflow; internal/tapped Hole variants
+remain separately owned and are not implied by that slice.

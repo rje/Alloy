@@ -1077,7 +1077,7 @@
         "docs/validation/sketch-fix-circle-modes.md",
         "docs/validation/sketch-fix-arc.md"
       ],
-      "planningStatus": "Accepted semantic-role/glyph and selected Fix subsets; remaining Fix variants are tracked by SKT-136–138"
+      "planningStatus": "Accepted semantic-role/glyph and selected Fix subsets; remaining Fix variants are tracked by SKT-136\u2013138"
     },
     {
       "id": "sketch.project",
@@ -1652,7 +1652,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Bounded exact Boolean operations and Keep Tools exist; general robustness and retained naming remain fixture-specific.",
+      "gap": "Bounded Join/Cut/Intersect, Keep Tools and ordinary naming/invalid-result recovery are accepted. Broader topology, naming and native/packaged composition remain release fixtures.",
       "apiIds": [
         "solid.combine",
         "solid.combineDialog",
@@ -1660,7 +1660,8 @@
       ],
       "issueKeys": [
         "SOL-002",
-        "SOL-021"
+        "SOL-021",
+        "SOL-071"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -1669,7 +1670,8 @@
       "receipts": [
         "docs/validation/curves-combine.md",
         "docs/validation/join-independent-review.md",
-        "docs/validation/join-lineage-immutable.md"
+        "docs/validation/join-lineage-immutable.md",
+        "docs/validation/combine-naming-recovery.md"
       ],
       "options": [
         "Join",
@@ -1677,7 +1679,7 @@
         "Intersect",
         "Keep Tools"
       ],
-      "planningStatus": "Existing scope owners; verify accepted subset before pulling"
+      "planningStatus": "SOL-071 bounded names/recovery accepted; broader Boolean families and release input remain open"
     },
     {
       "id": "solid.split",
@@ -2167,13 +2169,14 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "GEO-018/GEO-004 cumulative shoehorn API identity, edits and hole workflow are accepted; full native plane interaction remains qualified separately.",
+      "gap": "The supported retained face/point Tangent Plane constructor and dependent geometry are accepted; ordinary native input on the same handle is GEO-024, blocked until the private macOS session can activate. Broader face/point combinations remain later.",
       "apiIds": [
         "construction.tangentPlane"
       ],
       "issueKeys": [
         "GEO-004",
-        "GEO-018"
+        "GEO-018",
+        "GEO-024"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -2183,7 +2186,7 @@
         "docs/validation/tangent-point-plane.md",
         "docs/validation/shoehorn-complete.md"
       ],
-      "planningStatus": "Existing scope owners; verify accepted subset before pulling"
+      "planningStatus": "GEO-004 bounded constructor accepted; GEO-024 owns ordinary native validation before stable v1"
     },
     {
       "id": "inspection.section",
@@ -3006,7 +3009,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Ordinary authored line/circle/arc/Point Delete is accepted; ellipse, conic, spline and grouped/derived geometry remain SKT-102.",
+      "gap": "Authored analytic/curve, constructor-group, mirror/offset-owner and selected projection Delete subsets are accepted with exact IDs. Stale-support recovery remains SKT-154; general support repair and model hierarchy selection remain separate.",
       "apiIds": [
         "sketch.deleteSelection"
       ],
@@ -3014,15 +3017,34 @@
         "SKT-011",
         "SKT-021",
         "SKT-099",
-        "SKT-102"
+        "SKT-102",
+        "SKT-141",
+        "SKT-142",
+        "SKT-143",
+        "SKT-144",
+        "SKT-145",
+        "SKT-146",
+        "SKT-147",
+        "SKT-148",
+        "SKT-149",
+        "SKT-150",
+        "SKT-151",
+        "SKT-152",
+        "SKT-153",
+        "SKT-154",
+        "SKT-156",
+        "SKT-158"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
       ],
       "receipts": [
-        "docs/validation/sketch-geometry-delete.md"
+        "docs/validation/sketch-geometry-delete.md",
+        "docs/validation/sketch-constructor-group-delete.md",
+        "docs/validation/sketch-face-projection-delete.md",
+        "docs/validation/sketch-multiple-planar-inset-delete.md"
       ],
-      "planningStatus": "SKT-099 accepted bounded ordinary subset; SKT-102 Todo for curve/group remainder"
+      "planningStatus": "Accepted bounded Delete owners through SKT-158; stale-support recovery and wider ownership remain open"
     },
     {
       "id": "sketch.solver-status",
@@ -3108,7 +3130,11 @@
       "implementation": "partial",
       "nativeEvidence": "partial",
       "gap": "Three-Point Rectangle has an accepted creation-to-STL route. SKT-106 disposed a separate Parallelogram command as absent from the documented target set; additional evidenced variants remain on the parent roadmap.",
-      "apiIds": ["sketch.threePointRectangle", "sketch.threePointRectangleDistanceLock", "sketch.threePointRectangleDistancePreview"],
+      "apiIds": [
+        "sketch.threePointRectangle",
+        "sketch.threePointRectangleDistanceLock",
+        "sketch.threePointRectangleDistancePreview"
+      ],
       "issueKeys": [
         "SKT-021",
         "ADV-005",
@@ -3120,7 +3146,10 @@
         "src/SketchGeometry.cpp",
         "src/ThreePointRectangleControls.cpp"
       ],
-      "receipts": ["docs/validation/sketch-three-point-rectangle.md", "docs/research/commands/sketch-three-point-rectangle.md"],
+      "receipts": [
+        "docs/validation/sketch-three-point-rectangle.md",
+        "docs/research/commands/sketch-three-point-rectangle.md"
+      ],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },
     {
@@ -3131,7 +3160,12 @@
       "implementation": "present",
       "nativeEvidence": "accepted-bounded-macos",
       "gap": "Three-Point, 2-Tangent and 3-Tangent Circle plus Circle Feature Options pass bounded Mac gates. Tangent creation is limited to authored straight sketch lines; exact branch parity and other-platform runtime remain unqualified.",
-      "apiIds": ["sketch.threePointCircle", "sketch.threeTangentCircle", "sketch.tool", "sketch.twoTangentCircle"],
+      "apiIds": [
+        "sketch.threePointCircle",
+        "sketch.threeTangentCircle",
+        "sketch.tool",
+        "sketch.twoTangentCircle"
+      ],
       "issueKeys": [
         "SKT-006",
         "ADV-005",
@@ -3148,7 +3182,12 @@
         "src/ThreeTangentCircleControls.cpp",
         "src/TwoTangentCircleControls.cpp"
       ],
-      "receipts": ["docs/validation/sketch-three-point-circle.md", "docs/validation/sketch-two-tangent-circle.md", "docs/validation/sketch-three-tangent-circle.md", "docs/validation/sketch-circle-feature-options.md"],
+      "receipts": [
+        "docs/validation/sketch-three-point-circle.md",
+        "docs/validation/sketch-two-tangent-circle.md",
+        "docs/validation/sketch-three-tangent-circle.md",
+        "docs/validation/sketch-circle-feature-options.md"
+      ],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },
     {
@@ -3159,7 +3198,15 @@
       "implementation": "partial",
       "nativeEvidence": "macos-qt-input-and-gpu-capture",
       "gap": "Equal Distance, Two Distance and Distance And Angle are accepted for finite connected line corners. Crossing-line quadrants, exact reference defaults and physical cross-platform interaction remain unqualified.",
-      "apiIds": ["sketch.chamfer", "sketch.chamferUpdate", "sketch.chamferPreview", "sketch.chamferAccept", "sketch.chamferCancel", "sketch.chamferHandle", "sketch.chamferMode"],
+      "apiIds": [
+        "sketch.chamfer",
+        "sketch.chamferUpdate",
+        "sketch.chamferPreview",
+        "sketch.chamferAccept",
+        "sketch.chamferCancel",
+        "sketch.chamferHandle",
+        "sketch.chamferMode"
+      ],
       "issueKeys": [
         "ADV-005",
         "SKT-096",
@@ -3175,7 +3222,13 @@
         "src/SketchGeometry.cpp",
         "src/ReferenceView.cpp"
       ],
-      "receipts": ["docs/validation/sketch-equal-chamfer.md", "docs/validation/sketch-multiple-chamfers.md", "docs/validation/sketch-chamfer-canvas-edit.md", "docs/validation/sketch-two-distance-chamfer.md", "docs/validation/sketch-distance-angle-chamfer.md"],
+      "receipts": [
+        "docs/validation/sketch-equal-chamfer.md",
+        "docs/validation/sketch-multiple-chamfers.md",
+        "docs/validation/sketch-chamfer-canvas-edit.md",
+        "docs/validation/sketch-two-distance-chamfer.md",
+        "docs/validation/sketch-distance-angle-chamfer.md"
+      ],
       "planningStatus": "Accepted three documented modes for finite connected corners; broader parity limits retained"
     },
     {
@@ -3297,7 +3350,10 @@
       "implementation": "partial",
       "nativeEvidence": "accepted-bounded-macos",
       "gap": "Nominal external M6/M8/M10 modeled threads are accepted; internal, tolerance classes, print fit and broader standards remain open.",
-      "apiIds": ["solid.thread", "solid.threadDialog"],
+      "apiIds": [
+        "solid.thread",
+        "solid.threadDialog"
+      ],
       "issueKeys": [
         "ADV-005",
         "SOL-059"
@@ -3305,7 +3361,9 @@
       "sourceFiles": [
         "docs/backlog/issues.json"
       ],
-      "receipts": ["docs/validation/modeled-external-thread.md"],
+      "receipts": [
+        "docs/validation/modeled-external-thread.md"
+      ],
       "planningStatus": "Required v1 external modeled thread accepted under SOL-059; other thread modes remain ADV-005"
     },
     {
@@ -3800,7 +3858,7 @@
       "scope": "proposed-v1",
       "implementation": "present",
       "nativeEvidence": "partial",
-      "gap": "Bounded Core export, source edit, independent geometry readback, separate consumer and macOS native chooser pass. Import, optional extensions, physical hand input and other-platform runtime remain open.",
+      "gap": "Required first-v1 Core 3MF export has bounded local Mac geometry/consumer/native-chooser evidence. 3MF import and optional extensions remain later under XCH-005; physical input and other-platform packaged export still require release gates.",
       "apiIds": [
         "document.export3mf",
         "document.exportMeshDialog"
@@ -3817,7 +3875,7 @@
       "receipts": [
         "docs/validation/3mf-export.md"
       ],
-      "planningStatus": "Required v1 Core export accepted under XCH-011; import and broader options remain XCH-005"
+      "planningStatus": "Export-only Core 3MF is the first-v1 minimum; XCH-005 retains import/extensions on the noncloud roadmap"
     },
     {
       "id": "exchange.dxf",
@@ -3945,7 +4003,9 @@
       "sourceFiles": [
         "docs/backlog/issues.json"
       ],
-      "receipts": ["docs/validation/actionable-failures-packaged.md"],
+      "receipts": [
+        "docs/validation/actionable-failures-packaged.md"
+      ],
       "planningStatus": "Accepted packaged Mac API/GPU slice; REL-050 owns native physical remainder"
     },
     {
@@ -3955,7 +4015,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "macOS arm64 archive is host-local and source-pinned. Clean-host/Intel Mac and Windows/Linux packaged desktop/GPU runtime remain unqualified.",
+      "gap": "The accepted local macOS arm64 archive and runtime inventory are not clean-host, Intel Mac, Windows or Linux package/GPU/input qualification. A disclosed OpenGL development preview remains separate from stable Metal/Vulkan acceptance.",
       "apiIds": [],
       "issueKeys": [
         "REL-003",
@@ -3965,7 +4025,14 @@
         "CI-007",
         "CI-008",
         "CI-009",
-        "REL-018"
+        "REL-018",
+        "CI-010",
+        "CI-011",
+        "CI-012",
+        "GATE-005",
+        "RHI-001",
+        "RHI-002",
+        "GATE-045"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3973,9 +4040,11 @@
       "receipts": [
         "docs/validation/macos-relocatable-preview.md",
         "docs/validation/mac-runtime-recipe.md",
-        "docs/validation/external-package-checklist.md"
+        "docs/validation/external-package-checklist.md",
+        "docs/validation/runtime-inventory.md",
+        "docs/validation/cross-platform-runtime-recipe.md"
       ],
-      "planningStatus": "Existing scope owners; verify accepted subset before pulling"
+      "planningStatus": "Native packages and GATE-005 remain open; stable Metal/Vulkan requires RHI-001/RHI-002 and GATE-045"
     },
     {
       "id": "release.input",
@@ -4041,7 +4110,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Measured piston 129\u2013150 ms move latency exceeds 100 ms target; synchronous evaluation blocks UI. Bounded Trim/Loft speedups are not general responsiveness acceptance.",
+      "gap": "Representative UI responsiveness has bounded accepted improvements, but some geometry commands still have excessive intrinsic cost. REL-049 audits every supported v1 command only after functionality and packaging, then owns measured optimization children.",
       "apiIds": [],
       "issueKeys": [
         "REL-004",
@@ -4049,7 +4118,8 @@
         "REL-019",
         "REL-020",
         "REL-026",
-        "REL-028"
+        "REL-028",
+        "REL-049"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -4060,7 +4130,7 @@
         "docs/validation/trim-session-reuse.md",
         "docs/validation/loft-edit-prefix-reuse.md"
       ],
-      "planningStatus": "Existing scope owners; verify accepted subset before pulling"
+      "planningStatus": "Finish v1 functionality/package gates before REL-049 intrinsic-cost audit; retain representative REL-004/REL-016 budgets"
     },
     {
       "id": "release.workflow",
