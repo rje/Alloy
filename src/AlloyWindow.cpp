@@ -597,7 +597,7 @@ AlloyWindow::AlloyWindow() {
     for(const auto& type:QStringList{"coincident","concentric","horizontalVertical","horizontal","vertical","parallel","collinear","perpendicular","equal","fixed","midpoint","symmetry","tangent"}) {
         auto* action=constraints->addAction(type=="horizontalVertical" ? "Horizontal/Vertical" : type.first(1).toUpper()+type.sliced(1));
         action->setObjectName("sketch.action.constraint."+type);
-        action->setToolTip(type=="tangent" ? "Pick a circle and line, or an arc and line sharing one endpoint; Escape exits"
+        action->setToolTip(type=="tangent" ? "Pick two circles, a circle and line, or an arc and line sharing one endpoint; Escape exits"
             : type=="symmetry" ? "Pick two existing lines or two arcs, then a construction symmetry axis; Escape exits"
             : type=="midpoint" ? "Pick a line or arc, then its midpoint point or sketch origin; Escape exits"
             : type=="fixed" ? "Select one point; retain its position" : type=="coincident" ? "Select two points"
@@ -10874,15 +10874,16 @@ QJsonObject AlloyWindow::setSketchSelection(const QJsonObject& selection) {
     if(session_.value("tool")=="constraint" && session_.value("constraintType")=="tangent"){
         const auto targets=normalized["entityIds"].toArray();
         if(!normalized["pointIds"].toArray().isEmpty() || targets.size()>2)
-            return failure("invalid_constraint_target","Tangent requires one circle or arc and one straight line");
-        bool hasCurve=false,hasLine=false;
+            return failure("invalid_constraint_target","Tangent requires two circles, a circle and line, or an arc and line");
+        bool hasCurve=false,hasLine=false;int circleCount=0;
         for(const auto& target:targets){QJsonObject entity;
             for(const auto& row:parameters["entities"].toArray())if(row.toObject()["id"]==target){entity=row.toObject();break;}
+            if(entity["type"]=="circle")++circleCount;
             if(entity["type"]=="arc" || entity["type"]=="circle")hasCurve=true;else if(entity["type"]=="line")hasLine=true;
-            else return failure("invalid_constraint_target","Tangent requires one circle or arc and one straight line");
+            else return failure("invalid_constraint_target","Tangent requires two circles, a circle and line, or an arc and line");
         }
-        if(targets.size()==2 && (!hasCurve || !hasLine))
-            return failure("invalid_constraint_target","Tangent requires one circle or arc and one straight line");
+        if(targets.size()==2 && circleCount!=2 && (!hasCurve || !hasLine))
+            return failure("invalid_constraint_target","Tangent requires two circles, a circle and line, or an arc and line");
     }
     if(session_.value("tool")=="constraint" && session_.value("constraintType")=="collinear"){
         const auto targets=normalized["entityIds"].toArray();
@@ -11861,7 +11862,7 @@ void AlloyWindow::refreshSketchControls() {
     QMap<QString,QStringList> relations;
     for(const auto& entry:parameters["constraints"].toArray()) {
         const auto constraint=entry.toObject();const auto type=constraint["type"]=="pointOnCurve" ? QString("coincident") :
-            constraint["type"]=="arcTangent" ? QString("tangent") :
+            (constraint["type"]=="arcTangent" || constraint["type"]=="circleTangent") ? QString("tangent") :
             constraint["type"]=="supportLine" ? QString("support line (internal)") : constraint["type"].toString();
         for(const auto& id:constraint["entityIds"].toArray())relations[id.toString()].append(type.first(1).toUpper()+type.sliced(1));
         for(const auto& id:constraint["pointIds"].toArray())relations[id.toString()].append(type.first(1).toUpper()+type.sliced(1));
@@ -12321,7 +12322,7 @@ void AlloyWindow::showSketch() {
         for(int i=0;i<types.size();++i) {
             const auto type=types[i];auto* button=new QPushButton(type=="horizontalVertical" ? "Horizontal/Vertical" : type.first(1).toUpper()+type.sliced(1));button->setObjectName("sketch.constraint."+type);button->setCheckable(true);
             button->setStyleSheet("QPushButton:checked { background: #deedf5; border: 1px solid #2b83ae; }");
-            button->setToolTip(type=="tangent" ? "Pick a circle and line, or an arc and line sharing one endpoint; Escape exits"
+            button->setToolTip(type=="tangent" ? "Pick two circles, a circle and line, or an arc and line sharing one endpoint; Escape exits"
                 : type=="symmetry" ? "Pick two existing lines or two arcs, then a construction symmetry axis; Escape exits"
                 : type=="midpoint" ? "Pick a line or arc, then a point or sketch origin; Escape exits"
                 : type=="fixed" ? "Select one point; retain its position" : type=="coincident" ? "Select two points"

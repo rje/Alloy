@@ -21,6 +21,9 @@ typed lengths, source following and a verified extrusion/STL path.
 two end arcs about a construction axis through dimensional edits, extrusion,
 history and reopen. Broader tangent pairs and unsupported-pick feedback remain
 in the sketch-constraint backlog.
+[Circle-pair Tangent](docs/validation/sketch-circle-circle-tangent.md) now retains
+external or internal contact through radius and center edits, with native
+constraint picks and a selectable badge.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,

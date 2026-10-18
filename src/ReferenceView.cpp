@@ -1985,12 +1985,17 @@ void ReferenceView::decorateSketch(const QJsonObject& sourceFeature,const QJsonO
         const auto relation=entry.toObject();const auto kind=relation["type"].toString();
         const bool selectedBadge=selection["constraintIds"].toArray().contains(relation["id"]);
         const bool hoveredBadge=selection.value("hoveredConstraintId")==relation.value("id");
-        if(kind=="tangent" || kind=="arcTangent") {
+        if(kind=="tangent" || kind=="arcTangent" || kind=="circleTangent") {
             const auto ids=relation["entityIds"].toArray();if(ids.size()!=2)continue;
             const auto circle=entities.value(ids[0].toString()),line=entities.value(ids[1].toString());
-            if(line["type"]!="line")continue;
+            if(kind!="circleTangent" && line["type"]!="line")continue;
             QPointF contact;
-            if(kind=="arcTangent") {
+            if(kind=="circleTangent") {
+                const auto a=points.value(circle["centerPointId"].toString()),b=points.value(line["centerPointId"].toString());
+                const QPointF center(a["uMm"].toDouble(),a["vMm"].toDouble()),delta(b["uMm"].toDouble()-center.x(),b["vMm"].toDouble()-center.y());
+                const double distance=std::hypot(delta.x(),delta.y());if(distance<1e-9)continue;
+                contact=center+delta*(circle["radiusMm"].toDouble()/distance);
+            }else if(kind=="arcTangent") {
                 if(circle["type"]!="arc" || relation["pointIds"].toArray().size()!=1)continue;
                 const auto shared=points.value(relation["pointIds"].toArray()[0].toString());
                 if(shared.isEmpty())continue;

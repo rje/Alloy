@@ -2095,6 +2095,13 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 const auto id=constraint["entityIds"].toArray()[0].toString();for(const auto& entry:parameters["entities"].toArray())if(entry.toObject()["id"]==id &&
                     (type=="supportLine" ? entry.toObject()["type"]!="line" : entry.toObject()["type"]!="line" && entry.toObject()["type"]!="circle"))
                     return type=="supportLine" ? "Supporting-line incidence requires a line" : "Point-on-curve supports lines and circles";
+            } else if(type=="circleTangent") {
+                if(constraint.size()!=4 || !checkReferences(constraint,"entityIds",2,entityIds)
+                    || !constraint["side"].isDouble() || (constraint["side"].toDouble()!=1 && constraint["side"].toDouble()!=-1))return "Circle tangency requires two circles and retained branch";
+                const auto refs=constraint["entityIds"].toArray();if(refs[0]==refs[1])return "Circle tangency requires distinct circles";
+                for(const auto& ref:refs){bool circle=false;for(const auto& value:parameters["entities"].toArray())
+                    if(value.toObject()["id"]==ref && value.toObject()["type"]=="circle")circle=true;
+                    if(!circle)return "Circle tangency references must be circles";}
             } else if (type == "arcTangent") {
                 if (constraint.size()!=5 || !checkReferences(constraint,"entityIds",2,entityIds)
                     || !checkReferences(constraint,"pointIds",1,pointIds) || !constraint["side"].isDouble()
@@ -2407,41 +2414,57 @@ SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& dra
         auto parameters = current["parameters"].toObject();
         if(constraint["type"]=="tangent"){
             const auto ids=constraint["entityIds"].toArray();
-            if(ids.size()!=2 || ids[0]==ids[1])reject("Tangent needs one curve and one line");
-            QJsonObject arc,circle,line;QMap<QString,QJsonObject> points;
+            if(ids.size()!=2 || ids[0]==ids[1])reject("Tangent needs two distinct supported curves");
+            QJsonObject arc,circle,line;QJsonArray circles;QMap<QString,QJsonObject> points;
             for(const auto& value:parameters["entities"].toArray()){
                 const auto entity=value.toObject();if(entity["id"]!=ids[0] && entity["id"]!=ids[1])continue;
-                if(entity["type"]=="arc")arc=entity;else if(entity["type"]=="circle")circle=entity;
+                if(entity["type"]=="arc")arc=entity;else if(entity["type"]=="circle"){circle=entity;circles.append(entity);}
                 else if(entity["type"]=="line")line=entity;
             }
             for(const auto& value:parameters["points"].toArray()){const auto point=value.toObject();points[point["id"].toString()]=point;}
-            if(line.isEmpty() || (arc.isEmpty()==circle.isEmpty()))reject("Tangent needs one arc or circle and one straight line");
-            if(arguments.contains("side"))reject("Tangent derives its side from the current solved geometry");
-            const auto a=points.value(line["startPointId"].toString()),b=points.value(line["endPointId"].toString());
-            const auto curve=arc.isEmpty() ? circle : arc;
-            const auto center=points.value(curve["centerPointId"].toString());
-            if(a.isEmpty() || b.isEmpty() || center.isEmpty())reject("Tangent geometry is unavailable");
-            const double dx=b["uMm"].toDouble()-a["uMm"].toDouble(),dy=b["vMm"].toDouble()-a["vMm"].toDouble();
-            const double length=std::hypot(dx,dy);
-            if(length<minimumLength)reject("Tangent line is degenerate");
-            const double cross=dx*(center["vMm"].toDouble()-a["vMm"].toDouble())
-                -dy*(center["uMm"].toDouble()-a["uMm"].toDouble());
-            if(std::abs(cross)<1e-9*std::max(1.0,length*curve["radiusMm"].toDouble()))
-                reject("Tangent side is ambiguous");
-            const auto pair=QJsonArray{curve["id"],line["id"]};
-            for(const auto& value:parameters["constraints"].toArray()){
-                const auto relation=value.toObject();
-                if(relation["type"]==(arc.isEmpty() ? "tangent" : "arcTangent") && relation["entityIds"]==pair)
-                    reject("Tangent relation already exists for this pair");
-            }
-            constraint["entityIds"]=pair;constraint["side"]=cross>0 ? 1 : -1;
-            if(!arc.isEmpty()){
-                QStringList shared;
-                for(const auto& key:{"startPointId","endPointId"})for(const auto& other:{"startPointId","endPointId"})
-                    if(arc[key]==line[other])shared.append(arc[key].toString());
-                shared.removeDuplicates();
-                if(shared.size()!=1)reject("Arc and line must share exactly one authored endpoint");
-                constraint["type"]="arcTangent";constraint["pointIds"]=QJsonArray{shared[0]};
+            if(circles.size()==2){
+                if(arguments.contains("side"))reject("Tangent derives its branch from current solved geometry");
+                auto first=circles[0].toObject(),second=circles[1].toObject();
+                const auto a=points.value(first["centerPointId"].toString()),b=points.value(second["centerPointId"].toString());
+                const double distance=std::hypot(a["uMm"].toDouble()-b["uMm"].toDouble(),a["vMm"].toDouble()-b["vMm"].toDouble());
+                const double r1=first["radiusMm"].toDouble(),r2=second["radiusMm"].toDouble();
+                const double external=std::abs(distance-r1-r2),internal=std::abs(distance-std::abs(r1-r2));
+                if(distance<minimumLength || std::abs(external-internal)<1e-8*std::max({1.0,distance,r1,r2}))reject("Circle tangent branch is ambiguous");
+                const bool inside=internal<external;
+                if(inside ? r1<r2 : first["id"].toString()>second["id"].toString())std::swap(first,second);
+                const QJsonArray pair{first["id"],second["id"]};
+                for(const auto& value:parameters["constraints"].toArray()){const auto row=value.toObject();const auto refs=row["entityIds"].toArray();
+                    if(row["type"]=="circleTangent" && refs.contains(pair[0]) && refs.contains(pair[1]))reject("Tangent relation already exists for this pair");}
+                constraint["type"]="circleTangent";constraint["entityIds"]=pair;constraint["side"]=inside ? -1 : 1;
+            }else{
+                if(line.isEmpty() || (arc.isEmpty()==circle.isEmpty()))reject("Tangent needs one arc or circle and one straight line");
+                if(arguments.contains("side"))reject("Tangent derives its side from the current solved geometry");
+                const auto a=points.value(line["startPointId"].toString()),b=points.value(line["endPointId"].toString());
+                const auto curve=arc.isEmpty() ? circle : arc;
+                const auto center=points.value(curve["centerPointId"].toString());
+                if(a.isEmpty() || b.isEmpty() || center.isEmpty())reject("Tangent geometry is unavailable");
+                const double dx=b["uMm"].toDouble()-a["uMm"].toDouble(),dy=b["vMm"].toDouble()-a["vMm"].toDouble();
+                const double length=std::hypot(dx,dy);
+                if(length<minimumLength)reject("Tangent line is degenerate");
+                const double cross=dx*(center["vMm"].toDouble()-a["vMm"].toDouble())
+                    -dy*(center["uMm"].toDouble()-a["uMm"].toDouble());
+                if(std::abs(cross)<1e-9*std::max(1.0,length*curve["radiusMm"].toDouble()))
+                    reject("Tangent side is ambiguous");
+                const auto pair=QJsonArray{curve["id"],line["id"]};
+                for(const auto& value:parameters["constraints"].toArray()){
+                    const auto relation=value.toObject();
+                    if(relation["type"]==(arc.isEmpty() ? "tangent" : "arcTangent") && relation["entityIds"]==pair)
+                        reject("Tangent relation already exists for this pair");
+                }
+                constraint["entityIds"]=pair;constraint["side"]=cross>0 ? 1 : -1;
+                if(!arc.isEmpty()){
+                    QStringList shared;
+                    for(const auto& key:{"startPointId","endPointId"})for(const auto& other:{"startPointId","endPointId"})
+                        if(arc[key]==line[other])shared.append(arc[key].toString());
+                    shared.removeDuplicates();
+                    if(shared.size()!=1)reject("Arc and line must share exactly one authored endpoint");
+                    constraint["type"]="arcTangent";constraint["pointIds"]=QJsonArray{shared[0]};
+                }
             }
         }
         if(constraint["type"]=="symmetry"){

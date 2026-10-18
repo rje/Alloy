@@ -289,6 +289,9 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 auto& p = point(reference(constraint,"pointIds",0));
                 solver.addConstraintEqual(p.x,constant(number(constraint,"uMm")),t);
                 solver.addConstraintEqual(p.y,constant(number(constraint,"vMm")),t);
+            } else if(type=="circleTangent") {
+                auto& a=circleMap.at(reference(constraint,"entityIds",0));auto& b=circleMap.at(reference(constraint,"entityIds",1));
+                solver.addConstraintTangentCircumf(a.center,b.center,a.rad,b.rad,number(constraint,"side")<0,t);
             } else if (type == "arcTangent") {
                 // Shared contact and arc rules already retain the radius. A radial
                 // perpendicular gives tangency full first-order rank at contact.
@@ -589,6 +592,13 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 check(*vertex.x-*anchor.x-number(c,"offsetUMm"),lengthTolerance);check(*vertex.y-*anchor.y-number(c,"offsetVMm"),lengthTolerance);
             }
             else if(type=="fixed") {const auto& p=point(reference(c,"pointIds",0));check(*p.x-number(c,"uMm"),lengthTolerance);check(*p.y-number(c,"vMm"),lengthTolerance);}
+            else if(type=="circleTangent") {
+                const auto& a=circleMap.at(reference(c,"entityIds",0));const auto& b=circleMap.at(reference(c,"entityIds",1));
+                const double distance=std::hypot(*a.center.x-*b.center.x,*a.center.y-*b.center.y);
+                require(distance>=minimumLength,"Circle tangent centers became coincident");
+                if(number(c,"side")<0)require(*a.rad>*b.rad,"Internal tangent outer circle changed");
+                check(distance-(*a.rad+number(c,"side") * *b.rad),lengthTolerance);
+            }
             else if(type=="arcTangent") {
                 const auto& arc=arcMap.at(reference(c,"entityIds",0));const auto& target=line(reference(c,"entityIds",1));
                 const auto& contact=point(reference(c,"pointIds",0));
