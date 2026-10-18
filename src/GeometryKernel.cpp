@@ -403,6 +403,19 @@ QJsonObject GeometryKernel::projectionContext(const EvaluatedDocument& evaluatio
         for(const auto& candidate:evaluation.constructionPlanes)if(candidate.featureId==planeId)frame=candidate.frame;
         if(frame.isEmpty())reject("plane_unavailable","Retained construction plane is unavailable for Project");
     }
+    // Face-action identity is retained independently from its surviving edges.
+    // Refuse stale membership rather than silently rebinding a source face.
+    for(const auto& row:parameters.value("faceProjectionGroups").toArray()) {
+        const auto group=row.toObject();const auto source=group.value("source").toObject();
+        const auto face=resolveSketchSupport(evaluation,source);
+        for(const auto& id:group.value("projectionIds").toArray()) {
+            QString edgeId;
+            for(const auto& key:{"projections","circleProjections","pointProjections"})for(const auto& projection:parameters.value(key).toArray())
+                if(projection.toObject().value("id")==id)edgeId=projection.toObject().value("source").toObject().value("edgeId").toString();
+            if(std::none_of(face.boundaryEdges.begin(),face.boundaryEdges.end(),[&](const auto& edge){return edge.edgeId==edgeId;}))
+                reject("projection_unavailable","Retained face Project member is no longer a boundary of its source face");
+        }
+    }
     const auto origin=frame["origin"].toArray(),u=frame["uAxis"].toArray(),v=frame["vAxis"].toArray();
     auto local=[&](const QJsonArray& point,const QJsonArray& axis){double result=0;for(int i=0;i<3;++i)result+=(point[i].toDouble()-origin[i].toDouble())*axis[i].toDouble();return result;};
     QMap<QString,QJsonObject> centers;

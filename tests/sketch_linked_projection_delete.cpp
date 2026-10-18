@@ -45,5 +45,24 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try {
  // A retained owner referring to a projection must refuse before removal.
  auto offset=SketchGeometry::addCircleOffset(f,{{"sourceEntityId",circle},{"distanceMm",2}},context);
  check(offset.ok,offset.error);atomic(offset.feature,{circle});
+ // Explicit face actions retain selected-edge policy, even for a shared result.
+ auto grouped=f;auto gp=p(grouped);auto sharedSource=cs;sharedSource["bodyId"]=ls.value("bodyId");
+ auto circleRows=gp.value("circleProjections").toArray();auto circleRow=circleRows[0].toObject();circleRow["source"]=sharedSource;circleRows[0]=circleRow;gp["circleProjections"]=circleRows;
+ const auto faceSource=[&]{return QJsonObject{{"producerFeatureId",CadDocument::newId()},{"bodyId",ls.value("bodyId")},{"faceId",CadDocument::newId()}};};
+ const QJsonObject groupA{{"id",CadDocument::newId()},{"source",faceSource()},{"projectionIds",QJsonArray{line,circle}}};
+ const QJsonObject groupB{{"id",CadDocument::newId()},{"source",faceSource()},{"projectionIds",QJsonArray{line}}};
+ gp["faceProjectionGroups"]=QJsonArray{groupA,groupB};grouped["parameters"]=gp;
+ auto sharedContext=context;auto resolved=sharedContext.value("circles").toArray();auto resolvedCircle=resolved[0].toObject();resolvedCircle["source"]=sharedSource;resolved[0]=resolvedCircle;sharedContext["circles"]=resolved;
+ auto groupSolve=SketchGeometry::solveDraft(grouped,sharedContext);check(groupSolve.ok,groupSolve.error);grouped=groupSolve.feature;
+ auto groupedDependency=dependentOn(SketchGeometry::projectionPointId(line,false));auto dependentParams=p(groupedDependency);dependentParams["circleProjections"]=gp.value("circleProjections");dependentParams["faceProjectionGroups"]=gp.value("faceProjectionGroups");groupedDependency["parameters"]=dependentParams;
+ auto dependencySolve=SketchGeometry::solveDraft(groupedDependency,sharedContext);check(dependencySolve.ok,dependencySolve.error);groupedDependency=dependencySolve.feature;
+ const auto dependentRefusal=SketchGeometry::deleteEntities(groupedDependency,{line},{},sharedContext);check(!dependentRefusal.ok && dependentRefusal.feature==groupedDependency,"face-member virtual-point dependency must refuse atomically");
+ auto edgeRemoved=SketchGeometry::deleteEntities(grouped,{line},{},sharedContext);check(edgeRemoved.ok,edgeRemoved.error);
+ auto expectedGroup=groupA;expectedGroup["projectionIds"]=QJsonArray{circle};auto expectedParams=p(grouped);expectedParams.remove("projections");expectedParams["faceProjectionGroups"]=QJsonArray{expectedGroup};
+ check(p(edgeRemoved.feature)==expectedParams,"selected-edge Delete did not preserve sibling/source or retire shared empty membership");
+ auto malformed=grouped;auto bad=p(malformed);auto invalidGroup=groupA;invalidGroup["projectionIds"]=QJsonArray{line,line};bad["faceProjectionGroups"]=QJsonArray{invalidGroup};malformed["parameters"]=bad;
+ auto invalid=SketchGeometry::deleteEntities(malformed,{line},{},sharedContext);check(!invalid.ok && invalid.feature==malformed,"duplicate face membership must refuse atomically");
+ invalidGroup["projectionIds"]=QJsonArray{CadDocument::newId()};bad["faceProjectionGroups"]=QJsonArray{invalidGroup};malformed["parameters"]=bad;
+ invalid=SketchGeometry::deleteEntities(malformed,{line},{},sharedContext);check(!invalid.ok && invalid.feature==malformed,"stale face membership must refuse atomically");
  std::cout<<"PASS: linked line/circle/point Delete, exact survivors, annotation cleanup and atomic refusals\n";
  }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

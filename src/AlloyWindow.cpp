@@ -10870,6 +10870,7 @@ QJsonObject AlloyWindow::selectSketchProjectionFace(const QJsonObject& support) 
     catch(const GeometryKernel::EvaluationError& error){return failure(error.diagnostics()["code"].toString(),QString::fromUtf8(error.what()));}
     for(const auto& edge:face.boundaryEdges)if(edge.type!="line")
         return failure("unsupported_projection","This Project accepts faces with straight boundaries only");
+    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","Document changed during Project");
     const auto before=session_["pendingProject"].toObject();
     int added=0;for(const auto& edge:face.boundaryEdges) {
         const auto result=selectSketchProjection({{"bodyId",support["bodyId"]},{"edgeId",edge.edgeId}});
@@ -10881,8 +10882,36 @@ QJsonObject AlloyWindow::selectSketchProjectionFace(const QJsonObject& support) 
         }
         if(!result["duplicate"].toBool())++added;
     }
+    const auto restore=[&] {
+        session_["pendingProject"]=before;const auto original=before.value("previewDraft").toObject();
+        view_->showSketchDraft(SketchGeometry::evaluateFeature(original,session_.value("resolvedFrame").toObject(),GeometryKernel::projectionContext(history,original)));displayedSketchDraft_=original;refreshSketchControls();
+    };
+    try {
+    auto pending=session_.value("pendingProject").toObject();auto draft=pending.value("previewDraft").toObject();auto parameters=draft.value("parameters").toObject();
+    QJsonArray members;
+    for(const auto& edge:face.boundaryEdges)for(const auto& key:{"projections","circleProjections","pointProjections"})
+        for(const auto& row:parameters.value(key).toArray()) {
+            const auto projection=row.toObject(),source=projection.value("source").toObject();
+            if(source.value("bodyId")==support.value("bodyId") && source.value("edgeId")==edge.edgeId)members.append(projection.value("id"));
+        }
+    const auto groupId=QUuid::createUuidV5(QUuid(draft.value("id").toString()),QByteArray("alloy-face-projection/1\n")
+        +support.value("producerFeatureId").toString().toUtf8()+'\n'+support.value("bodyId").toString().toUtf8()+'\n'+support.value("faceId").toString().toUtf8()).toString(QUuid::WithoutBraces);
+    const QJsonObject group{{"id",groupId},{"source",support},{"projectionIds",members}};
+    QJsonArray groups;bool replaced=false;for(const auto& row:parameters.value("faceProjectionGroups").toArray()) {
+        if(row.toObject().value("id")==groupId){groups.append(group);replaced=true;}else groups.append(row);
+    }
+    if(!replaced)groups.append(group);parameters["faceProjectionGroups"]=groups;draft["parameters"]=parameters;
+    const auto context=GeometryKernel::projectionContext(history,draft);const auto solved=SketchGeometry::solveDraft(draft,context);
+    if(!solved.ok) {
+        restore();
+        return failure("sketch_solve_failed",solved.error);
+    }
+    pending["previewDraft"]=solved.feature;const auto evaluated=SketchGeometry::evaluateFeature(solved.feature,session_.value("resolvedFrame").toObject(),context);
+    pending["previewGeometry"]=evaluated.summary;session_["pendingProject"]=pending;view_->showSketchDraft(evaluated);displayedSketchDraft_=solved.feature;refreshSketchControls();
     return QJsonObject{{"pending",true},{"selectedCount",session_["pendingProject"].toObject()["sources"].toArray().size()},
-        {"added",added},{"face",support}};
+        {"added",added},{"face",support},{"faceProjectionGroupId",groupId},{"projectionIds",members}};
+    } catch(const GeometryKernel::EvaluationError& error) {restore();return failure(error.diagnostics().value("code").toString(),QString::fromUtf8(error.what()));}
+    catch(const std::exception& error) {restore();return failure("invalid_projection",QString::fromUtf8(error.what()));}
 }
 
 void AlloyWindow::updateSketchHistoryState() {

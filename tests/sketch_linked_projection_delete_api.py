@@ -23,13 +23,23 @@ with application(a.app,out) as (call,ledger):
  point_edge=next(e for e in point_body['solidEdges'] if e['provenance'].get('boxEdge')=='x0y0z*')
  rim=next(e for e in cylinder['solidEdges'] if e['provenance'].get('sourceEdgeIndex')==12)
  call('sketch.begin',{'support':ref(top),'name':'Linked Delete'})
- call('sketch.projectBegin');call('sketch.projectFace',ref(top))
+ call('sketch.projectBegin');face_projection=call('sketch.projectFace',ref(top))
+ preview=call('sketch.projectPreview');duplicate=call('sketch.projectFace',ref(top));assert duplicate['faceProjectionGroupId']==face_projection['faceProjectionGroupId'];assert duplicate['projectionIds']==face_projection['projectionIds'];assert call('sketch.projectPreview')==preview
+ sibling_face=next(f for f in point_body['supportFaces'] if f['role']=='box.z1');sibling_projection=call('sketch.projectFace',ref(sibling_face))
  for b,e in [(point_body,point_edge),(cylinder,rim)]:call('sketch.projectSelect',{'bodyId':b['bodyId'],'edgeId':e['edgeId']})
  call('sketch.projectCommit');call('sketch.lookAt');call('view.fit')
  line=params()['projections'][0]['id'];circle=params()['circleProjections'][0]['id'];point=params()['pointProjections'][0]['id'];sketch_id=draft()['id']
  call('sketch.addCircle',{'centerX':35,'centerY':-12,'diameter':4,'units':'mm'});unrelated=params()['entities'][-1]
  call('sketch.finish');call('document.save',{'path':str(out/'native-before.alloy')});call('sketch.edit',{'sketchId':sketch_id});call('sketch.lookAt');call('view.fit')
  original=draft();context=session()['projectionContext']
+ group=original['parameters']['faceProjectionGroups'][0];assert group['source']==ref(top) and group['id']==face_projection['faceProjectionGroupId'];assert group['projectionIds']==face_projection['projectionIds'];assert len(group['projectionIds'])==4
+ sibling_group=original['parameters']['faceProjectionGroups'][1];assert sibling_group['id']==sibling_projection['faceProjectionGroupId'] and sibling_group['source']==ref(sibling_face)
+ # Removing every result of one action retires only that now-empty membership.
+ call('sketch.deleteSelection',{'entityIds':group['projectionIds']});assert params()['faceProjectionGroups']==[sibling_group];call('history.undo');assert draft()==original
+ # A retained rectangle Offset consumes this face's boundary identities.
+ call('sketch.tool',{'tool':'offset'});call('sketch.offsetPreview',{'sourceEntityIds':group['projectionIds'],'distance':1,'units':'mm'});call('sketch.offsetAccept')
+ before=session();doc=call('document.inspect');call('sketch.deleteSelection',{'entityIds':[line]},error='sketch_solve_failed');face_dependency_refusal=ledger[-1]['response'];unchanged(before);assert call('document.inspect')==doc
+ call('history.undo');assert draft()==original
  # Request validation must leave draft, selection/history and document exact.
  for args in [{'entityIds':[line,'stale']},{'entityIds':[line,line]},{'pointIds':[point,point]},{'entityIds':[point]},{'pointIds':[line]}]:
   before=session();doc=call('document.inspect');call('sketch.deleteSelection',args,error='sketch_solve_failed');unchanged(before);assert call('document.inspect')==doc
@@ -45,6 +55,7 @@ with application(a.app,out) as (call,ledger):
   changed=draft();expected=dict(before['parameters']);rows=[r for r in expected[key] if r['id']!=target]
   if rows:expected[key]=rows
   else:expected.pop(key)
+  if kind=='line':expected['faceProjectionGroups']=[{**g,'projectionIds':[i for i in g['projectionIds'] if i!=target]} for g in expected['faceProjectionGroups'] if any(i!=target for i in g['projectionIds'])]
   if kind=='circle':expected['dimensions']=[d for d in expected['dimensions'] if d.get('entityId')!=circle]
   assert changed['parameters']==expected,(kind,changed['parameters'],expected)
   assert session()['draftHistory']['index']==state['draftHistory']['index']+1
@@ -60,6 +71,6 @@ with application(a.app,out) as (call,ledger):
  call('sketch.deleteSelection',{'pointIds':[point]});call('sketch.finish');final=call('document.inspect');assert final['evaluation']['bodies']==committed['evaluation']['bodies']
  path=out/'projection-deleted.alloy';call('document.save',{'path':str(path)});call('document.open',{'path':str(path),'discard':True});assert call('document.inspect')['authored']==final['authored'];assert call('document.inspect')['evaluation']['bodies']==final['evaluation']['bodies']
  call('capture.screenshot',{'path':str(out/'reopened.png')});gpu=call('app.state')['viewport']['gpu'];assert gpu['hardwareAccelerated']
- (out/'receipt.json').write_text(json.dumps({'status':'pass','gpu':gpu,'appSha256':hashlib.sha256(Path(a.app).read_bytes()).hexdigest(),'sketchId':sketch_id,'lineId':line,'circleId':circle,'pointId':point,'sourceBodies':baseline['evaluation']['bodies'],'projectionContext':context,'refusal':refusal,'exactUndoRedoReopen':True,'nativeFixture':str(out/'native-before.alloy')},indent=2)+'\n')
+ (out/'receipt.json').write_text(json.dumps({'status':'pass','gpu':gpu,'appSha256':hashlib.sha256(Path(a.app).read_bytes()).hexdigest(),'sketchId':sketch_id,'lineId':line,'circleId':circle,'pointId':point,'faceProjectionGroup':group,'siblingFaceProjectionGroup':sibling_group,'selectedEdgePolicy':True,'duplicateFaceStable':True,'emptyGroupRetired':True,'faceDependencyRefusal':face_dependency_refusal,'sourceBodies':baseline['evaluation']['bodies'],'projectionContext':context,'refusal':refusal,'exactUndoRedoReopen':True,'nativeFixture':str(out/'native-before.alloy')},indent=2)+'\n')
  (out/'transcript.json').write_text(json.dumps(ledger,indent=2)+'\n')
 print('PASS: linked line/circle/point Delete, atomic refusals, annotation cleanup, downstream preflight, exact history/reopen and GPU')

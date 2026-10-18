@@ -45,6 +45,7 @@ private slots:
         QVERIFY(!sketch.isEmpty());call(window,"sketch.edit",{{"sketchId",sketch.value("id")}});call(window,"sketch.lookAt");call(window,"view.fit");
         const auto session=[&]{return window.state().value("activeSession").toObject();};const auto draft=[&]{return session().value("draftSketch").toObject();};
         const auto original=draft(),p=original.value("parameters").toObject(),context=session().value("projectionContext").toObject();
+        const auto faceGroup=p.value("faceProjectionGroups").toArray().first().toObject();QVERIFY(!faceGroup.isEmpty());QCOMPARE(faceGroup.value("projectionIds").toArray().size(),4);
         const auto line=context.value("lines").toArray()[0].toObject(),circle=context.value("circles").toArray()[0].toObject();
         const auto point=p.value("pointProjections").toArray()[0].toObject().value("id");
         const auto pixel=[&](double u,double v){const auto pos=call(window,"view.projectSketchPoint",{{"sketchId",sketch.value("id")},{"uMm",u},{"vMm",v}});return QPoint(qRound(pos.value("x").toDouble()),qRound(pos.value("y").toDouble()));};
@@ -53,7 +54,9 @@ private slots:
         QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,pixel((line.value("u1Mm").toDouble()+line.value("u2Mm").toDouble())/2,(line.value("v1Mm").toDouble()+line.value("v2Mm").toDouble())/2));
         QCOMPARE(session().value("selection").toObject().value("entityIds").toArray(),QJsonArray{line.value("id")});QVERIFY(view->hasFocus());
         call(window,"capture.screenshot",{{"path",evidence+"/native-line-selected.png"}});QTest::keyClick(view,Qt::Key_Delete);
-        QTRY_COMPARE(draft().value("parameters").toObject().value("projections").toArray().size(),3);const auto lineDeleted=draft();
+        QTRY_COMPARE(draft().value("parameters").toObject().value("projections").toArray().size(),p.value("projections").toArray().size()-1);const auto lineDeleted=draft();
+        auto expectedGroup=faceGroup;QJsonArray members;for(const auto& id:faceGroup.value("projectionIds").toArray())if(id!=line.value("id"))members.append(id);expectedGroup["projectionIds"]=members;
+        auto expectedGroups=p.value("faceProjectionGroups").toArray();expectedGroups[0]=expectedGroup;QCOMPARE(lineDeleted.value("parameters").toObject().value("faceProjectionGroups"),expectedGroups);
         auto* status=window.findChild<QLabel*>("sketch.profileStatus");auto* guidance=window.findChild<QLabel*>("sketch.selectionGuidance");QVERIFY(status&&guidance);
         const auto profileTextFits=[&] {const int textHeight=status->fontMetrics().boundingRect(QRect(0,0,status->contentsRect().width(),100000),Qt::TextWordWrap,status->text()).height();return status->height()>=textHeight && status->geometry().bottom()<guidance->geometry().top();};
         QVERIFY2(profileTextFits(),"Deleted projection diagnostics must fit above selection guidance in the same refresh");

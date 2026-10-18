@@ -636,7 +636,7 @@ QJsonObject SketchGeometry::expandedProjectionFeature(const QJsonObject& feature
         if(point.isEmpty())reject("Retained point projection requires current resolved source edge");
         points.append(QJsonObject{{"id",projection["id"]},{"uMm",coordinate(point,"uMm")},{"vMm",coordinate(point,"vMm")}});
     }
-    parameters.remove("pointReferences");parameters.remove("pointProjections");parameters.remove("projections");parameters.remove("circleProjections");parameters["points"]=points;parameters["entities"]=entities;parameters["dimensions"]=dimensions;expanded["parameters"]=parameters;return expanded;
+    parameters.remove("pointReferences");parameters.remove("pointProjections");parameters.remove("projections");parameters.remove("circleProjections");parameters.remove("faceProjectionGroups");parameters["points"]=points;parameters["entities"]=entities;parameters["dimensions"]=dimensions;expanded["parameters"]=parameters;return expanded;
 }
 
 QJsonObject SketchGeometry::findFeature(const QJsonObject& authored, const QString& sketchId) {
@@ -1677,6 +1677,20 @@ SketchGeometry::SolveResult SketchGeometry::deleteEntities(const QJsonObject& dr
         // This slice handles current live links; lost-reference repair remains
         // separate. Resolve the original owners before allowing their removal.
         if(!removedProjections.isEmpty())expandedProjectionFeature(draft,projectionContext);
+        // A face action records provenance for its boundary results. Delete
+        // retains the selected-edge policy, including shared face membership.
+        // Keep source and surviving identities exact; never expand to siblings.
+        if(parameters.contains("faceProjectionGroups")) {
+            QJsonArray groups;
+            for(const auto& row:parameters.value("faceProjectionGroups").toArray()) {
+                auto group=row.toObject();QJsonArray members;
+                for(const auto& id:group.value("projectionIds").toArray())
+                    if(!removedProjections.contains(id))members.append(id);
+                if(members.isEmpty())continue;
+                group["projectionIds"]=members;groups.append(group);
+            }
+            if(groups.isEmpty())parameters.remove("faceProjectionGroups");else parameters["faceProjectionGroups"]=groups;
+        }
         // Virtual points must disappear, never survive as frozen authored data.
         for(const auto& row:authoredEntities) {
             const auto entity=row.toObject();
@@ -1940,6 +1954,35 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
         return "Unsupported face-sketch origin convention";
     if(plane=="construction") {if(!validId(parameters["planeId"].toString()))return "Construction sketch requires a stable plane ID";}
     else if(parameters.contains("planeId"))return "Only construction sketches can reference a plane feature";
+    if(parameters.contains("faceProjectionGroups")) {
+        if((plane!="face" && plane!="construction") || !parameters.value("faceProjectionGroups").isArray())return "Face Project groups require a supported sketch and an array";
+        QSet<QString> groups,faces;
+        for(const auto& row:parameters.value("faceProjectionGroups").toArray()) {
+            const auto group=row.toObject(),source=group.value("source").toObject();
+            const auto id=group.value("id").toString();
+            if(!row.isObject() || group.size()!=3 || !validId(id) || groups.contains(id)
+                || source.size()!=3 || !group.value("projectionIds").isArray() || group.value("projectionIds").toArray().isEmpty())return "Invalid retained face Project group";
+            if(authoredIds.contains(id))return "Duplicate face Project group UUID";
+            authoredIds.insert(id);groups.insert(id);QStringList identity;
+            for(const auto& key:{"producerFeatureId","bodyId","faceId"}) {
+                if(!validId(source.value(key).toString()))return "Face Project source requires stable producer, body and face UUIDs";
+                identity.append(source.value(key).toString());
+            }
+            if(faces.contains(identity.join(':')))return "Duplicate face Project source";
+            faces.insert(identity.join(':'));QSet<QString> members;
+            for(const auto& value:group.value("projectionIds").toArray()) {
+                const auto member=value.toString();int found=0;
+                if(!validId(member) || members.contains(member))return "Face Project members must be distinct projection UUIDs";
+                members.insert(member);
+                for(const auto& key:{"projections","circleProjections","pointProjections"})for(const auto& projection:parameters.value(key).toArray())
+                    if(projection.toObject().value("id")==value) {
+                        if(projection.toObject().value("source").toObject().value("bodyId")!=source.value("bodyId"))return "Face Project member source body changed";
+                        ++found;
+                    }
+                if(found!=1)return "Face Project member must identify exactly one retained projection";
+            }
+        }
+    }
     if(parameters.contains("projections") || parameters.contains("pointReferences") || parameters.contains("pointProjections") || parameters.contains("circleProjections")) {
         if((plane!="face" && plane!="construction") || (plane!="face" && parameters.contains("pointReferences")) || (parameters.contains("projections") && !parameters["projections"].isArray()) || (parameters.contains("pointReferences") && !parameters["pointReferences"].isArray()) || (parameters.contains("pointProjections") && !parameters["pointProjections"].isArray()) || (parameters.contains("circleProjections") && !parameters["circleProjections"].isArray()))return "Projections require a retained face or construction plane and valid arrays";
         QJsonArray lines,circles,resolvedPoints;QSet<QString> sources,referenceIds=derivedPointIds;
@@ -1994,7 +2037,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             resolvedPoints.append(QJsonObject{{"id",reference["id"]},{"source",source},{"uMm",0},{"vMm",0}});
         }
         if(parameters.contains("texts")){
-            auto textOnly=parameters;textOnly.remove("projections");textOnly.remove("pointReferences");textOnly.remove("pointProjections");textOnly.remove("circleProjections");
+            auto textOnly=parameters;textOnly.remove("projections");textOnly.remove("pointReferences");textOnly.remove("pointProjections");textOnly.remove("circleProjections");textOnly.remove("faceProjectionGroups");
             return validateParameters(textOnly,authoredIds);
         }
         try {return validateParameters(expandedProjectionFeature({{"parameters",parameters}},{{"lines",lines},{"circles",circles},{"points",resolvedPoints}})["parameters"].toObject(),authoredIds,referenceIds);}
@@ -2695,6 +2738,7 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& source
         if(draft["parameters"].toObject().contains("pointReferences"))parameters["pointReferences"]=draft["parameters"].toObject()["pointReferences"];
         if(draft["parameters"].toObject().contains("pointProjections"))parameters["pointProjections"]=draft["parameters"].toObject()["pointProjections"];
         if(draft["parameters"].toObject().contains("circleProjections"))parameters["circleProjections"]=draft["parameters"].toObject()["circleProjections"];
+        if(draft["parameters"].toObject().contains("faceProjectionGroups"))parameters["faceProjectionGroups"]=draft["parameters"].toObject()["faceProjectionGroups"];
         parameters=SketchSplineOffset::refreshEndpoints(parameters);
         solved["parameters"]=parameters;validateDraft(solved);SketchChamfer::derive(parameters);validateRoundedIntent(parameters);validateSlotGroups(parameters);validateArcSlotGroups(parameters);
         for(const auto& value:entities)if(value.toObject()["type"]=="fitSplineOffset"){
