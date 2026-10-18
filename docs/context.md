@@ -30,10 +30,12 @@ three native points, typed Tab-lock lengths, retained Parallel/Perpendicular
 relations, a source-driven corner, downstream extrusion and independently read
 STL, with real-app Undo/Redo/reopen and GPU captures. See
 [the receipt](validation/sketch-three-point-rectangle.md).
-The external dated source review did not establish a separate Parallelogram
-command, so SKT-106/#530 retains that research/disposition question rather
-than treating a proposed Alloy extension as compatibility. The backlog now
-contains 527 issues.
+The extended external dated source review found no separate documented
+Parallelogram creation mode. SKT-106/#530 disposed that inventory assumption;
+ordinary Line and Parallel constraints are the documented primitives, while a
+dedicated Alloy constructor would be an optional Alloy-specific proposal.
+See [the command record](research/commands/sketch-three-point-rectangle.md).
+The backlog contains 527 issues.
 SKT-093/#498 now accepts Inscribed, Circumscribed and Edge Polygon creation,
 retained edits, native numeric refusal, three closed regions, downstream
 extrusion, history/reopen and independently read STL. Astra reviewed the

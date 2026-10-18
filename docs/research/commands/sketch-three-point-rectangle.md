@@ -24,8 +24,27 @@ dedicated post-creation rectangle editor.
 The 30/15 mm lengths in the public demonstration are example values, not
 defaults. Exact appearance comparison uses the external old-version frames
 with unmatched viewport/theme/scale noted. Other rectangle variants and a
-separate Parallelogram mode remain research/disposition work under SKT-106;
-no parity claim is made for them here.
+separate Parallelogram mode were examined under SKT-106; no parity claim is
+made for a distinct Parallelogram command.
 
 The [bounded implementation receipt](../../validation/sketch-three-point-rectangle.md)
 records the native, solver, source-edit, GPU and independent export evidence.
+
+## SKT-106 disposition (2026-10-18)
+
+Current public command help and tool indexes enumerate only the 2-Point,
+3-Point and Center Rectangle variants; the public line-constructor inventory
+also lacks a separate Parallelogram method. Official instructions demonstrate
+closed Line geometry and editable Parallel constraints. An independent public
+tutorial corroborates the three-variant Rectangle family, and a community
+example describes a parameter-driven parallelogram sketch without naming a
+dedicated creation command. The dated source-by-source evidence is appended
+to the external SKT-094 knowledge record.
+
+The bounded compatibility disposition is **no separate documented target
+Parallelogram creation mode**. A shape made with ordinary Lines and Parallel
+constraints remains a valid user workflow; the exact complete recipe is an
+inference from the documented primitives. A dedicated Alloy constructor could
+be considered as an Alloy-specific usability extension, but is not a target
+parity requirement or v1 blocker. Future public evidence can reopen this
+assessment.

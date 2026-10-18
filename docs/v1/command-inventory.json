@@ -538,7 +538,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Three documented Rectangle modes have bounded native, retained and downstream solid evidence. Exact modern visual/input parity, physical hand use and other-platform runtime remain unqualified; a separate Parallelogram command is unsubstantiated under SKT-106.",
+      "gap": "Three documented Rectangle modes have bounded native, retained and downstream solid evidence. Exact modern visual/input parity, physical hand use and other-platform runtime remain unqualified. SKT-106 found no separate documented target Parallelogram command.",
       "apiIds": [
         "sketch.centerRectangle",
         "sketch.centerRectangleAccept",
@@ -3066,7 +3066,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Three-Point Rectangle has an accepted creation-to-STL route. Additional variants remain on the parent roadmap; a separate Parallelogram command is not established by current public evidence and SKT-106 owns its disposition.",
+      "gap": "Three-Point Rectangle has an accepted creation-to-STL route. SKT-106 disposed a separate Parallelogram command as absent from the documented target set; additional evidenced variants remain on the parent roadmap.",
       "apiIds": ["sketch.threePointRectangle", "sketch.threePointRectangleDistanceLock", "sketch.threePointRectangleDistancePreview"],
       "issueKeys": [
         "SKT-021",
@@ -3079,7 +3079,7 @@
         "src/SketchGeometry.cpp",
         "src/ThreePointRectangleControls.cpp"
       ],
-      "receipts": ["docs/validation/sketch-three-point-rectangle.md"],
+      "receipts": ["docs/validation/sketch-three-point-rectangle.md", "docs/research/commands/sketch-three-point-rectangle.md"],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },
     {

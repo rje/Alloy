@@ -52,4 +52,5 @@ exact modern styling, snap priority and glyph placement remain unknown.
 Second/third-point retained snap behavior and physical hand input were not
 qualified. Windows/Linux runtime and GPU presentation remain release gates.
 A separate Parallelogram command is not established by current public sources;
-SKT-106/#530 retains that disposition rather than being claimed here.
+the [SKT-106 disposition](../research/commands/sketch-three-point-rectangle.md)
+records why it is not a target parity requirement.
