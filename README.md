@@ -129,6 +129,9 @@ can share a side with independent distances and overlap refusal. Other modes
 have bounded Todo issues. [Canvas Chamfer editing](docs/validation/sketch-chamfer-canvas-edit.md)
 now supports a draggable handle, an inline driving distance and a visibly
 driven second distance.
+[Two Distance sketch Chamfer](docs/validation/sketch-two-distance-chamfer.md)
+now retains independently editable setbacks on ordered source edges, with
+native Feature Options switching and a verified solid/reopen path.
 
 [Extrude Distance formulas](docs/validation/extrude-distance-expression.md) now
 retain arithmetic such as `Width*2` through parameter edits, undo and reopening.

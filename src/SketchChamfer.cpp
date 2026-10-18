@@ -39,8 +39,10 @@ QString SketchChamfer::validate(const QJsonObject& p,QSet<QString>& ids){
         for(const auto& row:p.value("chamferGroups").toArray()){
             require(row.isObject(),"Invalid retained Chamfer group");
             const auto g=row.toObject();
-            require(g.size()==6 && g.value("type")=="equalDistance" && g.value("sourceEntityIds").isArray() && g.value("sourceEntityIds").toArray().size()==2 && g.value("pointIds").isArray() && g.value("pointIds").toArray().size()==2,"Invalid retained Equal Distance Chamfer");
+            const bool two=g.value("type")=="twoDistance";
+            require(g.size()==(two?7:6) && (two || g.value("type")=="equalDistance") && g.value("sourceEntityIds").isArray() && g.value("sourceEntityIds").toArray().size()==2 && g.value("pointIds").isArray() && g.value("pointIds").toArray().size()==2,"Invalid retained Chamfer");
             require(g.value("distanceMm").isDouble() && std::isfinite(g.value("distanceMm").toDouble()) && g.value("distanceMm").toDouble()>=0.001 && g.value("distanceMm").toDouble()<=100000,"Chamfer distance must be 0.001..100000 mm");
+            if(two)require(g.value("distance2Mm").isDouble() && std::isfinite(g.value("distance2Mm").toDouble()) && g.value("distance2Mm").toDouble()>=0.001 && g.value("distance2Mm").toDouble()<=100000,"Chamfer second distance must be 0.001..100000 mm");
             QJsonArray owned{g.value("id"),g.value("lineId")};for(const auto& id:g.value("pointIds").toArray())owned.append(id);
             for(const auto& id:owned){require(id.isString() && !QUuid(id.toString()).isNull() && !ids.contains(id.toString()),"Invalid or duplicate Chamfer generated UUID");ids.insert(id.toString());}
             for(const auto& id:g.value("sourceEntityIds").toArray())require(id.isString() && !QUuid(id.toString()).isNull(),"Chamfer requires stable source line UUIDs");
@@ -57,8 +59,8 @@ QJsonObject SketchChamfer::derive(const QJsonObject& p){
     QMap<QString,QMap<QString,double>> setbacks;
     for(const auto& row:p.value("chamferGroups").toArray()){
         const auto g=row.toObject();const auto c=corner(p,g.value("sourceEntityIds").toArray());
-        const double distance=g.value("distanceMm").toDouble();
         for(int j=0;j<2;++j){
+            const double distance=g.value(j==1 && g.value("type")=="twoDistance"?"distance2Mm":"distanceMm").toDouble();
             const auto sourceId=c.lines[j].value("id").toString();
             auto& ends=setbacks[sourceId];
             require(!ends.contains(c.keys[j]),"Chamfer corner already has a retained cut");
@@ -79,7 +81,7 @@ QJsonObject SketchChamfer::derive(const QJsonObject& p){
 QJsonObject SketchGeometry::chamferPresentation(const QJsonObject& feature){auto result=feature;result["parameters"]=SketchChamfer::derive(feature.value("parameters").toObject());return result;}
 SketchGeometry::SolveResult SketchGeometry::chamferCorner(const QJsonObject& draft,const QJsonObject& args,const QJsonObject& context){
     try{
-        for(auto it=args.begin();it!=args.end();++it)require(QSet<QString>{"entityIds","distanceMm","chamferId"}.contains(it.key()),"Unknown Chamfer argument");
+        for(auto it=args.begin();it!=args.end();++it)require(QSet<QString>{"entityIds","distanceMm","distance2Mm","chamferId","type"}.contains(it.key()),"Unknown Chamfer argument");
         auto p=draft.value("parameters").toObject();auto groups=p.value("chamferGroups").toArray();QJsonObject g;int groupIndex=-1;
         if(args.contains("chamferId")){
             for(int i=0;i<groups.size();++i)if(groups[i].toObject().value("id")==args.value("chamferId"))groupIndex=i;
@@ -89,7 +91,20 @@ SketchGeometry::SolveResult SketchGeometry::chamferCorner(const QJsonObject& dra
             require(args.value("entityIds").isArray(),"Chamfer needs two source line IDs");
             g={{"id",fresh()},{"type","equalDistance"},{"sourceEntityIds",args.value("entityIds")},{"lineId",fresh()},{"pointIds",QJsonArray{fresh(),fresh()}}};
         }
-        require(args.value("distanceMm").isDouble(),"Chamfer needs a positive distance");g["distanceMm"]=args.value("distanceMm");
+        // Alloy side-order policy: sourceEntityIds[0] owns Distance 1 and
+        // sourceEntityIds[1] owns Distance 2. Editing never reorders sources.
+        // API/two-line input preserves pick order; vertex picks use authored order.
+        const auto type=args.value("type").toString(g.value("type").toString());
+        require(type=="equalDistance" || type=="twoDistance","Unsupported Chamfer mode");
+        g["type"]=type;
+        if(args.contains("distanceMm")){require(args.value("distanceMm").isDouble(),"Chamfer needs a positive first distance");g["distanceMm"]=args.value("distanceMm");}
+        require(g.value("distanceMm").isDouble(),"Chamfer needs a positive first distance");
+        if(type=="twoDistance"){
+            if(args.contains("distance2Mm")){require(args.value("distance2Mm").isDouble(),"Chamfer needs a positive second distance");g["distance2Mm"]=args.value("distance2Mm");}
+            else if(!g.contains("distance2Mm"))g["distance2Mm"]=g.value("distanceMm");
+        } else {
+            require(!args.contains("distance2Mm"),"Equal Distance has no independent second setback");g.remove("distance2Mm");
+        }
         if(groupIndex>=0)groups[groupIndex]=g;else groups.append(g);
         p["chamferGroups"]=groups;auto candidate=draft;candidate["parameters"]=p;
         auto result=solveDraft(candidate,context);if(!result.ok)return {false,draft,result.diagnostics,result.error};result.diagnostics["chamferId"]=g.value("id");result.diagnostics["createdLineId"]=g.value("lineId");result.diagnostics["retainedSourceEntityIds"]=g.value("sourceEntityIds");result.diagnostics["retainedConstraintCount"]=p.value("constraints").toArray().size();result.diagnostics["retainedDimensionCount"]=p.value("dimensions").toArray().size();return result;

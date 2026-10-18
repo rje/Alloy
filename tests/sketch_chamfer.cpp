@@ -61,5 +61,35 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     auto modified=sketch;auto mp=p(modified);auto lines=mp.value("entities").toArray();lines.removeAt(1);mp["entities"]=lines;modified["parameters"]=mp;check(!SketchGeometry::solveDraft(modified).ok,"Deleted Chamfer source was silently detached");
     check(document.commit(SketchGeometry::replaceFeature(document.authored(),sketch),"Resize Chamfer source").isEmpty(),"Cannot update downstream Chamfer solid");check(document.bodies().front().bodyId==bodyId && std::abs(document.bodies().front().summary.value("volumeMm3").toDouble()-5*(12800-72-40.5))<1e-5,"Downstream volume/body changed");
     const auto final=document.authored();document.history().undo();document.history().redo();check(document.authored()==final,"Chamfer Undo/Redo mismatch");QTemporaryDir temp;const auto path=temp.filePath("chamfer.alloy");check(document.save(path).isEmpty(),"Save Chamfer");CadDocument reopened;check(reopened.open(path).isEmpty() && reopened.authored()==final,"Chamfer reopen mismatch");area(reopened.sketches().front().summary.isEmpty()?sketch:SketchGeometry::findFeature(reopened.authored(),sketch.value("id").toString()),12800-72-40.5);
-    std::cout<<"PASS: multiple adjacent retained equal setbacks, source dimensions, stable profile/line IDs, atomic refusal, extrusion, Undo/Redo and reopen\n";
+    // Two Distance shares the retained source and exact profile evaluator.
+    // Distance 1 belongs to pair[0], even if the API supplies the reversed pair.
+    CadDocument twoDoc;auto twoSource=source;twoSource["ownerId"]=twoDoc.activeOwnerId();
+    auto two=accept(SketchGeometry::chamferCorner(twoSource,{{"entityIds",pair},{"type","twoDistance"},{"distanceMm",10},{"distance2Mm",20}}));
+    area(two,11250-100);const auto twoGroup=p(two).value("chamferGroups").toArray().first().toObject();
+    auto displayed=p(SketchGeometry::chamferPresentation(two));QMap<QString,QPointF> twoCoords;
+    for(const auto& row:displayed.value("points").toArray()){const auto pt=row.toObject();twoCoords[pt.value("id").toString()]={pt.value("uMm").toDouble(),pt.value("vMm").toDouble()};}
+    check(QLineF(twoCoords[twoGroup.value("pointIds").toArray()[0].toString()],QPointF(75,27.5)).length()<1e-6,"First distance did not follow first source line");
+    check(QLineF(twoCoords[twoGroup.value("pointIds").toArray()[1].toString()],QPointF(55,37.5)).length()<1e-6,"Second distance did not follow second source line");
+    const auto reverseTwo=accept(SketchGeometry::chamferCorner(source,{{"entityIds",QJsonArray{pair[1],pair[0]}},{"type","twoDistance"},{"distanceMm",10},{"distance2Mm",20}}));
+    check(p(reverseTwo).value("chamferGroups").toArray().first().toObject().value("sourceEntityIds")==QJsonArray{pair[1],pair[0]},"API source order was silently changed");area(reverseTwo,11150);
+    check(twoDoc.commit(SketchGeometry::replaceFeature(twoDoc.authored(),two),"Two Distance").isEmpty(),"Commit Two Distance");
+    const auto twoProfile=twoDoc.sketches().front().profiles.front().profileId;
+    check(twoDoc.commit(CadDocument::extrusionCandidate(twoDoc.authored(),{{"sketchId",two.value("id")},{"profileId",twoProfile},{"distanceMm",5}}),"Extrude").isEmpty(),"Extrude Two Distance");
+    const auto twoBody=twoDoc.bodies().front().bodyId;
+    two=accept(SketchGeometry::chamferCorner(two,{{"chamferId",twoGroup.value("id")},{"distanceMm",12}}));
+    check(p(two).value("chamferGroups").toArray().first().toObject().value("distance2Mm").toDouble()==20,"First edit changed second setback");area(two,11130);
+    two=accept(SketchGeometry::chamferCorner(two,{{"chamferId",twoGroup.value("id")},{"distance2Mm",18}}));
+    check(p(two).value("chamferGroups").toArray().first().toObject().value("distanceMm").toDouble()==12,"Second edit changed first setback");area(two,11142);
+    two=accept(SketchGeometry::updateDimension(two,{{"dimensionId",dimensionIds[0].toObject().value("id")},{"valueMm",160}}));
+    two=accept(SketchGeometry::updateDimension(two,{{"dimensionId",dimensionIds[1].toObject().value("id")},{"valueMm",80}}));area(two,12800-108);
+    const auto finalGroup=p(two).value("chamferGroups").toArray().first().toObject();
+    for(const auto* key:{"id","lineId","pointIds","sourceEntityIds"})check(finalGroup.value(key)==twoGroup.value(key),"Two Distance stable identity changed");
+    for(const auto* key:{"distanceMm","distance2Mm"}){const auto bad=SketchGeometry::chamferCorner(two,{{"chamferId",twoGroup.value("id")},{key,200}});check(!bad.ok && bad.feature==two,"Invalid independent setback was not transactional");}
+    check(twoDoc.commit(SketchGeometry::replaceFeature(twoDoc.authored(),two),"Edit Two Distance").isEmpty(),"Update Two Distance solid");
+    check(twoDoc.bodies().front().bodyId==twoBody && std::abs(twoDoc.bodies().front().summary.value("volumeMm3").toDouble()-63460)<1e-5,"Two Distance solid mismatch");
+    const auto twoFinal=twoDoc.authored();twoDoc.history().undo();twoDoc.history().redo();check(twoDoc.authored()==twoFinal,"Two Distance document history mismatch");
+    const auto twoPath=temp.filePath("two-distance.alloy");check(twoDoc.save(twoPath).isEmpty(),"Save Two Distance");CadDocument twoReopened;check(twoReopened.open(twoPath).isEmpty() && twoReopened.authored()==twoFinal,"Reopen Two Distance");
+    const auto equalConversion=accept(SketchGeometry::chamferCorner(two,{{"chamferId",twoGroup.value("id")},{"type","equalDistance"}}));area(equalConversion,12800-72);
+    check(p(equalConversion).value("chamferGroups").toArray().first().toObject().value("id")==twoGroup.value("id"),"Mode change replaced retained identity");
+    std::cout<<"PASS: retained Equal/Two Distance setbacks, source ordering and edits, stable IDs, atomic refusal, extrusion, Undo/Redo and reopen\n";
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

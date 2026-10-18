@@ -74,11 +74,13 @@ private:
     QJsonObject sketchChamfer(const QJsonObject& args,const QString& operation);
     QJsonObject chamferGesture(const QJsonObject& pixel,bool commit);
     void cancelChamfer();
+    QJsonObject chamferMode(const QJsonObject& args);
     QJsonObject chamferHandle(const QJsonObject& args);
     void buildChamferControls(QVBoxLayout* layout);
     void refreshChamferControls();
     QWidget* sketchChamferControls_=nullptr;
     QLineEdit* sketchChamferDistance_=nullptr;
+    QLineEdit* sketchChamferDistance2_=nullptr;
     void refreshOrbitModeControls();
     void refreshNavigationToolControls();
     void updateCompactControls();

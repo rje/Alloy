@@ -2194,16 +2194,17 @@ aspect->ArrowAspect()->SetLength(7*size);aspect->SetArrowTailSize(8*size);aspect
         label->SetColor(color);label->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(label,0,-1,false);context_->Deactivate(label);sketchDecorations_.push_back(label);
     }
     if(showDimensions_)for(const auto& row:parameters.value("chamferGroups").toArray()){
-        const auto group=row.toObject();const auto contacts=group.value("pointIds").toArray();
+        const auto group=row.toObject();const auto contacts=group.value("pointIds").toArray();const bool two=group.value("type")=="twoDistance";
         int side=0;
         for(const auto& id:contacts){
-            const auto p=points.value(id.toString());const double u=p.value("uMm").toDouble()+2,v=p.value("vMm").toDouble()+3;
-            const bool driving=side==0;
-            const auto text=QString(driving?"%1 %2":"(%1 %2)").arg(group.value("distanceMm").toDouble()/(units=="in" ? 25.4 : 1.0),0,'g',6).arg(units);
+            const auto p=points.value(id.toString());const double u=p.value("uMm").toDouble()+(two?7:2),v=p.value("vMm").toDouble()+(two?7:3);
+            const bool driving=two || side==0;
+            const auto distance=group.value(two && side==1?"distance2Mm":"distanceMm");
+            const auto text=QString(driving?"%1 %2":"(%1 %2)").arg(distance.toDouble()/(units=="in" ? 25.4 : 1.0),0,'g',6).arg(units);
             const auto pixel=projectSketchPoint(u,v,plane);
             QFont font("Arial");font.setPixelSize(13);const QFontMetricsF metrics(font);
-            annotationLayouts_.append(QJsonObject{{"dimensionId",driving?group.value("id"):id},{"chamferId",group.value("id")},
-                {"kind","chamferDistance"},{"driving",driving},{"valueMm",group.value("distanceMm")},
+            annotationLayouts_.append(QJsonObject{{"dimensionId",side==0?group.value("id"):id},{"chamferId",group.value("id")},
+                {"kind","chamferDistance"},{"driving",driving},{"side",side},{"independentSecond",two && side==1},{"valueMm",distance},
                 {"annotation",QJsonObject{{"uMm",u},{"vMm",v}}},
                 {"label",QJsonObject{{"x",pixel.value("x")},{"y",pixel.value("y")},{"width",metrics.horizontalAdvance(text)+8},{"height",metrics.height()+6},{"angleDegrees",0},{"text",text}}}});
             Handle(AIS_TextLabel) label=new AIS_TextLabel;label->SetText(TCollection_ExtendedString(text.toUtf8().constData(),true));
@@ -2225,17 +2226,20 @@ aspect->ArrowAspect()->SetLength(7*size);aspect->SetArrowTailSize(8*size);aspect
         }
         if(!found || (selection.value("tool")!="select" && !(selection.value("tool")=="chamfer" && selection.value("entityIds").toArray().contains(group.value("lineId")))))continue;
         const auto a=points.value(contacts[0].toString()),b=points.value(contacts[1].toString());
-        const QPointF midpoint((a.value("uMm").toDouble()+b.value("uMm").toDouble())/2,(a.value("vMm").toDouble()+b.value("vMm").toDouble())/2);
-        const auto axis=(midpoint-vertex)/group.value("distanceMm").toDouble();
-        const auto pixel=projectSketchPoint(midpoint.x(),midpoint.y(),plane);
-        chamferHandles_.append(QJsonObject{{"chamferId",group.value("id")},{"distanceMm",group.value("distanceMm")},{"x",pixel.value("x")},{"y",pixel.value("y")},{"hitRadius",11},
-            {"originUMm",vertex.x()},{"originVMm",vertex.y()},{"axisU",axis.x()},{"axisV",axis.y()}});
-        Handle(AIS_Shape) guide=new AIS_Shape(BRepBuilderAPI_MakeEdge(sketchWorld(plane,vertex.x(),vertex.y()),sketchWorld(plane,midpoint.x(),midpoint.y())).Edge());
-        guide->SetColor(Quantity_Color(0.18,0.66,0.77,Quantity_TOC_RGB));guide->Attributes()->LineAspect()->SetTypeOfLine(Aspect_TOL_DASH);guide->SetZLayer(Graphic3d_ZLayerId_Topmost);
-        context_->Display(guide,0,-1,false);context_->Deactivate(guide);sketchDecorations_.push_back(guide);
-        Handle(AIS_Point) grip=new AIS_Point(new Geom_CartesianPoint(sketchWorld(plane,midpoint.x(),midpoint.y())));
-        grip->Attributes()->SetPointAspect(new Prs3d_PointAspect(Aspect_TOM_O_POINT,Quantity_Color(0.08,0.70,0.82,Quantity_TOC_RGB),6*devicePixelRatioF()));
-        grip->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(grip,0,-1,false);context_->Deactivate(grip);sketchDecorations_.push_back(grip);
+        const QPointF endpoints[]{QPointF(a.value("uMm").toDouble(),a.value("vMm").toDouble()),QPointF(b.value("uMm").toDouble(),b.value("vMm").toDouble())};
+        for(int side=0;side<(two?2:1);++side){
+            const QPointF handle=two?endpoints[side]:(endpoints[0]+endpoints[1])/2;
+            const double distance=group.value(two && side==1?"distance2Mm":"distanceMm").toDouble();
+            const auto axis=(handle-vertex)/distance;const auto pixel=projectSketchPoint(handle.x(),handle.y(),plane);
+            chamferHandles_.append(QJsonObject{{"chamferId",group.value("id")},{"side",side},{"distanceMm",distance},{"x",pixel.value("x")},{"y",pixel.value("y")},{"hitRadius",11},
+                {"originUMm",vertex.x()},{"originVMm",vertex.y()},{"axisU",axis.x()},{"axisV",axis.y()}});
+            Handle(AIS_Shape) guide=new AIS_Shape(BRepBuilderAPI_MakeEdge(sketchWorld(plane,vertex.x(),vertex.y()),sketchWorld(plane,handle.x(),handle.y())).Edge());
+            guide->SetColor(Quantity_Color(0.18,0.66,0.77,Quantity_TOC_RGB));guide->Attributes()->LineAspect()->SetTypeOfLine(Aspect_TOL_DASH);guide->SetZLayer(Graphic3d_ZLayerId_Topmost);
+            context_->Display(guide,0,-1,false);context_->Deactivate(guide);sketchDecorations_.push_back(guide);
+            Handle(AIS_Point) grip=new AIS_Point(new Geom_CartesianPoint(sketchWorld(plane,handle.x(),handle.y())));
+            grip->Attributes()->SetPointAspect(new Prs3d_PointAspect(Aspect_TOM_O_POINT,Quantity_Color(0.08,0.70,0.82,Quantity_TOC_RGB),6*devicePixelRatioF()));
+            grip->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(grip,0,-1,false);context_->Deactivate(grip);sketchDecorations_.push_back(grip);
+        }
     }
     context_->UpdateCurrentViewer();
 }
@@ -3299,7 +3303,7 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
             if(QLineF(e->position(),QPointF(handle.value("x").toDouble(),handle.value("y").toDouble())).length()>handle.value("hitRadius").toDouble())continue;
             // Save the drag axis before dispatch: preview refresh rebuilds overlays.
             const auto captured=handle;setFocus(Qt::MouseFocusReason);
-            dispatch("sketch.chamferHandle",{{"phase","begin"},{"chamferId",handle.value("chamferId")}});chamferDrag_=captured;
+            dispatch("sketch.chamferHandle",{{"phase","begin"},{"chamferId",handle.value("chamferId")},{"side",handle.value("side")}});chamferDrag_=captured;
             e->accept();return;
         }
     }

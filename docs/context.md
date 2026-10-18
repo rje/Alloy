@@ -63,6 +63,11 @@ a live on-canvas drag handle and direct first-distance label editing with a
 visibly driven second value; see
 [its receipt](validation/sketch-chamfer-canvas-edit.md). Provenance is outside the repository with a
 [compact command record](research/commands/sketch-chamfer.md).
+SKT-110/#534 now accepts Two Distance sketch Chamfer with stable ordered side
+assignment, independent retained values, native Feature Options switching,
+canvas handles/annotations and checked extrusion/reopen. See
+[its receipt](validation/sketch-two-distance-chamfer.md). Distance And Angle
+remains SKT-111/#535; its dated public addendum is outside the repository.
 SKT-093/#498 now accepts Inscribed, Circumscribed and Edge Polygon creation,
 retained edits, native numeric refusal, three closed regions, downstream
 extrusion, history/reopen and independently read STL. Astra reviewed the

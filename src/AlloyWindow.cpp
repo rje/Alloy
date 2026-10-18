@@ -584,7 +584,10 @@ AlloyWindow::AlloyWindow() {
     auto* projectAction=projectMenu->addAction("Project\tP");projectAction->setObjectName("sketch.action.project");
     connect(projectAction,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.projectBegin"));});
     create->addSeparator();toolAction(create,"Sketch Dimension\tD","dimension");
-    auto* modify=sketchMenu("Modify","modify");toolAction(modify,"Fillet","fillet");auto* sketchChamferMenu=modify->addMenu("Chamfer");sketchChamferMenu->setObjectName("sketch.menu.chamfer");toolAction(sketchChamferMenu,"Equal Distance Chamfer","chamfer");toolAction(modify,"Trim","trim");toolAction(modify,"Extend","extend");toolAction(modify,"Offset\tO","offset");
+    auto* modify=sketchMenu("Modify","modify");toolAction(modify,"Fillet","fillet");auto* sketchChamferMenu=modify->addMenu("Chamfer");sketchChamferMenu->setObjectName("sketch.menu.chamfer");for(const auto& option:{std::pair{QString("Equal Distance Chamfer"),QString("equalDistance")},std::pair{QString("Two Distance Chamfer"),QString("twoDistance")}}){
+        auto* action=sketchChamferMenu->addAction(option.first);action->setObjectName(option.second=="equalDistance"?"sketch.tool.chamfer":"sketch.tool.twoDistanceChamfer");
+        connect(action,&QAction::triggered,this,[this,type=option.second]{sketchResponse(execute("sketch.chamferMode",{{"type",type}}));});
+    }toolAction(modify,"Trim","trim");toolAction(modify,"Extend","extend");toolAction(modify,"Offset\tO","offset");
     auto* sketchMirrorAction=modify->addAction("Mirror");sketchMirrorAction->setObjectName("sketch.action.mirror");
     connect(sketchMirrorAction,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.mirrorStart"));});
     auto* construction=modify->addAction("Normal/Construction\tX");construction->setObjectName("sketch.action.constructionToggle");
@@ -11516,7 +11519,7 @@ QJsonObject AlloyWindow::acceptDimension(const QJsonObject& args) {
             bool valid=false;value=match.captured(1).toDouble(&valid);if(!valid)return failure("invalid_dimension_value","Chamfer distance is outside the supported range");
             if(!match.captured(2).isEmpty())units=match.captured(2).toLower();
         }
-        QJsonObject mutation{{"value",value},{"units",units}};
+        QJsonObject mutation{{pending.value("chamferSide").toInt()==1?"value2":"value",value},{"units",units}};
         if(!pending.value("chamferPending").toBool())mutation["chamferId"]=pending.value("chamferId");
         const auto response=execute(pending.value("chamferPending").toBool()?"sketch.chamferAccept":"sketch.chamferUpdate",mutation);
         if(!response.value("ok").toBool())return response;
@@ -11603,8 +11606,8 @@ QJsonObject AlloyWindow::editDimension(const QString& id) {
         const auto layout=row.toObject();if(layout.value("dimensionId")!=id || layout.value("chamferId").toString().isEmpty())continue;
         cancelDimension();
         QJsonObject dimension{{"dimensionId",id},{"chamferId",layout.value("chamferId")},{"kind","chamferDistance"},
-            {"phase","editing"},{"driving",layout.value("driving")},{"measuredValueMm",layout.value("valueMm")},
-            {"annotation",layout.value("annotation")},{"name",layout.value("driving").toBool()?"Equal Distance Chamfer":"Equal setback (driven)"},
+            {"phase","editing"},{"driving",layout.value("driving")},{"chamferSide",layout.value("independentSecond").toBool()?1:0},{"measuredValueMm",layout.value("valueMm")},
+            {"annotation",layout.value("annotation")},{"name",layout.value("driving").toBool()?"Chamfer distance":"Equal setback (driven)"},
             {"chamferPending",session_.contains("pendingChamfer")}};
         session_["pendingDimension"]=dimension;showDimensionEditor();return dimension;
     }
