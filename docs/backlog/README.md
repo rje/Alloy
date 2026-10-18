@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **566 issues**: **446 implementation, 24 research,
+The current local backlog contains **570 issues**: **450 implementation, 24 research,
 2 research/design, 22 epics, and 72 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 SKT-115–121 and SKT-123–124/#540–546, #548–549 are accepted analytic constraint pairs and endpoint contacts; SKT-129/#554 accepts distinct-ID arc/line endpoint Tangent and SKT-022/#163 is closed for its declared v1 analytic scope. SKT-122/#547 and SKT-130–132/#555–557 retain later multi-pair Symmetry, spline constraints and branch-control research.
@@ -38,8 +38,10 @@ SKT-102/#525 accepts authored spline, ellipse and conic deletion after the
 [ordinary line/circle/arc/point SKT-099 slice](../validation/sketch-geometry-delete.md).
 SKT-141/#567 accepts whole-owner Slot, Arc Slot, Polygon and Chamfer deletion
 after core, API, native Qt and independent review. Generated Mirror/Offset and
-linked/projected deletion remain Todo SKT-142–143/#568–569, so refusal cannot
-be mistaken for implementation.
+linked/projected deletion remain Todo SKT-142–143/#568–569. SKT-142 is now
+bounded to Mirror and open-chain Offset; the other four Offset owner schemas
+have linked Todo SKT-144–147/#570–573, so refusal cannot be mistaken for
+implementation.
 DOC-016/#167 has a bounded [native exchange-sheet receipt](../validation/native-exchange-sheet.md);
 DOC-035/#516 has a bounded [File-menu export receipt](../validation/native-exchange-menu.md);
 DOC-036/#517 has a bounded [Browser body mesh receipt](../validation/native-browser-mesh.md).

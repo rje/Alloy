@@ -9466,12 +9466,11 @@
       ],
       "labels": [
         "kind:implementation",
-        "status:blocked",
         "area:skt",
         "phase:P2",
         "priority:P1"
       ],
-      "body": "## Bounded result\nDelete a selected Mirror or offset-generated result through its retained owner, without silently deleting its source geometry or corrupting sibling results. Cover ordinary line/arc Mirror and one supported loop/open-chain offset schema; split other schemas into linked Todo if ownership differs.\n\n## Acceptance\nResearch the affected public Delete workflow first with dated sources in ../Alloy-reference-records/knowledge. Native canvas/list and local API must use the same authoritative deletion command. Preserve unrelated authored IDs and constraints; fail atomically on unsupported ownership. Use one real-app native/API fixture with Undo/Redo, save/reopen, and hardware GPU capture. Physical hand input, other-platform runtime and exact reference styling remain separate release gates.\n\n## Split provenance\nRetained from SKT-102/#525 on 2026-10-18 after separating ordinary authored curve deletion from operation-owned group/derived deletion. Public source evidence and behavior uncertainties are in the external SKT-102 triage record.\n\n## Dependencies\n- SKT-102\n"
+      "body": "## Bounded result\nDelete a selected Mirror or offset-generated result through its retained owner, without silently deleting its source geometry or corrupting sibling results. Cover ordinary line/arc Mirror and the retained `openChainOffsets` schema. Its source geometry, mirror axis and source-linked parameters survive; unsupported or dependent ownership refuses atomically. Other offset schemas have linked Todo owners below.\n\n## Acceptance\nResearch the affected public Delete workflow first with dated sources in ../Alloy-reference-records/knowledge. Native canvas/list and local API must use the same authoritative deletion command. Preserve unrelated authored IDs and constraints; fail atomically on unsupported ownership. Use one real-app native/API fixture with Undo/Redo, save/reopen, and hardware GPU capture. Physical hand input, other-platform runtime and exact reference styling remain separate release gates.\n\n## Split provenance\nRetained from SKT-102/#525 on 2026-10-18 after separating ordinary authored curve deletion from operation-owned group/derived deletion. Public source evidence and behavior uncertainties are in the external SKT-102 triage record.\n\n## Dependencies\n- SKT-102\n\n## Linked remainder\n- SKT-144/#570: projection-backed rectangle Offset (`closedRectOffsets`).\n- SKT-145/#571: support-face loop Offset (`loopOffsets`).\n- SKT-146/#572: retained fit-spline Offset.\n- SKT-147/#573: retained circle Offset.\nThe exact reference result-deletion cascade is undocumented; whole-owner deletion is an explicit Alloy policy. Public-source and schema triage: ../Alloy-reference-records/knowledge/specs/skt142-mirror-offset-delete-triage-2026-10-18.md.\n"
     },
     {
       "key": "SKT-143",
@@ -9491,6 +9490,78 @@
         "priority:P1"
       ],
       "body": "## Bounded result\nQualify Delete for selected projected/linked sketch geometry, including source-link and support ownership. Document whether the published workflow removes a local projection, breaks a link or requires an owning command; refuse stale/upstream dependencies clearly. Do not generic-strip projected JSON.\n\n## Acceptance\nResearch the affected public Delete workflow first with dated sources in ../Alloy-reference-records/knowledge. Native canvas/list and local API must use the same authoritative deletion command. Preserve unrelated authored IDs and constraints; fail atomically on unsupported ownership. Use one real-app native/API fixture with Undo/Redo, save/reopen, and hardware GPU capture. Physical hand input, other-platform runtime and exact reference styling remain separate release gates.\n\n## Split provenance\nRetained from SKT-102/#525 on 2026-10-18 after separating ordinary authored curve deletion from operation-owned group/derived deletion. Public source evidence and behavior uncertainties are in the external SKT-102 triage record.\n\n## Dependencies\n- SKT-102\n- SKT-026\n"
+    },
+    {
+      "key": "SKT-144",
+      "title": "Delete projection-backed rectangle Offset owners",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-142"
+      ],
+      "labels": [
+        "kind:implementation",
+        "status:blocked",
+        "area:skt",
+        "phase:P2",
+        "priority:P1"
+      ],
+      "body": "## Bounded result\nA selected generated `closedRectOffsets` edge deletes the whole retained owner, preserving linked source geometry and restoring the projection-backed profile state. Cover coexistence with another offset owner and refuse if a surviving reference would be broken.\n\n## Acceptance\nQualify one real-app projection-backed rectangle fixture: generated-edge canvas/list Delete, exact source and support IDs, closed profile after deletion, adjacent owner survival, one-step Undo/Redo, save/reopen and hardware GPU captures. Public select/Delete and Offset/Mirror creation references are recorded outside the repository at ../Alloy-reference-records/knowledge/specs/skt142-mirror-offset-delete-triage-2026-10-18.md. Exact reference result-deletion cascades are unknown; record Alloy's policy without parity claims. Physical input, other-platform runtime and styling remain release gates.\n\n## Split provenance\nSplit from SKT-142/#568 on 2026-10-18 before implementing its Mirror + open-chain subset. Retain this Todo until its own owner schema and real-app evidence are accepted.\n\n## Dependencies\n- SKT-142\n"
+    },
+    {
+      "key": "SKT-145",
+      "title": "Delete support-face loop Offset owners",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-142"
+      ],
+      "labels": [
+        "kind:implementation",
+        "status:blocked",
+        "area:skt",
+        "phase:P2",
+        "priority:P1"
+      ],
+      "body": "## Bounded result\nA selected generated `loopOffsets` member deletes exactly its owning loop Offset, preserving support-face lineage, other loops and authored source state. Refuse stale or dependent support references atomically.\n\n## Acceptance\nQualify one support-face loop fixture through shared native/API Delete, support edit and owner removal, stable surviving IDs, one-step Undo/Redo, save/reopen and hardware GPU captures. Public select/Delete and Offset/Mirror creation references are recorded outside the repository at ../Alloy-reference-records/knowledge/specs/skt142-mirror-offset-delete-triage-2026-10-18.md. Exact reference result-deletion cascades are unknown; record Alloy's policy without parity claims. Physical input, other-platform runtime and styling remain release gates.\n\n## Split provenance\nSplit from SKT-142/#568 on 2026-10-18 before implementing its Mirror + open-chain subset. Retain this Todo until its own owner schema and real-app evidence are accepted.\n\n## Dependencies\n- SKT-142\n"
+    },
+    {
+      "key": "SKT-146",
+      "title": "Delete retained fit-spline Offset results",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-142"
+      ],
+      "labels": [
+        "kind:implementation",
+        "status:blocked",
+        "area:skt",
+        "phase:P2",
+        "priority:P1"
+      ],
+      "body": "## Bounded result\nA selected `fitSplineOffset` result deletes its generated curve/endpoints under an explicit owner policy while preserving the authored source spline and unrelated relations. Distinguish source selection from result selection and association removal.\n\n## Acceptance\nQualify one retained source/result spline fixture through shared native/API Delete, dependent-point refusal or safe preservation, exact Undo/Redo, save/reopen and hardware GPU captures. Public select/Delete and Offset/Mirror creation references are recorded outside the repository at ../Alloy-reference-records/knowledge/specs/skt142-mirror-offset-delete-triage-2026-10-18.md. Exact reference result-deletion cascades are unknown; record Alloy's policy without parity claims. Physical input, other-platform runtime and styling remain release gates.\n\n## Split provenance\nSplit from SKT-142/#568 on 2026-10-18 before implementing its Mirror + open-chain subset. Retain this Todo until its own owner schema and real-app evidence are accepted.\n\n## Dependencies\n- SKT-142\n"
+    },
+    {
+      "key": "SKT-147",
+      "title": "Delete retained circle Offset results",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-142"
+      ],
+      "labels": [
+        "kind:implementation",
+        "status:blocked",
+        "area:skt",
+        "phase:P2",
+        "priority:P1"
+      ],
+      "body": "## Bounded result\nA selected `circleOffset` result deletes its generated circle and owned offset relation under an explicit owner policy while preserving the source circle and unrelated constraints. Distinguish result deletion from deleting only the offset association.\n\n## Acceptance\nQualify one source/result circle fixture through shared native/API Delete, source-selection refusal, relation cleanup, exact Undo/Redo, save/reopen and hardware GPU captures. Public select/Delete and Offset/Mirror creation references are recorded outside the repository at ../Alloy-reference-records/knowledge/specs/skt142-mirror-offset-delete-triage-2026-10-18.md. Exact reference result-deletion cascades are unknown; record Alloy's policy without parity claims. Physical input, other-platform runtime and styling remain release gates.\n\n## Split provenance\nSplit from SKT-142/#568 on 2026-10-18 before implementing its Mirror + open-chain subset. Retain this Todo until its own owner schema and real-app evidence are accepted.\n\n## Dependencies\n- SKT-142\n"
     }
   ]
 }
