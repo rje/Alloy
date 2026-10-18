@@ -16,7 +16,9 @@ The user explicitly included 3MF export and modeled printable threads in the
 first stable v1 on 2026-10-17. [XCH-011/#524](../backlog/github.md) and
 [SOL-059/#504](../backlog/github.md) own those bounded deliverables. The
 [Core 3MF export slice](../validation/3mf-export.md) is accepted on the local
-Mac with native and independent output checks; modeled threads remain Todo.
+Mac with native and independent output checks. The bounded [modeled external
+Thread](../validation/modeled-external-thread.md) also passes on the local Mac;
+other thread modes and print fit remain open.
 The [DOC-016 native exchange-sheet gate](../validation/native-exchange-sheet.md)
 now has independently checked STEP/STL output. The
 [File-menu export path](../validation/native-exchange-menu.md) passes; DOC-036/#517

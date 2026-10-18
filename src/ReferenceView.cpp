@@ -62,6 +62,9 @@
 #include <BRepBndLib.hxx>
 #include <Bnd_Box.hxx>
 #include <Prs3d_Drawer.hxx>
+#include <StdPrs_ToolTriangulatedShape.hxx>
+#include <QJsonDocument>
+#include <TopoDS.hxx>
 #include <Prs3d_LineAspect.hxx>
 #include <BRepBuilderAPI_MakePolygon.hxx>
 #include <TopoDS_Wire.hxx>
@@ -136,6 +139,21 @@ void showOriginTriad(const Handle(AIS_InteractiveContext)& context,std::vector<H
 #include <TopoDS_Iterator.hxx>
 
 namespace {
+QJsonObject threadMeshEvidence(const TopoDS_Shape& shape) {
+    int faces=0,meshedFaces=0,triangles=0;QStringList identities;
+    for(TopExp_Explorer it(shape,TopAbs_FACE);it.More();it.Next()) {
+        ++faces;TopLoc_Location location;const auto mesh=BRep_Tool::Triangulation(TopoDS::Face(it.Current()),location);
+        if(mesh.IsNull())continue;
+        ++meshedFaces;triangles+=mesh->NbTriangles();
+        identities.append(QString::number(reinterpret_cast<quintptr>(mesh.get()),16));
+    }
+    return {{"faces",faces},{"meshedFaces",meshedFaces},{"triangles",triangles},
+        {"identitySignature",QString::number(qHash(identities.join(":")),16)}};
+}
+void traceThreadMesh(const char* phase,const TopoDS_Shape& shape) {
+    if(qEnvironmentVariableIsSet("ALLOY_TRACE_THREAD"))qInfo().noquote()<<"thread_mesh"<<phase
+        <<QJsonDocument(threadMeshEvidence(shape)).toJson(QJsonDocument::Compact);
+}
 Handle(AIS_Shape) sketchPresentation(const TopoDS_Shape& shape) {
     Handle(AIS_Shape) presentation=new AIS_ColoredShape(shape);
     presentation->SetColor(Quantity_Color(0.10,0.34,0.84,Quantity_TOC_RGB));
@@ -954,6 +972,21 @@ void ReferenceView::setBodyStage(const std::vector<EvaluatedBody>& bodies,const 
 void ReferenceView::clearBodyStage() {
     if(bodyStageKey_.isEmpty())return;bodyStageKey_.clear();displayBodies(documentBodies_);
 }
+void ReferenceView::setPreparedThreadMeshes(const std::vector<TopoDS_Shape>& shapes) {
+    preparedThreadMeshes_=shapes;
+    for(const auto& shape:preparedThreadMeshes_)traceThreadMesh("registered",shape);
+}
+bool ReferenceView::preservePreparedThreadMesh(const Handle(AIS_Shape)& presentation) const {
+    const auto& shape=presentation->Shape();
+    for(const auto& prepared:preparedThreadMeshes_)if(shape.IsPartner(prepared)) {
+        auto drawer=presentation->Attributes();
+        StdPrs_ToolTriangulatedShape::GetDeflection(shape,drawer);
+        if(!StdPrs_ToolTriangulatedShape::IsTessellated(shape,drawer))return false;
+        drawer->SetAutoTriangulation(false);
+        return true;
+    }
+    return false;
+}
 void ReferenceView::displayBodies(const std::vector<EvaluatedBody>& bodies) {
     if(context_.IsNull())return;
     const bool trace=qEnvironmentVariableIsSet("ALLOY_TRACE_ASSEMBLY_SOLVES");
@@ -966,6 +999,8 @@ void ReferenceView::displayBodies(const std::vector<EvaluatedBody>& bodies) {
         // The finer legacy angular mesh stalled small multi-fillet parts.
         model->SetOwnDeviationCoefficient(0.0005);
         model->SetOwnDeviationAngle(0.10);
+        const bool preparedThread=preservePreparedThreadMesh(model);
+        if(preparedThread)traceThreadMesh("committed_before_display",body.shape);
         const bool surface=body.summary.value("type")=="surface";
         model->SetColor(surface ? Quantity_Color(0.90,0.70,0.24,Quantity_TOC_RGB)
                                 : Quantity_Color(0.67,0.72,0.76,Quantity_TOC_RGB));
@@ -982,6 +1017,7 @@ void ReferenceView::displayBodies(const std::vector<EvaluatedBody>& bodies) {
         context_->Display(model,AIS_Shaded,0,false);
         context_->Deactivate(model,0);
         context_->Activate(model,AIS_Shape::SelectionMode(TopAbs_FACE));
+        if(preparedThread)traceThreadMesh("committed_after_display",body.shape);
         if(!sectionClip_.IsNull())model->AddClipPlane(sectionClip_);
         const auto key=presentationBodyKey(body);
         models_[key]=model;bodyVisibility_[key]=body.visible;
@@ -2709,11 +2745,14 @@ void ReferenceView::replacePreview(const TopoDS_Shape& shape,const QString& repl
     preview_=new AIS_Shape(shape);preview_->SetColor(neutral ? Quantity_Color(0.67,0.72,0.76,Quantity_TOC_RGB) : Quantity_Color(0.25,0.58,0.76,Quantity_TOC_RGB));
     preview_->SetOwnDeviationCoefficient(0.0005);
     preview_->SetOwnDeviationAngle(0.10);
+    const bool preparedThread=preservePreparedThreadMesh(preview_);
+    if(preparedThread)traceThreadMesh("preview_before_display",shape);
     preview_->SetTransparency(neutral ? 0.0 : 0.55);
     preview_->Attributes()->SetFaceBoundaryDraw(true);
     if(neutral)preview_->Attributes()->SetFaceBoundaryAspect(new Prs3d_LineAspect(
         Quantity_Color(0.18,0.22,0.25,Quantity_TOC_sRGB),Aspect_TOL_SOLID,devicePixelRatioF()));
     context_->Display(preview_,AIS_Shaded,-1,false);context_->Deactivate(preview_);
+    if(preparedThread)traceThreadMesh("preview_after_display",shape);
     applyEditDisplay(false);
 }
 void ReferenceView::showHolePreview(const EvaluatedBody& result,const TopoDS_Shape& removedMaterial) {

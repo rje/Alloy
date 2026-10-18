@@ -31,8 +31,9 @@ int side(double value,double low,double high) {
 }
 }
 
-void PrimitiveTopology::cylinderRims(const TopoDS_Shape& shape,const QJsonObject& p,
-    const QString& featureId,std::vector<EvaluatedSolidEdge>& edges) {
+void PrimitiveTopology::cylinder(const TopoDS_Shape& shape,const QJsonObject& p,
+    const QString& featureId,const QString& bodyId,
+    std::vector<EvaluatedSupportFace>& faces,std::vector<EvaluatedSolidEdge>& edges) {
     const gp_Pnt bottom(p["xMm"].toDouble(),p["yMm"].toDouble(),p["zMm"].toDouble());
     const double height=p["heightMm"].toDouble(),radius=p["radiusMm"].toDouble();
     const auto fail=[] {throw GeometryKernel::EvaluationError({
@@ -58,6 +59,19 @@ void PrimitiveTopology::cylinderRims(const TopoDS_Shape& shape,const QJsonObject
     }
     if(rims.size()!=2)fail();
     for(const auto& rim:rims)edges.push_back(rim);
+    TopTools_IndexedMapOfShape actualFaces;TopExp::MapShapes(shape,TopAbs_FACE,actualFaces);
+    TopoDS_Face lateral;
+    for(int i=1;i<=actualFaces.Extent();++i) {
+        const auto candidate=TopoDS::Face(actualFaces(i));
+        if(BRepAdaptor_Surface(candidate).GetType()!=GeomAbs_Cylinder)continue;
+        if(!lateral.IsNull())fail();
+        lateral=candidate;
+    }
+    if(lateral.IsNull())fail();
+    const auto faceId=QUuid::createUuidV5(QUuid(featureId),
+        QByteArray("alloy-cylinder/1\nlateral")).toString(QUuid::WithoutBraces);
+    faces.push_back({faceId,bodyId,featureId,"cylinder.lateral",lateral,{}, {},
+        {{"generatorFeatureId",featureId},{"lineage","primitiveCylinderLateral"}}});
 }
 
 void PrimitiveTopology::box(const TopoDS_Shape& shape,const QJsonObject& p,

@@ -70,6 +70,8 @@ public:
         const QJsonObject& requestedCandidate, const QJsonObject& expectedBase, quint64 expectedRevision, const QString& label);
     QString commitSketchEvaluation(const CandidateEvaluation& prepared,
         const QJsonObject& requestedCandidate, const QJsonObject& expectedBase, quint64 expectedRevision, const QString& label="Edit sketch");
+    QString commitThreadEvaluation(const CandidateEvaluation& prepared, const QJsonObject& requestedCandidate,
+        const QJsonObject& expectedBase, quint64 expectedRevision, const QString& label="Thread");
     QString commitLoftEvaluation(const CandidateEvaluation& prepared,
         const QJsonObject& requestedCandidate, const QJsonObject& expectedBase, quint64 expectedRevision);
     QString commitSurfaceTrimEvaluation(const CandidateEvaluation& prepared,
@@ -107,6 +109,7 @@ public:
     static QJsonObject removeBodyCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject thickenCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject sphereCandidate(const QJsonObject& authored, const QJsonObject& arguments);
+    static QJsonObject threadCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QJsonObject holeCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QJsonObject shellCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QJsonObject splitBodyCandidate(const QJsonObject& authored,const QJsonObject& arguments);

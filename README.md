@@ -4,7 +4,9 @@ Current direction: [printable-part v1 plan](https://alloy-v1-review.rjevans1.cha
 
 [Core 3MF export](docs/validation/3mf-export.md) now saves separate placed
 millimeter solids through Save As Mesh, with independent readback and a separate
-slicer check. Modeled printable threads remain required v1 work.
+slicer check. [Modeled external threads](docs/validation/modeled-external-thread.md)
+now have a retained native/control workflow and independently checked printable
+STL; broader thread modes and print fit remain open.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,

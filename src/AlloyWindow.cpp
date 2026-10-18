@@ -1,4 +1,5 @@
 #include <BRep_Builder.hxx>
+#include <BRepAdaptor_Surface.hxx>
 #include <TopoDS_Compound.hxx>
 #include <QWindow>
 #include "AlloyWindow.h"
@@ -503,7 +504,7 @@ AlloyWindow::AlloyWindow() {
         }
         groups->addLayout(box);groups->addWidget(divider());
     };
-    group("CREATE", {{"primitive.box", "▣"}, {"primitive.cylinder", "◉"}, {"solid.sphereDialog", "●"}, {"sketch.create", "▧"}, {"solid.extrudeDialog", "▣"}, {"solid.revolveDialog", "◉"}, {"solid.sweepDialog", "◒"}, {"solid.loftDialog", "◒"}, {"solid.thickenDialog", "▤"}, {"solid.mirrorDialog", "◧"}, {"solid.featureMirrorDialog", "◧"}, {"solid.circularPatternDialog", "◌"}});
+    group("CREATE", {{"primitive.box", "▣"}, {"primitive.cylinder", "◉"}, {"solid.sphereDialog", "●"}, {"solid.threadDialog", "≋"}, {"sketch.create", "▧"}, {"solid.extrudeDialog", "▣"}, {"solid.revolveDialog", "◉"}, {"solid.sweepDialog", "◒"}, {"solid.loftDialog", "◒"}, {"solid.thickenDialog", "▤"}, {"solid.mirrorDialog", "◧"}, {"solid.featureMirrorDialog", "◧"}, {"solid.circularPatternDialog", "◌"}});
     group("MODIFY", {{"solid.pressPullDialog", "⇧"}, {"solid.combineDialog", "▣"}, {"solid.filletDialog", "◩"}, {"solid.chamferDialog", "◪"}, {"solid.shellDialog", "▱"}, {"solid.splitBodyDialog", "◫"}, {"solid.moveDialog", "✥"}});
     group("ASSEMBLE", {{"joint.asBuiltDialog","◉"},{"joint.sliderDialog", "⇆"},{"position.revert","↶"}});
     group("CONSTRUCT", {{"construction.plane", "▰"}, {"construction.pathPlane", "⟂"}, {"construction.tangentPlane", "▱"}, {"construction.midplane", "◫"}});
@@ -2768,6 +2769,27 @@ void AlloyWindow::registerCommands() {
         {"removedFace",optional(parameter("object","Stable planar removal face; empty or omitted retains all faces."))},
         {"thicknessMm",optional(shellThickness)},{"thicknessParameter",optional(parameter("string","Direct name of a user length."))},{"featureId",optional(featureId)},
         {"name",optional(parameter("string","Shell feature name."))}};
+    auto threadSchema=QJsonObject{
+        {"support",optional(parameter("object","Stable external cylindrical face: producerFeatureId, bodyId, faceId."))},
+        {"nominalDiameterMm",optional(parameter("number","Nominal major diameter, M6, M8 or M10, in millimeters."))},
+        {"pitchMm",optional(parameter("number","Coarse pitch: 1, 1.25 or 1.5 mm for the selected nominal size."))},
+        {"startOffsetMm",optional(parameter("number","Axial start offset from the low cylinder bound, millimeters."))},
+        {"lengthMm",optional(parameter("number","Axial thread length, millimeters."))},
+        {"fullLength",optional(parameter("boolean","Use the entire selected cylindrical face."))},
+        {"direction",optional(parameter("string","Helix direction: right or left."))},
+        {"modeled",optional(parameter("boolean","Must be true; this command creates physical geometry."))},
+        {"threadSide",optional(parameter("string","Only external is supported."))},
+        {"standard",optional(parameter("string","Only ISO_metric_coarse is supported."))},
+        {"featureId",optional(parameter("string","Existing Thread feature to edit."))},
+        {"newFeatureId",optional(parameter("string","Reserved identity for a new Thread feature."))},
+        {"name",optional(parameter("string","History feature name."))}};
+    for(const auto& key:{"nominalDiameterMm","pitchMm","startOffsetMm","lengthMm"}) {
+        auto spec=threadSchema.value(key).toObject();spec["minimum"]=0;spec["maximum"]=100000;threadSchema[key]=spec;
+    }
+    add("solid.thread","Thread","Create or edit a modeled nominal external metric thread; returns pending, inspect command.status for completion.",threadSchema,
+        [this](const auto& a){return beginThread(a,true);});
+    add("solid.threadDialog","Thread","Select a cylindrical boss and preview a modeled external metric thread.",threadSchema,
+        [this](const auto& a){return beginThread(a);});
     add("solid.shell","Shell","Create or edit sharp inward Shell; select a face to remove or a body for an enclosed cavity.",shellSchema,[this](const auto& a){
         QJsonObject candidate;try{candidate=shellCandidate(a);}catch(const std::exception& e){return failure("invalid_arguments",QString::fromUtf8(e.what()));}
         const auto error=document_->commit(candidate,"Shell");if(!error.isEmpty()){
@@ -5083,6 +5105,7 @@ void AlloyWindow::registerCommands() {
             if(feature["type"]=="fillet") {auto inputs=p;inputs["featureId"]=feature["id"];inputs["name"]=feature["name"];return beginFillet(inputs);}
             if(feature["type"]=="chamfer") {auto inputs=p;inputs["featureId"]=feature["id"];inputs["name"]=feature["name"];return beginChamfer(inputs);}
             if(feature["type"]=="sphere") {auto inputs=p;inputs["featureId"]=feature["id"];inputs["name"]=feature["name"];return beginSphere(inputs);}
+            if(feature["type"]=="thread")return beginThread({{"featureId",feature["id"]}});
             if(feature["type"]=="shell")return beginShell({{"featureId",feature["id"]}});
             if(feature["type"]=="splitBody")return beginSplitBody({{"featureId",feature["id"]}});
             if(feature["type"]=="circularPattern") {auto inputs=p;inputs["featureId"]=feature["id"];inputs["name"]=feature["name"];return beginCircularPattern(inputs);}
@@ -5346,6 +5369,11 @@ void AlloyWindow::registerCommands() {
                 return failure("unsupported_instance_edit","Circular Pattern cannot use a linked instance as its modeling target");
             return selectCircularBody(instance["bodyId"].toString());
         }
+        if(session_.value("command")=="solid.thread") {
+            const auto hit=view_->pickSupportFace(a["x"].toDouble(),a["y"].toDouble(),document_->bodies());
+            if(hit.isEmpty())return failure("face_required","Click an external cylindrical boss face");
+            return selectThreadFace(hit);
+        }
         if(session_.value("command")=="solid.hole")return pickHole(a["x"].toDouble(),a["y"].toDouble());
         if(session_.value("command")=="solid.sphere") {
             if(session_["selectionRole"]=="face" || !session_["inputs"].toObject().contains("support")){const auto support=view_->pickSupportFace(a["x"].toDouble(),a["y"].toDouble(),sphereInputDocument().bodies);if(support.isEmpty())return failure("face_required","Click an actual retained planar body face");return selectSphereFace(support);}
@@ -5466,7 +5494,7 @@ void AlloyWindow::registerCommands() {
         return failure("stale_entity","Body instance does not exist");
     });
     auto sessionTarget = parameter("string", "Implemented session target; modeling targets follow alongside their features.");
-    sessionTarget["enum"] = QJsonArray{"canvas.set","document.units", "commands.search","solid.box","solid.cylinder","solid.extrude","solid.combine","solid.move","solid.fillet","solid.chamfer","solid.sphere","solid.shell","solid.loft","solid.revolve","solid.sweep","solid.rectangularPattern","solid.circularPattern","solid.mirror","inspect.section","joint.slider","joint.revolute","joint.cylindrical","sketch.create","construction.midplane","construction.pathPlane","construction.tangentPlane","solid.splitBody"};
+    sessionTarget["enum"] = QJsonArray{"canvas.set","document.units", "commands.search","solid.box","solid.cylinder","solid.extrude","solid.combine","solid.move","solid.fillet","solid.chamfer","solid.sphere","solid.thread","solid.shell","solid.loft","solid.revolve","solid.sweep","solid.rectangularPattern","solid.circularPattern","solid.mirror","inspect.section","joint.slider","joint.revolute","joint.cylindrical","sketch.create","construction.midplane","construction.pathPlane","construction.tangentPlane","solid.splitBody"};
     add("command.begin", "Begin command session", "Begin a real editable dialog with disposable inputs.",
         {{"command", sessionTarget}, {"inputs", parameter("object", "Initial input overrides.")}},
         [this](const auto& a) { return beginSession(a["command"].toString(), a["inputs"].toObject()); });
@@ -5592,6 +5620,10 @@ void AlloyWindow::registerCommands() {
             if(inputs.contains("groups") && (updates.contains("edgeIds") || updates.contains("radiusMm") || updates.contains("tangentChain")))
                 return failure("invalid_arguments","Update the selected Fillet set through groups");
             if(inputs.contains("tangentChain") && !inputs["tangentChain"].toBool())return failure("unsupported_option","Tangent Chain Off is outside this slice");
+        } else if(target=="solid.thread") {
+            if(updates.contains("lengthMm") && !updates.contains("fullLength"))inputs["fullLength"]=false;
+            if(updates.contains("featureId") && updates.value("featureId")!=session_.value("inputs").toObject().value("featureId"))return failure("invalid_arguments","Thread edit identity cannot change");
+            const auto error=validateArguments(*findCommand(target),inputs);if(!error.isEmpty())return failure("invalid_arguments",error);
         } else if(target=="solid.hole") {
             if(updates.contains("featureId") && updates["featureId"]!=session_["inputs"].toObject()["featureId"])return failure("invalid_arguments","Hole edit identity cannot change");
             const auto error=validateArguments(*findCommand(target),inputs);if(!error.isEmpty())return failure("invalid_arguments",error);
@@ -5694,6 +5726,7 @@ void AlloyWindow::registerCommands() {
             else source["profileId"]=inputs.value("profileId");
             session_["source"]=source;
         }
+        if(target=="solid.thread")return previewThread();
         session_["previewed"] = false;if(target!="solid.extrude" || !updatingExtrudePreview_)view_->clearPreview();
         if(target=="inspect.section" || target=="solid.hole" || target=="solid.sweep" || target=="solid.revolve" || target=="solid.loft") {session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");session_.remove("previewError");}
         if(target=="solid.circularPattern") {session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");session_.remove("previewError");view_->clearPatternAxes();refreshCircularControls();}
@@ -5701,6 +5734,7 @@ void AlloyWindow::registerCommands() {
         if(target=="solid.combine") {
             session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");session_.remove("finalBodyCount");session_.remove("previewError");view_->setEditDisplay({},{});
         }
+        if(target=="solid.thread")return previewThread();
         if(target=="construction.midplane")return previewMidplane();
         if(target=="construction.tangentPlane")return previewTangentPlane();
         if(target=="construction.pathPlane")return previewPathPlane();
@@ -5730,6 +5764,7 @@ void AlloyWindow::registerCommands() {
             if(extrudeError_)extrudeError_->setText(preview.value("ok").toBool() ? "" : preview["error"].toObject()["message"].toString());
             return preview;
         }
+        if(session_.value("command")=="solid.thread")return previewThread();
         if(session_.value("command")=="solid.fillet")return previewFillet();
         if(session_.value("command")=="solid.chamfer")return previewChamfer();
         if(session_.value("command")=="solid.hole")return previewHole();
@@ -5796,7 +5831,7 @@ void AlloyWindow::registerCommands() {
     add("command.panelDock","Dock command panel","Dock or float the active modeling panel through Qt.",
         {{"docked",parameter("boolean","True docks the panel on the right; false floats it.")}},[this](const auto& a){
             const auto target=session_.value("command").toString();
-            auto* dock=target=="component.copyPlacement" ? componentCopyDock_ : target=="surface.boundaryFill" ? boundaryFillDock_ : target=="surface.trim" ? surfaceTrimDock_ : target=="body.remove" ? removeBodyDock_ : target.startsWith("canvas.") ? canvasDock_ : target=="solid.splitBody" ? splitBodyDock_ : target=="construction.midplane" ? midplaneDock_ : target=="construction.tangentPlane" ? tangentPlaneDock_ : target=="construction.pathPlane" ? pathPlaneDock_ : target=="joint.slider" || target=="joint.revolute" || target=="joint.cylindrical" ? sliderDock_ : target=="inspect.section" ? sectionDock_ : target=="solid.sweep" ? sweepDock_ : target=="solid.revolve" ? revolveDock_ : target=="solid.hole" ? holeDock_ : target=="solid.sphere" ? sphereDock_ : target=="solid.chamfer" ? chamferDock_ : target=="solid.fillet" ? filletDock_ : target=="solid.rectangularPattern" ? patternDock_ : target=="solid.loft" ? loftDock_ : target=="surface.extrude" ? surfaceExtrudeDock_ : target=="solid.thicken" ? thickenDock_ : target=="solid.shell" ? shellDock_ : target=="solid.circularPattern" ? circularDock_ : target=="solid.mirror" ? mirrorDock_ : target=="solid.featureMirror" ? featureMirrorDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : target.startsWith("solid.") ? primitiveDock_ : nullptr;
+            auto* dock=target=="component.copyPlacement" ? componentCopyDock_ : target=="surface.boundaryFill" ? boundaryFillDock_ : target=="surface.trim" ? surfaceTrimDock_ : target=="body.remove" ? removeBodyDock_ : target.startsWith("canvas.") ? canvasDock_ : target=="solid.splitBody" ? splitBodyDock_ : target=="construction.midplane" ? midplaneDock_ : target=="construction.tangentPlane" ? tangentPlaneDock_ : target=="construction.pathPlane" ? pathPlaneDock_ : target=="joint.slider" || target=="joint.revolute" || target=="joint.cylindrical" ? sliderDock_ : target=="inspect.section" ? sectionDock_ : target=="solid.sweep" ? sweepDock_ : target=="solid.revolve" ? revolveDock_ : target=="solid.hole" ? holeDock_ : target=="solid.sphere" ? sphereDock_ : target=="solid.chamfer" ? chamferDock_ : target=="solid.fillet" ? filletDock_ : target=="solid.rectangularPattern" ? patternDock_ : target=="solid.loft" ? loftDock_ : target=="surface.extrude" ? surfaceExtrudeDock_ : target=="solid.thicken" ? thickenDock_ : target=="solid.thread" ? threadDock_ : target=="solid.shell" ? shellDock_ : target=="solid.circularPattern" ? circularDock_ : target=="solid.mirror" ? mirrorDock_ : target=="solid.featureMirror" ? featureMirrorDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : target.startsWith("solid.") ? primitiveDock_ : nullptr;
             if(!dock)
                 return failure("no_active_dialog","No modeling panel is active");
             dock->setFloating(!a["docked"].toBool());
@@ -6197,6 +6232,7 @@ void AlloyWindow::registerCommands() {
             : session_.value("command").toString() == "surface.trim" ? surfaceTrimDock_->widget()
             : session_.value("command").toString() == "surface.extrude" ? surfaceExtrudeDock_->widget()
             : session_.value("command").toString() == "solid.thicken" ? thickenDock_->widget()
+            : session_.value("command")=="solid.thread" ? (threadDock_ ? threadDock_->widget() : nullptr)
             : session_.value("command").toString() == "solid.shell" ? shellDock_->widget()
             : session_.value("command").toString() == "solid.hole" ? holeDock_->widget()
             : session_.value("command").toString() == "solid.sphere" ? sphereDock_->widget()
@@ -6288,6 +6324,12 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
             {"documentRevision",static_cast<qint64>(document_->revision())}};
         if(status=="failed"){response["ok"]=false;response["error"]=operation.value("previewError");}
         return response;
+    }
+    if(threadRunning_) {
+        const bool safe=id=="app.state" || id=="commands.list" || id=="document.inspect" || id=="command.cancel"
+            || (session_.value("command")=="solid.thread" && (id=="command.preview" || id=="command.update" || id=="command.commit" || id=="selection.pick" || id=="selection.faceSet"))
+            || id.startsWith("view.") || id.startsWith("capture.");
+        if(!safe)return failure("evaluation_busy","Thread geometry evaluation is still running; Cancel discards its result");
     }
     if(geometryEvaluationRunning_ && (geometryEvaluationRunning_->command=="document.exportStl" || geometryEvaluationRunning_->command=="document.export3mf")){
         if(id=="command.cancel" && args.value("session")==meshExportOperation_.value("id")){
@@ -6480,6 +6522,7 @@ QJsonObject AlloyWindow::state() const {
         : target=="surface.extrude" ? bool(surfaceExtrudeDock_ && surfaceExtrudeDock_->isVisible())
         : target=="body.remove" ? bool(removeBodyDock_ && removeBodyDock_->isVisible())
         : target=="solid.thicken" ? bool(thickenDock_ && thickenDock_->isVisible())
+        : target=="solid.thread" ? bool(threadDock_ && threadDock_->isVisible())
         : target=="solid.shell" ? bool(shellDock_ && shellDock_->isVisible())
         : target=="solid.circularPattern" ? bool(circularDock_ && circularDock_->isVisible())
         : target=="solid.mirror" ? bool(mirrorDock_ && mirrorDock_->isVisible())
@@ -6490,11 +6533,11 @@ QJsonObject AlloyWindow::state() const {
         : target=="solid.combine" ? bool(combinePanel_ && combinePanel_->isVisible())
         : target.startsWith("solid.") ? bool(primitivePanel_ && primitivePanel_->isVisible())
         : target.startsWith("sketch.") ? bool(sketchPanel_ && sketchPanel_->isVisible()) : bool(unitsDialog_ && unitsDialog_->isVisible());
-    const auto dialogInputs=session_.isEmpty() ? QJsonObject{} : (target=="construction.tangentPlane" || target=="solid.splitBody" || target=="joint.slider" || target=="joint.revolute" || target=="joint.cylindrical" || target=="inspect.section" || target=="solid.hole" || target=="solid.sweep" || target=="solid.revolve" || target=="solid.sphere" || target=="solid.chamfer" || target=="solid.fillet" || target=="solid.rectangularPattern" || target=="solid.loft" || target=="surface.extrude" || target=="surface.trim" || target=="surface.boundaryFill" || target=="body.remove" || target=="solid.thicken" || target=="solid.shell" || target=="solid.circularPattern" || target=="solid.mirror" || target=="solid.featureMirror" || target=="component.copyPlacement" || target=="solid.move" || target=="solid.extrude" || target=="solid.combine") ? session_.value("inputs").toObject() : target.startsWith("solid.") ? primitiveWidgetInputs()
+    const auto dialogInputs=session_.isEmpty() ? QJsonObject{} : (target=="construction.tangentPlane" || target=="solid.splitBody" || target=="joint.slider" || target=="joint.revolute" || target=="joint.cylindrical" || target=="inspect.section" || target=="solid.hole" || target=="solid.sweep" || target=="solid.revolve" || target=="solid.sphere" || target=="solid.chamfer" || target=="solid.fillet" || target=="solid.rectangularPattern" || target=="solid.loft" || target=="surface.extrude" || target=="surface.trim" || target=="surface.boundaryFill" || target=="body.remove" || target=="solid.thicken" || target=="solid.thread" || target=="solid.shell" || target=="solid.circularPattern" || target=="solid.mirror" || target=="solid.featureMirror" || target=="component.copyPlacement" || target=="solid.move" || target=="solid.extrude" || target=="solid.combine") ? session_.value("inputs").toObject() : target.startsWith("solid.") ? primitiveWidgetInputs()
         : target.startsWith("sketch.") ? session_.value("inputs").toObject()
         : target=="commands.search" ? QJsonObject{{"query",searchInput_ ? searchInput_->text() : QString{}}}
         : QJsonObject{{"units",unitsInput_ ? unitsInput_->currentText() : QString{}}};
-    const auto* activeDock=target=="component.copyPlacement" ? componentCopyDock_ : target=="surface.boundaryFill" ? boundaryFillDock_ : target=="surface.trim" ? surfaceTrimDock_ : target=="body.remove" ? removeBodyDock_ : target=="construction.tangentPlane" ? tangentPlaneDock_ : target=="solid.splitBody" ? splitBodyDock_ : target=="joint.slider" || target=="joint.revolute" || target=="joint.cylindrical" ? sliderDock_ : target=="inspect.section" ? sectionDock_ : target=="solid.sweep" ? sweepDock_ : target=="solid.revolve" ? revolveDock_ : target=="solid.hole" ? holeDock_ : target=="solid.sphere" ? sphereDock_ : target=="solid.chamfer" ? chamferDock_ : target=="solid.fillet" ? filletDock_ : target=="solid.rectangularPattern" ? patternDock_ : target=="solid.loft" ? loftDock_ : target=="surface.extrude" ? surfaceExtrudeDock_ : target=="solid.thicken" ? thickenDock_ : target=="solid.shell" ? shellDock_ : target=="solid.circularPattern" ? circularDock_ : target=="solid.mirror" ? mirrorDock_ : target=="solid.featureMirror" ? featureMirrorDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : primitiveDock_;
+    const auto* activeDock=target=="component.copyPlacement" ? componentCopyDock_ : target=="surface.boundaryFill" ? boundaryFillDock_ : target=="surface.trim" ? surfaceTrimDock_ : target=="body.remove" ? removeBodyDock_ : target=="construction.tangentPlane" ? tangentPlaneDock_ : target=="solid.splitBody" ? splitBodyDock_ : target=="joint.slider" || target=="joint.revolute" || target=="joint.cylindrical" ? sliderDock_ : target=="inspect.section" ? sectionDock_ : target=="solid.sweep" ? sweepDock_ : target=="solid.revolve" ? revolveDock_ : target=="solid.hole" ? holeDock_ : target=="solid.sphere" ? sphereDock_ : target=="solid.chamfer" ? chamferDock_ : target=="solid.fillet" ? filletDock_ : target=="solid.rectangularPattern" ? patternDock_ : target=="solid.loft" ? loftDock_ : target=="surface.extrude" ? surfaceExtrudeDock_ : target=="solid.thicken" ? thickenDock_ : target=="solid.thread" ? threadDock_ : target=="solid.shell" ? shellDock_ : target=="solid.circularPattern" ? circularDock_ : target=="solid.mirror" ? mirrorDock_ : target=="solid.featureMirror" ? featureMirrorDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : primitiveDock_;
     const auto panelRect=activeDock ? QRect(activeDock->mapToGlobal(QPoint())-mapToGlobal(QPoint()),activeDock->size()) : QRect{};
     QJsonArray popups;
     for(auto* popup:QApplication::topLevelWidgets()) {
@@ -6534,7 +6577,7 @@ QJsonObject AlloyWindow::state() const {
         {"recovery",QJsonObject{{"available",recovery_->error().isEmpty()},{"warning",recoveryWarning_},
             {"staleCount",recovery_->list().size()},{"scope","committed authored state only"}}},
         {"inlineEditor",inlineEditorState()},
-        {"geometryWork",QJsonObject{{"active",geometryBusyActive_ || bool(geometryEvaluationRunning_)},{"cancellable",false},{"resultDiscardAvailable",(meshExportOperation_.value("evaluationStatus")=="pending" && meshExportOperation_.value("evaluationPhase")!="publishing") || sketchEvaluationOperation_.value("evaluationStatus")=="pending" || documentOpenOperation_.value("evaluationStatus")=="pending" || session_.value("command")=="surface.extrude" || session_.value("command")=="surface.boundaryFill" || ((session_.value("command")=="surface.trim" || session_.value("command")=="solid.loft") && session_.value("evaluationStatus")=="pending")},{"last",lastGeometryWork_}}},
+        {"geometryWork",QJsonObject{{"active",geometryBusyActive_ || bool(geometryEvaluationRunning_) || bool(threadRunning_)},{"cancellable",false},{"resultDiscardAvailable",(meshExportOperation_.value("evaluationStatus")=="pending" && meshExportOperation_.value("evaluationPhase")!="publishing") || sketchEvaluationOperation_.value("evaluationStatus")=="pending" || documentOpenOperation_.value("evaluationStatus")=="pending" || session_.value("command")=="surface.extrude" || session_.value("command")=="surface.boundaryFill" || ((session_.value("command")=="surface.trim" || session_.value("command")=="solid.loft" || session_.value("command")=="solid.thread") && session_.value("evaluationStatus")=="pending")},{"last",lastGeometryWork_}}},
         {"focus",QJsonObject{{"widgetClass",QApplication::focusWidget() ? QApplication::focusWidget()->metaObject()->className() : ""},
             {"widgetName",QApplication::focusWidget() ? QApplication::focusWidget()->objectName() : QString{}},
             {"viewport",QApplication::focusWidget()==view_},
@@ -6621,7 +6664,7 @@ void AlloyWindow::refresh() {
     const auto historicalSketchId=session_.value("command")=="sketch.edit"
         && session_.value("baseDocumentRevision").toInteger()==static_cast<qint64>(document_->revision())
         ? session_.value("inputs").toObject().value("sketchId").toString() : QString{};
-    if(session_.value("command")!="component.copyPlacement" && session_.value("command")!="solid.splitBody" && session_.value("command")!="solid.sweep" && session_.value("command")!="solid.revolve" && session_.value("command")!="solid.sphere" && session_.value("command")!="solid.chamfer" && session_.value("command")!="solid.fillet" && session_.value("command")!="solid.rectangularPattern" && session_.value("command")!="solid.loft" && session_.value("command")!="solid.shell" && session_.value("command")!="solid.circularPattern" && session_.value("command")!="solid.mirror" && session_.value("command")!="solid.move" && session_.value("command")!="solid.combine" && !(session_.value("command")=="solid.extrude" && !session_.value("inputs").toObject().value("featureId").toString().isEmpty()) && session_.value("command")!="surface.boundaryFill" && session_.value("command")!="surface.trim" && historicalSketchId.isEmpty())view_->clearBodyStage();
+    if(session_.value("command")!="solid.thread" && session_.value("command")!="component.copyPlacement" && session_.value("command")!="solid.splitBody" && session_.value("command")!="solid.sweep" && session_.value("command")!="solid.revolve" && session_.value("command")!="solid.sphere" && session_.value("command")!="solid.chamfer" && session_.value("command")!="solid.fillet" && session_.value("command")!="solid.rectangularPattern" && session_.value("command")!="solid.loft" && session_.value("command")!="solid.shell" && session_.value("command")!="solid.circularPattern" && session_.value("command")!="solid.mirror" && session_.value("command")!="solid.move" && session_.value("command")!="solid.combine" && !(session_.value("command")=="solid.extrude" && !session_.value("inputs").toObject().value("featureId").toString().isEmpty()) && session_.value("command")!="surface.boundaryFill" && session_.value("command")!="surface.trim" && historicalSketchId.isEmpty())view_->clearBodyStage();
     if(displayedDocumentRevision_!=document_->revision()) {
         const QSignalBlocker block(tree_);
         // Keep Browser rows keyed by their stable IDs. Removing all children on
@@ -6912,7 +6955,7 @@ void AlloyWindow::refresh() {
                 {"sketch",{"sketch.create","Sketch"}},{"box",{"primitive.box","Box"}},{"cylinder",{"primitive.cylinder","Cylinder"}},
                 {"extrude",{"solid.extrudeDialog","Extrude"}},{"sphere",{"solid.sphereDialog","Sphere"}},{"fillet",{"solid.filletDialog","Fillet"}},
                 {"sweep",{"solid.sweepDialog","Sweep"}},{"revolve",{"solid.revolveDialog","Revolve"}},{"chamfer",{"solid.chamferDialog","Chamfer"}},
-                {"shell",{"solid.shellDialog","Shell"}},{"loft",{"solid.loftDialog","Loft"}},{"thicken",{"solid.thickenDialog","Thicken"}},
+                {"thread",{"solid.threadDialog","Thread"}},{"shell",{"solid.shellDialog","Shell"}},{"loft",{"solid.loftDialog","Loft"}},{"thicken",{"solid.thickenDialog","Thicken"}},
                 {"mirror",{"solid.mirrorDialog","Mirror"}},{"featureMirror",{"solid.mirrorDialog","Mirror Features"}},{"move",{"solid.moveDialog","Move"}},
                 {"boolean",{"solid.combineDialog","Combine"}},{"constructionPlane",{"construction.plane","Construction Plane"}},
                 {"rectangularPattern",{"solid.rectangularPatternDialog","Rectangular Pattern"}},
@@ -7075,6 +7118,7 @@ void AlloyWindow::refresh() {
     if(session_.value("command")=="surface.boundaryFill")refreshBoundaryFillMarkers();
     if(removeBodyEscape_)removeBodyEscape_->setEnabled(session_.value("command")=="body.remove");
     if(thickenEscape_)thickenEscape_->setEnabled(session_.value("command")=="solid.thicken");
+    refreshThreadControls();
     if(shellEscape_)shellEscape_->setEnabled(session_.value("command")=="solid.shell");
     if(session_.value("command")=="solid.mirror" && mirrorDock_)if(auto* box=mirrorDock_->findChild<QDialogButtonBox*>())box->button(QDialogButtonBox::Ok)->setEnabled(session_["previewed"].toBool() && session_["geometryEvaluated"].toBool() && session_["baseDocumentRevision"].toInteger()==static_cast<qint64>(document_->revision()));
     if(circularEscape_)circularEscape_->setEnabled(session_.value("command")=="solid.circularPattern");
@@ -8103,6 +8147,7 @@ QJsonObject AlloyWindow::beginSession(const QString& command, const QJsonObject&
     if(command=="surface.trim")return beginSurfaceTrim(inputs);
     if(command=="body.remove")return beginRemoveBody(inputs);
     if(command=="solid.thicken")return beginThicken(inputs);
+    if(command=="solid.thread")return beginThread(inputs);
     if(command=="solid.shell")return beginShell(inputs);
     if(command=="inspect.section")return beginSection(inputs);
     if(command=="joint.slider")return beginSlider(inputs);
@@ -8507,6 +8552,9 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
         const auto error=document_->commit(candidate,session_.value("inputs").toObject().contains("sketchId") ? "Edit sketch" : "Create sketch");
         if(!error.isEmpty())return failure("evaluation_failed",error);
         result["document"]=document_->state();
+    } else if(commit && target=="solid.thread") {
+        const auto error=commitThreadPreview();if(!error.isEmpty())return failure("evaluation_failed",error);
+        result["commandResult"]=QJsonObject{{"ok",true},{"completion","completed"},{"result",document_->state()}};
     } else if(commit && target=="surface.extrude") {
         if(!session_["previewed"].toBool() || session_["evaluationStatus"]!="completed")
             return failure("preview_required","Wait for a valid Surface Extrude preview before committing");
@@ -8555,6 +8603,12 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
         geometryEvaluationTerminal_={{"id",id},{"sessionId",id},{"command",target},{"previewGeneration",session_.value("previewGeneration")},
             {"evaluationStatus","failed"},{"status","cancelled"},{"previewError",QJsonObject{{"code","command_cancelled"},{"message","Geometry result discarded; running kernel evaluation continues"}}}};
         invalidateGeometryEvaluation();
+    }
+    if(target=="solid.thread" && !commit) {
+        result["resultDiscarded"]=true;result["evaluationStillRunning"]=bool(threadRunning_);
+        geometryEvaluationTerminal_={{"id",id},{"sessionId",id},{"command",target},
+            {"previewGeneration",session_.value("previewGeneration")},{"evaluationStatus","failed"},{"status","cancelled"},
+            {"previewError",QJsonObject{{"code","command_cancelled"},{"message",threadRunning_ ? "Thread result discarded; running kernel evaluation continues" : "Thread command cancelled"}}}};
     }
     surfaceTrimSource_.reset();surfaceTrimPartition_.reset();
     loftSource_.reset();loftPreview_.reset();
@@ -8626,6 +8680,7 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
         });
     }
     else if(target=="solid.hole") {if(holeEscape_)holeEscape_->setEnabled(false);if(holeDock_)holeDock_->hide();view_->clearPreview();view_->clearBodyStage();view_->setCommandSketches({});view_->selectFinishedPoint({});view_->setFocus();}
+    else if(target=="solid.thread") {++threadGeneration_;threadQueued_.reset();threadPrepared_.reset();if(threadDock_)threadDock_->hide();if(threadEscape_)threadEscape_->setEnabled(false);view_->selectSupportFace({},{});view_->clearPreview();view_->clearBodyStage();view_->setFocus();}
     else if(target=="solid.sphere") {if(sphereDock_)sphereDock_->hide();view_->selectSupportFace({},{});view_->clearPreview();view_->clearBodyStage();view_->setFocus();}
     else if(target=="solid.chamfer") {
         if(chamferEscape_)chamferEscape_->setEnabled(false);
@@ -8970,8 +9025,21 @@ QJsonObject AlloyWindow::selectSupportFace(const QJsonObject& support) {
             view_->selectSupportFace(support,face.face);return {{"kind","face"},{"support",support}};
         }catch(const std::exception& error){return failure("support_unavailable",QString::fromUtf8(error.what()));}
     }
+    if(session_.value("command")=="solid.thread")return selectThreadFace(support);
     if(session_.value("command")=="solid.sphere")return selectSphereFace(support);
     if(!session_.isEmpty() && session_.value("command")!="sketch.plane")return failure("session_busy","Complete or cancel the active command first");
+    // Curved solid faces can be selected for tools such as Thread. Sketch
+    // attachment still uses resolveSketchSupport and remains planar-only.
+    for(const auto& body:document_->bodies())if(body.visible && body.bodyId==support["bodyId"].toString())
+        for(const auto& face:body.supportFaces)if(face.faceId==support["faceId"].toString()
+            && face.producerFeatureId==support["producerFeatureId"].toString()
+            && BRepAdaptor_Surface(face.face).GetType()==GeomAbs_Cylinder) {
+            selectedFace_={{"producerFeatureId",face.producerFeatureId},{"bodyId",face.bodyId},{"faceId",face.faceId}};
+            selectedEdge_={};selectedPlane_.clear();selectedBody_.clear();selectedSketch_.clear();
+            selectedProfile_.clear();selectedProfileIds_={};view_->selectBody({});view_->selectProfile({},{});
+            view_->selectSupportFace(selectedFace_,face.face);view_->clearSolidEdgeHighlights();
+            return {{"kind","face"},{"support",selectedFace_},{"role",face.role},{"planar",false}};
+        }
     // Surface faces may be preselected for Thicken. Sketch attachment remains
     // planar-only in resolveSketchSupport below.
     for(const auto& body:document_->bodies())if(body.visible && body.summary["type"]=="surface"

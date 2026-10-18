@@ -30,7 +30,13 @@ through Save As Mesh and the shared command: one/two placed objects, millimeter
 units, independent mesh/placement readback, source edit/re-export, native chooser
 Cancel/Save and separate PrusaSlicer CLI import passed. The [receipt](validation/3mf-export.md)
 keeps other platforms, package qualification and extensions separate under
-XCH-005. SOL-059/#504 modeled threads remain Todo.
+XCH-005. SOL-059/#504 now accepts a bounded retained external modeled Thread
+on M6/M8/M10 nominal bosses: native side picking and Escape/OK, full/partial
+length, source/edit/history/reopen and independent watertight STL passed. The
+[receipt](validation/modeled-external-thread.md) records the measured worker
+preparation and preserved-mesh display path. Broader standards, internal modes,
+print fit and other-platform qualification remain open under ADV-005 and release
+gates.
 SKT-099/#518 now accepts ordinary line/circle/arc/Point deletion through the
 shared command, canvas Delete and sketch context menu. A real-app retained
 profile/extrude/save/reopen gate and a slot-group transactional refusal passed;

@@ -3212,10 +3212,10 @@
       "label": "Thread and printable thread geometry",
       "category": "Solid create",
       "scope": "proposed-v1",
-      "implementation": "missing",
-      "nativeEvidence": "unknown",
-      "gap": "No Thread command is registered; modeled printable threads need geometry/output verification.",
-      "apiIds": [],
+      "implementation": "partial",
+      "nativeEvidence": "accepted-bounded-macos",
+      "gap": "Nominal external M6/M8/M10 modeled threads are accepted; internal, tolerance classes, print fit and broader standards remain open.",
+      "apiIds": ["solid.thread", "solid.threadDialog"],
       "issueKeys": [
         "ADV-005",
         "SOL-059"
@@ -3223,8 +3223,8 @@
       "sourceFiles": [
         "docs/backlog/issues.json"
       ],
-      "receipts": [],
-      "planningStatus": "Required v1 modeled thread: SOL-059; other thread modes remain ADV-005"
+      "receipts": ["docs/validation/modeled-external-thread.md"],
+      "planningStatus": "Required v1 external modeled thread accepted under SOL-059; other thread modes remain ADV-005"
     },
     {
       "id": "solid.coil",

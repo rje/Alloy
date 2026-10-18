@@ -98,6 +98,9 @@ public:
     void rebindDocument();
     QImage framebuffer();
     void setSectionAnalysis(const QJsonObject& analysis);
+    // Only these explicitly worker-prepared shapes may bypass AIS remeshing.
+    // Replaced on the next Thread result; unrelated/changed shapes use normal AIS.
+    void setPreparedThreadMeshes(const std::vector<TopoDS_Shape>& shapes);
     void setBodies(const std::vector<EvaluatedBody>& bodies, quint64 revision);
     void setBodyStage(const std::vector<EvaluatedBody>& bodies, const QString& stageKey);
     void clearBodyStage();
@@ -253,6 +256,8 @@ private:
     void refreshExtrusionCue();
     void setExtrusionCue(const EvaluatedProfile& profile,double distanceMm,const QJsonArray& sourceProfileIds,const QString& units,const QString& operation,double startOffsetMm = 0);
     void updateExtrusionDrag(const QPointF& position,const QString& phase);
+    bool preservePreparedThreadMesh(const Handle(AIS_Shape)& presentation) const;
+    std::vector<TopoDS_Shape> preparedThreadMeshes_;
     void replacePreview(const TopoDS_Shape& shape, const QString& replacedBody, bool neutral);
     QPointF windowScale() const;
     Handle(V3d_Viewer) viewer_;

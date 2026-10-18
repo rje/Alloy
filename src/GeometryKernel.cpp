@@ -7,6 +7,11 @@
 #include "SolidSplit.h"
 #include "SolidSphere.h"
 #include "SolidHole.h"
+#include "SolidThreadGeometry.h"
+#include <BRepAlgoAPI_Cut.hxx>
+#include <BRepTools.hxx>
+#include <BRepGProp.hxx>
+#include <GProp_GProps.hxx>
 #include "SolidLoft.h"
 #include "SurfaceExtrude.h"
 #include "BoundaryFill.h"
@@ -1075,6 +1080,54 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                 evaluated.bodies.push_back(std::move(solid));
             } else if(type=="sphere") {
                 SolidSphere::evaluate(evaluated,feature);
+            } else if(type=="thread") {
+                const auto support=parameters["support"].toObject();
+                context["support"]=support;context["targetBodyId"]=support["bodyId"];
+                const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& b){return b.bodyId==support["bodyId"].toString();});
+                if(target==evaluated.bodies.end())reject("thread_body_unavailable","Thread body must be active earlier in history");
+                const EvaluatedSupportFace* selected=nullptr;
+                for(const auto& face:target->supportFaces)if(face.faceId==support["faceId"].toString() && face.producerFeatureId==support["producerFeatureId"].toString()) {
+                    if(selected)reject("thread_face_ambiguous","Thread face has multiple descendants");selected=&face;
+                }
+                if(!selected || selected->face.IsNull())reject("thread_face_unavailable","The exact retained cylindrical face is unavailable");
+                int matches=0;for(TopExp_Explorer it(target->shape,TopAbs_FACE);it.More();it.Next())if(it.Current().IsSame(selected->face))++matches;
+                if(matches!=1)reject("thread_face_unavailable","Thread reference is not one current body face");
+                const auto inputSummary=summarize(target->shape);
+                if(!inputSummary["valid"].toBool() || !inputSummary["closed"].toBool() || inputSummary["topology"].toObject()["solids"].toInt()!=1 || !target->occurrenceId.isEmpty())
+                    reject("thread_source_unsupported","Thread requires one valid local solid");
+                BRepAdaptor_Surface surface(selected->face);
+                if(surface.GetType()!=GeomAbs_Cylinder)reject("thread_face_unsupported","Thread requires an analytic cylindrical face");
+                const auto cylinder=surface.Cylinder();
+                if(std::abs(2*cylinder.Radius()-parameters["nominalDiameterMm"].toDouble())>1e-5)
+                    reject("thread_diameter_mismatch","Selected cylinder diameter must match the nominal designation");
+                double u0,u1,v0,v1;BRepTools::UVBounds(selected->face,u0,u1,v0,v1);
+                int wires=0;for(TopExp_Explorer it(selected->face,TopAbs_WIRE);it.More();it.Next())++wires;
+                GProp_GProps area;BRepGProp::SurfaceProperties(selected->face,area);
+                const double span=v1-v0;
+                if(!std::isfinite(span) || span<0.001 || std::abs((u1-u0)-2*std::numbers::pi)>1e-6 || wires!=1
+                    || std::abs(area.Mass()-2*std::numbers::pi*cylinder.Radius()*span)>1e-5)
+                    reject("thread_face_trimmed","Thread requires one complete finite cylindrical face without openings");
+                gp_Pnt sample;gp_Vec du,dv;surface.D1((u0+u1)/2,(v0+v1)/2,sample,du,dv);
+                auto normal=du.Crossed(dv);if(selected->face.Orientation()==TopAbs_REVERSED)normal.Reverse();
+                const auto axial=cylinder.Axis().Direction();const gp_Vec relative(cylinder.Location(),sample);
+                const auto radial=relative-gp_Vec(axial)*relative.Dot(gp_Vec(axial));
+                if(normal.Dot(radial)<=0)reject("thread_internal_unsupported","Only an external cylindrical face is supported");
+                SolidThreadGeometry::Parameters settings;
+                settings.axis=gp_Ax2(cylinder.Location().Translated(gp_Vec(axial)*v0),axial,cylinder.XAxis().Direction());
+                settings.majorRadius=cylinder.Radius();settings.pitch=parameters["pitchMm"].toDouble();
+                settings.start=parameters["startOffsetMm"].toDouble();settings.length=parameters["fullLength"].toBool()?span:parameters["lengthMm"].toDouble();
+                settings.rightHand=parameters["direction"]=="right";
+                if(settings.start<0 || settings.length<0.001 || settings.start+settings.length>span+1e-6 || settings.length/settings.pitch>100)
+                    reject("thread_interval_invalid","Thread interval exceeds the selected face or 100-turn limit");
+                std::vector<EvaluatedSupportFace> faces;
+                TopoDS_Shape threaded;
+                try {threaded=SolidThreadGeometry::cutExternal(target->shape,settings,[&](BRepAlgoAPI_Cut& operation){faces=PlanarFaces::transfer(operation,target->supportFaces,operation.Shape());});}
+                catch(const std::exception& error){reject("thread_geometry_failed",QString::fromUtf8(error.what()));}
+                target->shape=threaded;target->supportFaces=std::move(faces);target->solidEdges.clear();
+                target->summary=summarize(threaded);target->summary["lastModifierFeatureId"]=id;target->summary["operation"]="thread";
+                target->summary["supportFaces"]=PlanarFaces::descriptors(target->supportFaces);
+                auto retained=parameters;retained["evaluatedLengthMm"]=settings.length;retained["usableLengthMm"]=span;
+                target->summary["thread"]=retained;
             } else if(type=="hole") {
                 QJsonObject source;for(const auto& entry:authored["features"].toArray())if(entry.toObject()["id"]==parameters["sourceSketchId"]) {source=entry.toObject();break;}
                 try {SolidHole::evaluate(evaluated,feature,source);}
@@ -1299,7 +1352,8 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                         summary["supportFaces"]=PlanarFaces::descriptors(supportFaces);
                         summary["solidEdges"]=SolidFillet::descriptors(solidEdges);
                     } else if(type=="cylinder") {
-                        PrimitiveTopology::cylinderRims(shape,parameters,id,solidEdges);
+                        PrimitiveTopology::cylinder(shape,parameters,id,feature["bodyId"].toString(),supportFaces,solidEdges);
+                        summary["supportFaces"]=PlanarFaces::descriptors(supportFaces);
                         summary["solidEdges"]=SolidFillet::descriptors(solidEdges);
                     }
                 }

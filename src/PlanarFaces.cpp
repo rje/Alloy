@@ -55,7 +55,15 @@ std::vector<EvaluatedSupportFace> PlanarFaces::transfer(BRepBuilderAPI_MakeShape
     std::vector<EvaluatedSupportFace> output;QSet<QString> seen;
     for(auto source:sources) {
         const auto next=descendant(op,source.face,present,TopAbs_FACE);
-        if(next.IsNull() || BRepAdaptor_Surface(TopoDS::Face(next)).GetType()!=GeomAbs_Plane)continue;
+        if(next.IsNull())continue;
+        const auto surfaceType=BRepAdaptor_Surface(TopoDS::Face(next)).GetType();
+        if(surfaceType==GeomAbs_Cylinder && BRepAdaptor_Surface(source.face).GetType()==GeomAbs_Cylinder) {
+            source.face=TopoDS::Face(next);
+            const auto key=source.producerFeatureId+"/"+source.faceId;
+            if(seen.contains(key))throw std::runtime_error("Ambiguous retained cylindrical face identity");
+            output.push_back(source);seen.insert(key);continue;
+        }
+        if(surfaceType!=GeomAbs_Plane)continue;
         // A retained frame must still lie on the result plane. This verifies
         // kernel history; it is not used to search for replacement faces.
         const auto origin=source.frame["origin"].toArray(),normal=source.frame["normal"].toArray();
@@ -181,6 +189,24 @@ std::vector<EvaluatedSupportFace> PlanarFaces::prismSides(BRepPrimAPI_MakePrism&
         }
     }
     for(const auto& boundary:profile.boundaryEdges) {
+        if(boundary.type=="circle") {
+            TopTools_IndexedMapOfShape generated;
+            for(const auto& shape:prism.Generated(boundary.edge))
+                if(shape.ShapeType()==TopAbs_FACE && solidFaces.Contains(shape)
+                    && BRepAdaptor_Surface(TopoDS::Face(shape)).GetType()==GeomAbs_Cylinder)
+                    generated.Add(shape);
+            if(generated.Extent()!=1)continue;
+            const auto face=TopoDS::Face(solidFaces(solidFaces.FindIndex(generated(1))));
+            const auto signature=(profile.profileId+"/"+boundary.sourceEntityId).toUtf8();
+            const auto faceId=QUuid::createUuidV5(QUuid(generator),
+                QByteArray("alloy-cylindrical-face/1\n")+signature).toString(QUuid::WithoutBraces);
+            if(std::any_of(result.begin(),result.end(),[&](const auto& item){return item.faceId==faceId;}))
+                throw std::runtime_error("Ambiguous cylindrical prism face provenance");
+            result.push_back({faceId,{},generator,"extrude.cylindricalSide",face,{}, {},
+                {{"sourceSketchId",boundary.sourceSketchId},{"sourceProfileId",profile.profileId},
+                 {"sourceEntityId",boundary.sourceEntityId}}});
+            continue;
+        }
         if(boundary.type!="line")continue;
         TopTools_IndexedMapOfShape generated;
         for(const auto& shape:prism.Generated(boundary.edge))if(shape.ShapeType()==TopAbs_FACE)generated.Add(shape);

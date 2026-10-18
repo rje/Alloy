@@ -553,7 +553,7 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
             continue;
         }
         QJsonArray planeSupports;
-        if(feature["type"]=="sketch" && feature["parameters"].toObject()["plane"]=="face")
+        if(feature["type"]=="thread" || (feature["type"]=="sketch" && feature["parameters"].toObject()["plane"]=="face"))
             planeSupports.append(feature["parameters"].toObject()["support"]);
         if(feature["type"]=="constructionPlane"){
             const auto source=feature["parameters"].toObject()["source"].toObject();
@@ -1271,6 +1271,10 @@ QString CadDocument::commitSketchEvaluation(const CandidateEvaluation& prepared,
         return "Historical sketch evaluation cannot append features";
     return commitEvaluatedFeature(prepared,requestedCandidate,expectedBase,expectedRevision,"sketch",label);
 }
+QString CadDocument::commitThreadEvaluation(const CandidateEvaluation& prepared,
+    const QJsonObject& requestedCandidate,const QJsonObject& expectedBase,quint64 expectedRevision,const QString& label) {
+    return commitEvaluatedFeature(prepared,requestedCandidate,expectedBase,expectedRevision,"thread",label);
+}
 QString CadDocument::commitLoftEvaluation(const CandidateEvaluation& prepared,
     const QJsonObject& requestedCandidate,const QJsonObject& expectedBase,quint64 expectedRevision) {
     return commitEvaluatedFeature(prepared,requestedCandidate,expectedBase,expectedRevision,"loft","Loft");
@@ -1286,7 +1290,7 @@ QString CadDocument::commitBoundaryFillEvaluation(const CandidateEvaluation& pre
 QString CadDocument::commitEvaluatedFeature(const CandidateEvaluation& prepared,
     const QJsonObject& requestedCandidate, const QJsonObject& expectedBase, quint64 expectedRevision,
     const QString& featureType, const QString& label) {
-    const QString featureLabel=featureType=="sketch" ? "Sketch" : featureType=="boundaryFill" ? "Boundary Fill" : featureType=="surfaceTrim" ? "Surface Trim" : featureType=="loft" ? "Loft" : "Surface Extrude";
+    const QString featureLabel=featureType=="thread" ? "Thread" : featureType=="sketch" ? "Sketch" : featureType=="boundaryFill" ? "Boundary Fill" : featureType=="surfaceTrim" ? "Surface Trim" : featureType=="loft" ? "Loft" : "Surface Extrude";
     lastEvaluationError_={};
     if(revision_!=expectedRevision || authored_!=expectedBase)
         return "The document changed; cancel and restart "+featureLabel;
@@ -2021,6 +2025,32 @@ QJsonObject CadDocument::sphereCandidate(const QJsonObject& authored,const QJson
     if(index>=0)features[index]=feature;else features.append(feature);candidate["features"]=features;
     const auto error=validate(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
 }
+QJsonObject CadDocument::threadCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
+    const QSet<QString> allowed{"support","nominalDiameterMm","pitchMm","startOffsetMm","lengthMm","direction","modeled","fullLength","threadSide","standard","featureId","newFeatureId","ownerId","name"};
+    for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Thread argument");
+    if(arguments.contains("featureId") && arguments.contains("newFeatureId"))throw std::invalid_argument("Choose existing or new Thread identity");
+    for(const auto& key:{"featureId","newFeatureId","ownerId"})if(arguments.contains(key) && (!arguments[key].isString() || !validId(arguments[key].toString())))throw std::invalid_argument("Thread identities must be stable UUIDs");
+    auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
+    if(arguments.contains("featureId")) {
+        for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}
+        if(index<0 || feature["type"]!="thread")throw std::invalid_argument("Thread feature unavailable");
+    } else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","thread"},{"name","Thread"},{"visible",true}};
+    auto p=feature["parameters"].toObject();
+    for(const auto& key:{"support","nominalDiameterMm","pitchMm","startOffsetMm","lengthMm","direction","modeled","fullLength","threadSide","standard"})if(arguments.contains(key))p[key]=arguments[key];
+    if(!p.contains("pitchMm")) {const auto d=p["nominalDiameterMm"].toDouble();p["pitchMm"]=d==6?1.0:d==8?1.25:d==10?1.5:0;}
+    if(!p.contains("startOffsetMm"))p["startOffsetMm"]=0;
+    if(arguments.contains("lengthMm") && !arguments.contains("fullLength"))p["fullLength"]=false;
+    if(!p.contains("fullLength"))p["fullLength"]=true;
+    if(!p.contains("lengthMm"))p["lengthMm"]=0;
+    if(!p.contains("direction"))p["direction"]="right";
+    if(!p.contains("modeled"))p["modeled"]=true;
+    if(!p.contains("threadSide"))p["threadSide"]="external";
+    if(!p.contains("standard"))p["standard"]="ISO_metric_coarse";
+    p["geometryVersion"]=1;feature["parameters"]=p;
+    if(arguments.contains("name"))feature["name"]=arguments["name"];
+    if(index<0)features.append(feature);else features[index]=feature;candidate["features"]=features;
+    const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
+}
 QJsonObject CadDocument::holeCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
     const QSet<QString> allowed{"sourceSketchId","sourceEntityId","sourcePointId","targetBodyId","placement","holeType","extent",
         "boreDiameterMm","sinkDiameterMm","includedAngleDeg","name","featureId","newFeatureId","ownerId"};
@@ -2481,6 +2511,21 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
                 for(const auto& edge:members){if(!edge.isString() || !validId(edge.toString()) || edges.contains(edge.toString()) || edges.size()>=100)return "Fillet edge references must be distinct stable UUIDs";edges.insert(edge.toString());}
                 if(!group["radiusMm"].isDouble() || !std::isfinite(group["radiusMm"].toDouble()) || group["radiusMm"].toDouble()<0.001 || group["radiusMm"].toDouble()>100000)return "Fillet radius must be 0.001..100000 mm";
             }
+            continue;
+        }
+        if(type=="thread") {
+            const auto support=p["support"].toObject();
+            if(feature.contains("bodyId") || p.size()!=11 || !p["support"].isObject() || support.size()!=3)
+                return "Thread requires exactly one retained cylindrical face and supported parameters";
+            for(const auto& key:{"producerFeatureId","bodyId","faceId"})if(!validId(support[key].toString()))return "Thread requires stable face identities";
+            if(p["standard"]!="ISO_metric_coarse" || p["threadSide"]!="external" || !p["modeled"].isBool() || !p["modeled"].toBool()
+                || !p["fullLength"].isBool() || (p["direction"]!="right" && p["direction"]!="left") || p["geometryVersion"]!=1)
+                return "Thread supports modeled nominal external metric coarse geometry version 1 only";
+            for(const auto& key:{"nominalDiameterMm","pitchMm","startOffsetMm","lengthMm"})if(!p[key].isDouble() || !std::isfinite(p[key].toDouble()))return "Thread dimensions must be finite";
+            const auto d=p["nominalDiameterMm"].toDouble(),pitch=p["pitchMm"].toDouble(),start=p["startOffsetMm"].toDouble(),len=p["lengthMm"].toDouble();
+            if(!((d==6 && pitch==1) || (d==8 && pitch==1.25) || (d==10 && pitch==1.5)))return "Thread supports M6x1, M8x1.25 or M10x1.5 nominal designations";
+            if(start<0 || start>100000 || len<0 || len>100000 || (!p["fullLength"].toBool() && (len<0.001 || len/pitch>100))
+                || (p["fullLength"].toBool() && start!=0))return "Thread requires a finite axial interval of at most 100 turns; Full Length starts at zero";
             continue;
         }
         if(type=="hole") {

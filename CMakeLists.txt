@@ -30,6 +30,7 @@ target_include_directories(alloy_sketch_solver PUBLIC src)
 target_link_libraries(alloy_sketch_solver PUBLIC Qt6::Core PRIVATE alloy_planegcs)
 
 add_library(alloy_kernel STATIC
+    src/SolidThreadGeometry.cpp src/SolidThreadGeometry.h
     src/ReferenceCanvas.cpp src/ReferenceCanvas.h
     src/AssemblySlider.cpp src/AssemblySlider.h
     src/AssemblyRevolute.cpp src/AssemblyRevolute.h src/AssemblyGraph.cpp src/AssemblyGraph.h src/LocalOccurrences.cpp src/LocalOccurrences.h src/JointOrigin.cpp src/JointOrigin.h
@@ -47,7 +48,7 @@ target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_
 
 add_library(alloy_application STATIC
     src/AlloyTheme.cpp src/AlloyTheme.h
-    src/AlloyWindow.cpp src/AlloyWindow.h src/SplitBodyControls.cpp src/AssemblyControls.cpp src/PointControls.cpp src/SplineControls.cpp src/SlotDragControls.cpp src/ConicControls.cpp src/SketchTextControls.cpp src/CommandIcons.cpp src/CommandIcons.h src/SolidFilletControls.cpp src/SolidChamferControls.cpp src/SphereControls.cpp src/SolidHoleControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/SurfaceExtrudeControls.cpp src/SketchEvaluation.cpp src/BoundaryFillControls.cpp src/SurfaceTrimControls.cpp src/RemoveBodyControls.cpp src/ThickenControls.cpp src/RevolveCommands.cpp src/SweepCommands.cpp src/SweepSelection.cpp src/PatternControls.cpp src/CircularPatternControls.cpp src/SolidMirrorControls.cpp src/SolidFeatureMirrorControls.cpp src/CanvasControls.cpp src/ReferenceCanvasView.cpp src/SectionAnalysisControls.cpp src/ReferenceSection.cpp src/MoveControls.cpp src/ComponentCopyControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
+    src/AlloyWindow.cpp src/AlloyWindow.h src/SplitBodyControls.cpp src/AssemblyControls.cpp src/PointControls.cpp src/SplineControls.cpp src/SlotDragControls.cpp src/ConicControls.cpp src/SketchTextControls.cpp src/CommandIcons.cpp src/CommandIcons.h src/SolidFilletControls.cpp src/SolidChamferControls.cpp src/SphereControls.cpp src/SolidHoleControls.cpp src/SolidThreadControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/SurfaceExtrudeControls.cpp src/SketchEvaluation.cpp src/BoundaryFillControls.cpp src/SurfaceTrimControls.cpp src/RemoveBodyControls.cpp src/ThickenControls.cpp src/RevolveCommands.cpp src/SweepCommands.cpp src/SweepSelection.cpp src/PatternControls.cpp src/CircularPatternControls.cpp src/SolidMirrorControls.cpp src/SolidFeatureMirrorControls.cpp src/CanvasControls.cpp src/ReferenceCanvasView.cpp src/SectionAnalysisControls.cpp src/ReferenceSection.cpp src/MoveControls.cpp src/ComponentCopyControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
     src/TutorialRecorder.cpp src/TutorialRecorder.h
     src/CadDocument.cpp src/CadDocument.h src/LocalReferenceControls.cpp src/LocalReference.h
     src/RecoveryStore.cpp src/RecoveryStore.h
@@ -1050,4 +1051,21 @@ if(BUILD_TESTING)
     add_executable(three_mf_writer_test tests/three_mf_writer.cpp)
     target_link_libraries(three_mf_writer_test PRIVATE Qt6::Core alloy_kernel lib3mf)
     add_test(NAME three_mf_writer COMMAND three_mf_writer_test)
+endif()
+
+if(BUILD_TESTING)
+    # Bounded kernel-only fixture: no editor or proprietary reference runtime.
+    add_executable(thread_geometry_spike tests/thread_geometry_spike.cpp src/SolidThreadGeometry.cpp)
+    target_include_directories(thread_geometry_spike PRIVATE src)
+    target_include_directories(thread_geometry_spike SYSTEM PRIVATE ${OpenCASCADE_INCLUDE_DIR})
+    target_link_libraries(thread_geometry_spike PRIVATE TKernel TKMath TKG3d TKG2d TKBRep TKPrim TKTopAlgo TKOffset TKBO TKBool TKGeomAlgo TKMesh TKDESTL)
+    set_target_properties(thread_geometry_spike PROPERTIES AUTOMOC OFF)
+    add_test(NAME thread_geometry_spike COMMAND thread_geometry_spike ${CMAKE_BINARY_DIR}/evidence/thread-geometry-spike)
+    set_tests_properties(thread_geometry_spike PROPERTIES TIMEOUT 180 LABELS "kernel;thread")
+endif()
+if(BUILD_TESTING)
+    add_executable(solid_thread_test tests/solid_thread.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_link_libraries(solid_thread_test PRIVATE alloy_kernel Qt6::Widgets)
+    add_test(NAME solid_thread COMMAND solid_thread_test)
+    set_tests_properties(solid_thread PROPERTIES TIMEOUT 180 LABELS "kernel;thread")
 endif()
