@@ -9560,7 +9560,7 @@
         "phase:P2",
         "priority:P1"
       ],
-      "body": "## Bounded result\nA selected `circleOffset` result deletes its generated circle and owned offset relation under an explicit owner policy while preserving the source circle and unrelated constraints. Distinguish result deletion from deleting only the offset association.\n\n## Acceptance\nQualify one source/result circle fixture through shared native/API Delete, source-selection refusal, relation cleanup, exact Undo/Redo, save/reopen and hardware GPU captures. Public select/Delete and Offset/Mirror creation references are recorded outside the repository at ../Alloy-reference-records/knowledge/specs/skt142-mirror-offset-delete-triage-2026-10-18.md. Exact reference result-deletion cascades are unknown; record Alloy's policy without parity claims. Physical input, other-platform runtime and styling remain release gates.\n\n## Split provenance\nSplit from SKT-142/#568 on 2026-10-18 before implementing its Mirror + open-chain subset. Retain this Todo until its own owner schema and real-app evidence are accepted.\n\n## Dependencies\n- SKT-142\n"
+      "body": "## Bounded result\nA selected `circleOffset` result deletes its generated circle and owned offset relation under an explicit owner policy while preserving the source circle and unrelated constraints. Distinguish result deletion from deleting only the offset association.\n\n## Acceptance\nQualify one source/result circle fixture through shared native/API Delete, source-selection refusal, relation cleanup, exact Undo/Redo, save/reopen and hardware GPU captures. Public select/Delete and Offset/Mirror creation references are recorded outside the repository at ../Alloy-reference-records/knowledge/specs/skt142-mirror-offset-delete-triage-2026-10-18.md. Exact reference result-deletion cascades are unknown; record Alloy's policy without parity claims. Physical input, other-platform runtime and styling remain release gates.\n\n## Split provenance\nSplit from SKT-142/#568 on 2026-10-18 before implementing its Mirror + open-chain subset. Retain this Todo until its own owner schema and real-app evidence are accepted.\n\n## Dependencies\n- SKT-142\n\n## Linked downstream reference follow-up\nSKT-150/#576 owns earlier, actionable historical-sketch Delete preflight for committed downstream profile consumers. The SKT-147 annular Extrude probe currently rejects at Finish with `profile_unavailable`, preserving committed authored/evaluated state; this bounded Circle Offset ownership issue does not claim early dependency guidance. External evidence: ../Alloy-reference-records/validation/skt147-circle-offset-delete-2026-10-18/downstream/.\n"
     },
     {
       "key": "SKT-148",
@@ -9596,6 +9596,25 @@
         "priority:P1"
       ],
       "body": "## Bounded result\nProvide a separate association-removal action for a retained fit-spline Offset. Deleting its Offset glyph or choosing an explicit break-link action keeps the visible result curve and source curve, converts the derived result to independently editable authored geometry, and removes only the source association and its ownership rules. Deleting the result geometry remains SKT-146; deleting a distance annotation is a different action.\n\n## Acceptance\nResearch the public glyph and break-link input with dated sources outside the repository; public help documents association removal, but Alloy's current `fitSplineOffset` entity has no separate glyph relation or independent-result representation. Add the minimum authored conversion needed for one open spline result with stable IDs or an explicit mapped replacement, preserving source and curve shape. Use shared native/API command authority, distinguish geometry Delete and glyph Delete, verify source edit no longer drives result, one-step Undo/Redo, save/reopen, dependency refusal, and actual GPU capture. Keep physical input, exact styling and other-platform runtime separate.\n\n## Split provenance\nSplit from SKT-146/#572 on 2026-10-18 after schema/public-workflow triage identified distinct association-only behavior. Source record: ../Alloy-reference-records/knowledge/specs/skt146-fit-spline-offset-delete-triage-2026-10-18.md. Do not silently treat a geometry Delete as this action.\n\n## Dependencies\n- SKT-146\n"
+    },
+    {
+      "key": "SKT-150",
+      "title": "Preflight historical sketch Delete against downstream profiles",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "HIS-002",
+        "SKT-147"
+      ],
+      "labels": [
+        "kind:implementation",
+        "status:blocked",
+        "area:skt",
+        "phase:P2",
+        "priority:P1"
+      ],
+      "body": "## Bounded result\nWhen editing a historical sketch, identify that deleting a selected authored or owner-generated curve would invalidate a committed downstream profile/feature before publishing the sketch draft edit. Return an actionable stable-ID/feature-owner message or an explicit repair route. Do not silently leave a seemingly successful Delete that only fails when Finish evaluates the document.\n\n## Observed fixture\nOn 2026-10-18, a source R15/result R11 circle Offset annulus extruded 5 mm accepted result Delete in the historical sketch draft, but Finish refused with `evaluation_failed` / `profile_unavailable` for the named Extrude feature. Committed authored JSON and evaluated bodies remained byte-equivalent and edit stayed active. Evidence: ../Alloy-reference-records/validation/skt147-circle-offset-delete-2026-10-18/downstream/. This is a recoverable late error, not data corruption.\n\n## Acceptance\nResearch the affected public edit/recovery workflow before setting the interaction policy; record sources and unknowns outside the repository. Use existing stable sketch/profile/feature IDs to preflight one annular Extrude consumer and one safe unrelated Delete, through the shared native/API command path. A dependent Delete must give specific owner guidance without changing draft/history, or enter a separately reviewable repair flow; successful unrelated Delete still supports Undo/Redo, Finish, save/reopen and the same solid. Inspect actual app GPU/native presentation. Keep broader topology/reference repair under HIS-002, and physical input/other-platform runtime in release gates.\n\n## Split provenance\nBounded downstream-reference child from HIS-002 identified during SKT-147/#573 validation. This does not expand SKT-147 result/source/association ownership semantics.\n\n## Dependencies\n- HIS-002\n- SKT-147\n"
     }
   ]
 }

@@ -2862,6 +2862,11 @@
       "number": 575,
       "url": "https://github.com/rje/Alloy/issues/575",
       "state": "open"
+    },
+    "SKT-150": {
+      "number": 576,
+      "url": "https://github.com/rje/Alloy/issues/576",
+      "state": "open"
     }
   }
 }
