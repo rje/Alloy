@@ -841,6 +841,39 @@ QJsonObject SketchGeometry::addRectangle(const QJsonObject& draft, const QJsonOb
     return changed;
 }
 
+SketchGeometry::SolveResult SketchGeometry::addThreePointRectangle(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext) {
+    try {
+        validateDraft(draft);
+        checkFields(arguments,{"u1Mm","v1Mm","u2Mm","v2Mm","u3Mm","v3Mm","firstDistanceMm","secondDistanceMm","startSnapTarget"});
+        QJsonObject baseline;for(const auto& key:{"u1Mm","v1Mm","u2Mm","v2Mm","startSnapTarget"})if(arguments.contains(key))baseline[key]=arguments[key];
+        auto first=addPointerEntity(draft,"line",baseline,projectionContext);
+        if(!first.ok)return first;
+        auto parameters=first.feature["parameters"].toObject();auto points=parameters["points"].toArray();auto entities=parameters["entities"].toArray();auto constraints=parameters["constraints"].toArray();auto dimensions=parameters["dimensions"].toArray();
+        const auto base=entities.last().toObject();QJsonObject a,b;
+        for(const auto& row:points){const auto point=row.toObject();if(point["id"]==base["startPointId"])a=point;if(point["id"]==base["endPointId"])b=point;}
+        const double ax=a["uMm"].toDouble(),ay=a["vMm"].toDouble(),bx=b["uMm"].toDouble(),by=b["vMm"].toDouble();
+        const double dx=bx-ax,dy=by-ay,length=std::hypot(dx,dy);
+        const double height=(dx*(coordinate(arguments,"v3Mm")-ay)-dy*(coordinate(arguments,"u3Mm")-ax))/length;
+        if(std::abs(height)<minimumLength || std::abs(height)>maximumLength)reject("Three-point rectangle second distance must be within 0.001..100000 mm");
+        auto point=[&](double u,double v){if(std::abs(u)>maximumLength || std::abs(v)>maximumLength)reject("Three-point rectangle corner outside supported range");const auto id=newId();points.append(QJsonObject{{"id",id},{"uMm",u},{"vMm",v}});return id;};
+        const double ox=-dy*height/length,oy=dx*height/length;
+        const auto c=point(bx+ox,by+oy),d=point(ax+ox,ay+oy);
+        auto edge=[&](const QJsonValue& start,const QJsonValue& end){const auto id=newId();entities.append(QJsonObject{{"id",id},{"type","line"},{"startPointId",start},{"endPointId",end}});return id;};
+        const auto right=edge(b["id"],c),top=edge(c,d),left=edge(d,a["id"]);
+        auto relation=[&](const QString& type,const QJsonValue& e1,const QJsonValue& e2){constraints.append(QJsonObject{{"id",newId()},{"type",type},{"entityIds",QJsonArray{e1,e2}}});};
+        relation("parallel",base["id"],top);relation("parallel",right,left);relation("perpendicular",base["id"],right);
+        for(const auto& item:{std::pair{QString("firstDistanceMm"),base["id"]},std::pair{QString("secondDistanceMm"),QJsonValue(right)}})if(arguments.contains(item.first)){
+            const double value=coordinate(arguments,item.first),expected=item.first=="firstDistanceMm" ? length : std::abs(height);
+            if(value<minimumLength || std::abs(value-expected)>1e-6)reject("Locked rectangle distance conflicts with its placement");
+            QJsonObject selected;for(const auto& row:entities)if(row.toObject()["id"]==item.second)selected=row.toObject();
+            dimensions.append(QJsonObject{{"id",newId()},{"kind","linear"},{"pointIds",QJsonArray{selected["startPointId"],selected["endPointId"]}},{"driving",true},{"valueMm",value}});
+        }
+        parameters["points"]=points;parameters["entities"]=entities;parameters["constraints"]=constraints;parameters["dimensions"]=dimensions;
+        auto candidate=first.feature;candidate["parameters"]=parameters;const auto result=solveDraft(candidate,projectionContext);
+        return result.ok ? result : SolveResult{false,draft,result.diagnostics,result.error};
+    }catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
+}
+
 SketchGeometry::SolveResult SketchGeometry::addCenterRectangle(const QJsonObject& draft, const QJsonObject& arguments,
     const QJsonObject& projectionContext) {
     try {

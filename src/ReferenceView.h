@@ -160,6 +160,7 @@ public:
     void showSketchCurveCursor(const QJsonObject& feature);
     void showSketchSlotCursor(const QJsonObject& feature,bool arcSlot);
     void showSketchEllipseCursor(const QJsonObject& feature);
+    void showSketchEdgesCursor(const QJsonObject& feature,const QJsonArray& ids);
     void showSketchPolygonCursor(const QJsonObject& feature);
     void cancelSlotPointDrag();
     void showSlotDragPreview(const EvaluatedSketch& evaluated,const QJsonObject& draft,const QJsonObject& selection,const QJsonObject& diagnostics,const QString& units);

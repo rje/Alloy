@@ -533,12 +533,12 @@
     },
     {
       "id": "sketch.rectangle",
-      "label": "2-Point Rectangle and Center Rectangle",
+      "label": "2-Point, Center and 3-Point Rectangle",
       "category": "Sketch",
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Two rectangle modes exist. The documented 3-point mode is active SKT-094 work; a separate Parallelogram command is unsubstantiated and tracked under SKT-106.",
+      "gap": "Three documented Rectangle modes have bounded native, retained and downstream solid evidence. Exact modern visual/input parity, physical hand use and other-platform runtime remain unqualified; a separate Parallelogram command is unsubstantiated under SKT-106.",
       "apiIds": [
         "sketch.centerRectangle",
         "sketch.centerRectangleAccept",
@@ -547,6 +547,9 @@
         "sketch.placePoint",
         "sketch.rectangle",
         "sketch.tool",
+        "sketch.threePointRectangle",
+        "sketch.threePointRectangleDistanceLock",
+        "sketch.threePointRectangleDistancePreview",
         "sketch.twoPointRectangle",
         "sketch.twoPointRectangleAccept",
         "sketch.twoPointRectangleCancel",
@@ -562,13 +565,16 @@
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
-        "src/AlloyWindow.cpp"
+        "src/AlloyWindow.cpp",
+        "src/SketchGeometry.cpp",
+        "src/ThreePointRectangleControls.cpp"
       ],
       "receipts": [
         "docs/validation/two-point-rectangle.md",
         "docs/validation/center-rectangle-independent.md",
         "docs/validation/rounded-driving-intent.md",
-        "docs/validation/rough-center-rectangle.md"
+        "docs/validation/rough-center-rectangle.md",
+        "docs/validation/sketch-three-point-rectangle.md"
       ],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },
@@ -3058,10 +3064,10 @@
       "label": "3-Point Rectangle and researched additional variants",
       "category": "Sketch",
       "scope": "proposed-v1",
-      "implementation": "missing",
-      "nativeEvidence": "unknown",
-      "gap": "Documented 3-point Rectangle has no authoring route yet. A separate Parallelogram command is not established by current public evidence; SKT-106 owns its disposition.",
-      "apiIds": [],
+      "implementation": "partial",
+      "nativeEvidence": "partial",
+      "gap": "Three-Point Rectangle has an accepted creation-to-STL route. Additional variants remain on the parent roadmap; a separate Parallelogram command is not established by current public evidence and SKT-106 owns its disposition.",
+      "apiIds": ["sketch.threePointRectangle", "sketch.threePointRectangleDistanceLock", "sketch.threePointRectangleDistancePreview"],
       "issueKeys": [
         "SKT-021",
         "ADV-005",
@@ -3069,9 +3075,11 @@
         "SKT-106"
       ],
       "sourceFiles": [
-        "docs/backlog/issues.json"
+        "docs/backlog/issues.json",
+        "src/SketchGeometry.cpp",
+        "src/ThreePointRectangleControls.cpp"
       ],
-      "receipts": [],
+      "receipts": ["docs/validation/sketch-three-point-rectangle.md"],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },
     {

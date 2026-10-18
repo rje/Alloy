@@ -2401,7 +2401,11 @@ void ReferenceView::showSketchSlotCursor(const QJsonObject& feature,bool arcSlot
 void ReferenceView::showSketchPolygonCursor(const QJsonObject& feature) {
     clearSketchCursor();if(context_.IsNull())return;
     const auto parameters=feature["parameters"].toObject();const auto groups=parameters["polygonGroups"].toArray();if(groups.isEmpty())return;
-    const auto ids=groups.last().toObject()["entityIds"].toArray();
+    showSketchEdgesCursor(feature,groups.last().toObject()["entityIds"].toArray());
+}
+void ReferenceView::showSketchEdgesCursor(const QJsonObject& feature,const QJsonArray& ids) {
+    clearSketchCursor();if(context_.IsNull())return;
+    const auto parameters=feature["parameters"].toObject();
     TopoDS_Compound compound;BRep_Builder builder;builder.MakeCompound(compound);
     for(const auto& entry:parameters["entities"].toArray()){
         const auto entity=entry.toObject();if(ids.contains(entity["id"]))builder.Add(compound,SketchGeometry::analyticEdge(parameters,entity,sketchFrame_));

@@ -523,6 +523,14 @@ private:
     QJsonObject splineCommand(const QString& operation,const QJsonObject& inputs = {});
     QJsonObject splinePointer(const QJsonObject& inputs,bool place);
     QJsonObject appendSketchEntity(const QString& tool, const QJsonObject& inputs);
+    QJsonObject appendThreePointRectangle(const QJsonObject& inputs);
+    QJsonObject threePointRectangleGesture(const QJsonObject& point,bool commit);
+    QJsonObject threePointRectangleDistance(const QJsonObject& inputs,bool lock);
+    void clearThreePointRectangleInput();
+    QWidget* threePointRectangleEditor_ = nullptr;
+    QLineEdit* threePointRectangleDistance_ = nullptr;
+    QLabel* threePointRectangleLabel_ = nullptr;
+    QLabel* threePointRectangleError_ = nullptr;
     QJsonObject appendCenterRectangle(const QJsonObject& inputs);
     QJsonObject appendCenterPointSlot(const QJsonObject& inputs);
     QJsonObject appendCenterToCenterSlot(const QJsonObject& inputs);

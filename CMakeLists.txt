@@ -48,6 +48,7 @@ target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_
 
 add_library(alloy_application STATIC
     src/AlloyTheme.cpp src/AlloyTheme.h
+    src/ThreePointRectangleControls.cpp
     src/AlloyWindow.cpp src/AlloyWindow.h src/SplitBodyControls.cpp src/AssemblyControls.cpp src/PointControls.cpp src/SplineControls.cpp src/SlotDragControls.cpp src/ConicControls.cpp src/SketchTextControls.cpp src/CommandIcons.cpp src/CommandIcons.h src/SolidFilletControls.cpp src/SolidChamferControls.cpp src/SphereControls.cpp src/SolidHoleControls.cpp src/SolidThreadControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/SurfaceExtrudeControls.cpp src/SketchEvaluation.cpp src/BoundaryFillControls.cpp src/SurfaceTrimControls.cpp src/RemoveBodyControls.cpp src/ThickenControls.cpp src/RevolveCommands.cpp src/SweepCommands.cpp src/SweepSelection.cpp src/PatternControls.cpp src/CircularPatternControls.cpp src/SolidMirrorControls.cpp src/SolidFeatureMirrorControls.cpp src/CanvasControls.cpp src/ReferenceCanvasView.cpp src/SectionAnalysisControls.cpp src/ReferenceSection.cpp src/MoveControls.cpp src/ComponentCopyControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
     src/TutorialRecorder.cpp src/TutorialRecorder.h
     src/CadDocument.cpp src/CadDocument.h src/LocalReferenceControls.cpp src/LocalReference.h
@@ -210,6 +211,14 @@ if(BUILD_TESTING)
     target_link_libraries(circle_tab_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME circle_tab_controls COMMAND circle_tab_controls_test)
     set_tests_properties(circle_tab_controls PROPERTIES TIMEOUT 30 LABELS "widget;gpu" RUN_SERIAL TRUE)
+    add_executable(three_point_rectangle_test tests/three_point_rectangle.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_include_directories(three_point_rectangle_test PRIVATE src)
+    target_link_libraries(three_point_rectangle_test PRIVATE Qt6::Gui alloy_kernel)
+    add_test(NAME three_point_rectangle COMMAND three_point_rectangle_test)
+    add_executable(three_point_rectangle_controls_test tests/three_point_rectangle_controls.cpp)
+    target_link_libraries(three_point_rectangle_controls_test PRIVATE alloy_application Qt6::Test)
+    add_test(NAME three_point_rectangle_controls COMMAND three_point_rectangle_controls_test)
+    set_tests_properties(three_point_rectangle_controls PROPERTIES TIMEOUT 90 LABELS "widget;gpu" RUN_SERIAL TRUE)
     add_executable(two_point_rectangle_controls_test tests/two_point_rectangle_controls.cpp)
     target_link_libraries(two_point_rectangle_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME two_point_rectangle_controls COMMAND two_point_rectangle_controls_test)

@@ -557,6 +557,7 @@ AlloyWindow::AlloyWindow() {
     auto* rectangle=create->addMenu("Rectangle");rectangle->setObjectName("sketch.commands.rectangle");
     toolAction(rectangle,"2-Point Rectangle\tR","rectangle");
     toolAction(rectangle,"Center Rectangle","centerRectangle");
+    toolAction(rectangle,"3-Point Rectangle","threePointRectangle");
     auto* circle=create->addMenu("Circle");circle->setObjectName("sketch.commands.circle");
     toolAction(circle,"Center Diameter Circle\tC","circle");
     auto* textAction=create->addAction("Sketch Text");textAction->setObjectName("sketch.action.text");
@@ -1287,6 +1288,8 @@ QImage AlloyWindow::captureImage(QImage* viewport) {
         composition.drawPixmap(dimensionEditor_->mapTo(this,QPoint()),dimensionEditor_->grab());
     if(conicEditor_&&conicEditor_->isVisible())
         composition.drawPixmap(conicEditor_->mapTo(this,QPoint()),conicEditor_->grab());
+    if(threePointRectangleEditor_&&threePointRectangleEditor_->isVisible())
+        composition.drawPixmap(threePointRectangleEditor_->mapTo(this,QPoint()),threePointRectangleEditor_->grab());
     if(lineLockCue_&&lineLockCue_->isVisible())
         composition.drawPixmap(lineLockCue_->mapTo(this,QPoint()),lineLockCue_->grab());
     // Qt-owned popups use separate top-level surfaces. Compose those visible
@@ -1477,6 +1480,16 @@ bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
     if(watched==view_ && event->type()==QEvent::KeyPress && session_.value("command")=="solid.sphere") {
         const auto* key=static_cast<QKeyEvent*>(event);if(key->key()==Qt::Key_Escape){execute("command.cancel",{{"session",session_["id"]}});return true;}
         if(session_["inputs"].toObject().contains("uMm") && key->text().size()==1 && ((key->text()[0]>='0' && key->text()[0]<='9') || key->text()=="."))if(auto* field=sphereDock_->findChild<QDoubleSpinBox*>("sphereDiameter")){field->setFocus();field->selectAll();QApplication::sendEvent(field,event);return true;}
+    }
+    if(watched==threePointRectangleDistance_ && event->type()==QEvent::KeyPress && session_.value("tool")=="threePointRectangle") {
+        const auto* key=static_cast<QKeyEvent*>(event);
+        if(key->key()==Qt::Key_Tab || key->key()==Qt::Key_Return || key->key()==Qt::Key_Enter){sketchResponse(execute("sketch.threePointRectangleDistanceLock",{{"text",threePointRectangleDistance_->text()}}));return true;}
+    }
+    if(watched==view_ && event->type()==QEvent::KeyPress && session_.value("command")=="sketch.edit" && session_.value("tool")=="threePointRectangle" && session_.contains("firstPoint")) {
+        const auto* key=static_cast<QKeyEvent*>(event);const auto character=key->text();
+        if(!(key->modifiers()&(Qt::ControlModifier|Qt::MetaModifier|Qt::AltModifier)) && character.size()==1 && (character[0].isDigit() || character==".")){
+            sketchResponse(execute("sketch.threePointRectangleDistancePreview",{{"text",character}}));return true;
+        }
     }
     if(watched==view_ && event->type()==QEvent::KeyPress && session_.value("command")=="sketch.edit"
         && (session_.value("tool")=="circle" || session_.value("tool")=="twoPointCircle" || session_.value("tool")=="centerRectangle" || session_.value("tool")=="line" || session_.value("tool")=="rectangle") && session_.contains("firstPoint")
@@ -3239,6 +3252,14 @@ void AlloyWindow::registerCommands() {
     add("sketch.addPoint","Point","Create one standalone sketch point; it has no curve or profile boundary.",
         {{"x",coordinate},{"y",coordinate},{"units",optional(units)},{"session",optional(parameter("string","Active sketch session UUID."))}},
         [this](const auto& a){return appendStandalonePoint(a);});
+    add("sketch.threePointRectangle","3-Point Rectangle","Create a retained rectangle: first corner, first-side endpoint, then perpendicular side.",
+        {{"x1",coordinate},{"y1",coordinate},{"x2",coordinate},{"y2",coordinate},{"x3",coordinate},{"y3",coordinate},
+         {"firstDistance",optional(sizeCoordinate)},{"secondDistance",optional(sizeCoordinate)},{"units",optional(units)},
+         {"startSnapTarget",optional(parameter("object","First corner origin, retained point or line midpoint."))},{"session",optional(parameter("string","Active sketch session UUID."))}},
+        [this](const auto& a){return appendThreePointRectangle(a);});
+    for(const bool lock:{false,true})add(lock ? "sketch.threePointRectangleDistanceLock" : "sketch.threePointRectangleDistancePreview",
+        lock ? "Lock rectangle distance" : "Preview rectangle distance","Set the current first or second distance; Tab locks before the placement click.",
+        {{"text",parameter("string","Positive distance in current sketch units.")}},[this,lock](const auto& a){return threePointRectangleDistance(a,lock);});
     add("sketch.centerRectangle","Center Rectangle","Create a centered rectangle with construction diagonals, retained center and driving width and height.",
         {{"centerX",coordinate},{"centerY",coordinate},{"width",sizeCoordinate},{"height",sizeCoordinate},{"units",optional(units)},
          {"centerSnapTarget",optional(parameter("object","Origin, authored point or line midpoint center target."))},{"session",optional(parameter("string","Optional active sketch session identity."))}},
@@ -3822,7 +3843,7 @@ void AlloyWindow::registerCommands() {
         const auto draft=session_["draftSketch"].toObject();view_->showSketchDraft(evaluateSketchDraft(draft));displayedSketchDraft_=draft;
         refreshSketchControls();view_->setFocus(Qt::OtherFocusReason);return QJsonObject{{"pending",false},{"authoredChange",false}};
     });
-    auto sketchTool=parameter("string","Drawing tool in the active sketch context.");sketchTool["enum"]=QJsonArray{"select","point","line","rectangle","centerRectangle","overallSlot","centerPointSlot","centerToCenterSlot","centerPointArcSlot","centerPointEllipse","inscribedPolygon","circumscribedPolygon","edgePolygon","circle","twoPointCircle","centerArc","threePointArc","dimension","fillet","trim","extend","offset","mirror","fitSpline","controlSpline","insertFitPoint","conic"};
+    auto sketchTool=parameter("string","Drawing tool in the active sketch context.");sketchTool["enum"]=QJsonArray{"select","point","line","rectangle","centerRectangle","threePointRectangle","overallSlot","centerPointSlot","centerToCenterSlot","centerPointArcSlot","centerPointEllipse","inscribedPolygon","circumscribedPolygon","edgePolygon","circle","twoPointCircle","centerArc","threePointArc","dimension","fillet","trim","extend","offset","mirror","fitSpline","controlSpline","insertFitPoint","conic"};
     add("sketch.tool","Sketch drawing tool","Choose a tool and clear its pending first point.",{{"tool",sketchTool}},[this](const auto& a){
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         if(session_.contains("pendingProject"))execute("sketch.projectCancel");
@@ -3842,6 +3863,7 @@ void AlloyWindow::registerCommands() {
         cancelLineLength();
         cancelCenterRectangle();
         cancelTwoPointRectangle();
+        clearThreePointRectangleInput();
         hideSlotEditor();
         session_.remove("polygonEditId");session_.remove("polygonInput");session_.remove("polygonInputError");session_.remove("polygonTypedInput");
         if(leavingMirror){
@@ -4278,6 +4300,7 @@ void AlloyWindow::registerCommands() {
             const auto response=execute("sketch.selectionPick",args);return response["ok"].toBool() ? response["result"].toObject() : response;
         }
         const auto plane=session_.value("inputs").toObject()["plane"].toString();
+        if(tool=="threePointRectangle")return threePointRectangleGesture(view_->sketchPoint(a["x"].toDouble(),a["y"].toDouble(),plane),true);
         if(tool.endsWith("Polygon"))return polygonGesture(view_->sketchPoint(a["x"].toDouble(),a["y"].toDouble(),plane),true);
         const bool circleCenter=tool=="circle" && !session_.contains("firstPoint");
         const bool circleCircumference=tool=="circle" && session_.contains("firstPoint");
@@ -4592,6 +4615,7 @@ void AlloyWindow::registerCommands() {
             view_->showSketchSnap(plane,corner);
             return QJsonObject{{"snap",corner},{"authoredChange",false}};
         }
+        if(tool=="threePointRectangle")return threePointRectangleGesture(view_->sketchPoint(a["x"].toDouble(),a["y"].toDouble(),plane),false);
         if(tool.endsWith("Polygon"))return polygonGesture(view_->sketchPoint(a["x"].toDouble(),a["y"].toDouble(),plane),false);
         const bool circleCenter=tool=="circle" && !session_.contains("firstPoint");
         const bool circleCircumference=tool=="circle" && session_.contains("firstPoint");
@@ -7372,6 +7396,8 @@ void AlloyWindow::refresh() {
             fillet.contains("firstSideId") ? "Click the adjacent second side" :
             fillet["corners"].toArray().size()==1 ? "Enter radius and press Enter, or click another corner" : "Click the first side or corner";
         else if(tool=="centerArc")prompt=session_.contains("secondPoint") ? "Click the end · Sweep direction follows pointer" : session_.contains("firstPoint") ? "Click the start · Specify radius" : "Click the arc center";
+        else if(tool=="threePointRectangle")prompt=session_.contains("secondPoint") ? "Click the perpendicular side · Type second distance, then Tab · Escape exits" :
+            session_.contains("firstPoint") ? "Click the first-side endpoint · Type first distance, then Tab · Escape exits" : "Click the first corner · Escape exits";
         else if(tool=="threePointArc")prompt=session_.contains("secondPoint") ? "Click a point on the arc" : session_.contains("firstPoint") ? "Click the arc end" : "Click the arc start";
         else if(session_.contains("firstPoint"))prompt="Click the next point · Escape stops drawing";
         const auto mirrorPreview=session_.value("pendingSketchMirror").toObject();
@@ -7459,7 +7485,7 @@ void AlloyWindow::refresh() {
     else if(view_->freeOrbitTool())activeTool=view_->orbitMode()=="constrained" ? "Constrained Orbit" : "Free Orbit";
     else if(editingSketch) {
         const auto tool=session_.value("tool").toString();
-        activeTool=tool.isEmpty() ? "Sketch" : tool.left(1).toUpper()+tool.mid(1);
+        activeTool=tool=="threePointRectangle" ? "3-Point Rectangle" : tool.isEmpty() ? "Sketch" : tool.left(1).toUpper()+tool.mid(1);
     } else if(!session_.isEmpty()) {
         if(const auto* command=findCommand(session_.value("command").toString()))activeTool=command->title;
     }
@@ -8697,6 +8723,7 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
         result["evaluationStillRunning"]=bool(geometryEvaluationRunning_);
         result["resultDiscarded"]=!commit;invalidateGeometryEvaluation();
     }
+    clearThreePointRectangleInput();
     session_ = {};
     if(target=="sketch.edit"){sketchHistory_.clear();sketchHistoryIndex_=-1;sketchHistoryGroup_.clear();}
     if(dimensionEditor_)dimensionEditor_->hide();

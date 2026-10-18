@@ -41,6 +41,10 @@ public:
     // Exact OCCT edge from validated analytic intent, shared by display/profiles.
     static TopoDS_Edge analyticEdge(const QJsonObject& parameters, const QJsonObject& entity, const QJsonObject& resolvedFrame = {});
     static QJsonObject addRectangle(const QJsonObject& draft, const QJsonObject& arguments);
+    // First corner, first-side endpoint, then perpendicular height; ordinary
+    // parallel/perpendicular line relations and optional locked distances.
+    static SolveResult addThreePointRectangle(const QJsonObject& draft, const QJsonObject& arguments,
+        const QJsonObject& projectionContext = {});
     // Center/corner rectangle: four profile edges, two construction diagonals,
     // a retained center point, and driving width/height dimensions.
     static SolveResult addCenterRectangle(const QJsonObject& draft, const QJsonObject& arguments,

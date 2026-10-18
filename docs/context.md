@@ -25,7 +25,11 @@ second placement driver and size/orientation conflict contract. REL-049/#529 rec
 functionality and packaging gates first, then audit intrinsic cost across
 supported commands, including simple corrected-iron Cuts, and create/complete
 measured optimization children. Off-thread execution alone is insufficient.
-SKT-094/#499 is active for the documented Three-Point Rectangle workflow.
+SKT-094/#499 now accepts the documented Three-Point Rectangle workflow:
+three native points, typed Tab-lock lengths, retained Parallel/Perpendicular
+relations, a source-driven corner, downstream extrusion and independently read
+STL, with real-app Undo/Redo/reopen and GPU captures. See
+[the receipt](validation/sketch-three-point-rectangle.md).
 The external dated source review did not establish a separate Parallelogram
 command, so SKT-106/#530 retains that research/disposition question rather
 than treating a proposed Alloy extension as compatibility. The backlog now

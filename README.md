@@ -14,6 +14,9 @@ are editable for all three modes. [First-point placement relations](docs/validat
 now follow an upstream sketch point or midpoint. [Second-point relations](docs/validation/sketch-polygon-second-driver.md)
 also drive Polygon size and rotation through source edits, with conflicting
 typed values refused.
+[Three-Point Rectangle](docs/validation/sketch-three-point-rectangle.md) now
+creates an oblique editable profile through three canvas picks, with optional
+typed lengths, source following and a verified extrusion/STL path.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,
