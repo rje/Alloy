@@ -77,6 +77,78 @@ private slots:
   const auto edit=call(w,"feature.editDialog",{{"featureId",feature.value("id")}});QVERIFY(edit.value("previewed").toBool());call(w,"command.cancel",{{"session",edit.value("id")}});
   const auto saved=temp.filePath("saved.alloy");call(w,"document.save",{{"path",saved}});call(w,"document.open",{{"path",saved},{"discard",true}});QCOMPARE(call(w,"document.inspect").value("evaluation").toObject().value("bodies"),after.value("evaluation").toObject().value("bodies"));
  }
+ void numericPickSnapshotMatchesKernelCamera(){
+  for(const auto type:{Graphic3d_Camera::Projection_Orthographic,Graphic3d_Camera::Projection_Perspective}){
+   Handle(Graphic3d_Camera) camera=new Graphic3d_Camera;
+   camera->SetEyeAndCenter({170,-240,190},{20,30,10});camera->SetUp(gp_Dir(0,0,1));
+   camera->SetProjectionType(type);camera->SetAspect(1.6);camera->SetScale(120);camera->SetZRange(1,1000);
+   ViewPickSnapshot pick;pick.orientation=camera->OrientationMatrix();pick.projection=camera->ProjectionMatrix();
+   QVERIFY(pick.orientation.Inverted(pick.inverseOrientation));QVERIFY(pick.projection.Inverted(pick.inverseProjection));
+   pick.physicalWidth=1600;pick.physicalHeight=1000;pick.logicalHeight=500;pick.deviceScale={2,2};
+   for(const auto world:{gp_Pnt(21,17,23),gp_Pnt(-50,60,-40),gp_Pnt(100,-80,75),gp_Pnt(2e15,30,10)}){
+    const auto projected=camera->Project(world);const QPointF expected(RealToInt((projected.X()+1)*.5*1600)/2.0,RealToInt(999-(projected.Y()+1)*.5*1000)/2.0);
+    QCOMPARE(pick.project(world),expected);
+   }
+   for(const auto pixel:{QPointF(100.25,70.75),QPointF(610.5,380.25),QPointF(400,250)}){
+    const auto nx=2.0*qRound(pixel.x()*2)/1600-1,ny=2.0*(999-qRound(pixel.y()*2))/1000-1;
+    const auto origin=camera->UnProject({nx,ny,-1}),behind=camera->UnProject({nx,ny,-11});
+    const auto ray=pick.ray(pixel.x(),pixel.y());QCOMPARE(ray.Location().Distance(origin),0.0);
+    const gp_Dir direction(gp_Vec(behind,origin));QCOMPARE(ray.Direction().X(),direction.X());QCOMPARE(ray.Direction().Y(),direction.Y());QCOMPARE(ray.Direction().Z(),direction.Z());
+   }
+  }
+ }
+ void frozenTargetClickContracts(){
+  QTemporaryDir temp;CadDocument fixture;
+  auto sheet=[&](const QString& plane,double reach){
+   auto sketch=SketchGeometry::newFeature(fixture.authored().value("documentId").toString(),plane,"Source");
+   sketch=SketchGeometry::addLine(sketch,{{"u1Mm",-20},{"v1Mm",0},{"u2Mm",20},{"v2Mm",0}});
+   auto authored=fixture.authored();auto features=authored.value("features").toArray();features.append(sketch);authored["features"]=features;
+   if(!fixture.commit(authored,"Sketch").isEmpty())qFatal("Sketch fixture failed");
+   const auto entity=sketch.value("parameters").toObject().value("entities").toArray()[0].toObject().value("id");
+   if(!fixture.commit(CadDocument::surfaceExtrudeCandidate(fixture.authored(),{{"sketchId",sketch.value("id")},{"entityIds",QJsonArray{entity}},{"sideOneMm",reach},{"sideTwoMm",reach}}),"Sheet").isEmpty())qFatal("Sheet fixture failed");
+   return fixture.bodies().back().bodyId;
+  };
+  const auto target=sheet("XY",10),tool=sheet("XZ",25),path=temp.filePath("source.alloy");QVERIFY(fixture.save(path).isEmpty());
+  AlloyWindow w;w.resize(1200,850);w.show();QVERIFY(QTest::qWaitForWindowExposed(&w));
+  ReferenceView* view=nullptr;for(auto* child:w.findChildren<QWidget*>())if(auto* v=dynamic_cast<ReferenceView*>(child))view=v;QVERIFY(view);
+  call(w,"document.open",{{"path",path},{"discard",true}});const auto before=call(w,"document.inspect");
+  auto begin=[&]{call(w,"selection.set",{{"bodyId",""}});call(w,"view.home");return call(w,"surface.trimDialog",{{"toolBodyId",tool}});};
+  auto pick=[&](const gp_Pnt& world){const auto pixel=view->projectWorldPoint({world.X(),world.Y(),world.Z()});return w.execute("selection.pick",{{"x",pixel.x()},{"y",pixel.y()}});};
+  auto await=[&](const QJsonObject& pending){const auto op=pending.value("result").toObject();QJsonObject result;
+   QElapsedTimer limit;limit.start();do{QTest::qWait(25);result=w.execute("command.status",{{"session",op.value("id")},{"generation",op.value("previewGeneration")}});if(limit.elapsed()>10000)qFatal("Click timed out");}while(result.value("completion")=="pending");return result;
+  };
+  auto selectedDescriptor=[&]{const auto active=session(w);const auto selected=active.value("inputs").toObject().value("removedRegionIds").toArray();
+   if(selected.size()!=1)qFatal("Target click did not select one region");QJsonObject row;
+   for(const auto& r:active.value("regions").toArray())if(r.toObject().value("regionId")==selected[0])row=r.toObject();row.remove("regionId");return row;
+  };
+  begin();auto pending=pick({0,0,5});QCOMPARE(pending.value("completion").toString(),QString("pending"));QVERIFY(await(pending).value("ok").toBool());
+  const auto expected=selectedDescriptor();QVERIFY(session(w).value("previewed").toBool());call(w,"command.cancel",{{"session",session(w).value("id")}});
+  begin();const auto pixel=view->projectWorldPoint({0,0,5});const auto snapshot=view->capturePick(pixel.x(),pixel.y());QVERIFY(snapshot);
+  QCOMPARE(snapshot->project({0,0,5}),pixel);const auto hit=ReferenceView::pickSupportFace(*snapshot,fixture.bodies());QCOMPARE(hit.value("bodyId").toString(),target);
+  const auto boundaryPixel=view->projectWorldPoint({0,0,10});const auto boundary=view->capturePick(boundaryPixel.x(),boundaryPixel.y());
+  const std::vector<EvaluatedBody> onlyTarget{fixture.bodies()[0]};QVERIFY(ReferenceView::pickSolidEdge(*boundary,onlyTarget).value("distancePx").toDouble(99)<2);
+  pending=w.execute("selection.pick",{{"x",pixel.x()},{"y",pixel.y()}});QCOMPARE(pending.value("completion").toString(),QString("pending"));
+  call(w,"view.pan",{{"x",80},{"y",45}});call(w,"view.orbit",{{"deltaX",35},{"deltaY",15}});w.resize(1320,920);
+  QCOMPARE(snapshot->project({0,0,5}),pixel);QCOMPARE(ReferenceView::pickSupportFace(*snapshot,fixture.bodies()),hit);
+  QVERIFY(ReferenceView::pickSolidEdge(*boundary,onlyTarget).value("distancePx").toDouble(99)<2);
+  QVERIFY(await(pending).value("ok").toBool());QCOMPARE(selectedDescriptor(),expected);QVERIFY(session(w).value("previewed").toBool());
+  call(w,"command.cancel",{{"session",session(w).value("id")}});QCOMPARE(call(w,"document.inspect"),before);
+  begin();pending=pick({0,0,5});QCOMPARE(pending.value("completion").toString(),QString("pending"));
+  call(w,"command.cancel",{{"session",session(w).value("id")}});QTRY_VERIFY_WITH_TIMEOUT(!w.state().value("geometryWork").toObject().value("active").toBool(),10000);
+  QCOMPARE(w.execute("command.status",{{"session",pending.value("result").toObject().value("id")}}).value("error").toObject().value("code").toString(),QString("command_cancelled"));QCOMPARE(call(w,"document.inspect"),before);
+  begin();pending=pick({0,0,5});QCOMPARE(pending.value("completion").toString(),QString("pending"));
+  QPushButton* change=nullptr;for(auto* b:w.findChild<QDockWidget*>("surfaceTrimDock")->findChildren<QPushButton*>())if(b->text()=="Change Tools")change=b;
+  QVERIFY(change && !change->isEnabled());QVERIFY(QMetaObject::invokeMethod(change,"clicked",Qt::DirectConnection,Q_ARG(bool,false)));
+  QCOMPARE(await(pending).value("error").toObject().value("code").toString(),QString("stale_session"));QVERIFY(!session(w).value("previewed").toBool());
+  call(w,"command.cancel",{{"session",session(w).value("id")}});QCOMPARE(call(w,"document.inspect"),before);
+  begin();pending=pick({5,0,.05});QCOMPARE(pending.value("completion").toString(),QString("pending"));
+  QCOMPARE(await(pending).value("error").toObject().value("code").toString(),QString("ambiguous_trim_region"));QVERIFY(!session(w).value("previewed").toBool());
+  call(w,"command.cancel",{{"session",session(w).value("id")}});QCOMPARE(call(w,"document.inspect"),before);
+  call(w,"surface.trimDialog",{{"targetBodyId",target}});pending=w.execute("surface.trimBody",{{"bodyId",tool}});
+  QCOMPARE(pending.value("completion").toString(),QString("pending"));QVERIFY(await(pending).value("ok").toBool());
+  QCOMPARE(session(w).value("regions").toArray().size(),2);QVERIFY(session(w).value("inputs").toObject().value("removedRegionIds").toArray().isEmpty());
+  QVERIFY(!session(w).value("previewed").toBool());call(w,"command.cancel",{{"session",session(w).value("id")}});
+ }
  void actualCurvedToolFirstTargetPreviewCancel(){
   const auto source=qEnvironmentVariable("ALLOY_CURVED_TRIM_SOURCE"),out=qEnvironmentVariable("ALLOY_SURFACE_TRIM_EVIDENCE");
   const auto selection=qEnvironmentVariable("ALLOY_CURVED_TRIM_SELECTION");if(source.isEmpty())QSKIP("No actual four-body curved Trim source supplied");

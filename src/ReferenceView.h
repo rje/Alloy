@@ -1,11 +1,13 @@
 #pragma once
 #include <QWidget>
+#include <gp_Lin.hxx>
 #include <QImage>
 #include <QRectF>
 #include <QJsonObject>
 #include <QJsonArray>
 #include <functional>
 #include <optional>
+#include <memory>
 #include <AIS_InteractiveContext.hxx>
 #include <AIS_Trihedron.hxx>
 #include <AIS_ViewCube.hxx>
@@ -23,6 +25,16 @@ class QKeyEvent;
 class QRubberBand;
 class QToolButton;
 class QLabel;
+
+// Value-only pick geometry captured on the GUI thread. No view/camera handle.
+struct ViewPickSnapshot {
+    Graphic3d_Mat4d orientation, projection, inverseOrientation, inverseProjection;
+    QPointF deviceScale, pixel;
+    int physicalWidth=0, physicalHeight=0, logicalHeight=0;
+    double cameraScale=0;
+    gp_Lin ray(double x,double y) const;
+    QPointF project(const gp_Pnt& world) const;
+};
 
 // GPU presentation only. Reference axes/grid are not authored document objects.
 class ReferenceView final : public QWidget {
@@ -103,6 +115,9 @@ public:
     void selectProfiles(const QString& sketchId, const QJsonArray& profileIds);
     QJsonObject pickFinishedProfile(double x, double y) const;
     QJsonObject pickSupportFace(double x, double y, const std::vector<EvaluatedBody>& bodies) const;
+    std::shared_ptr<const ViewPickSnapshot> capturePick(double x,double y) const;
+    static QJsonObject pickSupportFace(const ViewPickSnapshot& pick,const std::vector<EvaluatedBody>& bodies);
+    static QJsonObject pickSolidEdge(const ViewPickSnapshot& pick,const std::vector<EvaluatedBody>& bodies);
     void selectSupportFace(const QJsonObject& support, const TopoDS_Face& face = {}, bool outline = false);
     void setCommandSketches(const QSet<QString>& ids);
     void showSweepProfile(const EvaluatedProfile& profile);

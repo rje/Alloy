@@ -26,8 +26,9 @@ references and history while navigation and status stayed responsive.
 [Surface Trim panel partitions and commits](docs/validation/responsive-surface-trim.md)
 now keep the measured corrected-iron paths responsive, with exact committed
 geometry and history. [Mesh-independent preview](docs/validation/mesh-independent-surface-trim.md)
-now shows the same regions as commit; the interactive target click's remaining
-latency is tracked separately.
+now shows the same regions as commit. The
+[interactive target click](docs/validation/responsive-interactive-trim.md)
+also partitions off-thread while preserving the original region through navigation.
 [Inner handle Loft preview](docs/validation/responsive-inner-loft.md) now
 evaluates off-thread, and OK commits the prepared result without repeating the
 kernel evaluation. Guided and component Loft paths remain separate work.

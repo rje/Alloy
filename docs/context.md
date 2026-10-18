@@ -2,14 +2,26 @@
 
 ## Active user order (2026-10-17)
 
+REL-045/#491 is independently accepted for the corrected-iron interactive
+Surface Trim target click. The original camera/ray/viewport/face intent stays
+fixed while private partitioning runs for 18.829 s; after pan and orbit, the
+same inner region is red and selected. Status/navigation/GUI heartbeat stayed
+responsive, and exact committed geometry/ancestry, one history entry,
+Undo/Redo, save and reopen passed. Final publication took 847.838 ms
+separately. See [the receipt](validation/responsive-interactive-trim.md).
+The actual target pick used the shared API/native handler after one native
+Change Target setup click; physical target-pointer delivery and a full movie
+remain outside this gate.
+
 REL-043/#489 is independently accepted: Surface Trim preview bounds now ignore
 incidental viewport triangulation and match the accepted committed panel
 projection/regions/selected geometry. The live meshed and private fresh app
 previews, Cancel, full committed authored/bodies, one history operation,
 Undo/Redo and native reopen passed. See
 [the receipt](validation/mesh-independent-surface-trim.md). Interactive
-last-tool selection still blocked for 18.412 s and is Todo REL-045/#491;
-the geometry consistency fix does not claim responsiveness for that click.
+last-tool selection had blocked for 18.412 s; REL-045/#491 subsequently moved
+that interactive partition off-thread. The REL-043 geometry fix alone did not
+claim responsiveness for that click.
 
 REL-039/#482 is independently accepted for the corrected-iron Inner handle
 no-guide New Body Loft. Third-boundary preview evaluated for 19.149 s on the
@@ -28,7 +40,8 @@ pan and GUI heartbeat; exact accepted **committed** geometry/source ancestry,
 within-run IDs, one history entry, Undo/Redo and reopen passed. The old live
 preview used viewport-meshed bounds and differed from commit; REL-043/#489
 subsequently fixed that discrepancy. Interactive target-click cache misses
-and direct Trim API responsiveness remain outside this bounded gate. See
+were outside this bounded gate and later addressed by REL-045; direct Trim API
+responsiveness remains separate. See
 [the receipt](validation/responsive-surface-trim.md). Cumulative REL-016
 remains open.
 

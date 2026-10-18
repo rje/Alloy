@@ -103,7 +103,7 @@ QJsonObject AlloyWindow::beginSurfaceTrim(const QJsonObject& overrides){
     showSurfaceTrim();previewSurfaceTrim(true);view_->setFocus(Qt::OtherFocusReason);return session_;
 }
 
-QJsonObject AlloyWindow::previewSurfaceTrim(bool asynchronous){
+QJsonObject AlloyWindow::previewSurfaceTrim(bool asynchronous,std::shared_ptr<const SurfaceTrimClick> click){
     if(session_.value("evaluationStatus")=="pending")return failure("evaluation_busy","Trim evaluation is pending; wait or Cancel");
     session_.remove("evaluationStatus");
     const auto inputs=session_["inputs"].toObject();
@@ -165,7 +165,7 @@ QJsonObject AlloyWindow::previewSurfaceTrim(bool asynchronous){
             const auto candidate=surfaceTrimCandidate(args);const auto fid=partitionKey.value("featureId");
             for(const auto& row:candidate.value("features").toArray())if(row.toObject().value("id")==fid){feature=row.toObject();break;}
         }catch(const std::exception& e){return reject("invalid_arguments",QString::fromUtf8(e.what()));}
-        return queueSurfaceTrimEvaluation("partition",partitionKey,feature);
+        return queueSurfaceTrimEvaluation("partition",partitionKey,feature,std::move(click));
     }
     const auto& stage=surfaceTrimSourceStage();
     QSet<QString> visible;for(const auto& sketch:stage.sketches)if(sketch.visible)visible.insert(sketch.featureId);
@@ -189,8 +189,7 @@ QJsonObject AlloyWindow::previewSurfaceTrim(bool asynchronous){
     try{
         const bool reused=bool(surfaceTrimPartition_);
         if(!reused){
-            // Keep native target binding + region selection in one gesture.
-            // Only dialog-open partitions and final commits use the worker.
+            // Synchronous callers can reuse the same canonical partition policy.
             session_["partitionBuildCount"]=session_.value("partitionBuildCount").toInteger()+1;
             surfaceTrimPartition_=std::make_shared<const SurfaceTrimPreviewPartition>(SurfaceTrimPreviewPartition{
                 partitionKey,SurfaceTrim::split(feature,*target,stage)});
@@ -257,7 +256,8 @@ QJsonObject AlloyWindow::selectSurfaceTrimEntity(const QString& sketchId,const Q
     inputs.remove("toolBodyId");
     inputs["toolSketchId"]=sketchId;inputs["toolEntityIds"]=ids;inputs["removedRegionIds"]=QJsonArray{};
     session_["inputs"]=inputs;session_["selectionRole"]=ids.size()==2?(inputs.value("targetBodyId").toString().isEmpty()?"target":"region"):"tool";
-    previewSurfaceTrim();return QJsonObject{{"toolSketchId",sketchId},{"toolEntityIds",ids},
+    const auto preview=previewSurfaceTrim(true);if(session_.value("evaluationStatus")=="pending")return preview;
+    return QJsonObject{{"toolSketchId",sketchId},{"toolEntityIds",ids},
         {"selectionRole",session_["selectionRole"]},{"previewError",session_.value("previewError")}};
 }
 
@@ -273,10 +273,10 @@ QJsonObject AlloyWindow::selectSurfaceTrimBody(const QString& bodyId){
     if(!found)return failure("trim_tool_unavailable","Select a distinct visible earlier Surface Extrude sheet tool");
     inputs.remove("toolSketchId");inputs["toolEntityIds"]=QJsonArray{};inputs["toolBodyId"]=bodyId;
     inputs["removedRegionIds"]=QJsonArray{};session_["inputs"]=inputs;session_["selectionRole"]=inputs.value("targetBodyId").toString().isEmpty()?"target":"region";
-    previewSurfaceTrim();return session_;
+    previewSurfaceTrim(true);return session_;
 }
 
-QJsonObject AlloyWindow::selectSurfaceTrimTarget(const QString& bodyId){
+QJsonObject AlloyWindow::selectSurfaceTrimTarget(const QString& bodyId,std::shared_ptr<const SurfaceTrimClick> click){
     if(session_["command"]!="surface.trim")return failure("invalid_session","Start Trim first");
     if(session_["baseDocumentRevision"].toInteger()!=static_cast<qint64>(document_->revision()))return previewSurfaceTrim();
     auto inputs=session_.value("inputs").toObject();const auto& stage=surfaceTrimSourceStage();
@@ -287,7 +287,7 @@ QJsonObject AlloyWindow::selectSurfaceTrimTarget(const QString& bodyId){
     if(tool && tool->ownerId!=target->ownerId)return failure("cross_component_dependency","Tool and target must share a modeling owner");
     inputs["targetBodyId"]=bodyId;inputs["removedRegionIds"]=QJsonArray{};session_["inputs"]=inputs;
     session_["selectionRole"]=(tool || inputs.value("toolEntityIds").toArray().size()==2)?"region":"tool";
-    previewSurfaceTrim();return session_;
+    previewSurfaceTrim(true,std::move(click));return session_;
 }
 
 QJsonObject AlloyWindow::selectSurfaceTrimRegion(const QString& id){
@@ -310,9 +310,12 @@ QJsonObject AlloyWindow::pickSurfaceTrim(double x,double y){
             && b.summary.value("type")=="surface" && b.bodyId!=inputs.value("toolBodyId"))candidates.push_back(b);
         const auto hit=view_->pickSupportFace(x,y,candidates);
         if(hit.isEmpty())return failure("trim_target_required","Click the target surface portion");
-        const auto bound=selectSurfaceTrimTarget(hit.value("bodyId").toString());
+        const auto intent=std::make_shared<const SurfaceTrimClick>(SurfaceTrimClick{
+            view_->capturePick(x,y),hit.value("bodyId").toString(),hit.value("faceId").toString()});
+        const auto bound=selectSurfaceTrimTarget(hit.value("bodyId").toString(),intent);
         if(!bound.value("ok").toBool(true))return bound;
-        // Reuse the same real hit against the newly partitioned target.
+        if(session_.value("evaluationStatus")=="pending")return session_;
+        // A cached partition can resolve immediately against the same click.
         if(session_.value("regions").toArray().isEmpty())return session_;
         const auto boundary=view_->pickSolidEdge(x,y,surfaceTrimPickBodies_);
         if(!boundary.isEmpty() && boundary.value("distancePx").toDouble()<2)
@@ -409,7 +412,7 @@ void AlloyWindow::refreshSurfaceTrimPending(){
     else {status_->show();if(statusBar()->currentMessage().startsWith("Evaluating Trim"))statusBar()->clearMessage();}
 }
 
-QJsonObject AlloyWindow::queueSurfaceTrimEvaluation(const QString& phase,const QJsonObject& key,const QJsonObject& feature){
+QJsonObject AlloyWindow::queueSurfaceTrimEvaluation(const QString& phase,const QJsonObject& key,const QJsonObject& feature,std::shared_ptr<const SurfaceTrimClick> click){
     if(session_.value("evaluationStatus")=="pending")return phase=="commit" && session_.value("evaluationPhase")=="commit"
         ? session_ : failure("evaluation_pending","Wait for Trim regions before accepting");
     if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))
@@ -420,7 +423,7 @@ QJsonObject AlloyWindow::queueSurfaceTrimEvaluation(const QString& phase,const Q
     task->document=document_;task->documentId=document_->authored().value("documentId").toString();task->tabId=activeTabId_;
     task->base=document_->authored();task->revision=document_->revision();task->sessionId=session_.value("id").toString();
     task->generation=++geometryEvaluationGeneration_;task->inputs=session_.value("inputs").toObject();task->ownerId=document_->activeOwnerId();
-    task->featureId=task->inputs.value("featureId").toString(session_.value("newFeatureId").toString());task->feature=feature;task->cacheKey=key;
+    task->featureId=task->inputs.value("featureId").toString(session_.value("newFeatureId").toString());task->feature=feature;task->cacheKey=key;task->trimClick=std::move(click);
     if(phase=="commit")try{task->candidate=surfaceTrimCandidate(task->inputs);}catch(const std::exception& e){return failure("invalid_arguments",QString::fromUtf8(e.what()));}
     else if(!feature.isEmpty())session_["partitionBuildCount"]=session_.value("partitionBuildCount").toInteger()+1;
     geometryEvaluationTerminal_={};documentOpenOperation_={};sketchEvaluationOperation_={};geometryEvaluationQueued_=task;
@@ -449,6 +452,23 @@ void AlloyWindow::evaluateSurfaceTrimPartition(GeometryEvaluation& task){
             if(!target)throw GeometryKernel::EvaluationError({{"code","trim_target_required"},{"message","Select one current local surface body"}});
             task.trimPartition=std::make_shared<const SurfaceTrimPreviewPartition>(SurfaceTrimPreviewPartition{
                 task.cacheKey,SurfaceTrim::split(task.feature,*target,source->stage)});
+            if(task.trimClick && task.trimClick->pick){
+                if(task.trimClick->bodyId!=target->bodyId)
+                    throw GeometryKernel::EvaluationError({{"code","stale_session"},{"message","The clicked Trim target changed"}});
+                auto staged=*target;const auto& split=task.trimPartition->split;
+                staged.shape=split.splitShape;staged.supportFaces=split.faces;staged.solidEdges=split.edges;
+                const std::vector<EvaluatedBody> bodies{std::move(staged)};
+                const auto boundary=ReferenceView::pickSolidEdge(*task.trimClick->pick,bodies);
+                if(!boundary.isEmpty() && boundary.value("distancePx").toDouble()<2)
+                    task.trimClickResult=failure("ambiguous_trim_region","Click inside a portion, away from its boundary");
+                else {
+                    const auto hit=ReferenceView::pickSupportFace(*task.trimClick->pick,bodies);
+                    QString regionId;for(const auto& region:split.regions)
+                        if(region.regionId==hit.value("faceId") && region.sourceFaceId==task.trimClick->sourceFaceId)regionId=region.regionId;
+                    task.trimClickResult=regionId.isEmpty()
+                        ? failure("trim_region_required","Pick a removable split portion") : QJsonObject{{"regionId",regionId}};
+                }
+            }
         }
         task.stageMs=timer.elapsed();task.trimSource=std::move(source);
     }catch(const GeometryKernel::EvaluationError& e){task.full.diagnostics=e.diagnostics();task.error=QString::fromUtf8(e.what());}
@@ -471,7 +491,16 @@ void AlloyWindow::completeSurfaceTrimEvaluation(const std::shared_ptr<GeometryEv
     if(task->phase=="partition"){
         if(!task->trimSource){reject("evaluation_failed","Trim source is unavailable");return;}
         surfaceTrimSource_=task->trimSource;surfaceTrimPartition_=task->trimPartition;
-        session_.remove("evaluationStatus");const auto preview=previewSurfaceTrim();
+        session_.remove("evaluationStatus");auto preview=previewSurfaceTrim();
+        if(task->trimClick){
+            const auto error=task->trimClickResult.value("error").toObject();
+            if(!error.isEmpty()){reject(error.value("code").toString(),error.value("message").toString());return;}
+            if(!task->trimClickResult.value("regionId").toString().isEmpty()){
+                session_.remove("evaluationStatus");preview=selectSurfaceTrimRegion(task->trimClickResult.value("regionId").toString());
+                if(!session_.value("previewed").toBool() && !session_.value("previewError").toObject().isEmpty())
+                    preview=QJsonObject{{"ok",false},{"error",session_.value("previewError")}};
+            }
+        }
         session_["evaluationPhase"]="partition";session_["previewGeneration"]=static_cast<qint64>(task->generation);session_["partitionReused"]=false;
         const auto detail=preview.value("error").toObject();const auto code=detail.value("code").toString();
         const bool awaitingSelection=(code=="trim_region_required" && !session_.value("regions").toArray().isEmpty())

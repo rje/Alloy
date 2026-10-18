@@ -43,13 +43,14 @@ REL-043/#489 independently fixes the pre-existing Surface Trim preview/commit
 geometry mismatch caused by viewport-dependent bounds. Live meshed and private
 fresh previews now match the accepted committed projection, regions and selected
 geometry; see [the receipt](../validation/mesh-independent-surface-trim.md).
-REL-045/#491 retains the separately measured 18.412 s synchronous interactive
-last-tool click.
+REL-045/#491 now independently accepts background partitioning for the
+separately measured interactive click while preserving its original region
+through navigation. See [the receipt](../validation/responsive-interactive-trim.md).
 REL-038/#481 now independently accepts the panel and connected-rear
 partition/commit worker paths, exact committed geometry/ancestry and
 history/reopen; see [the receipt](../validation/responsive-surface-trim.md).
-The interactive target click still partitions synchronously under REL-045;
-REL-043 now fixes preview/commit consistency.
+REL-043 fixes preview/commit consistency, and REL-045 fixes the bounded
+interactive target-click partition stall.
 REL-039/#482 is narrowed to the two measured corrected-iron no-guide New Body
 Loft waits. REL-044/#490 retains guided-rail, new-component and ordinary Loft
 responsiveness so the original broader acceptance is not silently reduced.

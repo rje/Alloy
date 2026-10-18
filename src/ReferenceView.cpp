@@ -1197,11 +1197,36 @@ QJsonObject ReferenceView::pickFinishedProfile(double x,double y) const {
     }
     return hit;
 }
-QJsonObject ReferenceView::pickSupportFace(double x,double y,const std::vector<EvaluatedBody>& bodies) const {
+gp_Lin ViewPickSnapshot::ray(double x,double y) const {
+    const double nx=2.0*qRound(x*deviceScale.x())/physicalWidth-1.0;
+    const double ny=2.0*(physicalHeight-1-qRound(y*deviceScale.y()))/physicalHeight-1.0;
+    auto unproject=[&](double z){
+        auto p=inverseProjection*Graphic3d_Vec4d(nx,ny,z,1.0);p=inverseOrientation*p;
+        const auto inverseW=1.0/p.w();return gp_Pnt(p.x()*inverseW,p.y()*inverseW,p.z()*inverseW);
+    };
+    const auto origin=unproject(-1.0);return gp_Lin(origin,gp_Dir(gp_Vec(unproject(-11.0),origin)));
+}
+QPointF ViewPickSnapshot::project(const gp_Pnt& world) const {
+    // Match the kernel camera's finite conversion guard as well as its order.
+    const auto safe=[](double v){const double limit=1e15f;return std::abs(v)>limit?std::copysign(limit*.1f,v):v;};
+    auto p=orientation*Graphic3d_Vec4d(safe(world.X()),safe(world.Y()),safe(world.Z()),1.0);p=projection*p;
+    const auto inverseW=1.0/p.w();
+    return {RealToInt((p.x()*inverseW+1)*.5*physicalWidth)/deviceScale.x(),
+        RealToInt(physicalHeight-1-(p.y()*inverseW+1)*.5*physicalHeight)/deviceScale.y()};
+}
+std::shared_ptr<const ViewPickSnapshot> ReferenceView::capturePick(double x,double y) const {
     if(view_.IsNull() || x<0 || y<0 || x>=width() || y>=height())return {};
-    const auto scale=windowScale();double px,py,pz,dx,dy,dz;
-    view_->ConvertWithProj(qRound(x*scale.x()),qRound(y*scale.y()),px,py,pz,dx,dy,dz);
-    const gp_Lin ray(gp_Pnt(px,py,pz),gp_Dir(dx,dy,dz));
+    auto pick=std::make_shared<ViewPickSnapshot>();pick->pixel={x,y};pick->deviceScale=windowScale();
+    view_->Window()->Size(pick->physicalWidth,pick->physicalHeight);pick->logicalHeight=height();
+    pick->orientation=view_->Camera()->OrientationMatrix();pick->projection=view_->Camera()->ProjectionMatrix();
+    if(!pick->orientation.Inverted(pick->inverseOrientation) || !pick->projection.Inverted(pick->inverseProjection))return {};
+    pick->cameraScale=view_->Camera()->Scale();return pick;
+}
+QJsonObject ReferenceView::pickSupportFace(double x,double y,const std::vector<EvaluatedBody>& bodies) const {
+    const auto pick=capturePick(x,y);return pick ? pickSupportFace(*pick,bodies) : QJsonObject{};
+}
+QJsonObject ReferenceView::pickSupportFace(const ViewPickSnapshot& pick,const std::vector<EvaluatedBody>& bodies) {
+    const auto ray=pick.ray(pick.pixel.x(),pick.pixel.y());
     double nearest=std::numeric_limits<double>::infinity();const EvaluatedBody* hitBody=nullptr;TopoDS_Face hitFace;
     try {
         for(const auto& body:bodies)if(body.visible && !body.shape.IsNull()) {
@@ -2411,22 +2436,23 @@ QJsonObject ReferenceView::pickSolidEndpoint(double x,double y,const std::vector
 }
 
 QJsonObject ReferenceView::pickSolidEdge(double x,double y,const std::vector<EvaluatedBody>& bodies) const {
-    if(view_.IsNull() || x<0 || y<0 || x>=width() || y>=height())return {};
-    const auto scale=windowScale();double best=10;QJsonObject result;
+    const auto pick=capturePick(x,y);return pick ? pickSolidEdge(*pick,bodies) : QJsonObject{};
+}
+QJsonObject ReferenceView::pickSolidEdge(const ViewPickSnapshot& pick,const std::vector<EvaluatedBody>& bodies) {
+    const auto x=pick.pixel.x(),y=pick.pixel.y();double best=10;QJsonObject result;
     for(const auto& body:bodies)if(body.visible)for(const auto& edge:body.solidEdges)if(!edge.edge.IsNull()) {
         BRepAdaptor_Curve curve(edge.edge);const int count=curve.GetType()==GeomAbs_Line ? 1 : 64;
         for(int i=0;i<count;++i) {
             const double t0=curve.FirstParameter()+(curve.LastParameter()-curve.FirstParameter())*i/count,t1=curve.FirstParameter()+(curve.LastParameter()-curve.FirstParameter())*(i+1)/count;
-            const auto a=curve.Value(t0),b=curve.Value(t1);int ax,ay,bx,by;view_->Convert(a.X(),a.Y(),a.Z(),ax,ay);view_->Convert(b.X(),b.Y(),b.Z(),bx,by);
-            const QPointF start(ax/scale.x(),ay/scale.y()),delta(bx/scale.x()-start.x(),by/scale.y()-start.y()),point(x,y);
+            const auto a=curve.Value(t0),b=curve.Value(t1);
+            const QPointF start=pick.project(a),delta=pick.project(b)-start,point(x,y);
             const auto length=QPointF::dotProduct(delta,delta);if(length<1e-10)continue;
             const auto fraction=std::clamp(QPointF::dotProduct(point-start,delta)/length,0.0,1.0);const auto projected=start+delta*fraction;const double distance=QLineF(point,projected).length();if(distance>=best)continue;
             // Screen proximity selects a real edge; authored identity still comes
             // solely from provenance. Suppress back-side edges behind a face.
-            const auto world=curve.Value(t0+(t1-t0)*fraction);double px,py,pz,dx,dy,dz;view_->ConvertWithProj(qRound(projected.x()*scale.x()),qRound(projected.y()*scale.y()),px,py,pz,dx,dy,dz);
-            const gp_Lin ray(gp_Pnt(px,py,pz),gp_Dir(dx,dy,dz));IntCurvesFace_ShapeIntersector hit;hit.Load(body.shape,1e-6);hit.PerformNearest(ray,0,1e9);
+            const auto world=curve.Value(t0+(t1-t0)*fraction);const auto ray=pick.ray(projected.x(),projected.y());IntCurvesFace_ShapeIntersector hit;hit.Load(body.shape,1e-6);hit.PerformNearest(ray,0,1e9);
             const double depth=gp_Vec(ray.Location(),world).Dot(gp_Vec(ray.Direction()));
-            if(hit.IsDone() && hit.NbPnt()>0 && hit.WParameter(1)<depth-view_->Camera()->Scale()/std::max(height(),1)*2)continue;
+            if(hit.IsDone() && hit.NbPnt()>0 && hit.WParameter(1)<depth-pick.cameraScale/std::max(pick.logicalHeight,1)*2)continue;
             best=distance;result={{"bodyId",body.bodyId},{"edgeId",edge.edgeId},{"kind","edge"},{"distancePx",distance}};
             if(!body.occurrenceId.isEmpty()){result["occurrenceId"]=body.occurrenceId;result["definitionId"]=body.definitionId;}
             if(body.summary.contains("outerOccurrenceId"))result["outerOccurrenceId"]=body.summary["outerOccurrenceId"];

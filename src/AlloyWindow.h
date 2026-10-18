@@ -20,6 +20,7 @@ class QLabel;
 class QTreeWidget;
 class QDialog;
 class ReferenceView;
+struct ViewPickSnapshot;
 class QComboBox;
 class QLineEdit;
 class QDoubleSpinBox;
@@ -324,6 +325,10 @@ private:
     struct SurfaceTrimPreviewPartition;
     struct BoundaryFillPreviewSource;
     struct BoundaryFillPreviewPartition;
+    struct SurfaceTrimClick {
+        std::shared_ptr<const ViewPickSnapshot> pick;
+        QString bodyId, sourceFaceId;
+    };
     struct GeometryEvaluation {
         std::atomic<bool> ready{false};
         CadDocument* document = nullptr; // Identity only; never accessed by worker.
@@ -338,6 +343,8 @@ private:
         std::shared_ptr<const BoundaryFillPreviewPartition> boundaryPartition;
         std::shared_ptr<const SurfaceTrimPreviewSource> trimSource;
         std::shared_ptr<const SurfaceTrimPreviewPartition> trimPartition;
+        std::shared_ptr<const SurfaceTrimClick> trimClick;
+        QJsonObject trimClickResult;
         qint64 sourceMs = 0, fullMs = 0, stageMs = 0;
         QString error;
     };
@@ -360,11 +367,11 @@ private:
     QShortcut* surfaceExtrudeEscape_=nullptr;
     QJsonObject surfaceTrimCandidate(const QJsonObject& inputs) const;
     QJsonObject beginSurfaceTrim(const QJsonObject& overrides={});
-    QJsonObject previewSurfaceTrim(bool asynchronous=false);
+    QJsonObject previewSurfaceTrim(bool asynchronous=false,std::shared_ptr<const SurfaceTrimClick> click={});
     QJsonObject selectSurfaceTrimEntity(const QString& sketchId,const QString& entityId);
     QJsonObject selectSurfaceTrimRegion(const QString& regionId);
     QJsonObject selectSurfaceTrimBody(const QString& bodyId);
-    QJsonObject selectSurfaceTrimTarget(const QString& bodyId);
+    QJsonObject selectSurfaceTrimTarget(const QString& bodyId,std::shared_ptr<const SurfaceTrimClick> click={});
     QJsonObject pickSurfaceTrim(double x,double y);
     void showSurfaceTrim();
     QDockWidget* surfaceTrimDock_=nullptr;
@@ -373,7 +380,7 @@ private:
     std::shared_ptr<const SurfaceTrimPreviewSource> surfaceTrimSource_;
     std::shared_ptr<const SurfaceTrimPreviewPartition> surfaceTrimPartition_;
     const EvaluatedDocument& surfaceTrimSourceStage();
-    QJsonObject queueSurfaceTrimEvaluation(const QString& phase,const QJsonObject& key={},const QJsonObject& feature={});
+    QJsonObject queueSurfaceTrimEvaluation(const QString& phase,const QJsonObject& key={},const QJsonObject& feature={},std::shared_ptr<const SurfaceTrimClick> click={});
     static void evaluateSurfaceTrimPartition(GeometryEvaluation& task);
     void completeSurfaceTrimEvaluation(const std::shared_ptr<GeometryEvaluation>& task);
     void refreshSurfaceTrimPending();
