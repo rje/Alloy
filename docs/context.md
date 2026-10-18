@@ -2,6 +2,18 @@
 
 ## Active user order (2026-10-17)
 
+REL-040/#483 now has an Astra-reviewed historical Sketch Edit worker path and
+focused Finish command foundation. On the saved corrected-iron pre-bottom
+checkpoint, Edit evaluated for 53.331 s off-thread while status, pan and GUI
+timer remained responsive; the published draft matched the source. A stale
+full-document operation result initially exceeded the control client's 1 MiB
+bound and was corrected. The saved-fixture bottom-line Finish, geometry,
+history and reopen are **not yet verified**: initial native editor activation
+failed before that step, and repeated GUI attempts were stopped. See
+[the bounded receipt](validation/responsive-historical-sketch.md). REL-042
+retains that exact runtime gate; REL-016 remains open for cumulative interaction
+readiness. No private editor remains open.
+
 2026-10-17 latest: TUT-035/#472 is independently accepted and closed for the
 approved enclosure connector-clearance adaptation. The 33-feature native model
 reopens exactly, both exported halves independently read back as valid solids,

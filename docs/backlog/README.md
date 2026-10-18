@@ -7,8 +7,8 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **484 issues**: **374 implementation, 23 research,
-22 epics, and 65 validation gates**. Counts describe decomposition, not coverage.
+The current publication contains **485 issues**: **374 implementation, 23 research,
+22 epics, and 66 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
 REL-033/#476 independently fixes the observed 119.4-second Surface Extrude
@@ -27,6 +27,13 @@ presentation interval remains a measured responsiveness follow-up under
 REL-037/#480. The corrected iron full recording is now independently accepted;
 REL-038–041/#481–484 retain measured 20–56 s synchronous Trim, Loft, sketch
 and source-edit stalls as separate responsiveness work.
+REL-040/#483 now accepts the bounded historical Sketch Edit worker path and
+focused Finish command foundation. The saved iron Edit remained responsive
+through 53.331 s background evaluation, with exact draft publication; see
+[the receipt](../validation/responsive-historical-sketch.md). The exact
+saved-fixture Finish did not run because initial native editor activation could
+not be established. REL-042 retains that runtime/geometry/history/reopen gate;
+do not infer it from the focused tests.
 
 ## Active delivery order
 

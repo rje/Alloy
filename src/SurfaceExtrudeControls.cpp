@@ -268,12 +268,19 @@ void AlloyWindow::pollGeometryEvaluation() {
         heartbeat["maxGapMs"]=std::max(heartbeat.value("maxGapMs").toInteger(),now-heartbeat.value("lastMs").toInteger());
         heartbeat["lastMs"]=now;documentOpenOperation_["evaluationHeartbeat"]=heartbeat;
     }
+    if(sketchEvaluationOperation_.value("evaluationStatus")=="pending"){
+        auto heartbeat=sketchEvaluationOperation_.value("evaluationHeartbeat").toObject();const auto now=QDateTime::currentMSecsSinceEpoch();
+        heartbeat["ticks"]=heartbeat.value("ticks").toInteger()+1;
+        heartbeat["maxGapMs"]=std::max(heartbeat.value("maxGapMs").toInteger(),now-heartbeat.value("lastMs").toInteger());
+        heartbeat["lastMs"]=now;sketchEvaluationOperation_["evaluationHeartbeat"]=heartbeat;
+    }
     if(!geometryEvaluationRunning_ || !geometryEvaluationRunning_->ready.load(std::memory_order_acquire))return;
     const auto task=std::move(geometryEvaluationRunning_);
     const bool current=document_==task->document && document_->revision()==task->revision
         && document_->authored()["documentId"]==task->documentId && session_.value("id")==task->sessionId
         && session_.value("command")==task->command && geometryEvaluationGeneration_==task->generation;
-    if(task->command=="document.open")completeDocumentOpen(task);
+    if(task->command=="sketch.edit" || task->command=="sketch.finish")completeSketchEvaluation(task);
+    else if(task->command=="document.open")completeDocumentOpen(task);
     else if(task->command=="surface.boundaryFill"){
         if(task->phase=="partition")completeBoundaryFillPartition(task);else completeBoundaryFillCommit(task);
     }

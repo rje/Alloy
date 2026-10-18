@@ -299,6 +299,18 @@ private:
     QJsonObject beginDocumentOpen(const QString& path);
     QJsonObject cancelDocumentOpen();
     void completeDocumentOpen(const std::shared_ptr<GeometryEvaluation>& task);
+    QJsonObject queueSketchEvaluation(const QString& command,const QString& sketchId,const QJsonObject& candidate={});
+    QJsonObject cancelSketchEvaluation();
+    void completeSketchEvaluation(const std::shared_ptr<GeometryEvaluation>& task);
+    EvaluatedDocument sketchHistoryStage(const QString& featureId) const;
+    QJsonObject sketchEvaluationOperation_;
+    QList<QPointer<QWidget>> sketchEvaluationFrozenControls_;
+    QPointer<QWidget> sketchEvaluationFocus_;
+    QPushButton* sketchEvaluationCancel_ = nullptr;
+    std::shared_ptr<const EvaluatedDocument> sketchEvaluationSource_;
+    CadDocument* sketchEvaluationDocument_ = nullptr;
+    quint64 sketchEvaluationRevision_ = 0;
+    QString sketchEvaluationFeature_;
     void startGeometryEvaluation();
     void pollGeometryEvaluation();
     void invalidateGeometryEvaluation();

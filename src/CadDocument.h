@@ -68,6 +68,8 @@ public:
     // Adopt a worker's fully evaluated Surface Extrude draft only at its exact base.
     QString commitSurfaceExtrudeEvaluation(const CandidateEvaluation& prepared,
         const QJsonObject& requestedCandidate, const QJsonObject& expectedBase, quint64 expectedRevision, const QString& label);
+    QString commitSketchEvaluation(const CandidateEvaluation& prepared,
+        const QJsonObject& requestedCandidate, const QJsonObject& expectedBase, quint64 expectedRevision);
     QString commitBoundaryFillEvaluation(const CandidateEvaluation& prepared,
         const QJsonObject& requestedCandidate, const QJsonObject& expectedBase, quint64 expectedRevision, const QString& label);
     QJsonObject lastEvaluationError() const { return lastEvaluationError_; }

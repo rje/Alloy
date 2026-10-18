@@ -105,7 +105,13 @@ class GitHub:
 
     def existing(self):
         records = self.api(f"repos/{self.repo}/issues?state=all&per_page=100", paginate=True)
+        by_number = {record["number"]: record for record in records if "pull_request" not in record}
+        published = json.loads(MANIFEST.read_text()).get("issues", {}) if MANIFEST.exists() else {}
         found = {}
+        for key, entry in published.items():
+            record = by_number.get(entry.get("number"))
+            if record is not None:
+                found[key] = record
         for record in records:
             if "pull_request" in record:
                 continue
@@ -113,7 +119,12 @@ class GitHub:
             if match:
                 key = match.group(1)
                 if key in found:
-                    raise ValueError(f"Duplicate published key {key}; reconcile before continuing")
+                    if found[key]["number"] != record["number"]:
+                        # A canonical manifest entry wins over an orphaned duplicate.
+                        # Never publish over the duplicate or silently switch IDs.
+                        if key in published:
+                            continue
+                        raise ValueError(f"Duplicate published key {key}; reconcile before continuing")
                 found[key] = record
         return found
 

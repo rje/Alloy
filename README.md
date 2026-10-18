@@ -1,6 +1,6 @@
 # Alloy
 
-Current review: [proposed printable-part v1 plan](https://alloy-v1-review.rjevans1.chatgpt.site) and [versioned inventory](docs/v1/README.md). Iron tutorial acceptance is withdrawn pending shape correction; the full enclosure remains open.
+Current review: [proposed printable-part v1 plan](https://alloy-v1-review.rjevans1.chatgpt.site) and [versioned inventory](docs/v1/README.md). The corrected iron tutorial is accepted; the full enclosure remains open.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,
@@ -15,6 +15,10 @@ also keeps the corrected iron's final solid evaluation responsive. Initial
 on the same worker. [Interactive native Open](docs/validation/responsive-native-open.md)
 also evaluates large models without freezing the window; its final presentation
 step still has a measured pause.
+[Historical Sketch Edit](docs/validation/responsive-historical-sketch.md) now
+evaluates the saved iron prefix off-thread while status and navigation remain
+responsive. Its changed-sketch Finish has focused command coverage, but the
+saved-fixture Finish and downstream geometry gate remain open under REL-042.
 
 The [complete surface shoehorn](docs/validation/shoehorn-complete.md) now has
 an independently accepted full creation movie, editable model and checked STL:

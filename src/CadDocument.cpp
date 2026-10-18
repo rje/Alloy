@@ -1265,6 +1265,12 @@ QString CadDocument::commitSurfaceExtrudeEvaluation(const CandidateEvaluation& p
     const QJsonObject& requestedCandidate, const QJsonObject& expectedBase, quint64 expectedRevision, const QString& label) {
     return commitEvaluatedFeature(prepared,requestedCandidate,expectedBase,expectedRevision,"surfaceExtrude",label);
 }
+QString CadDocument::commitSketchEvaluation(const CandidateEvaluation& prepared,
+    const QJsonObject& requestedCandidate,const QJsonObject& expectedBase,quint64 expectedRevision) {
+    if(requestedCandidate.value("features").toArray().size()!=expectedBase.value("features").toArray().size())
+        return "Historical sketch evaluation cannot append features";
+    return commitEvaluatedFeature(prepared,requestedCandidate,expectedBase,expectedRevision,"sketch","Edit sketch");
+}
 QString CadDocument::commitBoundaryFillEvaluation(const CandidateEvaluation& prepared,
     const QJsonObject& requestedCandidate, const QJsonObject& expectedBase, quint64 expectedRevision, const QString& label) {
     return commitEvaluatedFeature(prepared,requestedCandidate,expectedBase,expectedRevision,"boundaryFill",label);
@@ -1272,7 +1278,7 @@ QString CadDocument::commitBoundaryFillEvaluation(const CandidateEvaluation& pre
 QString CadDocument::commitEvaluatedFeature(const CandidateEvaluation& prepared,
     const QJsonObject& requestedCandidate, const QJsonObject& expectedBase, quint64 expectedRevision,
     const QString& featureType, const QString& label) {
-    const QString featureLabel=featureType=="boundaryFill" ? "Boundary Fill" : "Surface Extrude";
+    const QString featureLabel=featureType=="sketch" ? "Sketch" : featureType=="boundaryFill" ? "Boundary Fill" : "Surface Extrude";
     lastEvaluationError_={};
     if(revision_!=expectedRevision || authored_!=expectedBase)
         return "The document changed; cancel and restart "+featureLabel;

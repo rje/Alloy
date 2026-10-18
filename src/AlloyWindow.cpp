@@ -96,6 +96,15 @@
 #include <numbers>
 
 namespace {
+// app.state reports progress once; rich completed results remain available via
+// command.status. Repeating a full document here duplicates embedded Canvases.
+QJsonObject operationProgress(const QJsonObject& operation) {
+    QJsonObject result;
+    for(const auto* key:{"id","command","status","evaluationPhase","evaluationStatus","previewGeneration",
+        "evaluationHeartbeat","evaluationTimingMs","cancellation","previewError","resultDiscarded","recovery","sessionId"})
+        if(operation.contains(key))result[key]=operation.value(key);
+    return result;
+}
 // Preview documents are internal candidates, not a second image-download route.
 // Keep the authored document and Canvas metadata intact while avoiding duplicate
 // embedded images in public session/preview inspection.
@@ -1296,6 +1305,24 @@ void AlloyWindow::updateTimelineDrop(const QPoint& globalPosition) {
 }
 
 bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
+    if(watched==view_ && geometryEvaluationRunning_ && (geometryEvaluationRunning_->command=="sketch.edit" || geometryEvaluationRunning_->command=="sketch.finish")){
+        if(event->type()==QEvent::ContextMenu)return true;
+        if(event->type()==QEvent::ShortcutOverride){event->accept();return true;}
+        if(event->type()==QEvent::KeyPress || event->type()==QEvent::KeyRelease){
+            const auto key=static_cast<QKeyEvent*>(event)->key();
+            if(key==Qt::Key_Escape && event->type()==QEvent::KeyPress && sketchEvaluationOperation_.value("evaluationStatus")=="pending")
+                execute("command.cancel",{{"session",sketchEvaluationOperation_.value("id")}});
+            if(key!=Qt::Key_Shift && key!=Qt::Key_Alt && key!=Qt::Key_Control && key!=Qt::Key_Meta)return true;
+        }
+        if(event->type()==QEvent::MouseButtonPress || event->type()==QEvent::MouseButtonRelease
+            || event->type()==QEvent::MouseButtonDblClick || event->type()==QEvent::MouseMove){
+            const auto* mouse=static_cast<QMouseEvent*>(event);
+            const bool navigation=mouse->button()==Qt::MiddleButton || mouse->button()==Qt::RightButton
+                || mouse->buttons().testFlag(Qt::MiddleButton) || mouse->buttons().testFlag(Qt::RightButton)
+                || mouse->modifiers().testFlag(Qt::AltModifier) || view_->navigationTool()!="select" || view_->freeOrbitTool();
+            if(!navigation)return true;
+        }
+    }
     if(watched==view_ && session_.value("command")=="surface.boundaryFill" && !boundaryFillMarkerUpdatePending_
         && (event->type()==QEvent::Paint || event->type()==QEvent::Resize || event->type()==QEvent::MouseMove || event->type()==QEvent::Wheel)){
         boundaryFillMarkerUpdatePending_=true;QTimer::singleShot(0,this,[this]{boundaryFillMarkerUpdatePending_=false;refreshBoundaryFillMarkers();});}
@@ -3058,7 +3085,8 @@ void AlloyWindow::registerCommands() {
     });
     add("sketch.edit","Edit Sketch","Re-enter an authored sketch without changing it until Finish.",{{"sketchId",sketchId}},[this](const auto& a){
         const auto feature=SketchGeometry::findFeature(document_->authored(),a["sketchId"].toString());
-        return beginSketch(feature["parameters"].toObject()["plane"].toString(),feature["name"].toString(),feature["id"].toString());
+        if(!session_.isEmpty())return failure("session_busy","Complete or cancel the active command first");
+        return queueSketchEvaluation("sketch.edit",feature.value("id").toString());
     });
     auto coordinate=parameter("number","Sketch coordinate in the supplied units or the active display units.");
     coordinate["minimum"]=-100000;coordinate["maximum"]=100000;
@@ -4922,7 +4950,10 @@ void AlloyWindow::registerCommands() {
         for(const auto& entry:document_->authored()["features"].toArray()) {const auto feature=entry.toObject();if(feature["id"]!=a["featureId"])continue;
             if(feature["type"]=="assemblyPin")return QJsonObject{{"feature",feature},{"editable",false},
                 {"message","Pin retains this root-level component's current full world pose; delete and recreate it to choose another component."}};
-            if(feature["type"].toString()=="sketch")return beginSketch(feature["parameters"].toObject()["plane"].toString(),feature["name"].toString(),feature["id"].toString());
+            if(feature["type"].toString()=="sketch"){
+                if(!session_.isEmpty())return failure("session_busy","Complete or cancel the active command first");
+                return queueSketchEvaluation("sketch.edit",feature.value("id").toString());
+            }
             const auto p=feature["parameters"].toObject();
             if(feature["type"]=="rectangularPattern")return beginPattern({{"featureId",feature["id"]}});
             if(feature["type"]=="sweep")return beginSweep({{"featureId",feature["id"]}});
@@ -6153,7 +6184,8 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
         if(!argumentError.isEmpty())return failure("invalid_arguments",argumentError);
         // A successful asynchronous commit closes its dialog. Retain only its
         // terminal result, until another session or document change replaces it.
-        const auto operation=documentOpenOperation_.value("id")==args.value("session") ? documentOpenOperation_
+        const auto operation=sketchEvaluationOperation_.value("id")==args.value("session") ? sketchEvaluationOperation_
+            : documentOpenOperation_.value("id")==args.value("session") ? documentOpenOperation_
             : session_.isEmpty() ? geometryEvaluationTerminal_ : session_;
         if(operation.isEmpty() || operation.value("id")!=args.value("session"))return failure("invalid_session","Session is no longer active");
         if(args.contains("generation") && args.value("generation")!=operation.value("previewGeneration"))
@@ -6163,6 +6195,18 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
             {"documentRevision",static_cast<qint64>(document_->revision())}};
         if(status=="failed"){response["ok"]=false;response["error"]=operation.value("previewError");}
         return response;
+    }
+    if(sketchEvaluationOperation_.value("evaluationStatus")=="pending"
+        && (id=="sketch.cancel" || (id=="command.cancel" && (args.value("session")==sketchEvaluationOperation_.value("id")
+            || args.value("session")==session_.value("id"))))){
+        const auto error=validateArguments(*findCommand(id),args);if(!error.isEmpty())return failure("invalid_arguments",error);
+        return cancelSketchEvaluation();
+    }
+    if(geometryEvaluationRunning_ && (geometryEvaluationRunning_->command=="sketch.edit" || geometryEvaluationRunning_->command=="sketch.finish")){
+        const bool safe=id=="commands.list" || id=="app.state" || id=="document.inspect"
+            || id=="view.orbit" || id=="view.pan" || id=="view.zoom" || id=="view.orientation" || id=="view.home" || id=="view.fit" || id=="view.navigationTool" || id=="view.orbitTool"
+            || id=="capture.screenshot" || id=="capture.viewport" || id=="capture.dialog";
+        if(!safe)return failure("evaluation_busy","Sketch geometry is evaluating; navigate or Cancel to discard its result");
     }
     if(id=="command.cancel" && documentOpenOperation_.value("id")==args.value("session")
         && documentOpenOperation_.value("evaluationStatus")=="pending"){
@@ -6176,7 +6220,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
             || id=="view.fit" || id=="capture.screenshot" || id=="capture.viewport" || id=="capture.dialog";
         if(!safe)return failure("evaluation_busy","A native document is opening; navigate or Cancel Open to discard its result");
     }
-    if(geometryEvaluationRunning_) {
+    if(geometryEvaluationRunning_ && geometryEvaluationRunning_->command!="sketch.edit" && geometryEvaluationRunning_->command!="sketch.finish") {
         const bool safe=id=="commands.list" || id=="app.state" || id=="document.inspect" || id=="command.cancel"
             || (session_.value("command")=="surface.extrude" && (id=="command.preview" || id=="command.update" || id=="command.commit"
                 || id=="surface.extrudeEntity" || id=="surface.extrudeProfile" || id=="selection.pick"))
@@ -6264,7 +6308,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     catch(const std::exception& error) { refreshConstraintFailure(); return finish(failure("command_failed",QString::fromUtf8(error.what()))); }
     if (result.value("ok").isBool() && !result.value("ok").toBool()) { refreshConstraintFailure(); return finish(result); }
     if(document_!=priorDocument || document_->revision()!=priorDocumentRevision
-        || (!session_.isEmpty() && session_.value("id")!=priorSessionId)){geometryEvaluationTerminal_={};documentOpenOperation_={};}
+        || (!session_.isEmpty() && session_.value("id")!=priorSessionId)){geometryEvaluationTerminal_={};documentOpenOperation_={};sketchEvaluationOperation_={};}
     const auto afterCommandSolves=traceGraphSolves?AssemblyGraph::solveCount():0;
     const double commandPhaseMs=traceGraphSolves?phaseTimer.nsecsElapsed()/1e6:0;
     if(document_->revision()!=priorDocumentRevision && (transientSliderPosition_.has_value() || !jointGraphStage_.isEmpty() || (sliderTimer_ && sliderTimer_->isActive()))){
@@ -6378,11 +6422,11 @@ QJsonObject AlloyWindow::state() const {
     return {{"application", "Alloy"}, {"version", "0.1.0"}, {"stage", "sketch-authoring"},
         {"runtime", QJsonObject{{"qtVersion", qVersion()}, {"occtBuildVersion", ALLOY_OCCT_VERSION}}},
         {"revision", static_cast<qint64>(revision_)},
-        {"identity", identity()}, {"documentOpen",documentOpenOperation_}, {"activeSession", session_}, {"sectionEdit",sectionEdit_}, {"pendingReferencePosition",pendingReference_}, {"assembly",presentationAssembly()}, {"documentTabs",documentTabs()},
+        {"identity", identity()}, {"sketchEvaluation",operationProgress(sketchEvaluationOperation_)}, {"documentOpen",operationProgress(documentOpenOperation_)}, {"activeSession", session_}, {"sectionEdit",sectionEdit_}, {"pendingReferencePosition",pendingReference_}, {"assembly",presentationAssembly()}, {"documentTabs",documentTabs()},
         {"recovery",QJsonObject{{"available",recovery_->error().isEmpty()},{"warning",recoveryWarning_},
             {"staleCount",recovery_->list().size()},{"scope","committed authored state only"}}},
         {"inlineEditor",inlineEditorState()},
-        {"geometryWork",QJsonObject{{"active",geometryBusyActive_ || bool(geometryEvaluationRunning_)},{"cancellable",false},{"resultDiscardAvailable",documentOpenOperation_.value("evaluationStatus")=="pending" || session_.value("command")=="surface.extrude" || session_.value("command")=="surface.boundaryFill"},{"last",lastGeometryWork_}}},
+        {"geometryWork",QJsonObject{{"active",geometryBusyActive_ || bool(geometryEvaluationRunning_)},{"cancellable",false},{"resultDiscardAvailable",sketchEvaluationOperation_.value("evaluationStatus")=="pending" || documentOpenOperation_.value("evaluationStatus")=="pending" || session_.value("command")=="surface.extrude" || session_.value("command")=="surface.boundaryFill"},{"last",lastGeometryWork_}}},
         {"focus",QJsonObject{{"widgetClass",QApplication::focusWidget() ? QApplication::focusWidget()->metaObject()->className() : ""},
             {"widgetName",QApplication::focusWidget() ? QApplication::focusWidget()->objectName() : QString{}},
             {"viewport",QApplication::focusWidget()==view_},
@@ -6850,7 +6894,7 @@ void AlloyWindow::refresh() {
         // so hiding that ID in the final evaluation otherwise hides all stock.
         const auto stageKey=QString("sketch-prefix:%1:%2:%3").arg(activeTabId_,historicalSketchId).arg(document_->revision());
         if(view_->diagnostics().value("bodyStageKey").toString()!=stageKey)
-            view_->setBodyStage(document_->evaluationBefore(historicalSketchId).bodies,stageKey);
+            view_->setBodyStage(sketchHistoryStage(historicalSketchId).bodies,stageKey);
         // Downstream bodies are absent from the prefix; its own body visibility
         // still applies. Do not suppress a retained support ID reused by Cut.
         view_->setEditDisplay(historicalSketchId,{});
@@ -8346,6 +8390,8 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
             return failure("pending_input_active","Accept or cancel the fit spline offset before finishing");
         if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
         const auto candidate=SketchGeometry::replaceFeature(document_->authored(),session_.value("draftSketch").toObject());
+        if(session_.value("inputs").toObject().contains("sketchId") && candidate!=document_->authored())
+            return queueSketchEvaluation("sketch.finish",session_.value("draftSketch").toObject().value("id").toString(),candidate);
         const auto error=document_->commit(candidate,session_.value("inputs").toObject().contains("sketchId") ? "Edit sketch" : "Create sketch");
         if(!error.isEmpty())return failure("evaluation_failed",error);
         result["document"]=document_->state();
@@ -8845,7 +8891,7 @@ QJsonObject AlloyWindow::beginSketch(const QString& plane,const QString& name,co
     if(plane=="face") {
         if(support.isEmpty())return failure("support_required","Select a supported planar face before starting this sketch","support");
         try {
-            const auto history=existing.isEmpty() ? document_->evaluation() : document_->evaluationBefore(sketchId);
+            const auto history=existing.isEmpty() ? document_->evaluation() : sketchHistoryStage(sketchId);
             const auto resolved=GeometryKernel::resolveSketchSupport(history,support);
             resolvedFrame=resolved.frame;
             if(existing.isEmpty())supportEdges=GeometryKernel::supportEdgeDescriptors(resolved);
@@ -8857,7 +8903,7 @@ QJsonObject AlloyWindow::beginSketch(const QString& plane,const QString& name,co
     }
     if(plane=="construction") {
         const auto planeId=support["planeId"].toString();
-        const auto& available=existing.isEmpty() ? document_->evaluation() : document_->evaluationBefore(sketchId);
+        const auto& available=existing.isEmpty() ? document_->evaluation() : sketchHistoryStage(sketchId);
         for(const auto& candidate:available.constructionPlanes)if(candidate.featureId==planeId)resolvedFrame=candidate.frame;
         if(resolvedFrame.isEmpty())return failure("plane_unavailable","Select an earlier construction plane","planeId");
     }
@@ -8873,12 +8919,12 @@ QJsonObject AlloyWindow::beginSketch(const QString& plane,const QString& name,co
         auto parameters=seed["parameters"].toObject();parameters["originConvention"]="projectedOwnerV1";seed["parameters"]=parameters;
     }
     if(plane=="face")try {
-        const auto& history=existing.isEmpty() ? document_->evaluation() : document_->evaluationBefore(sketchId);
+        const auto& history=existing.isEmpty() ? document_->evaluation() : sketchHistoryStage(sketchId);
         resolvedFrame=GeometryKernel::sketchFrame(history,seed);
     }catch(const GeometryKernel::EvaluationError& error){return failure(error.diagnostics()["code"].toString(),QString::fromUtf8(error.what()),"support");}
     QJsonObject projectionContext;
     if(plane=="face" || plane=="construction")try {
-        const auto history=existing.isEmpty() ? document_->evaluation() : document_->evaluationBefore(sketchId);
+        const auto history=existing.isEmpty() ? document_->evaluation() : sketchHistoryStage(sketchId);
         projectionContext=GeometryKernel::projectionContext(history,seed);
     }
     catch(const GeometryKernel::EvaluationError& error) {
@@ -9450,7 +9496,7 @@ EvaluatedSketch AlloyWindow::evaluateSketchDraft(const QJsonObject& draft) const
     if(!draft["parameters"].toObject().contains("loopOffsets"))
         return SketchGeometry::evaluateFeature(draft,session_.value("resolvedFrame").toObject(),session_.value("projectionContext").toObject());
     const auto editId=session_.value("inputs").toObject().value("sketchId").toString();
-    const auto history=editId.isEmpty() ? document_->evaluation() : document_->evaluationBefore(editId);
+    const auto history=editId.isEmpty() ? document_->evaluation() : sketchHistoryStage(editId);
     return RoundedLoopOffset::evaluate(draft,
         GeometryKernel::resolveSketchSupport(history,draft["parameters"].toObject()["support"].toObject()),
         GeometryKernel::sketchFrame(history,draft));
@@ -9477,7 +9523,7 @@ QJsonObject AlloyWindow::previewLoopOffset(const QJsonObject& inputs) {
     const auto support=p["support"].toObject();
     try {
         const auto editId=session_.value("inputs").toObject().value("sketchId").toString();
-        const auto history=editId.isEmpty() ? document_->evaluation() : document_->evaluationBefore(editId);
+        const auto history=editId.isEmpty() ? document_->evaluation() : sketchHistoryStage(editId);
         const auto resolved=GeometryKernel::resolveSketchSupport(history,support);
         QString kind=inputs.value("kind").toString(pending.value("kind").toString());
         QString loop;
@@ -10131,7 +10177,7 @@ QJsonObject AlloyWindow::publishSketchSolve(const SketchGeometry::SolveResult& s
     auto context=session_.value("projectionContext").toObject();
     if(solved.feature["parameters"].toObject()["plane"]=="face" || solved.feature["parameters"].toObject()["plane"]=="construction")try {
         const auto editId=session_.value("inputs").toObject().value("sketchId").toString();
-        const auto history=editId.isEmpty() ? document_->evaluation() : document_->evaluationBefore(editId);
+        const auto history=editId.isEmpty() ? document_->evaluation() : sketchHistoryStage(editId);
         context=GeometryKernel::projectionContext(history,solved.feature);
     } catch(const GeometryKernel::EvaluationError& error) {
         auto response=failure("projection_unavailable",QString::fromUtf8(error.what()));
@@ -10181,7 +10227,7 @@ QJsonObject AlloyWindow::selectSketchProjection(const QJsonObject& source) {
     if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","Document changed during Project");
     auto pending=session_["pendingProject"].toObject();
     const auto editId=session_.value("inputs").toObject().value("sketchId").toString();
-    const auto history=editId.isEmpty() ? document_->evaluation() : document_->evaluationBefore(editId);
+    const auto history=editId.isEmpty() ? document_->evaluation() : sketchHistoryStage(editId);
     auto selected=pending["sources"].toArray();
     if(selected.contains(source))return QJsonObject{{"pending",true},{"selectedCount",selected.size()},{"duplicate",true}};
     QJsonObject candidate,context;try {
@@ -10205,7 +10251,7 @@ QJsonObject AlloyWindow::selectSketchProjection(const QJsonObject& source) {
 QJsonObject AlloyWindow::selectSketchProjectionFace(const QJsonObject& support) {
     if(!session_.contains("pendingProject"))return failure("no_project_tool","Start Project first");
     const auto editId=session_.value("inputs").toObject().value("sketchId").toString();
-    const auto history=editId.isEmpty() ? document_->evaluation() : document_->evaluationBefore(editId);
+    const auto history=editId.isEmpty() ? document_->evaluation() : sketchHistoryStage(editId);
     EvaluatedSupportFace face;try{face=GeometryKernel::resolveSketchSupport(history,support);}
     catch(const GeometryKernel::EvaluationError& error){return failure(error.diagnostics()["code"].toString(),QString::fromUtf8(error.what()));}
     for(const auto& edge:face.boundaryEdges)if(edge.type!="line")
@@ -10285,7 +10331,7 @@ QJsonObject AlloyWindow::traverseSketchHistory(int direction) {
     auto context=session_.value("projectionContext").toObject();
     if(entry.draft["parameters"].toObject()["plane"]=="face" || entry.draft["parameters"].toObject()["plane"]=="construction")try {
         const auto editId=session_.value("inputs").toObject().value("sketchId").toString();
-        const auto history=editId.isEmpty() ? document_->evaluation() : document_->evaluationBefore(editId);
+        const auto history=editId.isEmpty() ? document_->evaluation() : sketchHistoryStage(editId);
         context=GeometryKernel::projectionContext(history,entry.draft);
     } catch(const GeometryKernel::EvaluationError& error) {
         auto response=failure("projection_unavailable",QString::fromUtf8(error.what()));

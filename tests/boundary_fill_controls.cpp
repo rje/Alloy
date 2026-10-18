@@ -50,6 +50,54 @@ class BoundaryFillControlsTest final:public QObject{
   QCOMPARE(QApplication::widgetAt(box->mapToGlobal(point)),static_cast<QWidget*>(box));QTest::mouseClick(box,Qt::LeftButton,Qt::NoModifier,point);
  }
 private slots:
+ void asynchronousHistoricalSketchContracts(){
+  QTemporaryDir temp;QVERIFY(temp.isValid());CadDocument fixture;
+  auto sketch=SketchGeometry::newFeature(fixture.authored().value("documentId").toString(),"XZ","Historical source");
+  sketch=SketchGeometry::addLine(sketch,{{"u1Mm",0},{"v1Mm",0},{"u2Mm",20},{"v2Mm",5}});
+  auto base=fixture.authored();base["features"]=QJsonArray{sketch};QVERIFY(fixture.commit(base,"Sketch").isEmpty());
+  const auto entity=sketch.value("parameters").toObject().value("entities").toArray()[0].toObject().value("id");
+  QVERIFY(fixture.commit(CadDocument::surfaceExtrudeCandidate(fixture.authored(),{{"sketchId",sketch.value("id")},{"entityIds",QJsonArray{entity}},{"sideOneMm",10},{"sideTwoMm",12}}),"Sheet").isEmpty());
+  const auto path=temp.filePath("historical.alloy");QVERIFY(fixture.save(path).isEmpty());
+  AlloyWindow w;w.resize(1400,900);w.show();w.activateWindow();QApplication::setActiveWindow(&w);w.setFocus();QVERIFY(QTest::qWaitForWindowExposed(&w));
+  call(w,"document.open",{{"path",path},{"discard",true}});const auto before=call(w,"document.inspect");
+  auto pending=w.execute("sketch.edit",{{"sketchId",sketch.value("id")}});QCOMPARE(pending.value("completion").toString(),QString("pending"));QVERIFY(session(w).isEmpty());
+  QVERIFY(w.state().value("documentOpen").toObject().isEmpty());
+  const auto openId=pending.value("result").toObject().value("id");
+  QCOMPARE(w.execute("sketch.line",{{"x1",0},{"y1",10},{"x2",10},{"y2",10}}).value("error").toObject().value("code").toString(),QString("evaluation_busy"));
+  QVERIFY(w.execute("command.cancel",{{"session",openId}}).value("result").toObject().value("resultDiscarded").toBool());
+  QTRY_VERIFY_WITH_TIMEOUT(!w.state().value("geometryWork").toObject().value("active").toBool(),10000);QVERIFY(session(w).isEmpty());QCOMPARE(call(w,"document.inspect"),before);
+  const auto opened=call(w,"feature.editDialog",{{"featureId",sketch.value("id")}});const auto sid=opened.value("id");
+  QCOMPARE(session(w).value("id"),sid);QCOMPARE(session(w).value("draftSketch"),QJsonValue(SketchGeometry::findFeature(fixture.authored(),sketch.value("id").toString())));
+  call(w,"sketch.line",{{"x1",0},{"y1",15},{"x2",10},{"y2",15},{"units","mm"}});
+  const auto extra=session(w).value("draftSketch").toObject().value("parameters").toObject().value("entities").toArray().last().toObject().value("id");
+  call(w,"sketch.construction",{{"entityIds",QJsonArray{extra}},{"construction",true}});const auto retained=session(w);
+  ReferenceView* view=nullptr;for(auto* widget:w.findChildren<QWidget*>())if(auto* candidate=dynamic_cast<ReferenceView*>(widget)){view=candidate;break;}QVERIFY(view);QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(view));
+  pending=w.execute("sketch.finish");QCOMPARE(pending.value("completion").toString(),QString("pending"));const auto finish=pending.value("result").toObject();
+  QCOMPARE(session(w).value("draftSketch"),retained.value("draftSketch"));auto* name=w.findChild<QLineEdit*>("sketch.name");QVERIFY(name && !name->isEnabled());
+  QCOMPARE(w.execute("command.status",{{"session",finish.value("id")},{"generation",finish.value("previewGeneration").toInteger()+1}}).value("error").toObject().value("code").toString(),QString("stale_preview"));
+  const auto center=view->rect().center();QCOMPARE(QApplication::widgetAt(view->mapToGlobal(center)),static_cast<QWidget*>(view));
+  QTest::keyClick(view,Qt::Key_L);QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,center);QCOMPARE(session(w).value("draftSketch"),retained.value("draftSketch"));
+  QVERIFY(w.execute("sketch.cancel").value("result").toObject().value("resultDiscarded").toBool());
+  QTRY_VERIFY_WITH_TIMEOUT(!w.state().value("geometryWork").toObject().value("active").toBool(),10000);QCOMPARE(session(w),retained);QVERIFY(name->isEnabled());QCOMPARE(QApplication::focusWidget(),static_cast<QWidget*>(view));QCOMPARE(call(w,"document.inspect"),before);
+  call(w,"sketch.construction",{{"entityIds",QJsonArray{entity}},{"construction",true}});const auto invalid=session(w);
+  pending=w.execute("sketch.finish");QCOMPARE(pending.value("completion").toString(),QString("pending"));const auto failedId=pending.value("result").toObject().value("id");QJsonObject failed;
+  QTRY_VERIFY_WITH_TIMEOUT((failed=w.execute("command.status",{{"session",failedId}})).value("completion")!="pending",10000);
+  QCOMPARE(failed.value("completion").toString(),QString("failed"));QCOMPARE(session(w),invalid);QCOMPARE(call(w,"document.inspect"),before);QVERIFY(name->isEnabled());
+  auto* error=w.findChild<QLabel*>("sketch.error");QVERIFY(error && error->isVisible() && !error->text().isEmpty());
+  call(w,"sketch.construction",{{"entityIds",QJsonArray{entity}},{"construction",false}});pending=w.execute("sketch.finish");QCOMPARE(pending.value("completion").toString(),QString("pending"));QVERIFY(error->text().isEmpty());
+  const auto retryId=pending.value("result").toObject().value("id");QJsonObject completed;
+  QTRY_COMPARE_WITH_TIMEOUT((completed=w.execute("command.status",{{"session",retryId}})).value("completion").toString(),QString("completed"),10000);
+  QVERIFY(completed.value("ok").toBool());QCOMPARE(completed.value("result").toObject().value("status").toString(),QString("committed"));QVERIFY(session(w).isEmpty());
+  const auto progress=w.state().value("sketchEvaluation").toObject();QCOMPARE(progress.value("evaluationStatus").toString(),QString("completed"));QVERIFY(!progress.contains("document"));QVERIFY(!progress.contains("draftSketch"));
+  QVERIFY(completed.value("result").toObject().value("document").toObject().contains("authored"));
+  const auto after=call(w,"document.inspect");QVERIFY(after.value("authored")!=before.value("authored"));QCOMPARE(after.value("undo").toObject().value("count").toInt(),1);
+  QCOMPARE(after.value("evaluation").toObject().value("bodies"),before.value("evaluation").toObject().value("bodies"));
+  call(w,"history.undo");QCOMPARE(call(w,"document.inspect").value("authored"),before.value("authored"));call(w,"history.redo");QCOMPARE(call(w,"document.inspect").value("authored"),after.value("authored"));
+  const auto saved=temp.filePath("finished.alloy");call(w,"document.save",{{"path",saved}});call(w,"document.open",{{"path",saved},{"discard",true}});QCOMPARE(call(w,"document.inspect").value("authored"),after.value("authored"));
+  call(w,"sketch.begin",{{"plane","XY"},{"name","New sketch regression"}});call(w,"sketch.line",{{"x1",0},{"y1",0},{"x2",10},{"y2",0},{"units","mm"}});
+  const auto newFinish=w.execute("sketch.finish");QVERIFY(newFinish.value("ok").toBool());QCOMPARE(newFinish.value("completion").toString(),QString("completed"));QVERIFY(session(w).isEmpty());
+  const auto expected=fixture.authored();const auto revision=fixture.revision();fixture.reset();QVERIFY(!fixture.commitSketchEvaluation(CadDocument::evaluateCandidate(expected),expected,expected,revision).isEmpty());
+ }
  void asynchronousDocumentOpenContracts(){
   QTemporaryDir temp;QVERIFY(temp.isValid());CadDocument target;
   auto authored=target.authored();const auto owner=authored.value("documentId");
@@ -97,6 +145,7 @@ private slots:
   QCOMPARE(session(w),changedDraft);QVERIFY(name->isEnabled());call(w,"command.cancel",{{"session",loft.value("id")}});
   const auto loaded=call(w,"document.open",{{"path",path},{"discard",true}});QCOMPARE(loaded.value("authored"),QJsonValue(authored));QVERIFY(session(w).isEmpty());
   auto current=call(w,"document.inspect");QCOMPARE(current.value("authored"),QJsonValue(authored));QVERIFY(loaded.value("recovery").toObject().value("durable").toBool());QVERIFY(!current.value("dirty").toBool());QCOMPARE(current.value("undo").toObject().value("count").toInt(),0);
+  QVERIFY(!w.state().value("documentOpen").toObject().contains("authored"));
   const auto loadedId=loaded.value("id"); // Operation ID is distinct from the loaded document ID.
   QCOMPARE(w.execute("command.status",{{"session",loadedId}}).value("completion").toString(),QString("completed"));
   call(w,"document.units",{{"units","in"}});call(w,"history.undo");QCOMPARE(call(w,"document.inspect").value("authored"),QJsonValue(authored));
