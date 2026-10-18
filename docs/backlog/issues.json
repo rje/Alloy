@@ -9699,7 +9699,7 @@
       ],
       "labels": [
         "kind:implementation",
-        "status:blocked",
+        "status:ready",
         "area:skt",
         "phase:P2",
         "priority:P2"
@@ -9717,7 +9717,7 @@
       ],
       "labels": [
         "kind:implementation",
-        "status:blocked",
+        "status:ready",
         "area:skt",
         "phase:P2",
         "priority:P2"
