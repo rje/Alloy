@@ -108,3 +108,15 @@ fails. Targeted run
 [`39126716732`](https://github.com/rje/Alloy/actions/runs/39126716732)
 checks that correction. The Windows compilation and regression remain unknown
 until its artifacts are inspected.
+
+The original matrix's macOS arm64 job completed successfully at `b663b4d`.
+Artifact `12136049704` has GitHub digest
+`sha256:90424267be2336f760a3ba3a6e208811984f1a577ba26d05594c33b9d01d9245`.
+The downloaded `private-qt-build.json` records a complete patched Qt build,
+`FEATURE_accessibility`, `FEATURE_itemviews`, Widgets, Network, OpenGL and
+FreeType enabled, the admitted item-view source hash, and
+`passed-offscreen-itemview-cache`. `build.json` records Alloy compilation and
+linking and `dependency-build.json` inventories OCCT/FreeType outputs. This is
+additional Mac build evidence; the artifact explicitly marks runtime/GPU and
+bundling untested. Linux, macOS Intel and the targeted Windows build were still
+running when this entry was made.
