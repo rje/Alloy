@@ -2080,6 +2080,13 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 if (constraint.size() != (fixed ? 5 : 3) || constraint.contains("entityIds")
                     || !checkReferences(constraint, "pointIds", fixed ? 1 : 2, pointIds)) return "Invalid point constraint references";
                 if (fixed) { coordinate(constraint, "uMm"); coordinate(constraint, "vMm"); }
+            } else if(type=="fixedLine") {
+                if(constraint.size()!=5 || !checkReferences(constraint,"entityIds",1,lineIds)
+                    || !checkReferences(constraint,"pointIds",2,pointIds) || constraint["coordinates"].toArray().size()!=2)
+                    return "Fixed line requires one line, its endpoints and retained coordinates";
+                QJsonObject line;for(const auto& row:parameters["entities"].toArray())if(row.toObject()["id"]==constraint["entityIds"].toArray()[0])line=row.toObject();
+                if(constraint["pointIds"].toArray()!=QJsonArray{line["startPointId"],line["endPointId"]})return "Fixed line endpoints do not match its target";
+                for(const auto& row:constraint["coordinates"].toArray()) {const auto p=row.toObject();if(p.size()!=2)return "Invalid fixed line coordinates";coordinate(p,"uMm");coordinate(p,"vMm");}
             } else if(type=="polygonAffineVertex") {
                 if(constraint.size()!=5 || !checkReferences(constraint,"pointIds",3,pointIds))return "Polygon affine driver requires two drivers and a vertex";
                 coordinate(constraint,"coefficientU");coordinate(constraint,"coefficientV");bool owned=false;
@@ -2463,7 +2470,7 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& source
         // projection takes precedence over both. This precedence is Alloy policy.
         QSet<QString> fixedPoints;
         for(const auto& row:parameters.value("constraints").toArray()){
-            const auto relation=row.toObject();if(relation.value("type")=="fixed")
+            const auto relation=row.toObject();if(relation.value("type")=="fixed" || relation.value("type")=="fixedLine")
                 for(const auto& id:relation.value("pointIds").toArray())fixedPoints.insert(id.toString());
         }
         QJsonArray roles,underconstrained;
@@ -2500,6 +2507,59 @@ SketchGeometry::SolveResult SketchGeometry::mirrorEntities(const QJsonObject& dr
         const auto result=solveDraft(candidate,projectionContext);
         return result.ok ? result : SolveResult{false,draft,result.diagnostics,result.error};
     }catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
+}
+
+SketchGeometry::SolveResult SketchGeometry::toggleFixed(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext) {
+    try {
+        validateDraft(draft);checkFields(arguments,{"pointIds","entityIds"});
+        const auto points=arguments.value("pointIds").toArray(),entities=arguments.value("entityIds").toArray();
+        if(points.size()+entities.size()!=1)reject("Fix/UnFix requires one point or authored straight line");
+        auto parameters=draft.value("parameters").toObject();
+        QJsonArray owned=points;QJsonObject relation{{"id",newId()},{"type",points.isEmpty() ? "fixedLine" : "fixed"}};
+        if(!entities.isEmpty()) {
+            QJsonObject target;for(const auto& row:parameters.value("entities").toArray())if(row.toObject().value("id")==entities[0])target=row.toObject();
+            if(target.isEmpty())reject("Fix/UnFix target no longer exists");
+            if(target.value("type")!="line")reject("Fix/UnFix currently supports authored straight lines and sketch points");
+            if(target.contains("projectionId"))reject("Projected geometry cannot own Fix");
+            owned=QJsonArray{target.value("startPointId"),target.value("endPointId")};relation["entityIds"]=entities;
+            QSet<QString> targetIds{entities[0].toString(),owned[0].toString(),owned[1].toString()};
+            const auto mentions=[&](const QJsonValue& value,const auto& self)->bool {
+                if(value.isString())return targetIds.contains(value.toString());
+                if(value.isArray())for(const auto& item:value.toArray())if(self(item,self))return true;
+                if(value.isObject())for(const auto& item:value.toObject())if(self(item,self))return true;
+                return false;
+            };
+            for(auto it=parameters.constBegin();it!=parameters.constEnd();++it) {
+                if(QSet<QString>{"points","entities","constraints","dimensions","originPointId"}.contains(it.key()))continue;
+                if(mentions(it.value(),mentions))reject("Fix/UnFix requires an independent line; retained geometry owns this target");
+            }
+            for(const auto& row:parameters.value("entities").toArray()) {
+                const auto other=row.toObject();if(other.value("id")==entities[0])continue;
+                for(const auto& key:{"firstAxisId","secondAxisId"})if(other.value(key)==entities[0])reject("Fix/UnFix requires an independent line; an ellipse owns this axis");
+            }
+        }
+        if(points.size()==1 && points[0]==parameters.value("originPointId"))reject("The sketch origin remains fixed");
+        QJsonArray coordinates;
+        for(const auto& id:owned) {
+            QJsonObject point;for(const auto& row:parameters.value("points").toArray())if(row.toObject().value("id")==id)point=row.toObject();
+            if(point.isEmpty())reject("Fix/UnFix point no longer exists");
+            coordinates.append(QJsonObject{{"uMm",point.value("uMm")},{"vMm",point.value("vMm")}});
+        }
+        relation["pointIds"]=owned;
+        if(points.isEmpty())relation["coordinates"]=coordinates;
+        else {relation["uMm"]=coordinates[0].toObject().value("uMm");relation["vMm"]=coordinates[0].toObject().value("vMm");}
+        bool removed=false;QJsonArray kept;
+        for(const auto& row:parameters.value("constraints").toArray()) {
+            const auto prior=row.toObject();
+            const bool match=points.isEmpty() ? prior.value("type")=="fixedLine" && prior.value("entityIds")==entities
+                : prior.value("type")=="fixed" && prior.value("pointIds")==points;
+            if(match)removed=true;else kept.append(row);
+        }
+        if(!removed)kept.append(relation);
+        parameters["constraints"]=kept;auto candidate=draft;candidate["parameters"]=parameters;
+        const auto result=solveDraft(candidate,projectionContext);
+        return result.ok ? result : SolveResult{false,draft,result.diagnostics,result.error};
+    } catch(const std::exception& error) {return invalidDraft(draft,QString::fromUtf8(error.what()));}
 }
 
 SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext) {

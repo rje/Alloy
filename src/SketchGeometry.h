@@ -130,6 +130,8 @@ public:
     static SolveResult deleteEntities(const QJsonObject& draft,const QJsonArray& entityIds,
         const QJsonArray& pointIds = {},const QJsonObject& projectionContext = {});
     static SolveResult solveDraft(const QJsonObject& draft, const QJsonObject& projectionContext = {}, const QString& initialReferencePointId = {});
+    // Toggle explicit point or authored straight-line Fix ownership atomically.
+    static SolveResult toggleFixed(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});
     static SolveResult addConstraint(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});
     // Line angles use kind=angle, two entityIds, optional raySigns (+1/-1),
     // and driving valueDeg. Ray choice is independent of annotation placement.

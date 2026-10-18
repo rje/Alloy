@@ -52,8 +52,10 @@ geometry separately, with hidden targets excluded from viewport selection.
 now reveal attached constraints on selection and offer Delete Coincident from a
 point's context menu.
 [Sketch glyph inventory](docs/validation/sketch-glyph-inventory.md) now checks
-the supported relation marks, selection and deletion in one mixed sketch;
-geometry Fix/UnFix remains a separate tracked task.
+the supported relation marks, selection and deletion in one mixed sketch.
+[Point and line Fix/UnFix](docs/validation/sketch-fix-unfix.md) now locks an
+authored straight line's size and location under one editable relation and
+supports repeat-click unfix; other curve families remain tracked separately.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,

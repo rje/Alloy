@@ -289,6 +289,11 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             } else if(type=="pointOnCurve" || type=="supportLine") {
                 const auto id=reference(constraint,"entityIds",0);auto& p=point(reference(constraint,"pointIds",0));
                 if(lineMap.contains(id))solver.addConstraintPointOnLine(p,line(id),t);else solver.addConstraintPointOnCircle(p,circleMap.at(id),t);
+            } else if(type=="fixedLine") {
+                const auto coordinates=constraint["coordinates"].toArray();
+                for(int i=0;i<2;++i){auto& p=point(reference(constraint,"pointIds",i));const auto position=coordinates[i].toObject();
+                    solver.addConstraintEqual(p.x,constant(number(position,"uMm")),t);
+                    solver.addConstraintEqual(p.y,constant(number(position,"vMm")),t);}
             } else if (type == "fixed") {
                 auto& p = point(reference(constraint,"pointIds",0));
                 solver.addConstraintEqual(p.x,constant(number(constraint,"uMm")),t);
@@ -488,6 +493,13 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 const auto baseline=SketchSolver::solve(base,lockedPointIds);
                 scopedConcentricRedundancy=baseline.accepted;
             }
+            bool scopedFixedLineRedundancy=false;
+            if(!redundant.empty() && conflicts.empty() && status==GCS::SolveStatus::Success) {
+                auto base=parameters;QJsonArray kept;bool hasFixedLine=false;
+                for(const auto& value:constraints)if(value.toObject()["type"]=="fixedLine")hasFixedLine=true;else kept.append(value);
+                if(hasFixedLine){base["constraints"]=kept;scopedFixedLineRedundancy=SketchSolver::solve(base,lockedPointIds).accepted;}
+            }
+            if(scopedFixedLineRedundancy)result.diagnostics["acceptedFixedLineDependentRedundancyIds"]=mapped(redundant);
             if(scopedConcentricRedundancy)result.diagnostics["acceptedConcentricDependentRedundancyIds"]=mapped(redundant);
             bool scopedReferenceCoincidence=false;
             QString referenceCoincidenceId;
@@ -543,7 +555,7 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             result.diagnostics["redundantEntityIds"] = mapped(redundant,true);
             result.diagnostics["solverStatus"] = static_cast<int>(status);
             dof = solver.dofsNumber(); result.diagnostics["dof"] = dof;
-            if (!conflicts.empty() || (!redundant.empty() && !scopedConcentricRedundancy && !scopedReferenceCoincidence) || status != GCS::SolveStatus::Success) {
+            if (!conflicts.empty() || (!redundant.empty() && !scopedConcentricRedundancy && !scopedReferenceCoincidence && !scopedFixedLineRedundancy) || status != GCS::SolveStatus::Success) {
                 result.diagnostics["status"] = !conflicts.empty() ? "conflicting" : !redundant.empty() ? "redundant" : "failed";
                 result.error = "Sketch solve rejected: " + result.diagnostics.value("status").toString(); return result;
             }
@@ -623,6 +635,7 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 const auto& anchor=point(reference(c,"pointIds",0));const auto& vertex=point(reference(c,"pointIds",1));
                 check(*vertex.x-*anchor.x-number(c,"offsetUMm"),lengthTolerance);check(*vertex.y-*anchor.y-number(c,"offsetVMm"),lengthTolerance);
             }
+            else if(type=="fixedLine") {const auto positions=c["coordinates"].toArray();for(int i=0;i<2;++i){const auto& p=point(reference(c,"pointIds",i));const auto position=positions[i].toObject();check(*p.x-number(position,"uMm"),lengthTolerance);check(*p.y-number(position,"vMm"),lengthTolerance);}}
             else if(type=="fixed") {const auto& p=point(reference(c,"pointIds",0));check(*p.x-number(c,"uMm"),lengthTolerance);check(*p.y-number(c,"vMm"),lengthTolerance);}
             else if(type=="circleTangent" || type=="arcCircleTangent" || type=="arcEndpointCircleTangent" || type=="arcEndpointArcTangent" || type=="arcArcTangent") {
                 const auto& a=circumference(reference(c,"entityIds",0));const auto& b=circumference(reference(c,"entityIds",1));
