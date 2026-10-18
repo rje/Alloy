@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **576 issues**: **455 implementation, 24 research,
+The current local backlog contains **577 issues**: **456 implementation, 24 research,
 2 research/design, 22 epics, and 73 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 SKT-115–121 and SKT-123–124/#540–546, #548–549 are accepted analytic constraint pairs and endpoint contacts; SKT-129/#554 accepts distinct-ID arc/line endpoint Tangent and SKT-022/#163 is closed for its declared v1 analytic scope. SKT-122/#547 and SKT-130–132/#555–557 retain later multi-pair Symmetry, spline constraints and branch-control research.
@@ -44,7 +44,7 @@ retained line/point/circle Delete slice now depends on accepted SKT-066/071,
 while broad source repair remains Todo SKT-026/#160. SKT-144–147/#570–573
 now have independently accepted bounded Offset owner deletion, including the
 single-owner support-face loop under SKT-145/#571. Its planar-inset actual-app
-variant and multiple owners in one sketch remain Todo SKT-152–153/#578–579.
+variant and multiple owners in one sketch remain Todo SKT-152–153/#578–579; stale-support recovery text is SKT-154/#580.
 SKT-148/#574 now accepts
 fit-spline Mirror Delete through core, real-app API, native Qt and independent
 review. SKT-149/#575 retains fit-spline Offset association-only removal as
