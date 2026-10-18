@@ -9644,7 +9644,7 @@
       ],
       "labels": [
         "kind:validation",
-        "status:blocked",
+        "status:ready",
         "area:skt",
         "phase:P2",
         "priority:P1"
@@ -9662,7 +9662,7 @@
       ],
       "labels": [
         "kind:implementation",
-        "status:blocked",
+        "status:ready",
         "area:skt",
         "phase:P2",
         "priority:P2"
