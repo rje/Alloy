@@ -2,6 +2,10 @@
 
 Current direction: [printable-part v1 plan](https://alloy-v1-review.rjevans1.chatgpt.site) and [versioned inventory](docs/v1/README.md). The user reviewed the design as a reasonable working direction; individual gaps still require bounded completion and verification. The corrected iron tutorial is accepted; the full enclosure remains open.
 
+[Core 3MF export](docs/validation/3mf-export.md) now saves separate placed
+millimeter solids through Save As Mesh, with independent readback and a separate
+slicer check. Modeled printable threads remain required v1 work.
+
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,
 alongside completion of the advanced modeling tutorials.

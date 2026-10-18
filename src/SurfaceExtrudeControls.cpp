@@ -230,7 +230,7 @@ void AlloyWindow::startGeometryEvaluation() {
     std::thread([task]{
         try {
             QElapsedTimer timer;timer.start();
-            if(task->command=="document.exportStl")evaluateMeshExport(*task);
+            if(task->command=="document.exportStl" || task->command=="document.export3mf")evaluateMeshExport(*task);
             else if(task->command=="document.open"){task->full=CadDocument::prepareOpen(task->inputs.value("path").toString());task->fullMs=timer.elapsed();}
             else if(task->command=="surface.trim" && task->phase=="partition")evaluateSurfaceTrimPartition(*task);
             else if(task->command=="surface.boundaryFill" && task->phase=="partition")evaluateBoundaryFillPartition(*task);
@@ -289,7 +289,7 @@ void AlloyWindow::pollGeometryEvaluation() {
     const bool current=document_==task->document && document_->revision()==task->revision
         && document_->authored()["documentId"]==task->documentId && session_.value("id")==task->sessionId
         && session_.value("command")==task->command && geometryEvaluationGeneration_==task->generation;
-    if(task->command=="document.exportStl")completeMeshExport(task);
+    if(task->command=="document.exportStl" || task->command=="document.export3mf")completeMeshExport(task);
     else if(task->command=="sketch.edit" || task->command=="sketch.finish" || task->command=="feature.edit")completeSketchEvaluation(task);
     else if(task->command=="document.open")completeDocumentOpen(task);
     else if(task->command=="solid.loft")completeLoftEvaluation(task);

@@ -1791,7 +1791,7 @@ void AlloyWindow::refreshTabs() {
 }
 
 QJsonObject AlloyWindow::activateTab(const QString& tabId) {
-    if(geometryEvaluationRunning_ && geometryEvaluationRunning_->command=="document.exportStl")return failure("evaluation_busy","Wait for STL export to finish before switching designs");
+    if(geometryEvaluationRunning_ && (geometryEvaluationRunning_->command=="document.exportStl" || geometryEvaluationRunning_->command=="document.export3mf"))return failure("evaluation_busy","Wait for mesh export to finish before switching designs");
     if(tabId==activeTabId_)return documentTabs();
     bool found=false;for(const auto& tab:designTabs_)found|=tab->id==tabId;
     if(!found)return failure("stale_tab","Design tab does not exist","tabId");
@@ -1800,7 +1800,7 @@ QJsonObject AlloyWindow::activateTab(const QString& tabId) {
 }
 
 QJsonObject AlloyWindow::closeTab(const QString& tabId,bool discard) {
-    if(geometryEvaluationRunning_ && geometryEvaluationRunning_->command=="document.exportStl")return failure("evaluation_busy","Wait for STL export to finish before closing designs");
+    if(geometryEvaluationRunning_ && (geometryEvaluationRunning_->command=="document.exportStl" || geometryEvaluationRunning_->command=="document.export3mf"))return failure("evaluation_busy","Wait for mesh export to finish before closing designs");
     auto it=std::find_if(designTabs_.begin(),designTabs_.end(),[&](const auto& tab){return tab->id==tabId;});
     if(it==designTabs_.end())return failure("stale_tab","Design tab does not exist","tabId");
     if(tabHasUnsavedWork(tabId) && !discard)return failure("unsaved_changes","Save or explicitly discard the design before closing its tab");
@@ -2340,7 +2340,20 @@ void AlloyWindow::registerCommands() {
             catch(const GeometryKernel::EvaluationError& error){return QJsonObject{{"ok",false},{"error",error.diagnostics()}};}
 
         });
-    add("document.exportMeshDialog","Save As Mesh…","Export chosen committed solids to a local STL file.",
+    add("document.export3mf","Export 3MF","Export selected committed solids as separate millimeter Core mesh objects and build items.",
+        {{"path",parameter("string","Absolute output 3MF path.")},{"occurrenceId",optional(parameter("string","Local component occurrence UUID; export its visible bodies, excluding root bodies."))},
+         {"bodyId",optional(parameter("string","Stable evaluated solid body UUID."))},{"bodyIds",optional(parameter("array","Distinct evaluated solid body UUIDs."))},
+         {"allVisible",optional(parameter("boolean","Export all active visible bodies."))},
+         {"surfaceDeviationMm",meshDeviation},{"normalDeviationDeg",meshAngle}},[this](const auto& a){
+            if(!session_.isEmpty())return failure("active_command","Finish or Cancel the active command before exporting");
+            if(!sliderPreviewAuthored_.isEmpty() || !jointGraphStage_.isEmpty() || transientSliderPosition_.has_value() || pendingReferenceEvaluation_)
+                return failure("staged_pose","Finish or revert staged motion before exporting the committed pose");
+            try {
+                const auto selected=ExportScope::select(document_->authored(),presentationBodies(),a);
+                return beginMeshExport(selected.bodies,a,selected.label,true);
+            }catch(const GeometryKernel::EvaluationError& error){return QJsonObject{{"ok",false},{"error",error.diagnostics()}};}
+        });
+    add("document.exportMeshDialog","Save As Mesh…","Export chosen committed solids to a local STL or 3MF file.",
         {{"bodyId",optional(parameter("string","Optional initially selected body UUID."))},
          {"bodyIds",optional(parameter("array","Initially checked body UUIDs."))},{"allVisible",optional(parameter("boolean","Initially choose all active visible bodies."))}},[this](const auto& a){
             if(!sliderPreviewAuthored_.isEmpty() || !jointGraphStage_.isEmpty() || transientSliderPosition_.has_value() || pendingReferenceEvaluation_)
@@ -6276,7 +6289,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
         if(status=="failed"){response["ok"]=false;response["error"]=operation.value("previewError");}
         return response;
     }
-    if(geometryEvaluationRunning_ && geometryEvaluationRunning_->command=="document.exportStl"){
+    if(geometryEvaluationRunning_ && (geometryEvaluationRunning_->command=="document.exportStl" || geometryEvaluationRunning_->command=="document.export3mf")){
         if(id=="command.cancel" && args.value("session")==meshExportOperation_.value("id")){
             const auto error=validateArguments(*findCommand(id),args);if(!error.isEmpty())return failure("invalid_arguments",error);
             return cancelMeshExport();
@@ -6285,7 +6298,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
             || id=="view.orbit" || id=="view.pan" || id=="view.zoom" || id=="view.orientation" || id=="view.home" || id=="view.fit"
             || id=="capture.screenshot" || id=="capture.viewport" || id=="capture.dialog"
             || id.startsWith("recording.");
-        if(!safe)return failure("evaluation_busy","STL export is running; navigate or inspect command.status until it finishes");
+        if(!safe)return failure("evaluation_busy","Mesh export is running; navigate or inspect command.status until it finishes");
     }
     if(sketchEvaluationOperation_.value("evaluationStatus")=="pending"
         && (id=="sketch.cancel" || (id=="command.cancel" && (args.value("session")==sketchEvaluationOperation_.value("id")
@@ -6311,7 +6324,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
             || id=="view.fit" || id=="capture.screenshot" || id=="capture.viewport" || id=="capture.dialog";
         if(!safe)return failure("evaluation_busy","A native document is opening; navigate or Cancel Open to discard its result");
     }
-    if(geometryEvaluationRunning_ && geometryEvaluationRunning_->command!="sketch.edit" && geometryEvaluationRunning_->command!="sketch.finish" && geometryEvaluationRunning_->command!="feature.edit" && geometryEvaluationRunning_->command!="document.exportStl") {
+    if(geometryEvaluationRunning_ && geometryEvaluationRunning_->command!="sketch.edit" && geometryEvaluationRunning_->command!="sketch.finish" && geometryEvaluationRunning_->command!="feature.edit" && geometryEvaluationRunning_->command!="document.exportStl" && geometryEvaluationRunning_->command!="document.export3mf") {
         const bool safe=id=="commands.list" || id=="app.state" || id=="document.inspect" || id=="command.cancel"
             || (session_.value("command")=="surface.extrude" && (id=="command.preview" || id=="command.update" || id=="command.commit"
                 || id=="surface.extrudeEntity" || id=="surface.extrudeProfile" || id=="selection.pick"))
@@ -12025,10 +12038,12 @@ bool AlloyWindow::confirmAllDiscard() {
 void AlloyWindow::closeEvent(QCloseEvent* event) {
     if(geometryEvaluationRunning_) {
         event->ignore();
-        if(geometryEvaluationRunning_->command=="document.exportStl")
+        if(geometryEvaluationRunning_->command=="document.exportStl" || geometryEvaluationRunning_->command=="document.export3mf") {
+            const QString format=geometryEvaluationRunning_->command=="document.export3mf" ? "3MF" : "STL";
             statusBar()->showMessage(geometryEvaluationRunning_->exportPublication->state()==MeshExport::PublicationGate::State::Approved
-                ? "STL publication was approved. Wait for the final save result before closing."
-                : "STL export is running. Cancel before publication preserves the destination; close after export finishes.");
+                ? format+" publication was approved. Wait for the final save result before closing."
+                : format+" export is running. Cancel before publication preserves the destination; close after export finishes.");
+        }
         else statusBar()->showMessage("Background geometry evaluation is still running. Cancel discards its result; close after it finishes.");
         return;
     }

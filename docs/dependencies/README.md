@@ -22,7 +22,7 @@ so this is not a complete deployed closure or a relocation test.
 | Boost 1.90.0 | BSL-1.0 | Solver Graph/math headers; exact archive fallback and notices |
 | OndselSolver1.0.1, 4be80eef… | LGPL-2.1 | Bounded shared assembly backend; original POD/C ABI; macOS core evidence only, packaging/platform replacement pending |
 | libslvs, ef96633… | GPL-3.0-or-later | Not admitted under current integration decisions |
-| lib3mf 2.5.0, 64bb454… | BSD-2-Clause | Candidate only; complete bundled-dependency audit before its format task |
+| lib3mf 2.5.0, 64bb454… | BSD-2-Clause | Admitted for bounded Core 3MF export; pinned static build and bundled notices, with package/runtime gates still open |
 
 Permissive Alloy source licensing is compatible with an LGPL library boundary
 when the applicable distribution conditions are met. Do not replace this choice
@@ -59,10 +59,14 @@ GATE-005, separate from this admission record.
 The [PlaneGCS extraction](../../third_party/planegcs/README.md) records the audited
 thirteen-file set, SHA-256 checked downloads, Eigen/Boost header pins, standalone
 export/logging shims and explicit dated C++20 patch. No unrelated FreeCAD
-application code is admitted by this choice. Before lib3mf,
-retain libzip (BSD-3-Clause), zlib/cpp-base64 (Zlib), and selected fast_float MIT
-notices. The pinned credits list zlib 1.3.0 but its header says 1.3.1; reconcile
-that discrepancy with the actual included code rather than repeat stale credits.
+application code is admitted by this choice. The lib3mf export build retains
+libzip (BSD-3-Clause), zlib/cpp-base64 (Zlib), and fast_float MIT notices in
+`build-preview-release/third-party-notices/lib3mf`. The bundled compiled libzip
+sources are copied there because their copyright years extend beyond the
+submodule's top-level LICENSE. The pinned credits list zlib 1.3.0 while the
+bundled header identifies 1.3.1; the staged notice comes from that actual
+header. CI artifacts and the macOS packaging recipe carry the staged files;
+qualified cross-platform bundles remain separate work.
 
 ## Primary sources
 

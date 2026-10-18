@@ -37,7 +37,7 @@ The backlog has broad command-family parents and many narrow children, but its 4
 
 | Gap to resolve before claiming the related scope | Existing anchors | Current planning treatment |
 | --- | --- | --- |
-| 3MF export/import, build units, object handling and downstream readback | XCH-011; XCH-005; PRT-002/003; GATE-040 | The user required 3MF export for first stable v1 on 2026-10-17. XCH-011 owns a bounded native export and independent consumer readback; XCH-005 retains import and wider options. Library integration alone is not verified output. |
+| 3MF export/import, build units, object handling and downstream readback | XCH-011; XCH-005; PRT-002/003; GATE-040 | The user required 3MF export for first stable v1 on 2026-10-17. XCH-011 now passes a bounded native Core export and independent consumer readback; XCH-005 retains import and wider options. Package/runtime gates remain open. |
 | STL settings, units and output integrity | PRT-001/002/003/005–010; DOC-016; GATE-040 | Core v1 path. Verify declared length units, refinement settings, manifold/watertight status where the source is solid, normals, collapsed facets, selected-body behavior, and independent mesh inspection. |
 | STEP import/export and units | XCH-001/003/009; DOC-016; GATE-010/040 | Core interoperability path for supported entities. Record entity losses, assembly placement/names/colors, unit conversion, and independent readback; keep full native-format parity on the later roadmap. |
 | Measurement and section inspection | DOC-014; DOC-008; GATE-010 | Existing explicit anchor. Verify actual geometry values and selection ownership in the UI/API; distinguish exact measurement from visual estimation. |

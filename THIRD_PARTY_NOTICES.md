@@ -3,6 +3,12 @@
 Alloy's original source and documentation are MIT licensed. Third-party licenses
 are separate; this file does not relicense libraries or their bundled code.
 
+3MF export uses [lib3mf 2.5.0](https://github.com/3MFConsortium/lib3mf/tree/v2.5.0)
+under BSD-2-Clause. Its bundled libzip, zlib, cpp-base64 and fast_float sources
+retain their own notices. The pinned archive hashes and exact notice-copy rules
+are in [cmake/Lib3MF.cmake](cmake/Lib3MF.cmake); builds stage those notices under
+`third-party-notices/lib3mf` and the macOS package includes them in Resources.
+
 Alloy uses Qt 6.11.2 Core, Gui, Widgets and Network, dynamically linked under the
 GNU Lesser General Public License version 3. Copyright belongs to The Qt Company
 and other Qt contributors. Local Qt may also link QtDBus. See

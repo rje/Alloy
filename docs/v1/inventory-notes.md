@@ -5,9 +5,12 @@ standalone shape-creation and 3D-printing release. It covers existing tools,
 missing tools/options, release gates and explicit later families. It does not
 reduce the long-term product contract or approve any deferral.
 
-The inventory has **397 exact registered command IDs**: 396 available entries
-and the unavailable `inspect.measure` placeholder. Its **150 readable rows**
-combine related controls/aliases and expose missing capabilities. Counts describe
+The inventory has **397 exact registered command IDs** in its dated registry
+snapshot: 396 available entries and the unavailable `inspect.measure`
+placeholder. Its **150 readable rows** combine related controls/aliases and
+expose missing capabilities. The later `document.export3mf` command is verified
+in the [3MF receipt](../validation/3mf-export.md) and appears in its amended
+capability row; the registry list awaits the next full refresh. Counts describe
 inventory structure, not percentage complete. `present` means the named bounded
 authority exists; `partial` retains material limits; neither means v1 ready.
 Native evidence remains `partial` or `unknown` because ordinary physical input,

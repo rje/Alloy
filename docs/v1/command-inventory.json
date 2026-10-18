@@ -81,7 +81,8 @@
       "titlesMatch": true,
       "availabilityMatches": true,
       "source": "Root-owned accepted-build commands.list export; editor closed after export. No modeling or input validation performed by this worker."
-    }
+    },
+    "subsequentAmendment": "The exchange.3mf capability row reflects the later accepted document.export3mf real-app receipt; the 397-command registry list and sourceCommit remain the dated original snapshot."
   },
   "totals": {
     "registeredCommands": 397,
@@ -95,9 +96,9 @@
       "later": 9
     },
     "byImplementation": {
-      "present": 24,
-      "partial": 68,
-      "missing": 58
+      "present": 25,
+      "partial": 69,
+      "missing": 56
     }
   },
   "tools": [
@@ -3712,22 +3713,29 @@
     },
     {
       "id": "exchange.3mf",
-      "label": "3MF import/export with object/build units",
+      "label": "3MF export with object/build units",
       "category": "3D printing",
       "scope": "proposed-v1",
-      "implementation": "missing",
-      "nativeEvidence": "unknown",
-      "gap": "No registered 3MF path; explicit units, objects and consumer readback are required.",
-      "apiIds": [],
+      "implementation": "present",
+      "nativeEvidence": "partial",
+      "gap": "Bounded Core export, source edit, independent geometry readback, separate consumer and macOS native chooser pass. Import, optional extensions, physical hand input and other-platform runtime remain open.",
+      "apiIds": [
+        "document.export3mf",
+        "document.exportMeshDialog"
+      ],
       "issueKeys": [
         "XCH-005",
         "XCH-011"
       ],
       "sourceFiles": [
-        "docs/backlog/issues.json"
+        "src/MeshExport.cpp",
+        "src/ExportControls.cpp",
+        "src/AlloyWindow.cpp"
       ],
-      "receipts": [],
-      "planningStatus": "Required v1 export: XCH-011; import and broader options remain XCH-005"
+      "receipts": [
+        "docs/validation/3mf-export.md"
+      ],
+      "planningStatus": "Required v1 Core export accepted under XCH-011; import and broader options remain XCH-005"
     },
     {
       "id": "exchange.dxf",

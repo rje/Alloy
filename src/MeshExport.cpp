@@ -21,6 +21,11 @@
 #include <bit>
 #include <cmath>
 #include <numbers>
+#include <array>
+#include <map>
+#include <limits>
+#include <lib3mf_implicit.hpp>
+#include <Standard_Failure.hxx>
 
 namespace {
 [[noreturn]] void reject(const QString& code,const QString& message) {
@@ -222,6 +227,157 @@ QJsonObject MeshExport::writeStl(const std::vector<EvaluatedBody>& bodies,const 
         {"surfaceDeviationMm",surfaceDeviationMm},{"normalDeviationDeg",normalDeviationDeg},
         {"triangles",triangles},{"collapsedTrianglesRemoved",collapsedTriangles},{"serializedCollapsedTrianglesRemoved",serializedCollapsed},{"faces",faces},{"bytes",outputBytes},
         {"mesherStatus",mesherStatus},{"authoredChanged",false}};
+    if(bodies.size()==1)result["bodyId"]=bodies.front().bodyId;
+    return result;
+}
+
+namespace {
+struct CoreMesh {
+    std::vector<Lib3MF::sPosition> vertices;
+    std::vector<Lib3MF::sTriangle> triangles;
+    qint64 collapsed=0;
+    int faces=0,status=0;
+};
+
+CoreMesh coreMesh(const EvaluatedBody& body,const gp_Trsf& placement,double deviation,double angle) {
+    const auto summary=GeometryKernel::summarize(body.shape);
+    if(!summary.value("valid").toBool() || !summary.value("closed").toBool()
+        || summary.value("topology").toObject().value("solids").toInt()!=1
+        || summary.value("volumeMm3").toDouble()<=0)
+        reject("solid_required","Each selected export body must be one valid closed solid: "+body.bodyId);
+    BRepBuilderAPI_Copy copy(body.shape,true,false);auto detached=copy.Shape();
+    BRepMesh_IncrementalMesh mesher(detached,deviation,false,angle*std::numbers::pi/180.0,false);
+    if(!mesher.IsDone())reject("mesh_failed","3MF export tessellation did not complete");
+    CoreMesh result;result.status=mesher.GetStatusFlags();
+    // A fixed sub-micron weld joins shared BRep face seams, including analytic
+    // poles. It never grows with mesh deviation; final indexed manifold checks
+    // reject any hole or inconsistent seam instead of healing source geometry.
+    constexpr double weldMm=1e-6;
+    using Cell=std::array<qint64,3>;
+    std::map<Cell,std::vector<quint32>> cells;
+    const auto inverse=placement.Inverted();
+    const auto vertex=[&](gp_Pnt point) {
+        point.Transform(inverse);
+        Lib3MF::sPosition encoded{{float(point.X()),float(point.Y()),float(point.Z())}};
+        Cell cell;
+        for(int axis=0;axis<3;++axis) {
+            const double value=encoded.m_Coordinates[axis];
+            if(!std::isfinite(value) || std::abs(value/weldMm)>double(std::numeric_limits<qint64>::max())-4)
+                reject("mesh_failed","3MF vertex exceeds supported finite coordinate range");
+            cell[axis]=qint64(std::floor(value/weldMm));
+        }
+        for(int x=-1;x<=1;++x)for(int y=-1;y<=1;++y)for(int z=-1;z<=1;++z) {
+            const auto found=cells.find(Cell{cell[0]+x,cell[1]+y,cell[2]+z});
+            if(found==cells.end())continue;
+            for(const auto index:found->second) {
+                const auto& other=result.vertices[index];double distance2=0;
+                for(int axis=0;axis<3;++axis)distance2+=std::pow(double(encoded.m_Coordinates[axis])-other.m_Coordinates[axis],2);
+                if(distance2<=weldMm*weldMm)return index;
+            }
+        }
+        if(result.vertices.size()>=std::numeric_limits<quint32>::max())reject("mesh_failed","3MF vertex count exceeds Core index range");
+        const auto index=quint32(result.vertices.size());result.vertices.push_back(encoded);cells[cell].push_back(index);return index;
+    };
+    for(TopExp_Explorer it(detached,TopAbs_FACE);it.More();it.Next()) {
+        const auto face=TopoDS::Face(it.Current());TopLoc_Location location;
+        const auto mesh=BRep_Tool::Triangulation(face,location);
+        if(mesh.IsNull() || mesh->NbTriangles()==0)reject("mesh_failed","A selected solid face has no export triangles");
+        ++result.faces;std::vector<quint32> indices(mesh->NbNodes()+1);
+        for(int node=1;node<=mesh->NbNodes();++node)indices[node]=vertex(mesh->Node(node).Transformed(location.Transformation()));
+        for(int index=1;index<=mesh->NbTriangles();++index) {
+            int a,b,c;mesh->Triangle(index).Get(a,b,c);
+            if(face.Orientation()==TopAbs_REVERSED)std::swap(b,c);
+            Lib3MF::sTriangle triangle{{indices[a],indices[b],indices[c]}};
+            const auto p=[&](quint32 i){const auto& v=result.vertices[i];return gp_Pnt(v.m_Coordinates[0],v.m_Coordinates[1],v.m_Coordinates[2]);};
+            const auto cross=gp_Vec(p(triangle.m_Indices[0]),p(triangle.m_Indices[1])).Crossed(gp_Vec(p(triangle.m_Indices[0]),p(triangle.m_Indices[2])));
+            if(triangle.m_Indices[0]==triangle.m_Indices[1] || triangle.m_Indices[1]==triangle.m_Indices[2]
+                || triangle.m_Indices[0]==triangle.m_Indices[2] || cross.SquareMagnitude()==0) {++result.collapsed;continue;}
+            result.triangles.push_back(triangle);
+        }
+    }
+    if(result.triangles.empty())reject("mesh_failed","3MF export tessellation is empty");
+    struct Edge {int count=0,balance=0;};std::map<std::pair<quint32,quint32>,Edge> edges;
+    // Signed volume relative to a nearby origin avoids cancellation for bodies
+    // placed far from the document origin. Cavity shell orientation is retained.
+    const auto& origin=result.vertices.front();double volume6=0;
+    for(const auto& triangle:result.triangles) {
+        gp_XYZ points[3];
+        for(int i=0;i<3;++i) {
+            const auto a=triangle.m_Indices[i],b=triangle.m_Indices[(i+1)%3];
+            auto& edge=edges[{std::min(a,b),std::max(a,b)}];++edge.count;edge.balance+=a<b?1:-1;
+            const auto& p=result.vertices[a];points[i]=gp_XYZ(double(p.m_Coordinates[0])-origin.m_Coordinates[0],double(p.m_Coordinates[1])-origin.m_Coordinates[1],double(p.m_Coordinates[2])-origin.m_Coordinates[2]);
+        }
+        volume6+=points[0].Dot(points[1].Crossed(points[2]));
+    }
+    for(const auto& [key,edge]:edges)if(edge.count!=2 || edge.balance!=0)
+        reject("mesh_failed","3MF tessellation is not a consistently oriented watertight indexed mesh: "+body.bodyId);
+    if(!std::isfinite(volume6) || volume6==0)reject("mesh_failed","3MF mesh has no finite enclosed volume");
+    if(volume6<0)for(auto& triangle:result.triangles)std::swap(triangle.m_Indices[1],triangle.m_Indices[2]);
+    return result;
+}
+}
+
+QJsonObject MeshExport::write3mf(const std::vector<EvaluatedBody>& bodies,
+    const std::vector<gp_Trsf>& buildTransforms,const QString& path,double surfaceDeviationMm,
+    double normalDeviationDeg,const std::function<bool()>& approvePublication) {
+    if(!std::isfinite(surfaceDeviationMm) || surfaceDeviationMm<0.001 || surfaceDeviationMm>10
+        || !std::isfinite(normalDeviationDeg) || normalDeviationDeg<1 || normalDeviationDeg>45)
+        reject("invalid_mesh_settings","Surface deviation must be 0.001–10 mm and normal deviation 1–45 degrees");
+    const QFileInfo destination(path);
+    if(!destination.isAbsolute() || destination.fileName().isEmpty() || !destination.dir().exists())
+        reject("invalid_path","Choose an absolute 3MF path in an existing directory");
+    if(bodies.empty())reject("solid_required","Select at least one valid closed solid");
+    if(buildTransforms.size()!=bodies.size())reject("invalid_transform","Each 3MF body requires exactly one build transform");
+    QSet<QString> distinct;QJsonArray bodyIds,instances;std::vector<Lib3MF_uint8> bytes;
+    qint64 triangles=0,vertices=0,collapsed=0;int faces=0,mesherStatus=0;
+    try {
+        const auto wrapper=Lib3MF::CWrapper::loadLibrary();const auto model=wrapper->CreateModel();
+        model->SetUnit(Lib3MF::eModelUnit::MilliMeter);
+        for(size_t index=0;index<bodies.size();++index) {
+            const auto& body=bodies[index];const auto& placement=buildTransforms[index];
+            const auto key=body.occurrenceId+":"+body.bodyId;
+            if(body.bodyId.isEmpty() || distinct.contains(key))reject("invalid_body_selection","Select distinct body instances");
+            distinct.insert(key);bodyIds.append(body.bodyId);
+            // Occurrence placements are rigid, proper transforms. Reflections or
+            // scale would change local winding/physical units and are rejected.
+            if(placement.IsNegative() || std::abs(placement.ScaleFactor()-1)>1e-10)
+                reject("invalid_transform","3MF build placements must be proper rigid transforms");
+            Lib3MF::sTransform transform{};QJsonArray transformJson;
+            // OCCT uses column vectors; Core 3MF stores row-vector 4x3 fields.
+            for(int row=0;row<4;++row)for(int column=0;column<3;++column) {
+                const float value=float(placement.Value(column+1,row+1));
+                if(!std::isfinite(value))reject("invalid_transform","3MF build transform must be finite");
+                transform.m_Fields[row][column]=value;transformJson.append(double(value));
+            }
+            const auto mesh=coreMesh(body,placement,surfaceDeviationMm,normalDeviationDeg);
+            auto object=model->AddMeshObject();object->SetName((body.name.isEmpty()?body.bodyId:body.name).toStdString());
+            object->SetGeometry(mesh.vertices,mesh.triangles);
+            if(!object->IsManifoldAndOriented())reject("mesh_failed","3MF library rejected mesh orientation or manifold edges");
+            model->AddBuildItem(std::static_pointer_cast<Lib3MF::CObject>(object),transform);
+            triangles+=qint64(mesh.triangles.size());vertices+=qint64(mesh.vertices.size());collapsed+=mesh.collapsed;
+            faces+=mesh.faces;mesherStatus|=mesh.status;
+            instances.append(QJsonObject{{"occurrenceId",body.occurrenceId},{"definitionId",body.definitionId},{"bodyId",body.bodyId},
+                {"boundsMm",body.summary.value("boundsMm")},{"buildTransform",transformJson},
+                {"triangles",qint64(mesh.triangles.size())},{"vertices",qint64(mesh.vertices.size())}});
+        }
+        model->QueryWriter("3mf")->WriteToBuffer(bytes);
+    } catch(const Lib3MF::ELib3MFException& error) {
+        reject("export_failed","3MF writer: "+QString::fromUtf8(error.what()));
+    } catch(const Standard_Failure& error) {
+        reject("mesh_failed","3MF tessellation: "+QString::fromUtf8(error.GetMessageString()));
+    }
+    if(bytes.empty())reject("export_failed","3MF writer produced no output");
+    QSaveFile output(path);output.setDirectWriteFallback(false);
+    if(!output.open(QIODevice::WriteOnly))reject("export_failed",output.errorString());
+    if(output.write(reinterpret_cast<const char*>(bytes.data()),qint64(bytes.size()))!=qint64(bytes.size()))
+        reject("export_failed",output.errorString());
+    if(approvePublication && !approvePublication())reject("export_cancelled","3MF publication cancelled; destination preserved");
+    if(!output.commit())reject("export_failed",output.errorString());
+    QJsonObject result{{"path",destination.absoluteFilePath()},{"format","3mf"},{"bodyIds",bodyIds},{"instances",instances},
+        {"bodyCount",int(bodies.size())},{"objectCount",int(bodies.size())},{"buildItemCount",int(bodies.size())},
+        {"units","mm"},{"unitsEmbedded",true},{"surfaceDeviationMm",surfaceDeviationMm},{"normalDeviationDeg",normalDeviationDeg},
+        {"triangles",triangles},{"vertices",vertices},{"collapsedTrianglesRemoved",collapsed},{"faces",faces},
+        {"bytes",qint64(bytes.size())},{"mesherStatus",mesherStatus},{"authoredChanged",false}};
     if(bodies.size()==1)result["bodyId"]=bodies.front().bodyId;
     return result;
 }

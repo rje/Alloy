@@ -22,9 +22,9 @@ inspection, OBJ output and active-preview visibility responsiveness. Other
 broader parent issues must be split when pulled; see
 [the ownership audit](../v1/ownership-audit.md).
 The user's first-v1 scope decision requires 3MF export and modeled printable
-threads. XCH-011/#524 is a bounded 3MF export child under XCH-005; SOL-059/#504
-already owns the modeled thread. Both remain Todo and require actual app/output
-validation.
+threads. XCH-011/#524 has a bounded [Core 3MF export receipt](../validation/3mf-export.md)
+with actual app/native/independent consumer evidence; XCH-005 retains import
+and extensions. SOL-059/#504 owns modeled threads and remains Todo.
 SKT-102/#525 preserves spline, ellipse, conic and grouped/derived geometry
 deletion after the [accepted ordinary line/circle/arc/point SKT-099 slice](../validation/sketch-geometry-delete.md).
 DOC-016/#167 has a bounded [native exchange-sheet receipt](../validation/native-exchange-sheet.md);

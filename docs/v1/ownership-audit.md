@@ -56,7 +56,9 @@ Windows and Linux. The accepted local macOS Open/export receipts do not
 qualify physical input or other platforms. STL and STEP are core to the
 printable-part plan. The user required 3MF export and modeled threads for the
 first stable v1 on 2026-10-17. XCH-011/#524 now owns a bounded 3MF export path;
-XCH-005 retains import and wider format options. SOL-059/#504 owns modeled
-printable threads, with wider thread modes on ADV-005. Both remain Todo and
-must pass real-workflow gates before release. No tag, build matrix or release
+XCH-005 retains import and wider format options. The bounded Core export now
+passes [local Mac evidence](../validation/3mf-export.md), including native
+Save As Mesh and a separate consumer. SOL-059/#504 owns modeled printable
+threads, with wider thread modes on ADV-005; that work remains Todo.
+No tag, build matrix or release
 promotion follows from this audit.

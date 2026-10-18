@@ -34,6 +34,12 @@ public:
         std::condition_variable changed_;
         State state_=State::Preparing;
     };
+    // Inputs are committed world geometry; each supplied placement is removed
+    // from mesh coordinates and emitted exactly once on its Core build item.
+    static QJsonObject write3mf(const std::vector<EvaluatedBody>& bodies,
+        const std::vector<gp_Trsf>& buildTransforms, const QString& path,
+        double surfaceDeviationMm, double normalDeviationDeg,
+        const std::function<bool()>& approvePublication = {});
     static QJsonObject writeStl(const std::vector<EvaluatedBody>& bodies, const QString& path,
         const QString& units, bool binary, double surfaceDeviationMm,
         double normalDeviationDeg, const std::function<bool()>& approvePublication = {});

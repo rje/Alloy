@@ -166,6 +166,10 @@ def main():
     for item in ('LICENSE', 'THIRD_PARTY_NOTICES.md'):
         shutil.copy2(ROOT / item, notices / item)
     shutil.copytree(ROOT / 'LICENSES', notices / 'LICENSES')
+    lib3mf_notices = build / 'third-party-notices/lib3mf'
+    if not lib3mf_notices.is_dir():
+        raise RuntimeError(f'Missing exact lib3mf dependency notices: {lib3mf_notices}')
+    shutil.copytree(lib3mf_notices, notices / 'lib3mf')
     shutil.copy2(ROOT / 'third_party/dejavu/LICENSE', notices / 'DejaVu-LICENSE')
     shutil.copy2(ROOT / 'third_party/ondsel/LICENSE', notices / 'OndselSolver-LICENSE')
     for component, path in {

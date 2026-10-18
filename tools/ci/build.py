@@ -163,6 +163,10 @@ def main():
         helper = directory / ('Release/alloy-local-client.exe' if sys.platform == 'win32' else 'alloy-local-client')
         shutil.copy2(helper, artifact / helper.name)
         shutil.copy2(ROOT / 'tools/alloyctl.py', artifact / 'alloyctl.py')
+        lib3mf_notices = directory / 'third-party-notices/lib3mf'
+        if not lib3mf_notices.is_dir():
+            raise RuntimeError(f'Missing exact lib3mf dependency notices: {lib3mf_notices}')
+        shutil.copytree(lib3mf_notices, artifact / 'third-party-notices/lib3mf')
         link_inventory = None
         if sys.platform == 'darwin':
             link_inventory = mac_link_inventory(executable, directory, qt, occt, ft)

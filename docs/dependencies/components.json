@@ -55,7 +55,7 @@
       "version": "2.5.0",
       "revision": "64bb454d1fcb53effa57d3cef752a10d740d41a2",
       "selected_license": "BSD-2-Clause",
-      "admission": "candidate only; bundled dependencies and stale zlib credits require audit",
+      "admission": "bounded Core 3MF export; pinned static build and actual bundled-source notices staged, with runtime package qualification still open",
       "source": "https://github.com/3MFConsortium/lib3mf/tree/64bb454d1fcb53effa57d3cef752a10d740d41a2"
     },
     {

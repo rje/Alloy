@@ -24,6 +24,7 @@ message(STATUS "Qt ${Qt6_VERSION}; spikes=${ALLOY_BUILD_SPIKES}; OCCT components
 
 include(cmake/PlaneGCS.cmake)
 include(cmake/OndselSolver.cmake)
+include(cmake/Lib3MF.cmake)
 add_library(alloy_sketch_solver STATIC src/SketchSolver.cpp src/SketchSolver.h src/SketchMirror.cpp src/SketchMirror.h src/SketchArcSlot.cpp src/SketchArcSlot.h src/SketchEllipse.cpp src/SketchEllipse.h)
 target_include_directories(alloy_sketch_solver PUBLIC src)
 target_link_libraries(alloy_sketch_solver PUBLIC Qt6::Core PRIVATE alloy_planegcs)
@@ -40,7 +41,7 @@ add_library(alloy_kernel STATIC
     src/SketchProfiles.cpp src/SketchProfiles.h src/SketchRegions.cpp)
 target_include_directories(alloy_kernel PUBLIC src)
 target_include_directories(alloy_kernel SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
-target_link_libraries(alloy_kernel PUBLIC alloy_assembly_solver alloy_sketch_solver Qt6::Gui TKernel TKMath TKG3d TKBRep TKPrim TKTopAlgo TKFillet TKOffset TKBO TKBool TKGeomAlgo TKMesh TKDESTL TKDESTEP TKXSBase TKLCAF TKCAF TKCDF)
+target_link_libraries(alloy_kernel PRIVATE lib3mf PUBLIC alloy_assembly_solver alloy_sketch_solver Qt6::Gui TKernel TKMath TKG3d TKBRep TKPrim TKTopAlgo TKFillet TKOffset TKBO TKBool TKGeomAlgo TKMesh TKDESTL TKDESTEP TKXSBase TKLCAF TKCAF TKCDF)
 qt_add_resources(alloy_kernel "alloy_text_font" PREFIX "/alloy/fonts" BASE "third_party/dejavu" FILES "third_party/dejavu/DejaVuSans.ttf" "third_party/dejavu/DejaVuSans-Bold.ttf")
 target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_VERSION}")
 
@@ -1043,4 +1044,10 @@ if(BUILD_TESTING)
     # Explicit GUI lease + supplied-fixture environment; never automatic CTest.
     add_executable(piston_native_workflow_test tests/piston_native_workflow.cpp)
     target_link_libraries(piston_native_workflow_test PRIVATE alloy_application Qt6::Test)
+endif()
+
+if(BUILD_TESTING)
+    add_executable(three_mf_writer_test tests/three_mf_writer.cpp)
+    target_link_libraries(three_mf_writer_test PRIVATE Qt6::Core alloy_kernel lib3mf)
+    add_test(NAME three_mf_writer COMMAND three_mf_writer_test)
 endif()

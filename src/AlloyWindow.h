@@ -14,6 +14,7 @@
 #include <vector>
 #include "CadDocument.h"
 #include "MeshExport.h"
+#include <gp_Trsf.hxx>
 #include "AssemblyGraph.h"
 #include "SketchGeometry.h"
 
@@ -351,6 +352,7 @@ private:
         qint64 sourceMs = 0, fullMs = 0, stageMs = 0;
         QString error;
         std::vector<EvaluatedBody> exportBodies; // Independent geometry; never live reference arrays.
+        std::vector<gp_Trsf> exportTransforms; // One placed-body build transform per detached export body.
         std::shared_ptr<MeshExport::PublicationGate> exportPublication;
         QJsonObject exportResult, exportError;
         qint64 snapshotMs = 0;
@@ -365,7 +367,7 @@ private:
     QJsonObject meshExportOperation_; // One terminal result, until next request/session/document mutation.
     QList<QPointer<QWidget>> meshExportFrozenControls_;
     QPushButton* meshExportCancel_ = nullptr;
-    QJsonObject beginMeshExport(const std::vector<EvaluatedBody>& bodies,const QJsonObject& inputs,const QString& label);
+    QJsonObject beginMeshExport(const std::vector<EvaluatedBody>& bodies,const QJsonObject& inputs,const QString& label,bool threeMf=false);
     static void evaluateMeshExport(GeometryEvaluation& task);
     bool meshExportCurrent(const GeometryEvaluation& task) const;
     QJsonObject cancelMeshExport();

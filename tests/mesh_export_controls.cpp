@@ -52,6 +52,11 @@ private slots:
   QPointer<QDialog> dialog;QTRY_VERIFY((dialog=w.findChild<QDialog*>("mesh.export.dialog"))&&dialog->isVisible());
   QTRY_VERIFY(QApplication::activePopupWidget()==nullptr);
   QCOMPARE(dialog->findChild<QComboBox*>("mesh.export.body")->currentData().toString(),bodyId);
+  auto* format=dialog->findChild<QComboBox*>("mesh.export.format");QVERIFY(format);
+  const int threeMf=format->findData("3mf");QVERIFY(threeMf>=0);
+  format->setCurrentIndex(threeMf);
+  QVERIFY(!dialog->findChild<QComboBox*>("mesh.export.units")->isVisible());
+  QVERIFY(dialog->findChild<QLabel*>("mesh.export.note")->text().contains("millimeters"));
   QTest::mouseClick(dialog->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Cancel),Qt::LeftButton);
   QTRY_VERIFY(!dialog||!dialog->isVisible());
   QCOMPARE(call(w,"document.inspect"),before);
@@ -88,6 +93,20 @@ private slots:
   // A new session invalidates the previous terminal, without losing an active caller.
   call(w,"command.begin",{{"command","solid.box"},{"inputs",QJsonObject{}}});QCOMPARE(status(w,op).value("error").toObject().value("code").toString(),QString("invalid_session"));
   call(w,"command.cancel",{{"session",w.session_.value("id")}});
+ }
+ void threeMfCommandCancellation(){
+  QTemporaryDir dir;QVERIFY(dir.isValid());AlloyWindow w;
+  call(w,"solid.box",{{"width",20},{"depth",10},{"height",5},{"units","mm"}});
+  const auto before=call(w,"document.inspect");const auto path=dir.filePath("protected.3mf");sentinel(path);
+  const auto response=w.execute("document.export3mf",{{"path",path},{"allVisible",true},
+      {"surfaceDeviationMm",.1},{"normalDeviationDeg",10}});
+  QCOMPARE(response.value("completion").toString(),QString("pending"));
+  const auto op=response.value("result").toObject();w.geometryEvaluationPoll_->stop();
+  const auto task=w.geometryEvaluationRunning_;waitForApproval(task);
+  QCOMPARE(bytes(path),QByteArray("preserve"));
+  QVERIFY(call(w,"command.cancel",{{"session",op.value("id")}}).value("resultDiscarded").toBool());
+  drain(w);QCOMPARE(bytes(path),QByteArray("preserve"));QCOMPARE(call(w,"document.inspect"),before);
+  QCOMPARE(status(w,op).value("error").toObject().value("code").toString(),QString("export_cancelled"));
  }
  void staleAndTeardownReleaseAuthorization(){
   QTemporaryDir dir;QVERIFY(dir.isValid());const auto path=dir.filePath("protected.stl");sentinel(path);

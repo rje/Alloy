@@ -14,14 +14,15 @@ split before implementation. Thirteen partial rows have accepted subsets but
 still need an explicit v1-versus-later option decision under REL-030.
 The user explicitly included 3MF export and modeled printable threads in the
 first stable v1 on 2026-10-17. [XCH-011/#524](../backlog/github.md) and
-[SOL-059/#504](../backlog/github.md) own those bounded deliverables; both are
-unimplemented and require native and independent output validation.
+[SOL-059/#504](../backlog/github.md) own those bounded deliverables. The
+[Core 3MF export slice](../validation/3mf-export.md) is accepted on the local
+Mac with native and independent output checks; modeled threads remain Todo.
 The [DOC-016 native exchange-sheet gate](../validation/native-exchange-sheet.md)
 now has independently checked STEP/STL output. The
 [File-menu export path](../validation/native-exchange-menu.md) passes; DOC-036/#517
 also passes the [body Browser export path](../validation/native-browser-mesh.md).
 
-- [Command inventory](command-inventory.json): 150 capability rows and 397 runtime-cross-checked IDs, with explicit gaps and evidence.
+- [Command inventory](command-inventory.json): 150 capability rows and 397 IDs in its dated original runtime snapshot, with newer bounded capability amendments and explicit gaps. The added `document.export3mf` command was validated separately in the real app.
 - [Inventory notes](inventory-notes.md): definitions and verification limits.
 - [Backlog map](backlog-map.json) and [workstreams](backlog-notes.md): dated 484-issue reconciled snapshot, not a live board. It includes corrected TUT-018/TUT-034 acceptance, bounded TUT-035 clearance acceptance and the earlier REL-033–041 responsiveness state. REL-037 has a newer [final Open receipt](../validation/open-final-presentation.md).
 - [Iron reassessment](iron-reassessment.md): final shape rejected; public-view comparison and corrected fixture acceptance.
