@@ -9813,13 +9813,32 @@
       "body": "## Acceptance\nUse the saved full-size illustrated bracket. Through native Qt input, activate a timeline sketch and cancel typed Circle input with Tab/Escape, Finish, edit Extrude distance with Tab preview/Cancel, reopen and commit a typed value with Return, then send Undo as the immediate next focused keystroke. Verify exact authored restoration, Browser row hit and popup Escape, readable GPU captures and one private editor. Separately export the unchanged model through the shared API and independently read STL geometry. Keep actual OS Save chooser and physical input outside this bounded slice. Preserve first-failure and accepted evidence.\n\n## Dependency\n- GEO-006\n\n## Provenance\nSplit completed focus slice from REL-012/#415 after the exact bracket reopen provenance blocker was fixed; retained gate evidence is ../Alloy-reference-records/validation/rel012-ordinary-input-2026-10-18/.\n\n## Accepted 2026-10-18\nThree-line app-owned Extrude finishSession focus handoff passes native full-size bracket Sketch Edit, C/Tab/Escape/Finish, Extrude Tab preview/Cancel, Return commit and immediate Undo without interstep focus repair, Browser popup Escape and exact authored restore. Separate API STL export/readback gives 3,640 oriented triangles. Independent Sol replay passed 3/3, matched model/STL hashes and inspected captures; no blocker. Receipt: docs/validation/ordinary-bracket-input-prefix.md. Native Save As Mesh remains REL-052/#587.\n"
     },
     {
+      "key": "FND-028",
+      "title": "Establish a reliably active private macOS window for native input gates",
+      "kind": "implementation",
+      "phase": "P0 Foundation",
+      "priority": "P0",
+      "depends_on": [
+        "FND-006",
+        "CI-008"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P0",
+        "priority:P0",
+        "area:fnd"
+      ],
+      "body": "## Problem and result\nThe strict ordinary-input export gate cannot begin: its private macOS process has a visible Qt top level yet AppKit reports the application inactive and no key window. Earlier harness code forced Qt active-window bookkeeping, masking this prerequisite. Establish a repeatable ordinary private launch/activation route before diagnosing product modal focus.\n\n## Acceptance\n- Identify why the current private launch/test session lacks AppKit application activation or key window. Distinguish launch, bundle metadata, session/permission and harness event-loop causes with one bounded diagnostic record; preserve user-owned Alloy windows.\n- For one private editor, obtain agreement among NSApplication.isActive/keyWindow, QGuiApplication applicationState/focusWindow and the actual focused input widget without calling QApplication::setActiveWindow or repairing focus between user steps. Record the process/window identity and an actual native capture/input observation, not only Qt test bookkeeping.\n- Run the strict REL-052 initial-readiness gate through its first ordinary pointer/key input in the same session. A later sheet/chooser failure stays with REL-052; this issue does not close that workflow.\n- Keep a finite reproducible launcher/test instruction and clean up the private process. If the environment cannot provide activation, record the exact external prerequisite and leave the issue blocked rather than adding product focus hacks.\n\n## Evidence and boundaries\nThe prior AppKit observations and strict initial-readiness failure are in docs/validation/ordinary-bracket-modal-readiness.md; full raw evidence is external. This issue owns native-session readiness only. REL-052 owns export modal, chooser, return and mesh readback; FND-015 owns accessibility tree stability after native actions. One private GUI/build lease applies."
+    },
+    {
       "key": "REL-052",
       "title": "Restore Save As Mesh modal and chooser keyboard flow",
       "kind": "implementation",
       "phase": "P4 Initial release",
       "priority": "P0",
       "depends_on": [
-        "REL-051"
+        "REL-051",
+        "FND-028"
       ],
       "labels": [
         "kind:implementation",
