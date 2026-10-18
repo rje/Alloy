@@ -60,6 +60,58 @@ private slots:
         call(window,"document.open",{{"path",path},{"discard",true}});QCOMPARE(call(window,"document.inspect").value("authored").toObject(),final);
         call(window,"capture.screenshot",{{"path",output+"/native-reopened.png"}});window.close();
     }
+    void multipleOwnerProfileDelete(){
+        const auto output=qEnvironmentVariable("ALLOY_MULTI_LOOP_DELETE_EVIDENCE");
+        if(output.isEmpty())QSKIP("Set ALLOY_MULTI_LOOP_DELETE_EVIDENCE to the API fixture directory");
+        AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1500,950);window.show();window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));QApplication::setActiveWindow(&window);
+        ReferenceView* view=nullptr;for(auto* child:window.findChildren<QWidget*>())if(auto* v=dynamic_cast<ReferenceView*>(child))view=v;QVERIFY(view);
+        for(int index=0;index<2;++index) {
+            call(window,"document.open",{{"path",output+"/multi-native-before.alloy"},{"discard",true}});
+            const auto base=call(window,"document.inspect");const auto target=base.value("authored").toObject().value("features").toArray().last().toObject();
+            QJsonArray profiles;for(const auto& value:base.value("evaluation").toObject().value("sketches").toArray())
+                if(value.toObject().value("sketchId")==target.value("id"))profiles=value.toObject().value("profiles").toArray();
+            QCOMPARE(profiles.size(),2);const auto profile=profiles[index].toObject().value("profileId").toString();
+            const auto evidence=output+QString("/owner-%1").arg(index);
+            call(window,"sketch.edit",{{"sketchId",target.value("id")}});call(window,"sketch.lookAt");call(window,"view.fit");call(window,"sketch.tool",{{"tool","select"}});
+            const auto original=session(window).value("draftSketch").toObject();
+            QTest::qWait(250);
+            // Initial activation only; actual click must establish profile selection/focus.
+            view->setFocus(Qt::OtherFocusReason);QVERIFY(view->hasFocus());
+            const auto frame=session(window).value("resolvedFrame").toObject();QPoint picked(-1,-1);
+            for(double u=-65;u<=65 && picked.x()<0;u+=.75)for(double v=-65;v<=65;v+=.5) {
+                const auto pixel=view->projectSketchPoint(u,v,"face",frame);const QPoint point(qRound(pixel.value("x").toDouble()),qRound(pixel.value("y").toDouble()));
+                if(!view->rect().adjusted(10,10,-10,-10).contains(point))continue;
+                const auto hit=view->pickSketch(original,point.x(),point.y(),{},frame);
+                if(hit.value("kind")=="profile" && hit.value("profileId")==profile && QApplication::widgetAt(view->mapToGlobal(point))==view){picked=point;break;}
+            }
+            QVERIFY2(picked.x()>=0,"Both independent profiles must be natively selectable regardless of row order");
+            call(window,"capture.screenshot",{{"path",evidence+"/native-before.png"}});
+            QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,picked);
+            QTRY_COMPARE(session(window).value("selection").toObject().value("profileIds").toArray(),QJsonArray{profile});QVERIFY(view->hasFocus());
+            call(window,"capture.screenshot",{{"path",evidence+"/native-selected.png"}});
+            const auto historyIndex=session(window).value("draftHistory").toObject().value("index").toInt();
+            QTest::keyClick(QApplication::focusWidget(),Qt::Key_Delete);
+            QTRY_COMPARE(session(window).value("draftSketch").toObject().value("parameters").toObject().value("loopOffsets").toArray().size(),1);
+            auto expected=original;auto parameters=original.value("parameters").toObject();auto rows=parameters.value("loopOffsets").toArray();rows.removeAt(index);parameters["loopOffsets"]=rows;expected["parameters"]=parameters;
+            QCOMPARE(session(window).value("draftSketch").toObject(),expected);
+            QCOMPARE(session(window).value("draftHistory").toObject().value("index").toInt(),historyIndex+1);
+            call(window,"capture.screenshot",{{"path",evidence+"/native-deleted.png"}});
+            call(window,"history.undo");QCOMPARE(session(window).value("draftSketch").toObject(),original);
+            call(window,"capture.screenshot",{{"path",evidence+"/native-undone.png"}});
+            call(window,"history.redo");QCOMPARE(session(window).value("draftSketch").toObject(),expected);call(window,"sketch.finish");
+            const auto final=call(window,"document.inspect");
+            QCOMPARE(final.value("evaluation").toObject().value("bodies"),base.value("evaluation").toObject().value("bodies"));
+            QJsonArray survivors;for(const auto& value:final.value("evaluation").toObject().value("sketches").toArray())
+                if(value.toObject().value("sketchId")==target.value("id"))survivors=value.toObject().value("profiles").toArray();
+            QCOMPARE(survivors,QJsonArray{profiles[1-index]});
+            const auto path=evidence+"/native-deleted.alloy";call(window,"document.save",{{"path",path}});
+            call(window,"document.open",{{"path",path},{"discard",true}});
+            QCOMPARE(call(window,"document.inspect").value("authored"),final.value("authored"));
+            call(window,"capture.screenshot",{{"path",evidence+"/native-reopened.png"}});
+        }
+        window.close();
+    }
     void actualBoundaryAndNativeSignedEntry(){
         AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1500,950);window.show();window.activateWindow();
         QVERIFY(QTest::qWaitForWindowExposed(&window));QApplication::setActiveWindow(&window);

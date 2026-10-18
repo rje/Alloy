@@ -2008,9 +2008,12 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
     if(parameters.contains("loopOffsets")){
         const auto error=RoundedLoopOffset::validate(parameters);
         if(!error.isEmpty())return error;
-        const auto id=parameters["loopOffsets"].toArray().first().toObject()["id"].toString();
-        if(authoredIds.contains(id))return "Duplicate loop offset UUID";
-        authoredIds.insert(id);return {};
+        for(const auto& row:parameters["loopOffsets"].toArray()) {
+            const auto id=row.toObject().value("id").toString();
+            if(authoredIds.contains(id))return "Duplicate loop offset UUID";
+            authoredIds.insert(id);
+        }
+        return {};
     }
     if(parameters.contains("texts")){
         if(!parameters["texts"].isArray() || parameters["texts"].toArray().size()!=1 || !parameters["entities"].toArray().isEmpty())return "Sketch Text requires exactly one text object and no analytic entities";

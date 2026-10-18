@@ -58,6 +58,33 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
         auto malformed=owned;auto mp=p;auto rows=mp.value("loopOffsets").toArray();auto row=rows.first().toObject();row["unexpected"]=true;rows[0]=row;mp["loopOffsets"]=rows;malformed["parameters"]=mp;refused=false;
         try{RoundedLoopOffset::deleteProfile(malformed,cap,target);}catch(const GeometryKernel::EvaluationError&){refused=true;}check(refused,"Malformed owner accepted");
     }
+    for(const bool inset:{false,true}) {
+        auto owned=offsetSketch(doc,-3);auto p=owned.value("parameters").toObject();
+        auto first=p.value("loopOffsets").toArray().first().toObject(),second=first;
+        if(inset){first["kind"]="planarInsetV1";first["outerLoopId"]=RoundedLoopOffset::insetLoopId(cap);}
+        second=first;second["id"]=CadDocument::newId();second["distanceMm"]=-1.5;
+        p["loopOffsets"]=QJsonArray{first,second};owned["parameters"]=p;
+        check(SketchGeometry::solveDraft(owned).ok,"Multiple owners refused");
+        const auto both=RoundedLoopOffset::evaluate(owned,cap,cap.frame);
+        check(both.profiles.size()==2,"Missing independent output profile");
+        auto reordered=owned;auto rp=p;rp["loopOffsets"]=QJsonArray{second,first};reordered["parameters"]=rp;
+        const auto reverse=RoundedLoopOffset::evaluate(reordered,cap,cap.frame);
+        check(reverse.profiles[0].summary==both.profiles[1].summary && reverse.profiles[1].summary==both.profiles[0].summary,"Reorder renamed or reshaped profile");
+        for(size_t i=0;i<2;++i) {
+            const auto changed=RoundedLoopOffset::deleteProfile(owned,cap,QJsonArray{both.profiles[i].profileId});
+            auto expected=owned;auto ep=p;ep["loopOffsets"]=QJsonArray{i==0?second:first};expected["parameters"]=ep;
+            check(changed==expected,"Delete altered surviving owner or support");
+            const auto survivor=RoundedLoopOffset::evaluate(changed,cap,cap.frame);
+            check(survivor.profiles.size()==1 && survivor.profiles[0].summary==both.profiles[1-i].summary,"Sibling evaluated geometry/identity changed");
+        }
+        auto duplicate=owned;auto dp=p;dp["loopOffsets"]=QJsonArray{first,first};duplicate["parameters"]=dp;
+        check(!SketchGeometry::solveDraft(duplicate).ok,"Duplicate owner ID accepted");
+        auto alternate=first;alternate["id"]="{"+first.value("id").toString().toUpper()+"}";dp["loopOffsets"]=QJsonArray{first,alternate};duplicate["parameters"]=dp;
+        check(!SketchGeometry::solveDraft(duplicate).ok,"Equivalent owner UUID spelling accepted");
+        auto stale=owned;auto sp=p;second["outerLoopId"]=CadDocument::newId();sp["loopOffsets"]=QJsonArray{first,second};stale["parameters"]=sp;
+        bool refused=false;try{RoundedLoopOffset::deleteProfile(stale,cap,QJsonArray{both.profiles[0].profileId});}catch(const GeometryKernel::EvaluationError&){refused=true;}
+        check(refused,"Invalid sibling lineage accepted during Delete");
+    }
     auto offset=offsetSketch(doc,-1.5);const auto authoredBefore=doc.authored();
     auto evaluated=RoundedLoopOffset::evaluate(offset,cap);
     const auto innerArea=57*27-4.5*4.5*(4-std::numbers::pi),rimArea=outerArea-innerArea;

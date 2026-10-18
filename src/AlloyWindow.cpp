@@ -5183,7 +5183,11 @@ void AlloyWindow::registerCommands() {
                     auto solved=SketchGeometry::solveDraft(candidate,session_.value("projectionContext").toObject());
                     if(!solved.ok)return failure("sketch_solve_failed",solved.error);
                     solved.diagnostics["removedProfileIds"]=profileIds;
-                    solved.diagnostics["removedLoopOffsetIds"]=QJsonArray{draft.value("parameters").toObject().value("loopOffsets").toArray().first().toObject().value("id")};
+                    QJsonArray removedOwners;
+                    const auto remainingOwners=candidate.value("parameters").toObject().value("loopOffsets").toArray();
+                    for(const auto& row:draft.value("parameters").toObject().value("loopOffsets").toArray())
+                        if(!remainingOwners.contains(row))removedOwners.append(row.toObject().value("id"));
+                    solved.diagnostics["removedLoopOffsetIds"]=removedOwners;
                     const auto refusal=preflightSketchDelete(solved.feature);if(!refusal.isEmpty())return refusal;
                     const auto result=publishSketchSolve(solved);
                     if(result.value("ok").isBool() && !result.value("ok").toBool())return result;
@@ -10119,8 +10123,8 @@ QJsonObject AlloyWindow::previewLoopOffset(const QJsonObject& inputs) {
     };
     if(inputs.contains("chain") && !inputs["chain"].toBool())
         return rejectPending("chain_required","Check Chain Selection for the whole closed boundary");
-    if(!p["entities"].toArray().isEmpty() || !p["points"].toArray().isEmpty() || !p["loopOffsets"].toArray().isEmpty())
-        return rejectPending("unsupported_offset_sketch","Use an empty face sketch for one retained generated loop offset");
+    if(!p["entities"].toArray().isEmpty() || !p["points"].toArray().isEmpty())
+        return rejectPending("unsupported_offset_sketch","Use a generated-only face sketch for retained loop offsets");
     auto pending=session_.value("pendingLoopOffset").toObject();
     const auto support=p["support"].toObject();
     try {
@@ -10152,7 +10156,7 @@ QJsonObject AlloyWindow::previewLoopOffset(const QJsonObject& inputs) {
         auto candidate=original,parameters=p;parameters.remove("projections");parameters.remove("pointReferences");
         QJsonObject authored{{"id",pending["id"]},{"outerLoopId",loop},{"distanceMm",signedDistance},{"chain",true}};
         if(!kind.isEmpty())authored["kind"]=kind;
-        parameters["loopOffsets"]=QJsonArray{authored};
+        auto owners=p.value("loopOffsets").toArray();owners.append(authored);parameters["loopOffsets"]=owners;
         candidate["parameters"]=parameters;
         const auto solved=SketchGeometry::solveDraft(candidate);
         if(!solved.ok)throw GeometryKernel::EvaluationError({{"code","invalid_loop_offset"},{"message",solved.error}});
@@ -10185,12 +10189,16 @@ QJsonObject AlloyWindow::updateLoopOffset(const QJsonObject& inputs) {
     if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter the offset sketch first");
     if(inputs.contains("session") && inputs["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
     const auto original=session_["draftSketch"].toObject(),parameters=original["parameters"].toObject();const auto objects=parameters["loopOffsets"].toArray();
-    if(objects.size()!=1 || objects[0].toObject()["id"]!=inputs["offsetId"])
-        return failure("offset_unavailable","The retained loop offset is unavailable");
-    auto object=objects[0].toObject();
+    int index=-1;
+    for(int i=0;i<objects.size();++i)if(objects[i].toObject().value("id")==inputs.value("offsetId")) {
+        if(index>=0)return failure("offset_unavailable","The retained loop offset identity is ambiguous");
+        index=i;
+    }
+    if(index<0)return failure("offset_unavailable","The retained loop offset is unavailable");
+    auto object=objects[index].toObject();
     const auto units=inputs.value("units").toString(session_.value("inputs").toObject()["units"].toString());
     object["distanceMm"]=CadDocument::millimeters(inputs["distance"].toDouble(),units);
-    auto p=parameters;p["loopOffsets"]=QJsonArray{object};auto candidate=original;candidate["parameters"]=p;
+    auto p=parameters;auto updated=objects;updated[index]=object;p["loopOffsets"]=updated;auto candidate=original;candidate["parameters"]=p;
     try {evaluateSketchDraft(candidate);}catch(const GeometryKernel::EvaluationError& error){return failure(error.diagnostics()["code"].toString(),QString::fromUtf8(error.what()));}
     return publishSketchSolve(SketchGeometry::solveDraft(candidate));
 }

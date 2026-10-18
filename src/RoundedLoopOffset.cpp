@@ -78,18 +78,24 @@ QString RoundedLoopOffset::insetLoopId(const EvaluatedSupportFace& support) {
 
 QString RoundedLoopOffset::validate(const QJsonObject& parameters) {
     if(!parameters.contains("loopOffsets"))return {};
-    if(parameters["plane"]!="face" || !parameters["loopOffsets"].isArray() || parameters["loopOffsets"].toArray().size()!=1)
-        return "One retained loop offset requires a face sketch";
+    if(parameters["plane"]!="face" || !parameters["loopOffsets"].isArray() || parameters["loopOffsets"].toArray().isEmpty())
+        return "Retained loop offsets require a face sketch and at least one owner";
     for(const auto& key:{"points","entities","constraints","dimensions","texts","projections","pointReferences"})
         if(!parameters.value(key).toArray().isEmpty())return "Retained loop offset requires its own generated-only sketch";
-    const auto object=parameters["loopOffsets"].toArray().first().toObject();
-    const bool inset=object.value("kind")=="planarInsetV1";
-    if(object.size()!=(inset?5:4) || (object.contains("kind") && !inset)
-        || QUuid(object["id"].toString()).isNull() || QUuid(object["outerLoopId"].toString()).isNull()
-        || object["chain"]!=true || !object["distanceMm"].isDouble()
-        || !std::isfinite(object["distanceMm"].toDouble()) || std::abs(object["distanceMm"].toDouble())<0.001
-        || std::abs(object["distanceMm"].toDouble())>100000 || (inset && object["distanceMm"].toDouble()>0))
-        return "Invalid retained closed-loop offset";
+    QSet<QString> ownerIds;
+    for(const auto& value:parameters["loopOffsets"].toArray()) {
+        const auto object=value.toObject();
+        const bool inset=object.value("kind")=="planarInsetV1";
+        if(object.size()!=(inset?5:4) || (object.contains("kind") && !inset)
+            || QUuid(object["id"].toString()).isNull() || QUuid(object["outerLoopId"].toString()).isNull()
+            || object["chain"]!=true || !object["distanceMm"].isDouble()
+            || !std::isfinite(object["distanceMm"].toDouble()) || std::abs(object["distanceMm"].toDouble())<0.001
+            || std::abs(object["distanceMm"].toDouble())>100000 || (inset && object["distanceMm"].toDouble()>0))
+            return "Invalid retained closed-loop offset";
+        const auto id=QUuid(object.value("id").toString()).toString(QUuid::WithoutBraces);
+        if(ownerIds.contains(id))return "Duplicate loop offset UUID";
+        ownerIds.insert(id);
+    }
     return {};
 }
 
@@ -99,6 +105,27 @@ EvaluatedSketch RoundedLoopOffset::evaluate(const QJsonObject& feature,const Eva
     if(!error.isEmpty())fail("invalid_loop_offset",error);
     if(p["support"].toObject()!=QJsonObject{{"producerFeatureId",support.producerFeatureId},{"bodyId",support.bodyId},{"faceId",support.faceId}})
         fail("support_unavailable","Loop offset support identity changed");
+    const auto owners=p.value("loopOffsets").toArray();
+    if(owners.size()>1) {
+        // Evaluate each retained owner independently. No row depends on array order
+        // or on another owner's generated geometry, and a failed row publishes nothing.
+        EvaluatedSketch combined;
+        QJsonArray profiles;TopoDS_Compound strokes;BRep_Builder builder;builder.MakeCompound(strokes);
+        for(const auto& owner:owners) {
+            auto single=feature,parameters=p;parameters["loopOffsets"]=QJsonArray{owner};single["parameters"]=parameters;
+            auto evaluated=evaluate(single,support,resolvedFrame);
+            if(combined.featureId.isEmpty())combined=evaluated;
+            else combined.profiles.insert(combined.profiles.end(),evaluated.profiles.begin(),evaluated.profiles.end());
+            builder.Add(strokes,evaluated.shape);
+            for(const auto& profile:evaluated.profiles)profiles.append(profile.summary);
+        }
+        combined.shape=strokes;combined.summary["profiles"]=profiles;combined.summary["loopOffsets"]=owners;
+        combined.summary["profileDiagnostics"]=QJsonObject{{"code","independent_loop_offsets"},{"profileCount",profiles.size()}};
+        Bnd_Box box;BRepBndLib::AddOptimal(strokes,box,false,false);
+        double x0,y0,z0,x1,y1,z1;box.Get(x0,y0,z0,x1,y1,z1);
+        combined.summary["boundsMm"]=QJsonObject{{"min",QJsonArray{x0,y0,z0}},{"max",QJsonArray{x1,y1,z1}},{"size",QJsonArray{x1-x0,y1-y0,z1-z0}}};
+        return combined;
+    }
     const auto object=p["loopOffsets"].toArray().first().toObject();const auto id=object["id"].toString();
     if(object.value("kind")=="planarInsetV1") {
         if(object["outerLoopId"]!=insetLoopId(support))
@@ -230,10 +257,19 @@ QJsonObject RoundedLoopOffset::deleteProfile(const QJsonObject& feature,const Ev
         fail("invalid_profile_target","Select exactly one current loop Offset result profile");
     // Evaluation checks exact face and boundary lineage before resolving ownership.
     const auto evaluated=evaluate(feature,support,support.frame);
-    const auto owner=parameters.value("loopOffsets").toArray().first().toObject();
-    if(evaluated.profiles.size()!=1 || evaluated.profiles.front().profileId!=profileIds.first().toString()
-        || evaluated.profiles.front().summary.value("offsetId")!=owner.value("id"))
+    QString ownerId;
+    for(const auto& profile:evaluated.profiles)if(profile.profileId==profileIds.first().toString()) {
+        if(!ownerId.isEmpty())fail("invalid_offset_owner","The result has multiple owners");
+        ownerId=profile.summary.value("offsetId").toString();
+    }
+    if(ownerId.isEmpty())
         fail("stale_profile","The loop Offset result changed; cancel and reopen the sketch, then select its current result");
-    auto candidate=feature;auto remaining=parameters;remaining.remove("loopOffsets");candidate["parameters"]=remaining;
-    return candidate;
+    QJsonArray rows;int removed=0;
+    for(const auto& row:parameters.value("loopOffsets").toArray()) {
+        if(row.toObject().value("id")==ownerId)++removed;else rows.append(row);
+    }
+    if(removed!=1)fail("invalid_offset_owner","The result does not identify exactly one loop Offset owner");
+    auto candidate=feature;auto remaining=parameters;
+    if(rows.isEmpty())remaining.remove("loopOffsets");else remaining["loopOffsets"]=rows;
+    candidate["parameters"]=remaining;return candidate;
 }

@@ -1523,11 +1523,18 @@ QJsonObject ReferenceView::pickSketch(const QJsonObject& sourceFeature,double x,
     if(!filter.isEmpty())return {};
     const auto hit=sketchPoint(x,y,parameters.value("plane").toString(),resolvedFrame);
     const auto profileWorld=world(hit.value("uMm").toDouble(),hit.value("vMm").toDouble());
+    const EvaluatedProfile* selected=nullptr;
     if(sketchDisplayOptions_.value("showProfile").toBool(true) && !sketchDisplayOptions_.value("hideFullyConstrained").toBool())for(const auto& profile:draftProfiles_) {
         BRepClass_FaceClassifier classifier(profile.face,profileWorld,1e-7);
-        if(classifier.State()==TopAbs_IN)return {{"kind","profile"},{"profileId",profile.profileId}};
+        if(classifier.State()!=TopAbs_IN)continue;
+        if(!parameters.contains("loopOffsets"))return {{"kind","profile"},{"profileId",profile.profileId}};
+        // Nested generated owners retain independent profiles. Prefer the smaller
+        // containing region so every distinct band remains accessible in any row order.
+        const double area=profile.summary.value("areaMm2").toDouble();
+        const double selectedArea=selected ? selected->summary.value("areaMm2").toDouble() : 0;
+        if(!selected || area<selectedArea || (area==selectedArea && profile.profileId<selected->profileId))selected=&profile;
     }
-    return {};
+    return selected ? QJsonObject{{"kind","profile"},{"profileId",selected->profileId}} : QJsonObject{};
 }
 QJsonArray ReferenceView::sketchSelectionCandidates(const QJsonObject& feature,double x,double y) const {
     QJsonArray candidates;

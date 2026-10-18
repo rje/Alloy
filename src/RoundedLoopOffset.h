@@ -1,7 +1,7 @@
 #pragma once
 #include "GeometryKernel.h"
 
-// One retained, generated offset of the exact outer boundary of a named face.
+// Independent retained offsets of the exact outer boundary of a named face.
 // No solver entities or copied BRep are authored in the sketch.
 class RoundedLoopOffset final {
 public:
