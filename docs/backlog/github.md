@@ -542,3 +542,4 @@ This is a publication snapshot. Use `python3 tools/backlog.py ready` for the liv
 | [#535 SKT-111: Add retained Distance And Angle sketch Chamfer](https://github.com/rje/Alloy/issues/535) | P2 Parametric modeling | implementation | P2 | [#501](https://github.com/rje/Alloy/issues/501) |
 | [#536 SKT-112: Support multiple Equal Distance sketch Chamfers](https://github.com/rje/Alloy/issues/536) | P2 Parametric modeling | implementation | P1 | [#501](https://github.com/rje/Alloy/issues/501) |
 | [#537 SKT-113: Drag and edit on-canvas sketch Chamfer distance](https://github.com/rje/Alloy/issues/537) | P2 Parametric modeling | implementation | P2 | [#501](https://github.com/rje/Alloy/issues/501) |
+| [#538 SKT-114: Support kept-side Chamfer on crossing sketch lines](https://github.com/rje/Alloy/issues/538) | P2 Parametric modeling | implementation | P2 | [#535](https://github.com/rje/Alloy/issues/535), [#534](https://github.com/rje/Alloy/issues/534) |

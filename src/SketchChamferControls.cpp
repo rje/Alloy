@@ -17,12 +17,13 @@ QJsonObject param(const QString& type,const QString& description,bool required=t
 void AlloyWindow::registerSketchChamferCommands(){
     auto value=param("number","First setback in supplied length units; Equal Distance also drives the second side.",false);value["minimum"]=0.000001;value["maximum"]=100000;
     auto units=param("string","Length units (defaults to the sketch units).",false);units["enum"]=QJsonArray{"mm","in"};
-    auto type=param("string","Chamfer mode; omitted edits retain the stored mode.",false);type["enum"]=QJsonArray{"equalDistance","twoDistance"};
-    const QJsonObject schema{{"type",type},{"value2",value},{"entityIds",param("array","Two incident retained source line IDs.",false)},{"value",value},{"units",units},{"chamferId",param("string","Retained Chamfer UUID for editing.",false)},{"session",param("string","Optional active sketch session UUID.",false)}};
+    auto type=param("string","Chamfer mode; omitted edits retain the stored mode.",false);type["enum"]=QJsonArray{"equalDistance","twoDistance","distanceAngle"};
+    auto angle=param("number","Interior angle at the first contact, toward the original corner, in degrees.",false);angle["minimum"]=-180;angle["maximum"]=180;
+    const QJsonObject schema{{"angleDeg",angle},{"type",type},{"value2",value},{"entityIds",param("array","Two incident retained source line IDs.",false)},{"value",value},{"units",units},{"chamferId",param("string","Retained Chamfer UUID for editing.",false)},{"session",param("string","Optional active sketch session UUID.",false)}};
     auto requiredType=type;requiredType["required"]=true;
     commands_.push_back({"sketch.chamferMode","Chamfer Feature Options","Switch implemented Chamfer modes; pending corner retained and committed geometry unchanged until acceptance.",{{"type",requiredType}},true,[this](const auto& a){return chamferMode(a);}});
-    auto side=param("integer","Two Distance side: 0 is the first source, 1 the second.",false);side["minimum"]=0;side["maximum"]=1;
-    auto dragValue=param("number","Requested setback in millimeters",false);dragValue["minimum"]=-1000000;dragValue["maximum"]=1000000;
+    auto side=param("integer","Handle side: 0 is the first distance; 1 is second distance or angle.",false);side["minimum"]=0;side["maximum"]=1;
+    auto dragValue=param("number","Requested distance in millimeters or angle in degrees for side 1 of Distance And Angle",false);dragValue["minimum"]=-1000000;dragValue["maximum"]=1000000;
     commands_.push_back({"sketch.chamferHandle","Drag sketch Chamfer","Preview an equal setback and publish one draft transaction on release.",
         {{"side",side},{"phase",param("string","begin, move, end or cancel")},{"chamferId",param("string","Retained or preview corner UUID",false)},
          {"value",dragValue}},true,[this](const QJsonObject& a){return chamferHandle(a);}});
@@ -33,7 +34,7 @@ void AlloyWindow::registerSketchChamferCommands(){
             auto requiredValue=value;requiredValue["required"]=action.isEmpty();commandSchema["value"]=requiredValue;
             const auto target=action=="Update"?QString("chamferId"):QString("entityIds");auto requiredTarget=commandSchema.value(target).toObject();requiredTarget["required"]=true;commandSchema[target]=requiredTarget;
         }
-        commands_.push_back({id,action.isEmpty()?"Sketch Chamfer":action+" Sketch Chamfer","Retain equal or two independent setbacks; sourceEntityIds order defines Distance 1 and Distance 2.",commandSchema,true,[this,action](const QJsonObject& a){return sketchChamfer(a,action);}});
+        commands_.push_back({id,action.isEmpty()?"Sketch Chamfer":action+" Sketch Chamfer","Retain Equal Distance, Two Distance or Distance And Angle; ordered first source owns distance and angle basis.",commandSchema,true,[this,action](const QJsonObject& a){return sketchChamfer(a,action);}});
     }
 }
 void AlloyWindow::cancelChamfer(){
@@ -63,8 +64,14 @@ QJsonObject AlloyWindow::sketchChamfer(const QJsonObject& args,const QString& op
     const double d2=args.contains("value2")?CadDocument::millimeters(args.value("value2").toDouble(),units):pending.value("distance2Mm").toDouble(retained.value("distance2Mm").toDouble(d));
     canonical["type"]=type;canonical["distanceMm"]=d;
     if(type=="twoDistance")canonical["distance2Mm"]=d2;
-    else if(args.contains("value2"))return fail("invalid_arguments","Equal Distance has no independent second setback");
+    else if(args.contains("value2"))return fail("invalid_arguments","This Chamfer mode has no independent second setback");
+    if(type=="distanceAngle"){
+        if(args.contains("angleDeg"))canonical["angleDeg"]=args.value("angleDeg");
+        else if(pending.contains("angleDeg"))canonical["angleDeg"]=pending.value("angleDeg");
+        else if(retained.contains("angleDeg"))canonical["angleDeg"]=retained.value("angleDeg");
+    } else if(args.contains("angleDeg"))return fail("invalid_arguments","Angle belongs to Distance And Angle mode");
     pending["type"]=type;pending["distanceMm"]=d;
+    if(type=="distanceAngle" && canonical.contains("angleDeg"))pending["angleDeg"]=canonical.value("angleDeg");else if(type!="distanceAngle")pending.remove("angleDeg");
     if(type=="twoDistance")pending["distance2Mm"]=d2;else pending.remove("distance2Mm");
     if(canonical.contains("chamferId"))pending["chamferId"]=canonical.value("chamferId");else pending["entityIds"]=canonical.value("entityIds");
     if((args.contains("value2") && (!pending.value("dragActive").toBool() || pending.value("dragSide").toInt()==1)) || !retained.isEmpty())pending["secondIndependent"]=true;
@@ -74,6 +81,8 @@ QJsonObject AlloyWindow::sketchChamfer(const QJsonObject& args,const QString& op
         return fail("sketch_chamfer_failed",solved.error);
     }
     if(operation=="Preview"){
+        for(const auto& row:solved.feature.value("parameters").toObject().value("chamferGroups").toArray())
+            if(row.toObject().value("id")==solved.diagnostics.value("chamferId") && type=="distanceAngle")pending["angleDeg"]=row.toObject().value("angleDeg");
         pending.remove("previewError");pending["distanceMm"]=d;pending["previewDraft"]=solved.feature;pending["diagnostics"]=solved.diagnostics;
         if(canonical.contains("chamferId"))pending["chamferId"]=canonical.value("chamferId");else pending["entityIds"]=canonical.value("entityIds");session_["pendingChamfer"]=pending;
         const auto evaluated=evaluateSketchDraft(solved.feature);view_->showSketchDraft(evaluated);auto selection=session_.value("selection").toObject();selection["tool"]="chamfer";selection["entityIds"]=QJsonArray{solved.diagnostics.value("createdLineId")};view_->decorateSketch(solved.feature,selection,session_.value("solverDiagnostics").toObject(),units);
@@ -85,7 +94,7 @@ QJsonObject AlloyWindow::sketchChamfer(const QJsonObject& args,const QString& op
 QJsonObject AlloyWindow::chamferMode(const QJsonObject& args){
     if(session_.value("command")!="sketch.edit")return fail("no_active_sketch","Enter a sketch first");
     const auto type=args.value("type").toString();
-    if(type!="equalDistance" && type!="twoDistance")return fail("invalid_chamfer_mode","Choose an implemented Chamfer mode");
+    if(type!="equalDistance" && type!="twoDistance" && type!="distanceAngle")return fail("invalid_chamfer_mode","Choose an implemented Chamfer mode");
     session_["chamferMode"]=type;
     if(session_.value("tool")!="chamfer"){
         const auto response=execute("sketch.tool",{{"tool","chamfer"}});if(!response.value("ok").toBool())return response;
@@ -94,6 +103,7 @@ QJsonObject AlloyWindow::chamferMode(const QJsonObject& args){
     if(pending.contains("entityIds") || pending.contains("chamferId")){
         auto mutation=QJsonObject{{"type",type},{"value",pending.value("distanceMm")},{"units","mm"}};
         if(type=="twoDistance")mutation["value2"]=pending.value("distance2Mm").toDouble(pending.value("distanceMm").toDouble(10));
+        if(type=="distanceAngle" && pending.contains("angleDeg"))mutation["angleDeg"]=pending.value("angleDeg");
         const auto response=sketchChamfer(mutation,"Preview");
         if(sketchChamferDistance_){sketchChamferDistance_->setFocus();sketchChamferDistance_->selectAll();}
         return response;
@@ -113,6 +123,7 @@ QJsonObject AlloyWindow::chamferHandle(const QJsonObject& args){
             const auto tool=execute("sketch.tool",{{"tool","chamfer"}});if(!tool.value("ok").toBool())return tool;
             QJsonObject input{{"chamferId",id},{"value",group.value("distanceMm")},{"type",group.value("type")},{"units","mm"}};
             if(group.value("type")=="twoDistance")input["value2"]=group.value("distance2Mm");
+            if(group.value("type")=="distanceAngle")input["angleDeg"]=group.value("angleDeg");
             const auto preview=sketchChamfer(input,"Preview");
             if(preview.contains("error"))return preview;
         }
@@ -124,14 +135,15 @@ QJsonObject AlloyWindow::chamferHandle(const QJsonObject& args){
     if(!args.value("value").isDouble())return fail("invalid_arguments","Drag needs a setback distance");
     const double distance=args.value("value").toDouble();
     const auto pending=session_.value("pendingChamfer").toObject();const bool second=pending.value("dragSide").toInt()==1;
-    QJsonObject mutation{{second?"value2":"value",distance},{"units","mm"}};
+    const bool angle=second && pending.value("type")=="distanceAngle";
+    QJsonObject mutation{{angle?"angleDeg":second?"value2":"value",distance},{"units","mm"}};
     // Public help couples the first handle initially. Once side 2 is authored,
     // or an existing group is edited, each handle owns only its retained side.
     if(!second && pending.value("type")=="twoDistance" && !pending.value("secondIndependent").toBool())mutation["value2"]=distance;
-    auto* field=second?sketchChamferDistance2_:sketchChamferDistance_;
-    if(field){const QSignalBlocker block(field);field->setText(QString::number(distance/(session_.value("inputs").toObject().value("units")=="in"?25.4:1),'g',8));}
+    auto* field=angle?sketchChamferControls_->findChild<QLineEdit*>("sketch.chamfer.angle"):second?sketchChamferDistance2_:sketchChamferDistance_;
+    if(field){const QSignalBlocker block(field);field->setText(QString::number(distance/(angle?1:session_.value("inputs").toObject().value("units")=="in"?25.4:1),'g',8));}
     const auto response=sketchChamfer(mutation,phase=="move"?"Preview":"Accept");
-    if(phase=="end" && response.contains("error"))sketchChamfer({},"Cancel");
+    if(phase=="end" && response.contains("error"))execute("sketch.chamferCancel");
     return response;
 }
 QJsonObject AlloyWindow::chamferGesture(const QJsonObject& pixel,bool commit){
@@ -160,12 +172,13 @@ void AlloyWindow::buildChamferControls(QVBoxLayout* layout){
     sketchChamferControls_=new QWidget;sketchChamferControls_->setObjectName("sketch.chamfer.controls");
     auto* form=new QFormLayout(sketchChamferControls_);form->setContentsMargins(0,3,0,3);
     auto* title=new QLabel("Sketch Chamfer");title->setStyleSheet("font-weight: 700; color: #176588;");form->addRow(title);
-    auto* mode=new QComboBox;mode->setObjectName("sketch.chamfer.mode");mode->addItem("Equal Distance","equalDistance");mode->addItem("Two Distance","twoDistance");form->addRow("Feature Options",mode);
+    auto* mode=new QComboBox;mode->setObjectName("sketch.chamfer.mode");mode->addItem("Equal Distance","equalDistance");mode->addItem("Two Distance","twoDistance");mode->addItem("Distance And Angle","distanceAngle");form->addRow("Feature Options",mode);
     connect(mode,qOverload<int>(&QComboBox::currentIndexChanged),this,[this,mode]{sketchResponse(execute("sketch.chamferMode",{{"type",mode->currentData().toString()}}));});
-    auto* notice=new QLabel("Distance 1: first line. Distance 2: second line. Vertex picks follow sketch order. Enter accepts; Escape cancels.");notice->setWordWrap(true);form->addRow(notice);
+    auto* notice=new QLabel("Distance 1: first line. Distance 2: second line. Vertex picks follow sketch order. Enter accepts; Escape cancels.");notice->setObjectName("sketch.chamfer.notice");notice->setWordWrap(true);form->addRow(notice);
     const auto units=session_.value("inputs").toObject().value("units").toString();
     sketchChamferDistance_=new QLineEdit("10");sketchChamferDistance_->setObjectName("sketch.chamfer.distance");form->addRow("Distance 1 ("+units+")",sketchChamferDistance_);
     sketchChamferDistance2_=new QLineEdit("10");sketchChamferDistance2_->setObjectName("sketch.chamfer.distance2");form->addRow("Distance 2 ("+units+")",sketchChamferDistance2_);
+    auto* angleField=new QLineEdit("45");angleField->setObjectName("sketch.chamfer.angle");form->addRow("Angle (deg)",angleField);
     auto* retained=new QComboBox;retained->setObjectName("sketch.chamfer.retained");form->addRow("Retained corner",retained);
     connect(retained,qOverload<int>(&QComboBox::currentIndexChanged),this,[this]{refreshChamferControls();});
     auto* edit=new QPushButton("Edit Sketch Chamfer");edit->setObjectName("sketch.chamfer.edit");form->addRow(edit);
@@ -176,11 +189,14 @@ void AlloyWindow::buildChamferControls(QVBoxLayout* layout){
         execute("sketch.tool",{{"tool","chamfer"}});
         QJsonObject input{{"chamferId",g.value("id")},{"value",g.value("distanceMm")},{"type",g.value("type")},{"units","mm"}};
         if(g.value("type")=="twoDistance")input["value2"]=g.value("distance2Mm");
+        if(g.value("type")=="distanceAngle")input["angleDeg"]=g.value("angleDeg");
         sketchResponse(execute("sketch.chamferPreview",input));sketchChamferDistance_->setFocus();sketchChamferDistance_->selectAll();
     });
-    for(int side=0;side<2;++side){auto* field=side?sketchChamferDistance2_:sketchChamferDistance_;
-        connect(field,&QLineEdit::textEdited,this,[this,side](const QString& text){bool ok=false;const auto value=text.toDouble(&ok);if(ok && session_.contains("pendingChamfer"))sketchResponse(execute("sketch.chamferPreview",{{side?"value2":"value",value}}));});
-        connect(field,&QLineEdit::returnPressed,this,[this,field,side]{bool ok=false;const auto value=field->text().toDouble(&ok);if(!ok){sketchResponse(fail("invalid_chamfer_distance","Enter a numeric setback distance"));return;}sketchResponse(execute("sketch.chamferAccept",{{side?"value2":"value",value}}));});
+    const QList<QLineEdit*> fields{sketchChamferDistance_,sketchChamferDistance2_,angleField};
+    const QStringList keys{"value","value2","angleDeg"};
+    for(int i=0;i<fields.size();++i){auto* field=fields[i];const auto key=keys[i];
+        connect(field,&QLineEdit::textEdited,this,[this,key](const QString& text){bool ok=false;const auto value=text.toDouble(&ok);if(ok && session_.contains("pendingChamfer"))sketchResponse(execute("sketch.chamferPreview",{{key,value}}));});
+        connect(field,&QLineEdit::returnPressed,this,[this,field,key]{bool ok=false;const auto value=field->text().toDouble(&ok);if(!ok){sketchResponse(fail("invalid_chamfer_value","Enter a numeric Chamfer value"));return;}sketchResponse(execute("sketch.chamferAccept",{{key,value}}));});
     }
     connect(accept,&QPushButton::clicked,this,[this]{sketchResponse(execute("sketch.chamferAccept"));});
     connect(cancel,&QPushButton::clicked,this,[this]{sketchResponse(execute("sketch.chamferCancel"));});
@@ -200,9 +216,16 @@ void AlloyWindow::refreshChamferControls(){
     }
     const auto group=groups.isEmpty()?QJsonObject{}:groups.at(selected).toObject();
     const auto type=active?pending.value("type").toString(session_.value("chamferMode").toString("equalDistance")):group.value("type").toString("equalDistance");
-    const bool two=type=="twoDistance";
-    if(auto* mode=sketchChamferControls_->findChild<QComboBox*>("sketch.chamfer.mode")){const QSignalBlocker block(mode);mode->setCurrentIndex(two?1:0);visible(mode,active);}
+    const bool two=type=="twoDistance",angle=type=="distanceAngle";
+    if(auto* mode=sketchChamferControls_->findChild<QComboBox*>("sketch.chamfer.mode")){const QSignalBlocker block(mode);mode->setCurrentIndex(angle?2:two?1:0);visible(mode,active);}
     visible(sketchChamferDistance2_,two);
+    if(auto* field=sketchChamferControls_->findChild<QLineEdit*>("sketch.chamfer.angle")){
+        visible(field,angle);field->setReadOnly(!active);
+        if(!field->hasFocus()){const QSignalBlocker block(field);field->setText(QString::number(pending.value("angleDeg").toDouble(group.value("angleDeg").toDouble(45)),'g',8));}
+    }
+    if(auto* notice=sketchChamferControls_->findChild<QLabel*>("sketch.chamfer.notice"))notice->setText(angle
+        ?"Distance: first line. Angle: from that edge toward the original corner. Vertex picks follow sketch order. Enter accepts; Escape cancels."
+        :"Distance 1: first line. Distance 2: second line. Vertex picks follow sketch order. Enter accepts; Escape cancels.");
     if(auto* edit=sketchChamferControls_->findChild<QPushButton*>("sketch.chamfer.edit"))edit->setVisible(!active && !groups.isEmpty());
     if(auto* accept=sketchChamferControls_->findChild<QPushButton*>("sketch.chamfer.accept")){accept->setVisible(active);accept->setEnabled(pending.contains("previewDraft"));}
     if(auto* cancel=sketchChamferControls_->findChild<QPushButton*>("sketch.chamfer.cancel"))cancel->setVisible(active);

@@ -91,5 +91,37 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     const auto twoPath=temp.filePath("two-distance.alloy");check(twoDoc.save(twoPath).isEmpty(),"Save Two Distance");CadDocument twoReopened;check(twoReopened.open(twoPath).isEmpty() && twoReopened.authored()==twoFinal,"Reopen Two Distance");
     const auto equalConversion=accept(SketchGeometry::chamferCorner(two,{{"chamferId",twoGroup.value("id")},{"type","equalDistance"}}));area(equalConversion,12800-72);
     check(p(equalConversion).value("chamferGroups").toArray().first().toObject().value("id")==twoGroup.value("id"),"Mode change replaced retained identity");
-    std::cout<<"PASS: retained Equal/Two Distance setbacks, source ordering and edits, stable IDs, atomic refusal, extrusion, Undo/Redo and reopen\n";
+    CadDocument angleDoc;auto angleSource=source;angleSource["ownerId"]=angleDoc.activeOwnerId();
+    auto angled=accept(SketchGeometry::chamferCorner(angleSource,{{"entityIds",pair},{"type","distanceAngle"},{"distanceMm",10},{"angleDeg",60}}));
+    const auto angleGroup=p(angled).value("chamferGroups").toArray().first().toObject();area(angled,11250-50*std::sqrt(3.0));
+    const auto anglePoints=p(SketchGeometry::chamferPresentation(angled)).value("points").toArray();QMap<QString,QPointF> ap;
+    for(const auto& row:anglePoints){const auto point=row.toObject();ap[point.value("id").toString()]={point.value("uMm").toDouble(),point.value("vMm").toDouble()};}
+    const auto angleContacts=angleGroup.value("pointIds").toArray();check(QLineF(ap[angleContacts[0].toString()],QPointF(75,27.5)).length()<1e-6,"Angle first-side distance changed convention");
+    check(QLineF(ap[angleContacts[1].toString()],QPointF(75-10*std::sqrt(3.0),37.5)).length()<1e-6,"60 degree second setback differs from published convention");
+    const auto reverseAngle=accept(SketchGeometry::chamferCorner(source,{{"entityIds",QJsonArray{pair[1],pair[0]}},{"type","distanceAngle"},{"distanceMm",10},{"angleDeg",60}}));
+    const auto reversedGroup=p(reverseAngle).value("chamferGroups").toArray().first().toObject();QMap<QString,QPointF> reversedCoords;
+    for(const auto& row:p(SketchGeometry::chamferPresentation(reverseAngle)).value("points").toArray()){const auto point=row.toObject();reversedCoords[point.value("id").toString()]={point.value("uMm").toDouble(),point.value("vMm").toDouble()};}
+    check(QLineF(reversedCoords[reversedGroup.value("pointIds").toArray()[0].toString()],QPointF(65,37.5)).length()<1e-6,"Reversed first support did not own distance");
+    check(angleDoc.commit(SketchGeometry::replaceFeature(angleDoc.authored(),angled),"Distance And Angle").isEmpty(),"Commit angle Chamfer");
+    const auto angleProfile=angleDoc.sketches().front().profiles.front().profileId;
+    check(angleDoc.commit(CadDocument::extrusionCandidate(angleDoc.authored(),{{"sketchId",angled.value("id")},{"profileId",angleProfile},{"distanceMm",5}}),"Extrude").isEmpty(),"Extrude angle Chamfer");const auto angleBody=angleDoc.bodies().front().bodyId;
+    angled=accept(SketchGeometry::chamferCorner(angled,{{"chamferId",angleGroup.value("id")},{"distanceMm",12}}));
+    check(p(angled).value("chamferGroups").toArray().first().toObject().value("angleDeg").toDouble()==60,"Distance edit changed angle");
+    angled=accept(SketchGeometry::chamferCorner(angled,{{"chamferId",angleGroup.value("id")},{"angleDeg",30}}));
+    check(p(angled).value("chamferGroups").toArray().first().toObject().value("distanceMm").toDouble()==12,"Angle edit changed first distance");
+    angled=accept(SketchGeometry::updateDimension(angled,{{"dimensionId",dimensionIds[0].toObject().value("id")},{"valueMm",160}}));
+    angled=accept(SketchGeometry::updateDimension(angled,{{"dimensionId",dimensionIds[1].toObject().value("id")},{"valueMm",80}}));const double angleArea=12800-72/std::sqrt(3.0);area(angled,angleArea);
+    const auto finalAngleGroup=p(angled).value("chamferGroups").toArray().first().toObject();for(const auto* key:{"id","lineId","pointIds","sourceEntityIds"})check(finalAngleGroup.value(key)==angleGroup.value(key),"Angle Chamfer identity changed");
+    for(const auto theta:{-1,0,90,120,180}){const auto bad=SketchGeometry::chamferCorner(angled,{{"chamferId",angleGroup.value("id")},{"angleDeg",theta}});check(!bad.ok && bad.feature==angled,"Out-of-wedge angle was not transactional");}
+    const auto angleSpan=SketchGeometry::chamferCorner(angled,{{"chamferId",angleGroup.value("id")},{"angleDeg",89}});check(!angleSpan.ok && angleSpan.feature==angled,"Angle producing an out-of-span setback was accepted");
+    auto crossing=SketchGeometry::newFeature(document.activeOwnerId(),"XY");crossing=SketchGeometry::addLine(crossing,{{"u1Mm",-10},{"v1Mm",0},{"u2Mm",10},{"v2Mm",0}});crossing=SketchGeometry::addLine(crossing,{{"u1Mm",0},{"v1Mm",-10},{"u2Mm",0},{"v2Mm",10}});const auto crossingLines=p(crossing).value("entities").toArray();
+    const auto quadrant=SketchGeometry::chamferCorner(crossing,{{"entityIds",QJsonArray{crossingLines[0].toObject().value("id"),crossingLines[1].toObject().value("id")}},{"type","distanceAngle"},{"distanceMm",2},{"angleDeg",30}});check(!quadrant.ok && quadrant.feature==crossing,"Unsupported crossing quadrant was not refused atomically");
+    // A 60 degree finite wedge admits theta=90 (right corners do not).
+    auto triangle=SketchGeometry::newFeature(document.activeOwnerId(),"XY");triangle=SketchGeometry::addLine(triangle,{{"u1Mm",0},{"v1Mm",0},{"u2Mm",100},{"v2Mm",0}});auto ts=p(triangle).value("entities").toArray();const auto origin=ts[0].toObject().value("startPointId"),east=ts[0].toObject().value("endPointId");
+    triangle=SketchGeometry::addLine(triangle,{{"u1Mm",100},{"v1Mm",0},{"u2Mm",50},{"v2Mm",50*std::sqrt(3.0)},{"startPointId",east}});ts=p(triangle).value("entities").toArray();triangle=SketchGeometry::addLine(triangle,{{"u1Mm",50},{"v1Mm",50*std::sqrt(3.0)},{"u2Mm",0},{"v2Mm",0},{"startPointId",ts[1].toObject().value("endPointId")},{"endPointId",origin}});ts=p(triangle).value("entities").toArray();
+    const QJsonArray trianglePair{ts[0].toObject().value("id"),ts[2].toObject().value("id")};const auto oblique=accept(SketchGeometry::chamferCorner(triangle,{{"entityIds",trianglePair},{"type","distanceAngle"},{"distanceMm",10},{"angleDeg",90}}));area(oblique,2500*std::sqrt(3.0)-50*std::sqrt(3.0));
+    const auto beyondWedge=SketchGeometry::chamferCorner(triangle,{{"entityIds",trianglePair},{"type","distanceAngle"},{"distanceMm",10},{"angleDeg",120}});check(!beyondWedge.ok && beyondWedge.feature==triangle,"Oblique wedge limit was ignored");
+    check(angleDoc.commit(SketchGeometry::replaceFeature(angleDoc.authored(),angled),"Edit angle Chamfer").isEmpty(),"Update angle Chamfer solid");check(angleDoc.bodies().front().bodyId==angleBody && std::abs(angleDoc.bodies().front().summary.value("volumeMm3").toDouble()-5*angleArea)<1e-5,"Angle Chamfer solid mismatch");
+    const auto angleFinal=angleDoc.authored();angleDoc.history().undo();angleDoc.history().redo();check(angleDoc.authored()==angleFinal,"Angle Chamfer history mismatch");const auto anglePath=temp.filePath("distance-angle.alloy");check(angleDoc.save(anglePath).isEmpty(),"Save angle Chamfer");CadDocument angleReopened;check(angleReopened.open(anglePath).isEmpty() && angleReopened.authored()==angleFinal,"Reopen angle Chamfer");
+    std::cout<<"PASS: retained Equal/Two Distance/Distance And Angle Chamfers, source ordering and edits, stable IDs, atomic refusal, extrusion, Undo/Redo and reopen\n";
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

@@ -2194,27 +2194,8 @@ aspect->ArrowAspect()->SetLength(7*size);aspect->SetArrowTailSize(8*size);aspect
         label->SetColor(color);label->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(label,0,-1,false);context_->Deactivate(label);sketchDecorations_.push_back(label);
     }
     if(showDimensions_)for(const auto& row:parameters.value("chamferGroups").toArray()){
-        const auto group=row.toObject();const auto contacts=group.value("pointIds").toArray();const bool two=group.value("type")=="twoDistance";
-        int side=0;
-        for(const auto& id:contacts){
-            const auto p=points.value(id.toString());const double u=p.value("uMm").toDouble()+(two?7:2),v=p.value("vMm").toDouble()+(two?7:3);
-            const bool driving=two || side==0;
-            const auto distance=group.value(two && side==1?"distance2Mm":"distanceMm");
-            const auto text=QString(driving?"%1 %2":"(%1 %2)").arg(distance.toDouble()/(units=="in" ? 25.4 : 1.0),0,'g',6).arg(units);
-            const auto pixel=projectSketchPoint(u,v,plane);
-            QFont font("Arial");font.setPixelSize(13);const QFontMetricsF metrics(font);
-            annotationLayouts_.append(QJsonObject{{"dimensionId",side==0?group.value("id"):id},{"chamferId",group.value("id")},
-                {"kind","chamferDistance"},{"driving",driving},{"side",side},{"independentSecond",two && side==1},{"valueMm",distance},
-                {"annotation",QJsonObject{{"uMm",u},{"vMm",v}}},
-                {"label",QJsonObject{{"x",pixel.value("x")},{"y",pixel.value("y")},{"width",metrics.horizontalAdvance(text)+8},{"height",metrics.height()+6},{"angleDegrees",0},{"text",text}}}});
-            Handle(AIS_TextLabel) label=new AIS_TextLabel;label->SetText(TCollection_ExtendedString(text.toUtf8().constData(),true));
-            label->SetPosition(sketchWorld(plane,u,v));label->SetHeight(13);label->SetFont("Arial");label->SetZoomable(false);
-            label->SetHJustification(Graphic3d_HTA_CENTER);label->SetVJustification(Graphic3d_VTA_CENTER);
-            label->SetColor(driving?Quantity_Color(0.10,0.34,0.84,Quantity_TOC_RGB):Quantity_Color(0.42,0.46,0.51,Quantity_TOC_RGB));label->SetZLayer(Graphic3d_ZLayerId_Topmost);
-            context_->Display(label,0,-1,false);context_->Deactivate(label);sketchDecorations_.push_back(label);++side;
-        }
-        // A corner's diagonal midpoint follows distance * (direction1 + direction2)/2.
-        // This gives a sketch-plane drag axis without a second geometry model.
+        const auto group=row.toObject();const auto contacts=group.value("pointIds").toArray();
+        const bool two=group.value("type")=="twoDistance",angular=group.value("type")=="distanceAngle";
         const auto source=sourceFeature.value("parameters").toObject();QMap<QString,QPointF> authoredPoints;
         for(const auto& entry:source.value("points").toArray()){const auto p=entry.toObject();authoredPoints[p.value("id").toString()]={p.value("uMm").toDouble(),p.value("vMm").toDouble()};}
         QJsonObject lines[2];const auto ids=group.value("sourceEntityIds").toArray();
@@ -2224,21 +2205,46 @@ aspect->ArrowAspect()->SetLength(7*size);aspect->SetArrowTailSize(8*size);aspect
             const auto a=authoredPoints.value(lines[0].value(first).toString()),b=authoredPoints.value(lines[1].value(second).toString());
             if(QLineF(a,b).length()<1e-6){vertex=(a+b)*0.5;found=true;}
         }
-        if(!found || (selection.value("tool")!="select" && !(selection.value("tool")=="chamfer" && selection.value("entityIds").toArray().contains(group.value("lineId")))))continue;
         const auto a=points.value(contacts[0].toString()),b=points.value(contacts[1].toString());
         const QPointF endpoints[]{QPointF(a.value("uMm").toDouble(),a.value("vMm").toDouble()),QPointF(b.value("uMm").toDouble(),b.value("vMm").toDouble())};
-        for(int side=0;side<(two?2:1);++side){
-            const QPointF handle=two?endpoints[side]:(endpoints[0]+endpoints[1])/2;
+        const double d=group.value("distanceMm").toDouble(),theta=group.value("angleDeg").toDouble()*std::acos(-1.0)/180;
+        const QPointF toward=(vertex-endpoints[0])/d,segment=endpoints[1]-endpoints[0];
+        const double turn=toward.x()*segment.y()-toward.y()*segment.x()>=0?1:-1;
+        const auto rotate=[](const QPointF& p,double radians){return QPointF(p.x()*std::cos(radians)-p.y()*std::sin(radians),p.x()*std::sin(radians)+p.y()*std::cos(radians));};
+        const auto screen=projectSketchPoint(endpoints[0].x(),endpoints[0].y(),plane),offset=projectSketchPoint(endpoints[0].x()+100,endpoints[0].y(),plane);
+        const double pixelsPerMm=std::max(0.001,std::hypot(offset.value("x").toDouble()-screen.value("x").toDouble(),offset.value("y").toDouble()-screen.value("y").toDouble())/100);
+        const double radius=28/pixelsPerMm;
+        for(int side=0;side<2;++side){
+            const bool angle=angular && side==1,driving=two || angular || side==0;
+            const auto at=angle?endpoints[0]+rotate(toward,turn*theta/2)*(radius+18/pixelsPerMm):endpoints[side]+QPointF(two || angular?7:2,two || angular?7:3);
+            const auto quantity=group.value(angle?"angleDeg":two && side==1?"distance2Mm":"distanceMm");
+            const auto text=angle?QString::number(quantity.toDouble(),'g',6)+QString::fromUtf8("°")
+                :QString(driving?"%1 %2":"(%1 %2)").arg(quantity.toDouble()/(units=="in"?25.4:1.0),0,'g',6).arg(units);
+            const auto pixel=projectSketchPoint(at.x(),at.y(),plane);QFont font("Arial");font.setPixelSize(13);const QFontMetricsF metrics(font);
+            annotationLayouts_.append(QJsonObject{{"dimensionId",side==0?group.value("id"):contacts[side]},{"chamferId",group.value("id")},
+                {"kind",angle?"chamferAngle":"chamferDistance"},{"driving",driving},{"side",side},{"independentSecond",two && side==1},
+                {angle?"valueDeg":"valueMm",quantity},{"annotation",QJsonObject{{"uMm",at.x()},{"vMm",at.y()}}},
+                {"label",QJsonObject{{"x",pixel.value("x")},{"y",pixel.value("y")},{"width",metrics.horizontalAdvance(text)+8},{"height",metrics.height()+6},{"angleDegrees",0},{"text",text}}}});
+            Handle(AIS_TextLabel) label=new AIS_TextLabel;label->SetText(TCollection_ExtendedString(text.toUtf8().constData(),true));label->SetPosition(sketchWorld(plane,at.x(),at.y()));label->SetHeight(13);label->SetFont("Arial");label->SetZoomable(false);
+            label->SetHJustification(Graphic3d_HTA_CENTER);label->SetVJustification(Graphic3d_VTA_CENTER);label->SetColor(driving?Quantity_Color(0.10,0.34,0.84,Quantity_TOC_RGB):Quantity_Color(0.42,0.46,0.51,Quantity_TOC_RGB));label->SetZLayer(Graphic3d_ZLayerId_Topmost);
+            context_->Display(label,0,-1,false);context_->Deactivate(label);sketchDecorations_.push_back(label);
+        }
+        const bool handles=found && (selection.value("tool")=="select" || (selection.value("tool")=="chamfer" && selection.value("entityIds").toArray().contains(group.value("lineId"))));
+        if(angular && found){
+            // Angle is visibly based at the first contact, toward the old corner.
+            BRepBuilderAPI_MakePolygon arc;for(int step=0;step<=24;++step){const auto at=endpoints[0]+rotate(toward,turn*theta*step/24)*radius;arc.Add(sketchWorld(plane,at.x(),at.y()));}
+            if(arc.IsDone()){Handle(AIS_Shape) graphic=new AIS_Shape(arc.Wire());graphic->SetColor(Quantity_Color(0.12,0.55,0.72,Quantity_TOC_RGB));graphic->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(graphic,0,-1,false);context_->Deactivate(graphic);sketchDecorations_.push_back(graphic);}
+        }
+        if(!handles)continue;
+        for(int side=0;side<(two || angular?2:1);++side){
+            const bool angle=angular && side==1;
+            const QPointF handle=angle?endpoints[0]+rotate(toward,turn*theta)*radius:two || angular?endpoints[side]:(endpoints[0]+endpoints[1])/2;
             const double distance=group.value(two && side==1?"distance2Mm":"distanceMm").toDouble();
-            const auto axis=(handle-vertex)/distance;const auto pixel=projectSketchPoint(handle.x(),handle.y(),plane);
-            chamferHandles_.append(QJsonObject{{"chamferId",group.value("id")},{"side",side},{"distanceMm",distance},{"x",pixel.value("x")},{"y",pixel.value("y")},{"hitRadius",11},
-                {"originUMm",vertex.x()},{"originVMm",vertex.y()},{"axisU",axis.x()},{"axisV",axis.y()}});
-            Handle(AIS_Shape) guide=new AIS_Shape(BRepBuilderAPI_MakeEdge(sketchWorld(plane,vertex.x(),vertex.y()),sketchWorld(plane,handle.x(),handle.y())).Edge());
-            guide->SetColor(Quantity_Color(0.18,0.66,0.77,Quantity_TOC_RGB));guide->Attributes()->LineAspect()->SetTypeOfLine(Aspect_TOL_DASH);guide->SetZLayer(Graphic3d_ZLayerId_Topmost);
-            context_->Display(guide,0,-1,false);context_->Deactivate(guide);sketchDecorations_.push_back(guide);
-            Handle(AIS_Point) grip=new AIS_Point(new Geom_CartesianPoint(sketchWorld(plane,handle.x(),handle.y())));
-            grip->Attributes()->SetPointAspect(new Prs3d_PointAspect(Aspect_TOM_O_POINT,Quantity_Color(0.08,0.70,0.82,Quantity_TOC_RGB),6*devicePixelRatioF()));
-            grip->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(grip,0,-1,false);context_->Deactivate(grip);sketchDecorations_.push_back(grip);
+            const auto axis=angle?toward:(handle-vertex)/distance;const auto origin=angle?endpoints[0]:vertex;const auto pixel=projectSketchPoint(handle.x(),handle.y(),plane);
+            chamferHandles_.append(QJsonObject{{"chamferId",group.value("id")},{"side",side},{"kind",angle?"angle":"distance"},{"distanceMm",distance},{"angleDeg",group.value("angleDeg")},
+                {"x",pixel.value("x")},{"y",pixel.value("y")},{"hitRadius",11},{"originUMm",origin.x()},{"originVMm",origin.y()},{"axisU",axis.x()},{"axisV",axis.y()},{"turn",turn}});
+            if(!angle){Handle(AIS_Shape) guide=new AIS_Shape(BRepBuilderAPI_MakeEdge(sketchWorld(plane,vertex.x(),vertex.y()),sketchWorld(plane,handle.x(),handle.y())).Edge());guide->SetColor(Quantity_Color(0.18,0.66,0.77,Quantity_TOC_RGB));guide->Attributes()->LineAspect()->SetTypeOfLine(Aspect_TOL_DASH);guide->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(guide,0,-1,false);context_->Deactivate(guide);sketchDecorations_.push_back(guide);}
+            Handle(AIS_Point) grip=new AIS_Point(new Geom_CartesianPoint(sketchWorld(plane,handle.x(),handle.y())));grip->Attributes()->SetPointAspect(new Prs3d_PointAspect(Aspect_TOM_O_POINT,Quantity_Color(0.08,0.70,0.82,Quantity_TOC_RGB),6*devicePixelRatioF()));grip->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(grip,0,-1,false);context_->Deactivate(grip);sketchDecorations_.push_back(grip);
         }
     }
     context_->UpdateCurrentViewer();
@@ -3435,8 +3441,10 @@ void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
         const auto point=sketchPoint(e->position().x(),e->position().y(),sketchPlane_,sketchFrame_);
         const QPointF axis(chamferDrag_.value("axisU").toDouble(),chamferDrag_.value("axisV").toDouble());
         const QPointF offset(point.value("uMm").toDouble()-chamferDrag_.value("originUMm").toDouble(),point.value("vMm").toDouble()-chamferDrag_.value("originVMm").toDouble());
-        const double distance=QPointF::dotProduct(offset,axis)/QPointF::dotProduct(axis,axis);
-        chamferDrag_["requestedDistanceMm"]=distance;
+        const bool angle=chamferDrag_.value("kind")=="angle";
+        const double distance=angle?std::atan2(chamferDrag_.value("turn").toDouble()*(axis.x()*offset.y()-axis.y()*offset.x()),QPointF::dotProduct(offset,axis))*180/std::acos(-1.0)
+            :QPointF::dotProduct(offset,axis)/QPointF::dotProduct(axis,axis);
+        chamferDrag_["requestedValue"]=distance;chamferDrag_[angle?"requestedAngleDeg":"requestedDistanceMm"]=distance;
         dispatch("sketch.chamferHandle",{{"phase","move"},{"value",distance}});e->accept();return;
     }
     if(cubePressHandled_) {
@@ -3614,7 +3622,7 @@ void ReferenceView::keyReleaseEvent(QKeyEvent* e) {
 void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
     if(e->button()==Qt::LeftButton && !chamferDrag_.isEmpty()){
         const auto drag=chamferDrag_;chamferDrag_={};
-        dispatch("sketch.chamferHandle",drag.contains("requestedDistanceMm") ? QJsonObject{{"phase","end"},{"value",drag.value("requestedDistanceMm")}}:QJsonObject{{"phase","cancel"}});
+        dispatch("sketch.chamferHandle",drag.contains("requestedValue") ? QJsonObject{{"phase","end"},{"value",drag.value("requestedValue")}}:QJsonObject{{"phase","cancel"}});
         e->accept();return;
     }
     if(alternateOrbitSuppressRelease_ && e->button()==Qt::LeftButton){alternateOrbitSuppressRelease_=false;e->accept();return;}

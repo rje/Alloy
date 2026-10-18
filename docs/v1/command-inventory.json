@@ -3131,7 +3131,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "macos-qt-input-and-gpu-capture",
-      "gap": "Equal Distance and Two Distance are accepted with retained edits. Distance And Angle remains open.",
+      "gap": "Equal Distance, Two Distance and Distance And Angle are accepted for finite connected line corners. Crossing-line quadrants, exact reference defaults and physical cross-platform interaction remain unqualified.",
       "apiIds": ["sketch.chamfer", "sketch.chamferUpdate", "sketch.chamferPreview", "sketch.chamferAccept", "sketch.chamferCancel", "sketch.chamferHandle", "sketch.chamferMode"],
       "issueKeys": [
         "ADV-005",
@@ -3139,7 +3139,8 @@
         "SKT-110",
         "SKT-111",
         "SKT-112",
-        "SKT-113"
+        "SKT-113",
+        "SKT-114"
       ],
       "sourceFiles": [
         "src/SketchChamfer.cpp",
@@ -3147,8 +3148,8 @@
         "src/SketchGeometry.cpp",
         "src/ReferenceView.cpp"
       ],
-      "receipts": ["docs/validation/sketch-equal-chamfer.md", "docs/validation/sketch-multiple-chamfers.md", "docs/validation/sketch-chamfer-canvas-edit.md", "docs/validation/sketch-two-distance-chamfer.md"],
-      "planningStatus": "Accepted Equal and Two Distance; one linked Todo owner for remaining mode"
+      "receipts": ["docs/validation/sketch-equal-chamfer.md", "docs/validation/sketch-multiple-chamfers.md", "docs/validation/sketch-chamfer-canvas-edit.md", "docs/validation/sketch-two-distance-chamfer.md", "docs/validation/sketch-distance-angle-chamfer.md"],
+      "planningStatus": "Accepted three documented modes for finite connected corners; broader parity limits retained"
     },
     {
       "id": "sketch.break",

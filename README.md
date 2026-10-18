@@ -132,6 +132,9 @@ driven second distance.
 [Two Distance sketch Chamfer](docs/validation/sketch-two-distance-chamfer.md)
 now retains independently editable setbacks on ordered source edges, with
 native Feature Options switching and a verified solid/reopen path.
+[Distance And Angle sketch Chamfer](docs/validation/sketch-distance-angle-chamfer.md)
+completes the three documented Chamfer modes for finite connected corners,
+with retained distance/angle edits and verified source-following geometry.
 
 [Extrude Distance formulas](docs/validation/extrude-distance-expression.md) now
 retain arithmetic such as `Width*2` through parameter edits, undo and reopening.

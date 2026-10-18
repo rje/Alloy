@@ -51,12 +51,12 @@ Tangents, source edit, history/reopen and GPU captures. See
 accepts switching all five Circle modes through the actual Sketch Palette:
 unfinished picks reset, committed circles persist, and the next canvas pick
 works without focus repair. See [its receipt](validation/sketch-circle-feature-options.md).
-The backlog contains 534 issues. SKT-096/#501 now accepts one Equal Distance
+The backlog contains 535 issues. SKT-096/#501 now accepts one Equal Distance
 sketch Chamfer on an authored line corner, with native preview/typed edit,
 retained source dimensions, extrusion, history/reopen and independently checked
 STL. See [the receipt](validation/sketch-equal-chamfer.md). The dated public
-review split Two Distance and Distance And Angle modes to Todo SKT-110/#534
-and SKT-111/#535. SKT-112/#536 now accepts adjacent retained Equal Distance
+review split the other parameter modes into SKT-110/#534 and SKT-111/#535,
+both now accepted. SKT-112/#536 accepts adjacent retained Equal Distance
 corners sharing a source side, independent values and overlap refusal; see
 [its receipt](validation/sketch-multiple-chamfers.md). SKT-113/#537 now accepts
 a live on-canvas drag handle and direct first-distance label editing with a
@@ -66,8 +66,15 @@ visibly driven second value; see
 SKT-110/#534 now accepts Two Distance sketch Chamfer with stable ordered side
 assignment, independent retained values, native Feature Options switching,
 canvas handles/annotations and checked extrusion/reopen. See
-[its receipt](validation/sketch-two-distance-chamfer.md). Distance And Angle
-remains SKT-111/#535; its dated public addendum is outside the repository.
+[its receipt](validation/sketch-two-distance-chamfer.md). The dated public
+Distance And Angle addendum is outside the repository.
+SKT-111/#535 now accepts Distance And Angle for finite connected corners,
+including native distance/angle handles, source edit, invalid-angle refusal,
+history/reopen and an independently checked solid. See
+[its receipt](validation/sketch-distance-angle-chamfer.md). Crossing lines and
+ambiguous quadrants remain outside this accepted bounded case and are Todo
+SKT-114/#538; all three documented Chamfer modes are now available in Feature
+Options.
 SKT-093/#498 now accepts Inscribed, Circumscribed and Edge Polygon creation,
 retained edits, native numeric refusal, three closed regions, downstream
 extrusion, history/reopen and independently read STL. Astra reviewed the

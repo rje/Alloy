@@ -8899,6 +8899,21 @@
         "area:skt"
       ],
       "body": "## Bounded result\nAdd the on-canvas distance handle and directly editable first distance annotation for Equal Distance sketch Chamfer preview and editing. SKT-096/#501 supports typed distance; the public guide illustrates a draggable manipulator. Keep this native interaction requirement independently visible under ADV-005/#101.\n\n## Reference\nDated public command/figure record: `../Alloy-reference-records/knowledge/specs/skt-096-sketch-chamfer-2026-10-18.md`, public guide figures 19\u201321. Exact color/scale is not established for Alloy's current UI.\n\n## Acceptance\n- After corner selection, drag a visible distance handle to preview and commit a valid equal-distance cut through the same authoritative command used by typed input. For an existing chamfer, drag the handle or edit the first displayed distance annotation to change its retained distance, with Cancel/Escape rollback and one undoable transaction. The second displayed equal distance is driven by the first.\n- Inspect hit target, pointer motion, numeric readout, focus, GPU capture, source edit, Undo/Redo and reopen in the native app. Refuse out-of-span drag values transactionally. Preserve typed entry and avoid a separate mock geometry model.\n\n## Dependency\nSKT-096/#501. Multiple-corner scope remains SKT-112/#536; the two other parameter modes remain SKT-110/#534 and SKT-111/#535.\n"
+    },
+    {
+      "key": "SKT-114",
+      "title": "Support kept-side Chamfer on crossing sketch lines",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P2",
+      "depends_on": [
+        "SKT-111",
+        "SKT-110"
+      ],
+      "labels": [
+        "area:skt"
+      ],
+      "body": "## Bounded result\nExtend retained sketch Chamfer to crossing straight support lines and explicit kept-side quadrant selection. The accepted Equal Distance, Two Distance and Distance And Angle work covers finite connected line corners; public API descriptions also define side-defining points for crossing supports. This issue preserves that deferred compatibility requirement under ADV-005/#101.\n\n## Reference and scope\nDated public contract: `../Alloy-reference-records/knowledge/specs/skt-111-sketch-distance-angle-chamfer-2026-10-18.md`. Publicly documented API side points identify a kept quadrant at intersecting supports. Native quadrant selection and default behavior are unknown; research more permitted public evidence or state an explicit Alloy policy. Do not inspect the proprietary application.\n\n## Acceptance\n- Author a retained kept-side choice and stable support/intersection references for one unambiguous crossing-line Chamfer. Specify how selection and/or canvas side picks identify that quadrant; preserve source line geometry and any valid authored constraints.\n- Exercise supported Equal Distance, Two Distance and Distance And Angle variants on the same crossing fixture through native control and shared local command, including preview, transactional invalid/ambiguous refusal, edit, Undo/Redo and reopen. Confirm generated contacts/diagonal and any closed selectable region or downstream solid when the fixture forms one.\n- Inspect actual GPU captures and controls, report matched/mismatched/unknown against the dated public evidence. Keep general intersecting-curve and arbitrary-line-network handling out of this bounded slice or split remaining scope into linked Todo issues.\n\n## Dependency\nSKT-111/#535 and SKT-110/#534; related to SKT-096/#501.\n"
     }
   ]
 }

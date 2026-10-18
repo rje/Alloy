@@ -584,8 +584,8 @@ AlloyWindow::AlloyWindow() {
     auto* projectAction=projectMenu->addAction("Project\tP");projectAction->setObjectName("sketch.action.project");
     connect(projectAction,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.projectBegin"));});
     create->addSeparator();toolAction(create,"Sketch Dimension\tD","dimension");
-    auto* modify=sketchMenu("Modify","modify");toolAction(modify,"Fillet","fillet");auto* sketchChamferMenu=modify->addMenu("Chamfer");sketchChamferMenu->setObjectName("sketch.menu.chamfer");for(const auto& option:{std::pair{QString("Equal Distance Chamfer"),QString("equalDistance")},std::pair{QString("Two Distance Chamfer"),QString("twoDistance")}}){
-        auto* action=sketchChamferMenu->addAction(option.first);action->setObjectName(option.second=="equalDistance"?"sketch.tool.chamfer":"sketch.tool.twoDistanceChamfer");
+    auto* modify=sketchMenu("Modify","modify");toolAction(modify,"Fillet","fillet");auto* sketchChamferMenu=modify->addMenu("Chamfer");sketchChamferMenu->setObjectName("sketch.menu.chamfer");for(const auto& option:{std::pair{QString("Equal Distance Chamfer"),QString("equalDistance")},std::pair{QString("Two Distance Chamfer"),QString("twoDistance")},std::pair{QString("Distance And Angle Chamfer"),QString("distanceAngle")}}){
+        auto* action=sketchChamferMenu->addAction(option.first);action->setObjectName(option.second=="equalDistance"?"sketch.tool.chamfer":option.second=="twoDistance"?"sketch.tool.twoDistanceChamfer":"sketch.tool.distanceAngleChamfer");
         connect(action,&QAction::triggered,this,[this,type=option.second]{sketchResponse(execute("sketch.chamferMode",{{"type",type}}));});
     }toolAction(modify,"Trim","trim");toolAction(modify,"Extend","extend");toolAction(modify,"Offset\tO","offset");
     auto* sketchMirrorAction=modify->addAction("Mirror");sketchMirrorAction->setObjectName("sketch.action.mirror");
@@ -11509,17 +11509,19 @@ QJsonObject AlloyWindow::acceptDimension(const QJsonObject& args) {
     const auto pending=session_.value("pendingDimension").toObject();if(pending.value("phase")!="editing")return failure("no_pending_dimension","Place or edit a dimension first");
     if(pending.contains("chamferId")){
         if(!pending.value("driving").toBool()){cancelDimension();view_->setFocus();return {{"authoredChange",false}};}
-        if(args.contains("valueDeg") || (args.contains("text") && args.contains("value")))return failure("invalid_arguments","Enter one Chamfer length quantity");
+        const bool angular=pending.value("chamferAngle").toBool();
+        if((args.contains("text") && (args.contains("value") || args.contains("valueDeg"))) || args.contains(angular?"value":"valueDeg"))return failure("invalid_arguments","Enter one Chamfer quantity with the appropriate units");
         auto units=args.value("units").toString(session_.value("inputs").toObject().value("units").toString());double value=0;
-        if(args.contains("value"))value=args.value("value").toDouble();
+        if(args.contains(angular?"valueDeg":"value"))value=args.value(angular?"valueDeg":"value").toDouble();
         else {
-            const QRegularExpression expression(QStringLiteral(R"(^\s*([+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)\s*(mm|in)?\s*$)"),QRegularExpression::CaseInsensitiveOption);
+            const QRegularExpression expression(angular?QStringLiteral(R"(^\s*([+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)\s*(deg|°)?\s*$)")
+                :QStringLiteral(R"(^\s*([+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)\s*(mm|in)?\s*$)"),QRegularExpression::CaseInsensitiveOption);
             const auto match=expression.match(args.value("text").toString(dimensionEditorValue_?dimensionEditorValue_->text():QString{}));
-            if(!match.hasMatch())return failure("invalid_dimension_value","Enter a positive Chamfer distance with optional mm or in");
-            bool valid=false;value=match.captured(1).toDouble(&valid);if(!valid)return failure("invalid_dimension_value","Chamfer distance is outside the supported range");
-            if(!match.captured(2).isEmpty())units=match.captured(2).toLower();
+            if(!match.hasMatch())return failure("invalid_dimension_value",angular?"Enter a positive Chamfer angle with optional deg or degree sign":"Enter a positive Chamfer distance with optional mm or in");
+            bool valid=false;value=match.captured(1).toDouble(&valid);if(!valid)return failure("invalid_dimension_value","Chamfer quantity is outside the supported range");
+            if(!angular && !match.captured(2).isEmpty())units=match.captured(2).toLower();
         }
-        QJsonObject mutation{{pending.value("chamferSide").toInt()==1?"value2":"value",value},{"units",units}};
+        QJsonObject mutation{{angular?"angleDeg":pending.value("chamferSide").toInt()==1?"value2":"value",value},{"units",units}};
         if(!pending.value("chamferPending").toBool())mutation["chamferId"]=pending.value("chamferId");
         const auto response=execute(pending.value("chamferPending").toBool()?"sketch.chamferAccept":"sketch.chamferUpdate",mutation);
         if(!response.value("ok").toBool())return response;
@@ -11605,9 +11607,10 @@ QJsonObject AlloyWindow::editDimension(const QString& id) {
     for(const auto& row:view_->annotations()){
         const auto layout=row.toObject();if(layout.value("dimensionId")!=id || layout.value("chamferId").toString().isEmpty())continue;
         cancelDimension();
-        QJsonObject dimension{{"dimensionId",id},{"chamferId",layout.value("chamferId")},{"kind","chamferDistance"},
-            {"phase","editing"},{"driving",layout.value("driving")},{"chamferSide",layout.value("independentSecond").toBool()?1:0},{"measuredValueMm",layout.value("valueMm")},
-            {"annotation",layout.value("annotation")},{"name",layout.value("driving").toBool()?"Chamfer distance":"Equal setback (driven)"},
+        const bool angular=layout.value("kind")=="chamferAngle";
+        QJsonObject dimension{{"dimensionId",id},{"chamferId",layout.value("chamferId")},{"kind",angular?"angle":"chamferDistance"},{"chamferAngle",angular},
+            {"phase","editing"},{"driving",layout.value("driving")},{"chamferSide",layout.value("independentSecond").toBool()?1:0},{angular?"measuredValueDeg":"measuredValueMm",layout.value(angular?"valueDeg":"valueMm")},
+            {"annotation",layout.value("annotation")},{"name",angular?"Chamfer angle":layout.value("driving").toBool()?"Chamfer distance":"Equal setback (driven)"},
             {"chamferPending",session_.contains("pendingChamfer")}};
         session_["pendingDimension"]=dimension;showDimensionEditor();return dimension;
     }
