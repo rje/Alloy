@@ -4,8 +4,9 @@ CI-008 admits the macOS build recipe for the coherent patched Qt 6.11.2 SDK.
 The recipe pins the public archive and the two accessibility patches, builds
 Qt frameworks and plugins together, installs them, and runs the offscreen
 item-view cache regression before writing a success manifest. Native CI uses
-that recipe on macOS; Windows and Linux remain stock-`aqt` compilation paths
-under CI-009. This is a build and dependency-provenance result, not a packaged
+that recipe on macOS. Windows and Linux used stock `aqt` when CI-008 was
+accepted; CI-009 now has an unqualified patched-source candidate awaiting its
+native matrix. This is a build and dependency-provenance result, not a packaged
 or loaded-runtime qualification.
 
 The isolated clean build used

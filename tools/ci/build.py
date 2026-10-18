@@ -12,6 +12,8 @@ import sys
 from datetime import datetime, timezone
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / 'tools/dependencies'))
+from private_qt_recipe import cache, sha
 OCCT = 'a016080bf6738d6aeae020badee4e888ad1540a5'  # V7_9_3
 FREETYPE = '42608f77f20749dd6ddc9e0536788eaad70ea4b5'  # VER-2-13-3
 QT_VERSION = '6.11.2'
@@ -125,14 +127,43 @@ def main():
                 raise RuntimeError('Coherent private Qt build has no success manifest')
             shutil.copy2(qt_manifest, artifact / 'private-qt-build.json')
         else:
-            # CI-009 retains cross-platform source-patch parity. Stock aqt is
-            # compilation evidence only and is not the validated macOS runtime.
-            run(sys.executable, '-m', 'aqt', 'install-qt', host, 'desktop', QT_VERSION,
-                qt_arch, '--outputdir', work / 'Qt')
-            configs = list((work / 'Qt').rglob('Qt6Config.cmake'))
-            if len(configs) != 1:
-                raise RuntimeError(f'Expected one native Qt config, found {configs}')
-            qt = configs[0].parents[3]
+            qt_work = work / 'qt-private-runtime'
+            try:
+                run(sys.executable, ROOT / 'tools/dependencies/build_native_qt.py',
+                    '--target', args.target, '--work', qt_work,
+                    '--archive', work / 'qtbase-v6.11.2.tar.gz')
+            except Exception:
+                # A failed native SDK configure/build must remain diagnosable
+                # from the short-lived CI artifact, without uploading sources
+                # or a partially installed runtime.
+                try:
+                    failure = artifact / 'qt-private-failure'
+                    for relative in ('private-qt-input.json', 'private-qt-build.json',
+                                     'build/CMakeCache.txt',
+                                     'build/CMakeFiles/CMakeConfigureLog.yaml',
+                                     'cache-test/CMakeCache.txt',
+                                     'cache-test/Testing/Temporary/LastTest.log'):
+                        candidate = qt_work / relative
+                        if candidate.is_file():
+                            target = failure / relative
+                            target.parent.mkdir(parents=True, exist_ok=True)
+                            shutil.copy2(candidate, target)
+                    compiler_configs = qt_work / 'build/CMakeFiles'
+                    if compiler_configs.is_dir():
+                        for candidate in compiler_configs.rglob('CMake*Compiler.cmake'):
+                            target = failure / candidate.relative_to(qt_work)
+                            target.parent.mkdir(parents=True, exist_ok=True)
+                            shutil.copy2(candidate, target)
+                    regression = qt_work / 'cache-test-evidence'
+                    if regression.is_dir():
+                        shutil.copytree(regression, failure / 'cache-test-evidence')
+                except Exception as collection_error:
+                    print(f'Could not retain all failed Qt evidence: {collection_error}', flush=True)
+                raise
+            qt = qt_work / 'install'
+            qt_manifest = qt_work / 'private-qt-build.json'
+            shutil.copy2(qt_manifest, artifact / 'private-qt-build.json')
+            shutil.copytree(qt_work / 'cache-test-evidence', artifact / 'qt-itemview-cache-regression')
         ft = work / 'freetype-install'
         ft_source = source('freetype', 'https://github.com/freetype/freetype.git', FREETYPE)
         build(ft_source, 'freetype', ft, ['-DBUILD_SHARED_LIBS=ON',
@@ -171,9 +202,40 @@ def main():
         if sys.platform == 'darwin':
             link_inventory = mac_link_inventory(executable, directory, qt, occt, ft)
             (artifact / 'linked-dependencies.json').write_text(json.dumps(link_inventory, indent=2) + '\n')
+        # Preserve exact effective development inputs on every platform. These
+        # are build/link observations, never a claim about loaded package closure.
+        def files(folder, predicate=lambda path: True):
+            return {path.relative_to(folder).as_posix(): sha(path)
+                    for path in sorted(folder.rglob('*')) if path.is_file() and predicate(path)}
+        libraries = lambda path: path.suffix.lower() in ('.dll', '.dylib', '.lib', '.a') or '.so' in path.name
+        dependencies = {
+            'schema': 'alloy-native-dependency-build/1',
+            'source_commits': {name: subprocess.check_output(
+                ['git', '-C', str(folder), 'rev-parse', 'HEAD'], text=True).strip()
+                for name, folder in (('occt', occt_source), ('freetype', ft_source))},
+            'effective_cmake': {name: cache(folder / 'CMakeCache.txt') for name, folder in
+                                (('alloy', directory), ('occt', work / 'occt-build'),
+                                 ('freetype', work / 'freetype-build'))},
+            'installed_libraries_sha256': {'occt': files(occt, libraries), 'freetype': files(ft, libraries),
+                                           'alloy_and_solvers': files(directory, libraries)},
+            'installed_files_sha256': {'occt': files(occt), 'freetype': files(ft)},
+            'embedded_fonts_and_notices_sha256': files(ROOT / 'third_party/dejavu'),
+            'build_contract_sha256': {path: sha(ROOT / path) for path in
+                                      ('CMakeLists.txt', 'cmake/PlaneGCS.cmake', 'cmake/OndselSolver.cmake',
+                                       'third_party/planegcs/sources.json', 'third_party/ondsel/sources.json')},
+            'runtime_loaded_tested': False, 'gpu_tested': False, 'dependencies_bundled': False,
+        }
+        if dependencies['source_commits'] != {'occt': OCCT, 'freetype': FREETYPE}:
+            raise RuntimeError('Native dependency checkout revision changed')
+        if sys.platform != 'darwin':
+            tool = ['dumpbin', '/dependents'] if sys.platform == 'win32' else ['readelf', '-d']
+            dependencies['link_inspection'] = {str(path.relative_to(directory)): subprocess.check_output(
+                [*tool, str(path)], text=True) for path in [executable, *sorted(directory.rglob(
+                    '*.dll' if sys.platform == 'win32' else '*.so'))] if path.is_file()}
+        (artifact / 'dependency-build.json').write_text(json.dumps(dependencies, indent=2) + '\n')
         receipt = {'result':'compiled', 'target':args.target, 'observed_at':datetime.now(timezone.utc).isoformat(),
                    'source_commit':os.environ.get('GITHUB_SHA'), 'qt':QT_VERSION,
-                   'qt_source': 'patched-source-macos' if qt_manifest else 'stock-aqt-unqualified',
+                   'qt_source': 'patched-source-macos' if sys.platform == 'darwin' else 'patched-source-native-candidate',
                    'qt_build_manifest_sha256': hashlib.sha256(qt_manifest.read_bytes()).hexdigest() if qt_manifest else None,
                    'local_client_sha256':hashlib.sha256(helper.read_bytes()).hexdigest(),
                    'occt_commit':OCCT, 'freetype_commit':FREETYPE,
@@ -192,6 +254,7 @@ def main():
                    'ondsel_solver_commit':'4be80eef02a3486cda0d78f3ccbb308d207a9639',
                    'ondsel_solver_archive_sha256':'701a5b6814114d3bd358700b4308e0c75c8fe86d24400d5accde0f3c11e3580a',
                    'link_inventory_sha256':hashlib.sha256((artifact / 'linked-dependencies.json').read_bytes()).hexdigest() if link_inventory else None,
+                   'dependency_build_manifest_sha256': sha(artifact / 'dependency-build.json'),
                    'compiler_baseline': {key:baseline[key] for key in ('compiler_id','compiler_version')},
                    'host':platform.platform(), 'python':platform.python_version(),
                    'runner_image':os.environ.get('ImageOS'), 'runner_image_version':os.environ.get('ImageVersion'),
