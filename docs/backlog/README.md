@@ -11,7 +11,7 @@ The current local backlog contains **554 issues**: **436 implementation, 24 rese
 1 research/design, 22 epics, and 71 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 SKT-115–121 and SKT-123–124/#540–546, #548–549 are accepted analytic constraint pairs and endpoint contacts; SKT-129/#554 accepts distinct-ID arc/line endpoint Tangent and SKT-022/#163 is closed for its declared v1 analytic scope. SKT-122/#547 and SKT-130–132/#555–557 retain later multi-pair Symmetry, spline constraints and branch-control research.
-SKT-125/#550 accepts per-entity sketch status and Find Under-Constrained; SKT-126–128/#551–553 retain visibility, contextual point relations and glyph/edit coverage under SKT-023/#164.
+SKT-125/#550 accepts per-entity sketch status and Find Under-Constrained; SKT-126/#551 accepts independent sketch visibility and hidden-target picking. SKT-127–128/#552–553 retain contextual point relations and glyph/edit coverage under SKT-023/#164.
 SKT-114/#538 retains crossing-line Chamfer kept-side selection after the
 accepted connected-corner modes. REL-050/#539 retains physical/native failure
 message and recovery checks after the [packaged REL-015 slice](../validation/actionable-failures-packaged.md).

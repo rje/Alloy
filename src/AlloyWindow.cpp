@@ -5066,15 +5066,20 @@ void AlloyWindow::registerCommands() {
     });
     auto badgeId=parameter("string","Stable authored sketch constraint UUID.");
     auto badgePixel=parameter("number","Viewport-local logical pixel coordinate.");badgePixel["minimum"]=0;badgePixel["maximum"]=10000;
-    add("sketch.displayOptions","Sketch annotation visibility","Session-local Show Constraints and Show Dimensions; hides annotations without modeling history.",
-        {{"showConstraints",optional(parameter("boolean","Show retained relation badges."))},{"showDimensions",optional(parameter("boolean","Show dimension annotations."))}},[this](const auto& a){
+    add("sketch.displayOptions","Sketch annotation visibility","Session-local independent sketch presentation; hidden targets are not pointer-pickable. No modeling history.",
+        {{"showProfile",optional(parameter("boolean","Show selectable profile fill."))},{"showPoints",optional(parameter("boolean","Show selectable point markers."))},{"showConstructionGeometries",optional(parameter("boolean","Show construction and centerline geometry."))},{"showProjectedGeometries",optional(parameter("boolean","Show linked geometry."))},{"hideFullyConstrained",optional(parameter("boolean","Focus on remaining movable geometry."))},{"showConstraints",optional(parameter("boolean","Show retained relation badges."))},{"showDimensions",optional(parameter("boolean","Show dimension annotations."))}},[this](const auto& a){
             if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
             if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","Restart this sketch");
             auto options=session_.value("displayOptions").toObject();
-            for(const auto& field:QStringList{"showConstraints","showDimensions"})if(a.contains(field))options[field]=a[field];
+            for(const auto& field:QStringList{"showProfile","showPoints","showConstructionGeometries","showProjectedGeometries","hideFullyConstrained","showConstraints","showDimensions"})if(a.contains(field))options[field]=a[field];
             auto selection=session_.value("selection").toObject();
             if(!options.value("showConstraints").toBool(true)){selection.remove("constraintIds");session_.remove("hoveredConstraintId");}
             if(!options.value("showDimensions").toBool(true)){selection.remove("dimensionId");cancelDimension();}
+            // Clear geometry selections on a visibility change, including pending pick chains.
+            // This conservative session policy prevents invisible targets surviving in selection.
+            if(options!=session_.value("displayOptions").toObject()){
+                selection.remove("pointIds");selection.remove("entityIds");selection.remove("profileIds");
+            }
             session_["displayOptions"]=options;session_["selection"]=selection;return options;
         });
     add("sketch.constraintSelect","Select constraint badge","Select a relation independently of its geometry; Shift adds badges.",
@@ -9332,7 +9337,7 @@ QJsonObject AlloyWindow::beginSketch(const QString& plane,const QString& name,co
     session_={{"id",sessionId},{"command","sketch.edit"},{"status","active"},{"inputs",inputs},{"draftSketch",draft},
         {"tool",entryTool},{"selection",QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}}}},{"solverDiagnostics",solved.diagnostics},
         {"previewed",false},{"baseDocumentRevision",static_cast<qint64>(document_->revision())},{"resolvedFrame",resolvedFrame},{"projectionContext",projectionContext},
-        {"displayOptions",QJsonObject{{"showConstraints",true},{"showDimensions",true}}}};
+        {"displayOptions",QJsonObject{{"showProfile",true},{"showPoints",true},{"showConstructionGeometries",true},{"showProjectedGeometries",true},{"hideFullyConstrained",false},{"showConstraints",true},{"showDimensions",true}}}};
     if(plane=="face" && existing.isEmpty())
         session_["faceSupportAutoProjections"]=draft["parameters"].toObject()["projections"].toArray();
     sketchHistory_={{draft,solved.diagnostics}};sketchHistoryIndex_=0;sketchHistoryGroup_.clear();updateSketchHistoryState();
@@ -10892,6 +10897,11 @@ QJsonObject AlloyWindow::setSketchSelection(const QJsonObject& selection) {
         }
         QJsonArray ids;for(const auto& value:selection[field].toArray()) {
             if(!value.isString() || !available.contains(value.toString()))return failure("stale_entity","Selected sketch geometry does not exist",field);
+            if((field=="pointIds" && !view_->sketchPointVisible(value.toString()))
+                || (field=="entityIds" && !view_->sketchEntityVisible(value.toString()))
+                || (field=="profileIds" && (!session_.value("displayOptions").toObject().value("showProfile").toBool(true)
+                    || session_.value("displayOptions").toObject().value("hideFullyConstrained").toBool())))
+                return failure("geometry_hidden","Show sketch geometry before selecting it",field);
             if(!ids.contains(value))ids.append(value);
         }
         normalized[field]=ids;
@@ -11894,7 +11904,10 @@ void AlloyWindow::refreshSketchControls() {
     const auto units=session_.value("inputs").toObject()["units"].toString();
     refreshSplinePalette();
     const auto displayOptions=session_.value("displayOptions").toObject();
-    view_->setSketchAnnotationVisibility(displayOptions.value("showConstraints").toBool(true),displayOptions.value("showDimensions").toBool(true));
+    view_->setSketchDisplayOptions(displayOptions);
+    for(const auto& field:QStringList{"showProfile","showPoints","showConstructionGeometries","showProjectedGeometries","hideFullyConstrained"})if(auto* option=sketchPanel_->findChild<QCheckBox*>("sketch."+field)){
+        const QSignalBlocker block(option);option->setChecked(displayOptions.value(field).toBool(field!="hideFullyConstrained"));
+    }
     if(sketchShowConstraints_){const QSignalBlocker block(sketchShowConstraints_);sketchShowConstraints_->setChecked(displayOptions.value("showConstraints").toBool(true));}
     if(sketchShowDimensions_){const QSignalBlocker block(sketchShowDimensions_);sketchShowDimensions_->setChecked(displayOptions.value("showDimensions").toBool(true));}
     auto presentationSelection=selection;presentationSelection["tool"]=session_.value("tool");presentationSelection["hoveredConstraintId"]=session_.value("hoveredConstraintId");
@@ -12464,6 +12477,10 @@ void AlloyWindow::showSketch() {
             QJsonObject args;const auto endpoint=tangentContact->currentData().toString();if(!endpoint.isEmpty())args["endpoint"]=endpoint;
             sketchResponse(execute("sketch.tangentContact",args));
         });
+        for(const auto& pair:QList<QPair<QString,QString>>{{"showProfile","Show Profile"},{"showPoints","Show Points"},{"showConstructionGeometries","Show Construction Geometries"},{"showProjectedGeometries","Show Projected Geometries"},{"hideFullyConstrained","Hide Fully Constrained"}}){
+            auto* option=new QCheckBox(pair.second);option->setObjectName("sketch."+pair.first);option->setChecked(pair.first!="hideFullyConstrained");layout->addWidget(option);
+            connect(option,&QCheckBox::toggled,this,[this,field=pair.first](bool checked){execute("sketch.displayOptions",{{field,checked}});});
+        }
         sketchShowConstraints_=new QCheckBox("Show Constraints");sketchShowConstraints_->setObjectName("sketch.showConstraints");
         sketchShowDimensions_=new QCheckBox("Show Dimensions");sketchShowDimensions_->setObjectName("sketch.showDimensions");
         for(auto* option:{sketchShowConstraints_,sketchShowDimensions_}){option->setChecked(true);layout->addWidget(option);}

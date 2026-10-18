@@ -45,6 +45,9 @@ now retain a smooth directed join between two chosen arc endpoints.
 now retains a closed, editable rounded profile and downstream solid.
 [Per-entity sketch roles](docs/validation/sketch-entity-roles.md)
 now show freedom/status by curve and provide a live Find Under-Constrained list.
+[Independent sketch visibility](docs/validation/sketch-visibility.md)
+now controls profiles, points, dimensions, constraints, construction and projected
+geometry separately, with hidden targets excluded from viewport selection.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,
