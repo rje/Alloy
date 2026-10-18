@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **579 issues**: **458 implementation, 24 research,
+The current local backlog contains **580 issues**: **459 implementation, 24 research,
 2 research/design, 22 epics, and 73 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 SKT-115–121 and SKT-123–124/#540–546, #548–549 are accepted analytic constraint pairs and endpoint contacts; SKT-129/#554 accepts distinct-ID arc/line endpoint Tangent and SKT-022/#163 is closed for its declared v1 analytic scope. SKT-122/#547 and SKT-130–132/#555–557 retain later multi-pair Symmetry, spline constraints and branch-control research.
@@ -43,7 +43,10 @@ checks. Linked/projected line/circle/point Delete is accepted under SKT-143/#569
 with native/API, exact history/reopen and GPU evidence; its independent Astra
 review found one palette overlap, corrected in final native captures. Broad
 source repair remains SKT-026/#160. Overlapping projected/authored selection
-and multi-boundary face-projection Delete remain Todo SKT-155–156/#581–582. SKT-144–147/#570–573
+is accepted for straight and circular pairs under
+[SKT-155](../validation/sketch-overlap-selection.md). Depth/Parents and hover
+preview remain Todo SKT-157/#583; multi-boundary face-projection Delete remains
+Todo SKT-156/#582. SKT-144–147/#570–573
 now have independently accepted bounded Offset owner deletion, including the
 single-owner support-face loop under SKT-145/#571. Its planar-inset actual-app variant is now accepted under SKT-152/#578
 with a retained 18-edge enclosure fixture, native/API input, exact history and GPU captures. Multiple owners in one sketch remain Todo SKT-153/#579; stale-support recovery text is SKT-154/#580, blocked until a reachable in-session stale-support or explicit repair path exists under SKT-025/#159.

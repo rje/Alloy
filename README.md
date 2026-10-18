@@ -106,6 +106,7 @@ changing the draft; multiple owners in one sketch remain separate work.
 also passes on a retained 18-edge enclosure support through the real app,
 native viewport input, exact history/reopen and GPU captures. Multiple owners
 within one sketch remain open.
+[Overlapping sketch selection](docs/validation/sketch-overlap-selection.md) now lets a native hold choose independently between coincident authored and projected lines/circles, with stable identity cues and checked Delete/history/reopen. Broader Select Other grouping and hover preview remain Todo.
 [Linked projection Delete](docs/validation/sketch-linked-projection-delete.md)
 now removes selected retained line, circle or point results through the shared
 sketch command, with native canvas/list/context routes, source preservation,

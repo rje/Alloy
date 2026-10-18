@@ -9704,7 +9704,7 @@
         "phase:P2",
         "priority:P2"
       ],
-      "body": "## Bounded result\nIn Sketch Edit, overlapping authored and linked projected curves remain independently selectable by native input, with a visible stable-ID or source cue. A click must not silently delete the wrong curve. The SKT-143 fixture qualified canvas/list/context Delete for non-overlapping projected geometry but did not exercise the public overlap-selection case.\n\n## Acceptance\nResearch the documented overlapping-projection selection gesture and keep dated sources/unknowns outside the repository. Create coincident authored and linked projected straight and circular pairs. Through real native input, deliberately choose each target, inspect its stable selection/source cue, Delete only the intended local object through the shared command, and verify counterpart/source survival, one-step Undo/Redo, save/reopen and readable GPU captures. Keep exact gesture/styling parity as matched or unknown by evidence.\n\n## Dependency\n- SKT-143\n\n## Provenance\nExplicit input-disambiguation remainder from independent SKT-143/#569 review; external public evidence is in ../Alloy-reference-records/knowledge/specs/skt143-linked-projected-delete-2026-10-18.md."
+      "body": "## Bounded result\nIn Sketch Edit, overlapping authored and linked projected curves remain independently selectable by native input, with a visible stable-ID or source cue. A click must not silently delete the wrong curve. The SKT-143 fixture qualified canvas/list/context Delete for non-overlapping projected geometry but did not exercise the public overlap-selection case.\n\n## Acceptance\nResearch the documented overlapping-projection selection gesture and keep dated sources/unknowns outside the repository. Create coincident authored and linked projected straight and circular pairs. Through real native input, deliberately choose each target, inspect its stable selection/source cue, Delete only the intended local object through the shared command, and verify counterpart/source survival, one-step Undo/Redo, save/reopen and readable GPU captures. Keep exact gesture/styling parity as matched or unknown by evidence.\n\n## Dependency\n- SKT-143\n\n## Provenance\nExplicit input-disambiguation remainder from independent SKT-143/#569 review; external public evidence is in ../Alloy-reference-records/knowledge/specs/skt143-linked-projected-delete-2026-10-18.md.\n\n## Accepted 2026-10-18\nNative hold-to-choose selected authored/projected straight and circular pairs with readable role/stable-ID cues. Shared Delete preserved the exact counterpart/source, one-step Undo/Redo and save/reopen. Actual-app API and Apple M4 GPU captures passed. Independent Sol reviewer reran 3/3 native entries, checked binary hash and captures, and found no blocker. General Depth/Parents and hover cross-highlighting are Todo SKT-157/#583; exact styling, physical input and other-platform runtime remain unqualified. Receipt: docs/validation/sketch-overlap-selection.md."
     },
     {
       "key": "SKT-156",
@@ -9723,6 +9723,24 @@
         "priority:P2"
       ],
       "body": "## Bounded result\nQualify deletion when one retained Project Face action creates multiple linked boundary records. Define whether native selection deletes a single projected edge or the owning face-projection group, preserving source/support and unrelated projections. SKT-143 only covers individually retained line/circle/point records.\n\n## Acceptance\nResearch a permitted public Project Face/Delete demonstration and mark the exact cascade unknown if not shown. Retain explicit owner identity for a multi-boundary face projection; use one real-app native/API face fixture to delete the selected result according to the chosen documented/Alloy policy. Check profile/source/support continuity, surviving boundary IDs, dependent-reference refusal, one-step Undo/Redo, save/reopen, downstream selected-profile preflight and hardware GPU captures. Do not generic-strip projection arrays.\n\n## Dependency\n- SKT-143\n\n## Provenance\nExplicit face-projection ownership remainder from independent SKT-143/#569 review; broad projection creation/repair remains SKT-026/#160."
+    },
+    {
+      "key": "SKT-157",
+      "title": "Extend Select Other grouping and hover preview",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P2",
+      "depends_on": [
+        "SKT-155"
+      ],
+      "labels": [
+        "kind:implementation",
+        "status:ready",
+        "area:skt",
+        "phase:P2",
+        "priority:P2"
+      ],
+      "body": "## Acceptance\nResearch public row labels, membership/ordering and hover/reset/cancel behavior; keep dated provenance and unknowns outside the repository. Hover each retained row and visibly preview the intended geometry; leaving or Escape clears preview without changing committed selection, document or history. Depth and Parents show the same live model identities with correct parent relationships; hidden/unavailable targets do not silently substitute. Reuse coincident authored/projected line and circle fixtures plus one nested body/occurrence fixture. Through native input, inspect hover, grouping, choice, cancel and subsequent shared Delete with counterpart/source survival and readable GPU captures. Report exact layout/styling parity separately from functional acceptance. Split additional target families explicitly.\n\n## Dependency\n- SKT-155\n\n## Provenance\nExplicit documented Select Other presentation remainder from SKT-155/#581. Dated public evidence and bounded proposal: ../Alloy-reference-records/knowledge/specs/skt155-select-other-remainder-proposal-2026-10-18.md.\n"
     }
   ]
 }

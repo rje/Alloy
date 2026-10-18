@@ -1,6 +1,8 @@
 # SKT-155: overlapping authored and projected curve selection
 
-Locally verified candidate, 2026-10-18; independent review pending. In Sketch
+Accepted bounded slice, 2026-10-18. Independent Sol review reran the retained
+native workflow (3/3 in 16.3 s), matched the actual-app binary hash and inspected
+the saved selection/deletion captures; it found no material blocker. In Sketch
 Edit / Select, hold unmodified left mouse on overlapping visible curves for
 500 ms to open Select Other. Its rows show Authored/Projected, curve type and
 a short stable ID. Choosing a row uses `sketch.selectionSet`; the Sketch
@@ -88,9 +90,9 @@ selection of overlapping authored/projected lines and circles. Alloy role/ID
 labels are deliberate source cues. Full popup styling remains unqualified under
 unmatched public screenshot size/state. Mismatch: the general documented chooser
 has Depth/Parents organization and hover cross-highlighting; this bounded chooser
-does not implement those. The external proposed Todo child contract
-`skt155-select-other-remainder-proposal-2026-10-18.md` preserves that remainder for
-root issue tracking. Broader target families, exact hierarchy behavior, physical
+does not implement those. SKT-157/#583 owns that Todo remainder; its external
+bounded contract is `skt155-select-other-remainder-proposal-2026-10-18.md`.
+Broader target families, exact hierarchy behavior, physical
 OS pointer delivery and other-platform native/GPU runtime remain unqualified.
 
 Existing SKT-143 refusal/cascade policies remain authoritative; no new geometry
