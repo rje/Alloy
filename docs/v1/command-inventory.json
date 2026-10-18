@@ -3131,7 +3131,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "macos-qt-input-and-gpu-capture",
-      "gap": "One Equal Distance corner with typed palette editing is accepted. Two Distance, Distance And Angle, multiple corners and on-canvas drag/dimension editing remain open.",
+      "gap": "Multiple Equal Distance corners with independent typed palette editing are accepted. Two Distance, Distance And Angle and on-canvas drag/dimension editing remain open.",
       "apiIds": ["sketch.chamfer", "sketch.chamferUpdate", "sketch.chamferPreview", "sketch.chamferAccept", "sketch.chamferCancel"],
       "issueKeys": [
         "ADV-005",
@@ -3147,8 +3147,8 @@
         "src/SketchGeometry.cpp",
         "src/ReferenceView.cpp"
       ],
-      "receipts": ["docs/validation/sketch-equal-chamfer.md"],
-      "planningStatus": "Accepted bounded Equal Distance slice; four linked Todo owners for remaining modes and interaction"
+      "receipts": ["docs/validation/sketch-equal-chamfer.md", "docs/validation/sketch-multiple-chamfers.md"],
+      "planningStatus": "Accepted multiple Equal Distance corners; three linked Todo owners for remaining modes and interaction"
     },
     {
       "id": "sketch.break",

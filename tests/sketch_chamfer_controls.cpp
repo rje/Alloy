@@ -5,6 +5,7 @@
 #include <QAction>
 #include <QApplication>
 #include <QDir>
+#include <QComboBox>
 #include <QFile>
 #include <QJsonDocument>
 #include <QLineEdit>
@@ -45,10 +46,23 @@ private slots:
   QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,pixel(75,0));QVERIFY(session(w).value("pendingChamfer").toObject().contains("firstSideId"));QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(view));
   QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,pixel(0,37.5));QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(distance));QTest::keyClicks(distance,"10");QCOMPARE(draft(w),base);QTest::keyClick(distance,Qt::Key_Return);QTRY_VERIFY(!session(w).contains("pendingChamfer"));QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(view));
   auto group=draft(w).value("parameters").toObject().value("chamferGroups").toArray().first().toObject();QCOMPARE(group.value("distanceMm").toDouble(),10.0);QCOMPARE(draft(w).value("parameters").toObject().value("dimensions"),sourceDimensions);capture("04-committed-setbacks");
-  auto* edit=w.findChild<QPushButton*>("sketch.chamfer.edit");QVERIFY(edit && edit->isVisible());QTest::mouseClick(edit,Qt::LeftButton);QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(distance));QTest::keyClicks(distance,"12");QTest::keyClick(distance,Qt::Key_Return);QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(view));QCOMPARE(draft(w).value("parameters").toObject().value("chamferGroups").toArray().first().toObject().value("lineId"),group.value("lineId"));
+  action->trigger();QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(view));
+  QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,pixel(-75,37.5));
+  QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(distance));QVERIFY(session(w).value("pendingChamfer").toObject().contains("previewDraft"));
+  QTest::keyClicks(distance,"8");capture("04b-adjacent-corner-preview");QTest::keyClick(distance,Qt::Key_Return);
+  QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(view));
+  auto* retained=w.findChild<QComboBox*>("sketch.chamfer.retained");QVERIFY(retained && retained->isVisible());QCOMPARE(retained->count(),2);
+  const auto second=draft(w).value("parameters").toObject().value("chamferGroups").toArray()[1].toObject();
+  // A real key on the chooser selects the second retained corner for editing.
+  QTest::mouseClick(retained,Qt::LeftButton);QTest::keyClick(retained,Qt::Key_End);QTest::keyClick(retained,Qt::Key_Return);
+  QTRY_COMPARE(retained->currentIndex(),1);
+  auto* edit=w.findChild<QPushButton*>("sketch.chamfer.edit");QVERIFY(edit && edit->isVisible());QTest::mouseClick(edit,Qt::LeftButton);QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(distance));QTest::keyClicks(distance,"9");QTest::keyClick(distance,Qt::Key_Return);QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(view));
+  auto secondEdited=draft(w).value("parameters").toObject().value("chamferGroups").toArray()[1].toObject();QCOMPARE(secondEdited.value("id"),second.value("id"));QCOMPARE(secondEdited.value("distanceMm").toDouble(),9.0);
+  QTest::mouseClick(retained,Qt::LeftButton);QTest::keyClick(retained,Qt::Key_Home);QTest::keyClick(retained,Qt::Key_Return);QTRY_COMPARE(retained->currentIndex(),0);
+  QTest::mouseClick(edit,Qt::LeftButton);QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(distance));QTest::keyClicks(distance,"12");QTest::keyClick(distance,Qt::Key_Return);QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(view));QCOMPARE(draft(w).value("parameters").toObject().value("chamferGroups").toArray().first().toObject().value("lineId"),group.value("lineId"));
   // Existing native dimension editor owns the original width/height intent.
   const auto dimensions=sourceDimensions.toArray();for(int i=0;i<2;++i){call(w,"sketch.dimensionEdit",{{"dimensionId",dimensions[i].toObject().value("id")}});auto* input=w.findChild<QLineEdit*>("sketch.inlineValue");QVERIFY(input && input->isVisible());QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(input));QTest::keyClick(input,Qt::Key_A,Qt::ControlModifier);QTest::keyClicks(input,i==0?"160":"80");QTest::keyClick(input,Qt::Key_Return);QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(view));}capture("05-source-and-distance-edit");
-  const auto before=draft(w);QTest::mouseClick(edit,Qt::LeftButton);QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(distance));QTest::keyClicks(distance,"90");QVERIFY(!session(w).value("pendingChamfer").toObject().contains("previewDraft"));QTest::keyClick(distance,Qt::Key_Return);QCOMPARE(draft(w),before);capture("06-transactional-refusal");QTest::keyClick(distance,Qt::Key_Escape);QCOMPARE(draft(w),before);
+  const auto before=draft(w);QTest::mouseClick(edit,Qt::LeftButton);QTRY_COMPARE(QApplication::focusWidget(),static_cast<QWidget*>(distance));QTest::keyClicks(distance,"155");QVERIFY(!session(w).value("pendingChamfer").toObject().contains("previewDraft"));QTest::keyClick(distance,Qt::Key_Return);QCOMPARE(draft(w),before);capture("06-transactional-refusal");QTest::keyClick(distance,Qt::Key_Escape);QCOMPARE(draft(w),before);
   const auto gpu=w.state().value("viewport").toObject().value("gpu").toObject();QVERIFY(gpu.value("hardwareAccelerated").toBool());QVERIFY(!gpu.value("vendor").toString().isEmpty());QVERIFY(!gpu.value("version").toString().isEmpty());if(!output.isEmpty()){QFile f(output+"/native-state.json");QVERIFY(f.open(QIODevice::WriteOnly));f.write(QJsonDocument(w.state()).toJson());const auto captureInfo=call(w,"capture.screenshot",{{"path",output+"/native-framebuffer-composite.png"}});QFile captureFile(output+"/capture-metadata.json");QVERIFY(captureFile.open(QIODevice::WriteOnly));captureFile.write(QJsonDocument(captureInfo).toJson());QVERIFY(view->framebuffer().save(output+"/native-framebuffer.png"));}
   w.resize(1300,850);QTest::qWait(80);QVERIFY(w.state().value("viewport").toObject().value("gpu").toObject().value("hardwareAccelerated").toBool());capture("07-resized");call(w,"sketch.cancel");w.close();
  }

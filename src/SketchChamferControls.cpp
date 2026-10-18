@@ -2,6 +2,7 @@
 #include "AlloyWindow.h"
 #include "ReferenceView.h"
 #include <QFormLayout>
+#include <QComboBox>
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
@@ -83,9 +84,11 @@ void AlloyWindow::buildChamferControls(QVBoxLayout* layout){
     auto* title=new QLabel("Equal Distance Chamfer");title->setStyleSheet("font-weight: 700; color: #176588;");form->addRow(title);
     auto* notice=new QLabel("Original source dimensions and constraints remain attached. Enter accepts; Escape cancels.");notice->setWordWrap(true);form->addRow(notice);
     sketchChamferDistance_=new QLineEdit("10");sketchChamferDistance_->setObjectName("sketch.chamfer.distance");form->addRow("Distance ("+session_.value("inputs").toObject().value("units").toString()+")",sketchChamferDistance_);
+    auto* retained=new QComboBox;retained->setObjectName("sketch.chamfer.retained");form->addRow("Retained corner",retained);
+    connect(retained,qOverload<int>(&QComboBox::currentIndexChanged),this,[this]{refreshChamferControls();});
     auto* edit=new QPushButton("Edit Equal Distance Chamfer");edit->setObjectName("sketch.chamfer.edit");form->addRow(edit);
     auto* accept=new QPushButton("OK");accept->setObjectName("sketch.chamfer.accept");auto* cancel=new QPushButton("Cancel");cancel->setObjectName("sketch.chamfer.cancel");form->addRow(accept,cancel);layout->addWidget(sketchChamferControls_);
-    connect(edit,&QPushButton::clicked,this,[this]{const auto groups=session_.value("draftSketch").toObject().value("parameters").toObject().value("chamferGroups").toArray();if(groups.isEmpty())return;const auto g=groups.first().toObject();execute("sketch.tool",{{"tool","chamfer"}});sketchResponse(execute("sketch.chamferPreview",{{"chamferId",g.value("id")},{"value",g.value("distanceMm")},{"units","mm"}}));sketchChamferDistance_->setFocus();sketchChamferDistance_->selectAll();});
+    connect(edit,&QPushButton::clicked,this,[this]{const auto groups=session_.value("draftSketch").toObject().value("parameters").toObject().value("chamferGroups").toArray();if(groups.isEmpty())return;const auto* retained=sketchChamferControls_->findChild<QComboBox*>("sketch.chamfer.retained");const auto g=groups.at(retained?retained->currentIndex():0).toObject();execute("sketch.tool",{{"tool","chamfer"}});sketchResponse(execute("sketch.chamferPreview",{{"chamferId",g.value("id")},{"value",g.value("distanceMm")},{"units","mm"}}));sketchChamferDistance_->setFocus();sketchChamferDistance_->selectAll();});
     connect(sketchChamferDistance_,&QLineEdit::textEdited,this,[this](const QString& text){bool ok=false;const auto value=text.toDouble(&ok);if(ok && session_.contains("pendingChamfer"))sketchResponse(execute("sketch.chamferPreview",{{"value",value}}));});
     const auto apply=[this]{bool ok=false;const auto value=sketchChamferDistance_->text().toDouble(&ok);if(!ok){sketchResponse(fail("invalid_chamfer_distance","Enter a numeric equal setback distance"));return;}sketchResponse(execute("sketch.chamferAccept",{{"value",value}}));};
     connect(sketchChamferDistance_,&QLineEdit::returnPressed,this,apply);connect(accept,&QPushButton::clicked,this,apply);connect(cancel,&QPushButton::clicked,this,[this]{sketchResponse(execute("sketch.chamferCancel"));});
@@ -95,12 +98,23 @@ void AlloyWindow::refreshChamferControls(){
     if(!sketchChamferControls_)return;
     const bool active=session_.value("tool")=="chamfer";const auto groups=session_.value("draftSketch").toObject().value("parameters").toObject().value("chamferGroups").toArray();const auto pending=session_.value("pendingChamfer").toObject();
     sketchChamferControls_->setVisible(active || !groups.isEmpty());
+    auto* retained=sketchChamferControls_->findChild<QComboBox*>("sketch.chamfer.retained");
+    int selected=0;
+    if(retained){
+        const auto previous=retained->currentData().toString();const QSignalBlocker block(retained);retained->clear();
+        for(int i=0;i<groups.size();++i){const auto g=groups[i].toObject();retained->addItem(QString("Chamfer %1").arg(i+1),g.value("id").toString());if(g.value("id").toString()==previous)selected=i;}
+        retained->setCurrentIndex(selected);
+        const bool showRetained=!active && groups.size()>1;
+        retained->setVisible(showRetained);
+        if(auto* form=qobject_cast<QFormLayout*>(sketchChamferControls_->layout()))
+            if(auto* label=form->labelForField(retained))label->setVisible(showRetained);
+    }
     if(auto* edit=sketchChamferControls_->findChild<QPushButton*>("sketch.chamfer.edit"))edit->setVisible(!active && !groups.isEmpty());
     if(auto* accept=sketchChamferControls_->findChild<QPushButton*>("sketch.chamfer.accept")){accept->setVisible(active);accept->setEnabled(pending.contains("previewDraft"));}
     if(auto* cancel=sketchChamferControls_->findChild<QPushButton*>("sketch.chamfer.cancel"))cancel->setVisible(active);
     sketchChamferDistance_->setReadOnly(!active);
     if(pending.contains("distanceMm") || !groups.isEmpty()){
-        const double distance=(pending.contains("distanceMm")?pending.value("distanceMm").toDouble():groups.first().toObject().value("distanceMm").toDouble())/(session_.value("inputs").toObject().value("units")=="in"?25.4:1);
+        const double distance=(pending.contains("distanceMm")?pending.value("distanceMm").toDouble():groups.at(selected).toObject().value("distanceMm").toDouble())/(session_.value("inputs").toObject().value("units")=="in"?25.4:1);
         if(!sketchChamferDistance_->hasFocus()){const QSignalBlocker block(sketchChamferDistance_);sketchChamferDistance_->setText(QString::number(distance,'g',8));}
     }
     if(active && pending.contains("previewDraft")){const auto preview=pending.value("previewDraft").toObject();view_->showSketchDraft(evaluateSketchDraft(preview));auto selection=session_.value("selection").toObject();selection["tool"]="chamfer";selection["entityIds"]=QJsonArray{pending.value("diagnostics").toObject().value("createdLineId")};view_->decorateSketch(preview,selection,session_.value("solverDiagnostics").toObject(),session_.value("inputs").toObject().value("units").toString());}

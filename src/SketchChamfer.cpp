@@ -35,33 +35,63 @@ Corner corner(const QJsonObject& p,const QJsonArray& ids){
 }
 QString SketchChamfer::validate(const QJsonObject& p,QSet<QString>& ids){
     try{
-        require(p.value("chamferGroups").isArray() && p.value("chamferGroups").toArray().size()==1,"Equal Distance Chamfer currently supports one retained corner per sketch");
-        const auto g=p.value("chamferGroups").toArray().first().toObject();
-        require(g.size()==6 && g.value("type")=="equalDistance" && g.value("sourceEntityIds").isArray() && g.value("sourceEntityIds").toArray().size()==2 && g.value("pointIds").isArray() && g.value("pointIds").toArray().size()==2,"Invalid retained Equal Distance Chamfer");
-        require(g.value("distanceMm").isDouble() && std::isfinite(g.value("distanceMm").toDouble()) && g.value("distanceMm").toDouble()>=0.001 && g.value("distanceMm").toDouble()<=100000,"Chamfer distance must be 0.001..100000 mm");
-        QJsonArray owned{g.value("id"),g.value("lineId")};for(const auto& id:g.value("pointIds").toArray())owned.append(id);
-        for(const auto& id:owned){require(id.isString() && !QUuid(id.toString()).isNull() && !ids.contains(id.toString()),"Invalid or duplicate Chamfer generated UUID");ids.insert(id.toString());}
-        for(const auto& id:g.value("sourceEntityIds").toArray())require(id.isString() && !QUuid(id.toString()).isNull(),"Chamfer requires stable source line UUIDs");
-        corner(p,g.value("sourceEntityIds").toArray());return {};
+        require(p.value("chamferGroups").isArray() && !p.value("chamferGroups").toArray().isEmpty(),"Chamfer requires retained corners");
+        for(const auto& row:p.value("chamferGroups").toArray()){
+            require(row.isObject(),"Invalid retained Chamfer group");
+            const auto g=row.toObject();
+            require(g.size()==6 && g.value("type")=="equalDistance" && g.value("sourceEntityIds").isArray() && g.value("sourceEntityIds").toArray().size()==2 && g.value("pointIds").isArray() && g.value("pointIds").toArray().size()==2,"Invalid retained Equal Distance Chamfer");
+            require(g.value("distanceMm").isDouble() && std::isfinite(g.value("distanceMm").toDouble()) && g.value("distanceMm").toDouble()>=0.001 && g.value("distanceMm").toDouble()<=100000,"Chamfer distance must be 0.001..100000 mm");
+            QJsonArray owned{g.value("id"),g.value("lineId")};for(const auto& id:g.value("pointIds").toArray())owned.append(id);
+            for(const auto& id:owned){require(id.isString() && !QUuid(id.toString()).isNull() && !ids.contains(id.toString()),"Invalid or duplicate Chamfer generated UUID");ids.insert(id.toString());}
+            for(const auto& id:g.value("sourceEntityIds").toArray())require(id.isString() && !QUuid(id.toString()).isNull(),"Chamfer requires stable source line UUIDs");
+            corner(p,g.value("sourceEntityIds").toArray());
+        }
+        return {};
     }catch(const std::exception& e){return QString::fromUtf8(e.what());}
 }
 QJsonObject SketchChamfer::derive(const QJsonObject& p){
     if(!p.contains("chamferGroups"))return p;
     auto result=p;auto entities=p.value("entities").toArray(),points=p.value("points").toArray();
-    const auto g=p.value("chamferGroups").toArray().first().toObject();const auto c=corner(p,g.value("sourceEntityIds").toArray());const double distance=g.value("distanceMm").toDouble();
-    for(int j=0;j<2;++j){require(distance>=0.001 && distance<c.lengths[j]-0.001,"Chamfer distance exceeds available source line length");const auto at=c.vertex+c.directions[j]*distance;const QJsonValue id=g.value("pointIds").toArray().at(j);points.append(QJsonObject{{"id",id},{"uMm",at.x()},{"vMm",at.y()}});
-        for(int i=0;i<entities.size();++i)if(entities[i].toObject().value("id")==c.lines[j].value("id")){auto line=entities[i].toObject();line[c.keys[j]]=id;entities[i]=line;break;}}
-    entities.append(QJsonObject{{"id",g.value("lineId")},{"type","line"},{"startPointId",g.value("pointIds").toArray()[0]},{"endPointId",g.value("pointIds").toArray()[1]}});
+    // Resolve every corner against the unchanged authored lines. Adjacent cuts
+    // own opposite endpoints of their shared line, never each other's trim.
+    QMap<QString,QMap<QString,double>> setbacks;
+    for(const auto& row:p.value("chamferGroups").toArray()){
+        const auto g=row.toObject();const auto c=corner(p,g.value("sourceEntityIds").toArray());
+        const double distance=g.value("distanceMm").toDouble();
+        for(int j=0;j<2;++j){
+            const auto sourceId=c.lines[j].value("id").toString();
+            auto& ends=setbacks[sourceId];
+            require(!ends.contains(c.keys[j]),"Chamfer corner already has a retained cut");
+            ends[c.keys[j]]=distance;
+            require(distance>=0.001 && ends.value("startPointId")+ends.value("endPointId")<c.lengths[j]-0.001,
+                    "Chamfer setbacks overlap or exceed available source line length");
+            const auto at=c.vertex+c.directions[j]*distance;
+            const QJsonValue id=g.value("pointIds").toArray().at(j);
+            points.append(QJsonObject{{"id",id},{"uMm",at.x()},{"vMm",at.y()}});
+            for(int i=0;i<entities.size();++i)if(entities[i].toObject().value("id")==c.lines[j].value("id")){
+                auto line=entities[i].toObject();line[c.keys[j]]=id;entities[i]=line;break;
+            }
+        }
+        entities.append(QJsonObject{{"id",g.value("lineId")},{"type","line"},{"startPointId",g.value("pointIds").toArray()[0]},{"endPointId",g.value("pointIds").toArray()[1]}});
+    }
     result["points"]=points;result["entities"]=entities;return result;
 }
 QJsonObject SketchGeometry::chamferPresentation(const QJsonObject& feature){auto result=feature;result["parameters"]=SketchChamfer::derive(feature.value("parameters").toObject());return result;}
 SketchGeometry::SolveResult SketchGeometry::chamferCorner(const QJsonObject& draft,const QJsonObject& args,const QJsonObject& context){
     try{
         for(auto it=args.begin();it!=args.end();++it)require(QSet<QString>{"entityIds","distanceMm","chamferId"}.contains(it.key()),"Unknown Chamfer argument");
-        auto p=draft.value("parameters").toObject();auto groups=p.value("chamferGroups").toArray();QJsonObject g;
-        if(args.contains("chamferId")){require(groups.size()==1 && groups[0].toObject().value("id")==args.value("chamferId"),"Retained Chamfer is unavailable");g=groups[0].toObject();require(!args.contains("entityIds"),"Chamfer source identities cannot change while editing");}
-        else {require(groups.isEmpty(),"Equal Distance Chamfer currently supports one retained corner per sketch");require(args.value("entityIds").isArray(),"Chamfer needs two source line IDs");g={{"id",fresh()},{"type","equalDistance"},{"sourceEntityIds",args.value("entityIds")},{"lineId",fresh()},{"pointIds",QJsonArray{fresh(),fresh()}}};}
-        require(args.value("distanceMm").isDouble(),"Chamfer needs a positive distance");g["distanceMm"]=args.value("distanceMm");p["chamferGroups"]=QJsonArray{g};auto candidate=draft;candidate["parameters"]=p;
+        auto p=draft.value("parameters").toObject();auto groups=p.value("chamferGroups").toArray();QJsonObject g;int groupIndex=-1;
+        if(args.contains("chamferId")){
+            for(int i=0;i<groups.size();++i)if(groups[i].toObject().value("id")==args.value("chamferId"))groupIndex=i;
+            require(groupIndex>=0,"Retained Chamfer is unavailable");g=groups[groupIndex].toObject();
+            require(!args.contains("entityIds"),"Chamfer source identities cannot change while editing");
+        } else {
+            require(args.value("entityIds").isArray(),"Chamfer needs two source line IDs");
+            g={{"id",fresh()},{"type","equalDistance"},{"sourceEntityIds",args.value("entityIds")},{"lineId",fresh()},{"pointIds",QJsonArray{fresh(),fresh()}}};
+        }
+        require(args.value("distanceMm").isDouble(),"Chamfer needs a positive distance");g["distanceMm"]=args.value("distanceMm");
+        if(groupIndex>=0)groups[groupIndex]=g;else groups.append(g);
+        p["chamferGroups"]=groups;auto candidate=draft;candidate["parameters"]=p;
         auto result=solveDraft(candidate,context);if(!result.ok)return {false,draft,result.diagnostics,result.error};result.diagnostics["chamferId"]=g.value("id");result.diagnostics["createdLineId"]=g.value("lineId");result.diagnostics["retainedSourceEntityIds"]=g.value("sourceEntityIds");result.diagnostics["retainedConstraintCount"]=p.value("constraints").toArray().size();result.diagnostics["retainedDimensionCount"]=p.value("dimensions").toArray().size();return result;
     }catch(const std::exception& e){return {false,draft,{{"status","invalid"}},QString::fromUtf8(e.what())};}
 }

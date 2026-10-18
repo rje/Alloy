@@ -12,7 +12,8 @@ editable equal setback, retained source changes, closed profile and printable
 extrusion; this bounded subset passed [real-app validation](../../validation/sketch-equal-chamfer.md).
 SKT-110/#534 owns two independently editable distances, and
 SKT-111/#535 owns distance plus angle. SKT-112/#536 owns multiple equal-distance
-corners in one sketch; SKT-113/#537 owns the on-canvas drag handle and direct
+corners in one sketch and passed [bounded validation](../../validation/sketch-multiple-chamfers.md);
+SKT-113/#537 owns the on-canvas drag handle and direct
 dimension-annotation edit. The
 corresponding Chamfer Feature
 Options switch must be implemented with those modes or explicitly split before

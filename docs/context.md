@@ -56,8 +56,10 @@ sketch Chamfer on an authored line corner, with native preview/typed edit,
 retained source dimensions, extrusion, history/reopen and independently checked
 STL. See [the receipt](validation/sketch-equal-chamfer.md). The dated public
 review split Two Distance and Distance And Angle modes to Todo SKT-110/#534
-and SKT-111/#535. Multiple corners and on-canvas drag/dimension edit remain
-Todo SKT-112/#536 and SKT-113/#537. Provenance is outside the repository with a
+and SKT-111/#535. SKT-112/#536 now accepts adjacent retained Equal Distance
+corners sharing a source side, independent values and overlap refusal; see
+[its receipt](validation/sketch-multiple-chamfers.md). On-canvas drag and
+dimension edit remain Todo SKT-113/#537. Provenance is outside the repository with a
 [compact command record](research/commands/sketch-chamfer.md).
 SKT-093/#498 now accepts Inscribed, Circumscribed and Edge Polygon creation,
 retained edits, native numeric refusal, three closed regions, downstream
