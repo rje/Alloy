@@ -7,10 +7,11 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **546 issues**: **429 implementation, 23 research,
+The current local backlog contains **550 issues**: **433 implementation, 23 research,
 1 research/design, 22 epics, and 71 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 SKT-115–121 and SKT-123–124/#540–546, #548–549 split v1 analytic constraint pairs and endpoint contacts under SKT-022/#163; SKT-122/#547 retains later multi-pair Symmetry semantics.
+SKT-125–128/#550–553 split per-entity sketch status, visibility, contextual point relations and glyph/edit coverage under SKT-023/#164.
 SKT-114/#538 retains crossing-line Chamfer kept-side selection after the
 accepted connected-corner modes. REL-050/#539 retains physical/native failure
 message and recovery checks after the [packaged REL-015 slice](../validation/actionable-failures-packaged.md).

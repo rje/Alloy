@@ -1492,7 +1492,11 @@
       "priority": "P0",
       "depends_on": [
         "SKT-008",
-        "SKT-022"
+        "SKT-022",
+        "SKT-125",
+        "SKT-126",
+        "SKT-127",
+        "SKT-128"
       ],
       "labels": [
         "kind:implementation",
@@ -1500,7 +1504,7 @@
         "priority:P1",
         "area:skt"
       ],
-      "body": "## Problem and result\nFinish the explicitly deferred portion of SKT-008.\n\n## Scope\n- Per-entity constrained/unconstrained/fixed/projected classification; whole-sketch DOF coloring is insufficient.\n- Selective geometry visibility and contextual point-relation reveal where documented.\n- Complete researched glyph repertoire and remaining relation-edit controls; do not invent permanent point-point Coincident icons contrary to public documentation.\n\n## Acceptance criteria\n- Mixed-freedom sketch shows independently checked per-entity roles while total DOF remains inspectable.\n- Geometry/dimension/constraint visibility operates independently with hidden targets unpickable and selection cleared.\n- Documented point-relation reveal and remaining glyph/edit controls have bounded actual visual/native receipts.\n- UI and API share authoritative commands and state. Retain stable references, atomic failure, unit correctness, undo/redo and native save/reopen where the operation authors data. Verify the real workflow proportionately; distinguish API, native input, geometry and visuals.\n\n## Split provenance\nSplit from #35 on 2026-10-12. The original now records only the independently accepted subset; this task retains the remaining requirements. Public evidence and uncertainty remain in the external knowledge archive and existing command contracts.\n\n## Status\nTodo. This broader scope is not implemented or accepted.\n"
+      "body": "## Problem and result\nFinish the explicitly deferred portion of SKT-008.\n\n## Scope\n- Per-entity constrained/unconstrained/fixed/projected classification; whole-sketch DOF coloring is insufficient.\n- Selective geometry visibility and contextual point-relation reveal where documented.\n- Complete researched glyph repertoire and remaining relation-edit controls; do not invent permanent point-point Coincident icons contrary to public documentation.\n\n## Acceptance criteria\n- Mixed-freedom sketch shows independently checked per-entity roles while total DOF remains inspectable.\n- Geometry/dimension/constraint visibility operates independently with hidden targets unpickable and selection cleared.\n- Documented point-relation reveal and remaining glyph/edit controls have bounded actual visual/native receipts.\n- UI and API share authoritative commands and state. Retain stable references, atomic failure, unit correctness, undo/redo and native save/reopen where the operation authors data. Verify the real workflow proportionately; distinguish API, native input, geometry and visuals.\n\n## Split provenance\nSplit from #35 on 2026-10-12. The original now records only the independently accepted subset; this task retains the remaining requirements. Public evidence and uncertainty remain in the external knowledge archive and existing command contracts.\n\n## Status\nTodo. This broader scope is not implemented or accepted.\n\n## Bounded children \u2014 2026-10-18\nDated public-source review split this broad remainder into per-entity roles/list SKT-125/#550, independent visibility/picking SKT-126/#551, contextual point relations SKT-127/#552 and glyph/edit reconciliation SKT-128/#553. All four are Todo; this parent remains Todo until accepted or explicitly disposed.\n"
     },
     {
       "key": "SKT-024",
@@ -9114,6 +9118,76 @@
         "priority:P1"
       ],
       "body": "## Bounded result\nAdd a retained Tangent relation between explicitly selected endpoint roles of two distinct authored finite arcs. Enforce the selected endpoints' coincidence and tangent-line alignment through edits, preserving both endpoint IDs and the oriented join branch. Keep interior arc-pair Tangent separate.\n\n## Acceptance\nUse two different-radius arcs initially sharing one selected smooth endpoint with other ends visibly separate. Expose explicit endpoint role selection through shared command/API/native controls, test both offered pick orders, and verify radius or center edit preserves same join and signed finite sweeps. An incompatible edit refuses atomically. Check stable relation ID, badge selection/deletion, Undo/Redo, exact authored save/reopen and real GPU capture. Focused solver plus one real-app fixture; profile optional.\n\n## Evidence boundary\nPair-specific native endpoint pick semantics are not resolved by current public sources, so document the selected Alloy policy and do not claim exact reference parity. Dated research: `../Alloy-reference-records/knowledge/specs/skt-022-endpoint-curved-tangent-2026-10-18.md`.\n\n## Parent\nSKT-022/#163 retains cumulative analytic-family closure; this child owns the named explicit endpoint remainder.\n\n## Dependencies\n- SKT-120/#545\n- SKT-123/#548\n"
+    },
+    {
+      "key": "SKT-125",
+      "title": "Present per-entity sketch roles and under-constrained list",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-008"
+      ],
+      "labels": [
+        "kind:implementation",
+        "area:skt",
+        "phase:P2",
+        "priority:P1"
+      ],
+      "body": "## Bounded result\nClassify each authored sketch entity independently as unconstrained ordinary, unconstrained construction, projected, fixed, or fully constrained/dimensioned, while retaining aggregate sketch DOF separately. Add an under-constrained entity list with select/highlight/zoom and refresh when a relation or source changes. One mixed sketch containing ordinary line, construction line, fixed curve, dimensioned curve and linked projected edge must retain role identity through relation removal/reapply, source edit and reopen. Do not invent per-entity numeric DOF or exact RGB values.\n\n## Evidence and limits\nDated public-source contract: `../Alloy-reference-records/knowledge/specs/skt-023-sketch-freedom-presentation-split-2026-10-18.md`. Preserve the accepted SKT-008/#35 subset. Use one real Alloy fixture, native input without focus repair, shared API state, authored undo/reopen and inspected hardware-GPU capture. Exact color pixels and unsupported current-version behavior remain unknown. Parent: SKT-023/#164.\n\n## Dependencies\n- SKT-008\n"
+    },
+    {
+      "key": "SKT-126",
+      "title": "Complete independent sketch visibility and hidden-target picking",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-125",
+        "SKT-008"
+      ],
+      "labels": [
+        "kind:implementation",
+        "area:skt",
+        "phase:P2",
+        "priority:P1"
+      ],
+      "body": "## Bounded result\nExpose independent Show Profile, Points, Dimensions, Constraints, Construction and Projected Geometry controls, plus hide-fully-constrained focus. Keep ordinary sketch geometry presentation explicit. In one overlapping sketch fixture, toggle each category independently; hidden targets must not receive pointer picks, and hiding a selected target clears the selection without deleting or suppressing authored geometry. Verify command/API state and one native-pick workflow; record defaults and persistence as unresolved unless established.\n\n## Evidence and limits\nDated public-source contract: `../Alloy-reference-records/knowledge/specs/skt-023-sketch-freedom-presentation-split-2026-10-18.md`. Preserve the accepted SKT-008/#35 subset. Use one real Alloy fixture, native input without focus repair, shared API state, authored undo/reopen and inspected hardware-GPU capture. Exact color pixels and unsupported current-version behavior remain unknown. Parent: SKT-023/#164.\n\n## Dependencies\n- SKT-125\n- SKT-008\n"
+    },
+    {
+      "key": "SKT-127",
+      "title": "Reveal point relations contextually and delete Coincident",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-008"
+      ],
+      "labels": [
+        "kind:implementation",
+        "area:skt",
+        "phase:P2",
+        "priority:P1"
+      ],
+      "body": "## Bounded result\nWith Show Constraints off, selecting an authored entity reveals its related constraints; selecting a point reveals point-coincident relations. Point-to-point Coincident has no permanent glyph; point-to-curve Coincident may show its documented glyph. Add point context action Delete Coincident using stable relation IDs. Fixture: connected line endpoints plus point-on-line relation, toggle, select, reveal, delete, Undo/Redo and reopen through native/shared command state. Preserve normal badge behavior.\n\n## Evidence and limits\nDated public-source contract: `../Alloy-reference-records/knowledge/specs/skt-023-sketch-freedom-presentation-split-2026-10-18.md`. Preserve the accepted SKT-008/#35 subset. Use one real Alloy fixture, native input without focus repair, shared API state, authored undo/reopen and inspected hardware-GPU capture. Exact color pixels and unsupported current-version behavior remain unknown. Parent: SKT-023/#164.\n\n## Dependencies\n- SKT-008\n"
+    },
+    {
+      "key": "SKT-128",
+      "title": "Reconcile sketch constraint glyphs and relation edit controls",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-008",
+        "SKT-022"
+      ],
+      "labels": [
+        "kind:implementation",
+        "area:skt",
+        "phase:P2",
+        "priority:P1"
+      ],
+      "body": "## Bounded result\nInventory the documented glyph families exposed by implemented sketch relations: point-on-curve Coincident, Horizontal/Vertical, Parallel, Perpendicular, Equal, Tangent, Concentric, Midpoint, Collinear, Symmetric and Fix/Unfix. For one compact mixed fixture, check glyph identity, selection/highlight of affected geometry and the supported edit/delete action for each family. Reuse accepted badge and dimension controls; do not create a permanent point-point Coincident glyph or repeat accepted dimension work. Split any concrete unsupported family into linked Todo before closing.\n\n## Evidence and limits\nDated public-source contract: `../Alloy-reference-records/knowledge/specs/skt-023-sketch-freedom-presentation-split-2026-10-18.md`. Preserve the accepted SKT-008/#35 subset. Use one real Alloy fixture, native input without focus repair, shared API state, authored undo/reopen and inspected hardware-GPU capture. Exact color pixels and unsupported current-version behavior remain unknown. Parent: SKT-023/#164.\n\n## Dependencies\n- SKT-008\n- SKT-022\n"
     }
   ]
 }
