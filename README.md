@@ -32,6 +32,9 @@ now explains unsupported geometry pairs without discarding a valid first pick.
 [Circle-pair Symmetry](docs/validation/sketch-circle-symmetry.md) now reflects
 two authored circles about a construction axis through diameter and position
 edits, with a retained constraint and native badge.
+[Finite arc-circle Tangent](docs/validation/sketch-arc-circle-tangent.md) now
+retains a contact branch through radius and center edits and refuses edits that
+move contact off the arc sweep.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,

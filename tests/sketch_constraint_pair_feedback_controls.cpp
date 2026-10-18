@@ -62,8 +62,6 @@ private slots:
             {"symmetry",line,arc,lp,ap,"unsupported_pair"},
             {"symmetry",arc,circle,ap,cp,"unsupported_pair"},
             {"tangent",line,otherLine,lp,op,"unsupported_pair"},
-            {"tangent",arc,circle,ap,cp,"unsupported_pair"},
-            {"tangent",circle,arc,cp,ap,"unsupported_pair"},
             {"tangent",arc,otherArc,ap,bp,"unsupported_pair"}};
         QJsonArray receipt;
         const auto evidence=qEnvironmentVariable("ALLOY_CONSTRAINT_PAIR_EVIDENCE");if(!evidence.isEmpty())QDir().mkpath(evidence);
@@ -87,7 +85,7 @@ private slots:
             QVERIFY(w.rect().contains(QRect(error->mapTo(&w,QPoint{}),error->size())));
             QCOMPARE(QApplication::focusWidget(),static_cast<QWidget*>(view));
             receipt.append(QJsonObject{{"type",row.type},{"first",row.first},{"second",row.second},{"status",row.status},{"prompt",prompt},{"unchanged",true}});
-            if(row.type=="tangent" && row.first==arc && row.second==circle && !evidence.isEmpty())call(w,"capture.screenshot",{{"path",evidence+"/native-unsupported-pair.png"}});
+            if(row.type=="tangent" && row.first==arc && row.second==otherArc && !evidence.isEmpty())call(w,"capture.screenshot",{{"path",evidence+"/native-unsupported-pair.png"}});
         }
         // Concentric recovers from the refused line without repicking the circle.
         call(w,"sketch.tool",{{"tool","select"}});call(w,"sketch.selectionSet");activate("concentric");click(cp);click(lp);

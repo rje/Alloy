@@ -28,10 +28,13 @@ def main():
         call('sketch.addArc', {'mode': 'center', 'centerX': 30, 'centerY': 0, 'radius': 8,
                              'startAngleDeg': -90, 'sweepAngleDeg': 180, 'units': 'mm'})
         arc = last()
+        call('sketch.addArc', {'mode': 'center', 'centerX': 50, 'centerY': 0, 'radius': 8,
+                             'startAngleDeg': -90, 'sweepAngleDeg': 180, 'units': 'mm'})
+        other_arc = last()
         rows = [('concentric', circle, line, 'wrong_type'),
                 ('collinear', line, circle, 'wrong_type'),
                 ('symmetry', arc, line, 'unsupported_pair'),
-                ('tangent', circle, arc, 'unsupported_pair')]
+                ('tangent', arc, other_arc, 'unsupported_pair')]
         receipt = []
         for family, first, wrong, expected in rows:
             call('sketch.tool', {'tool': 'select'})

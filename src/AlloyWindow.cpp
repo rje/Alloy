@@ -597,7 +597,7 @@ AlloyWindow::AlloyWindow() {
     for(const auto& type:QStringList{"coincident","concentric","horizontalVertical","horizontal","vertical","parallel","collinear","perpendicular","equal","fixed","midpoint","symmetry","tangent"}) {
         auto* action=constraints->addAction(type=="horizontalVertical" ? "Horizontal/Vertical" : type.first(1).toUpper()+type.sliced(1));
         action->setObjectName("sketch.action.constraint."+type);
-        action->setToolTip(type=="tangent" ? "Pick two circles, a circle and line, or an arc and line sharing one endpoint; Escape exits"
+        action->setToolTip(type=="tangent" ? "Pick two circles, an arc and circle, or a line with a circle or arc; Escape exits"
             : type=="symmetry" ? "Pick two matching lines, circles or arcs, then a construction symmetry axis; Escape exits"
             : type=="midpoint" ? "Pick a line or arc, then its midpoint point or sketch origin; Escape exits"
             : type=="fixed" ? "Select one point; retain its position" : type=="coincident" ? "Select two points"
@@ -10899,11 +10899,12 @@ QJsonObject AlloyWindow::setSketchSelection(const QJsonObject& selection) {
             if(constraintType=="symmetry" && first!=second)
                 return rejectPick("unsupported_pair","Symmetry requires matching line-line, circle-circle or arc-arc geometry");
             if(constraintType=="tangent" && !((first=="circle" && second=="circle")
+                || (first=="arc" && second=="circle") || (first=="circle" && second=="arc")
                 || (first=="line" && (second=="circle" || second=="arc"))
                 || (second=="line" && (first=="circle" || first=="arc"))))
                 return rejectPick("unsupported_pair",first=="line" && second=="line"
                     ? "Line-line Tangent is unavailable; use Collinear for a common line"
-                    : "Arc-circle and arc-arc Tangent are not yet supported; select a line with the arc");
+                    : "Arc-arc Tangent is not yet supported; select a circle or line with the arc");
         }
         session_["constraintPickStatus"]=targets.isEmpty() ? "pending_first" : "pending_next";
     }
@@ -11885,7 +11886,7 @@ void AlloyWindow::refreshSketchControls() {
     QMap<QString,QStringList> relations;
     for(const auto& entry:parameters["constraints"].toArray()) {
         const auto constraint=entry.toObject();const auto type=constraint["type"]=="pointOnCurve" ? QString("coincident") :
-            (constraint["type"]=="arcTangent" || constraint["type"]=="circleTangent") ? QString("tangent") :
+            (constraint["type"]=="arcTangent" || constraint["type"]=="circleTangent" || constraint["type"]=="arcCircleTangent") ? QString("tangent") :
             constraint["type"]=="supportLine" ? QString("support line (internal)") : constraint["type"].toString();
         for(const auto& id:constraint["entityIds"].toArray())relations[id.toString()].append(type.first(1).toUpper()+type.sliced(1));
         for(const auto& id:constraint["pointIds"].toArray())relations[id.toString()].append(type.first(1).toUpper()+type.sliced(1));
@@ -12345,7 +12346,7 @@ void AlloyWindow::showSketch() {
         for(int i=0;i<types.size();++i) {
             const auto type=types[i];auto* button=new QPushButton(type=="horizontalVertical" ? "Horizontal/Vertical" : type.first(1).toUpper()+type.sliced(1));button->setObjectName("sketch.constraint."+type);button->setCheckable(true);
             button->setStyleSheet("QPushButton:checked { background: #deedf5; border: 1px solid #2b83ae; }");
-            button->setToolTip(type=="tangent" ? "Pick two circles, a circle and line, or an arc and line sharing one endpoint; Escape exits"
+            button->setToolTip(type=="tangent" ? "Pick two circles, an arc and circle, or a line with a circle or arc; Escape exits"
                 : type=="symmetry" ? "Pick two matching lines, circles or arcs, then a construction symmetry axis; Escape exits"
                 : type=="midpoint" ? "Pick a line or arc, then a point or sketch origin; Escape exits"
                 : type=="fixed" ? "Select one point; retain its position" : type=="coincident" ? "Select two points"

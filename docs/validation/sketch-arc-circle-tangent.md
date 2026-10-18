@@ -1,0 +1,9 @@
+# Finite arc-circle Tangent — SKT-119
+
+Accepted 2026-10-18 for one authored finite circular arc and one full circle through the shared Tangent command. The retained relation records an internal or external contact branch, entity order, the arc sweep direction and an initial interior contact parameter. A source edit that moves contact off the retained finite sweep refuses atomically rather than selecting another branch. Public pair-specific selection behavior remains uncertain; the nearest initial branch is a declared Alloy policy.
+
+Focused solver checks passed both pick orders, positive and negative 180° sweeps, external and both internal role orders, and ambiguous/coincident/out-of-sweep refusals. Native Qt input passed actual Tangent picks in both orders and badge selection/deletion without focus repair. The real-app fixture changed arc radius 8→10 mm and center vertical offset 3→4 mm, retained contact, refused a 30° incompatible sweep, and passed Undo/Redo and exact authored save/reopen. A separate profile/solid was not required by this pair fixture.
+
+Inspected captures show readable radius/sweep annotations and the contact badge on an Apple M4 hardware-accelerated OCCT OpenGL 4.1 Metal viewport at 2× framebuffer scale. Focused feedback regression now identifies only arc-arc Tangent as the remaining curved pair in this declared matrix. Physical OS input, exact reference styling and other-platform runtime are unqualified.
+
+Evidence and saved model: `../Alloy-reference-records/validation/sketch-arc-circle-tangent-2026-10-18/` (`api03`, `native01`, `feedback01`, `feedback-native01`). Dated public evidence and limitations: `../Alloy-reference-records/knowledge/specs/skt-022-remaining-curve-pairs-2026-10-18.md`.
