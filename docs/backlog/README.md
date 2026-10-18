@@ -7,8 +7,8 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **522 issues**: **408 implementation, 23 research,
-22 epics, and 69 validation gates**. Counts describe decomposition, not coverage.
+The current local backlog contains **530 issues**: **414 implementation, 23 research,
+1 research/design, 22 epics, and 70 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
 The 2026-10-17 v1 inventory reconciliation added 20 bounded implementation

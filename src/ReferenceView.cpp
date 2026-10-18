@@ -3346,7 +3346,7 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
                 }
             }
         }
-        if(!sketchPlane_.isEmpty() && !decorationSelection_.value("tool").toString().endsWith("Polygon") && decorationSelection_.value("tool")!="point" && decorationSelection_.value("tool")!="line" && decorationSelection_.value("tool")!="rectangle" && decorationSelection_.value("tool")!="circle" && decorationSelection_.value("tool")!="twoPointCircle" && decorationSelection_.value("tool")!="centerArc" && decorationSelection_.value("tool")!="threePointArc" && decorationPending_.value("phase")!="placing") {
+        if(!sketchPlane_.isEmpty() && !decorationSelection_.value("tool").toString().endsWith("Polygon") && decorationSelection_.value("tool")!="point" && decorationSelection_.value("tool")!="line" && decorationSelection_.value("tool")!="rectangle" && decorationSelection_.value("tool")!="circle" && decorationSelection_.value("tool")!="twoPointCircle" && decorationSelection_.value("tool")!="threePointCircle" && decorationSelection_.value("tool")!="centerArc" && decorationSelection_.value("tool")!="threePointArc" && decorationPending_.value("phase")!="placing") {
             const auto picked=pickAnnotation(e->position().x(),e->position().y());
             if(!picked.isEmpty()) {
                 draggedAnnotation_=picked.value("dimensionId").toString();annotationGestureId_=QString::number(++nextAnnotationGesture_);annotationPress_=e->position();annotationDragged_=false;

@@ -35,7 +35,10 @@ Parallelogram creation mode. SKT-106/#530 disposed that inventory assumption;
 ordinary Line and Parallel constraints are the documented primitives, while a
 dedicated Alloy constructor would be an optional Alloy-specific proposal.
 See [the command record](research/commands/sketch-three-point-rectangle.md).
-SKT-095/#500 is active for the documented Three-Point Circle only. The dated
+SKT-095/#500 now accepts the documented Three-Point Circle: three native
+circumference picks, disposable preview, retained source-point relations,
+source-edit recompute, downstream extrusion, history/reopen and independently
+read STL. See [the receipt](validation/sketch-three-point-circle.md). The dated
 public command review identified two distinct line-tangent input workflows;
 SKT-107/#531 and SKT-108/#532 retain 2-Tangent and 3-Tangent Circle as Todo
 children with their own native/solver gates. SKT-109/#533 retains the public

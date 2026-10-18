@@ -326,6 +326,11 @@ dimension edits, history and reopen; focused native input passes.
 adds either-order circle/line picks and retained finite contact through radius
 and datum edits, history and reopen.
 
+[Three-Point Circle](docs/validation/sketch-three-point-circle.md) now creates
+an analytic circle through three ordered circumference picks. Snapped source
+points retain solver relations; source edits update the circular profile and
+downstream extrusion. Native input, history/reopen and STL readback pass.
+
 [Explicit arc-line Tangent](docs/validation/sketch-arc-line-tangent.md) now
 constrains an arc and line sharing an endpoint, with either native pick order
 and retained badges. A rounded plate stays tangent through radius/width edits,

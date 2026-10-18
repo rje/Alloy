@@ -50,6 +50,14 @@ double coordinate(const QJsonObject& object, const QString& key) {
         reject("Sketch coordinate out of supported range: " + key);
     return value.toDouble();
 }
+std::array<double,3> circumcircle(const QPointF& a,const QPointF& b,const QPointF& c,const QString& label) {
+    const double x=b.x()-a.x(),y=b.y()-a.y(),q=c.x()-a.x(),t=c.y()-a.y();
+    const double determinant=2*(x*t-y*q),scale=std::max({std::hypot(x,y),std::hypot(q,t),std::hypot(c.x()-b.x(),c.y()-b.y())});
+    if(scale<minimumLength || std::abs(determinant)<=1e-9*scale*scale)reject(label+" requires distinct noncollinear points");
+    const double u=a.x()+((x*x+y*y)*t-(q*q+t*t)*y)/determinant;
+    const double v=a.y()+(x*(q*q+t*t)-q*(x*x+y*y))/determinant;
+    return {u,v,std::hypot(a.x()-u,a.y()-v)};
+}
 QSet<QString> closedRectOffsetPointIds(const QJsonObject& parameters) {
     QSet<QString> result;
     for(const auto& value:parameters["closedRectOffsets"].toArray())
@@ -743,13 +751,8 @@ QJsonObject SketchGeometry::addArc(const QJsonObject& draft, const QJsonObject& 
         const double ax = coordinate(arguments,"startUMm"), ay = coordinate(arguments,"startVMm");
         const double bx = coordinate(arguments,"endUMm"), by = coordinate(arguments,"endVMm");
         const double cx = coordinate(arguments,"throughUMm"), cy = coordinate(arguments,"throughVMm");
-        const double x = bx-ax, y = by-ay, q = cx-ax, t = cy-ay;
-        const double determinant = 2*(x*t-y*q);
-        const double scale = std::max({std::hypot(x,y),std::hypot(q,t),std::hypot(cx-bx,cy-by)});
-        if (scale < minimumLength || std::abs(determinant) <= 1e-9*scale*scale) reject("Three-point arc requires distinct noncollinear points");
-        u = ax + ((x*x+y*y)*t-(q*q+t*t)*y)/determinant;
-        v = ay + (x*(q*q+t*t)-q*(x*x+y*y))/determinant;
-        radius = std::hypot(ax-u,ay-v); start = std::atan2(ay-v,ax-u)/degrees;
+        const auto resolved=circumcircle({ax,ay},{bx,by},{cx,cy},"Three-point arc");
+        u=resolved[0];v=resolved[1];radius=resolved[2];start=std::atan2(ay-v,ax-u)/degrees;
         auto positive = [](double angle) { angle = std::fmod(angle,360.0); return angle < 0 ? angle+360.0 : angle; };
         const double end = positive(std::atan2(by-v,bx-u)/degrees-start);
         const double through = positive(std::atan2(cy-v,cx-u)/degrees-start);
@@ -3008,6 +3011,36 @@ SketchGeometry::SolveResult SketchGeometry::addPointerCircle(const QJsonObject& 
         if(!diameterDimensionId.isEmpty())result.diagnostics["createdDimensionId"]=diameterDimensionId;
         return result;
     } catch (const std::exception& error) { return invalidDraft(draft,QString::fromUtf8(error.what())); }
+}
+
+SketchGeometry::SolveResult SketchGeometry::addThreePointCircle(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext) {
+    try {
+        validateDraft(draft);
+        checkFields(arguments,{"u1Mm","v1Mm","u2Mm","v2Mm","u3Mm","v3Mm","firstSnapTarget","secondSnapTarget","thirdSnapTarget"});
+        auto candidate=draft;std::array<QPointF,3> picks;QJsonArray sources;
+        const std::array<QString,3> targets{"firstSnapTarget","secondSnapTarget","thirdSnapTarget"};
+        for(int i=0;i<3;++i){
+            double u=coordinate(arguments,QString("u%1Mm").arg(i+1)),v=coordinate(arguments,QString("v%1Mm").arg(i+1));
+            if(arguments.contains(targets[i])){
+                if(!arguments[targets[i]].isObject())reject("Circle circumference snap must be an object");
+                const auto target=arguments[targets[i]].toObject();const auto kind=target["kind"].toString();
+                if(kind=="origin"){if(target.size()!=1)reject("Origin snap only accepts kind");candidate=withOriginReference(candidate);}
+                else if(kind!="point" || target.size()!=2 || !validId(target["pointId"].toString()))reject("Circle circumference snap requires origin or retained point");
+                auto p=candidate["parameters"].toObject();const auto id=kind=="origin" ? p["originPointId"].toString() : target["pointId"].toString();
+                retainSupportPoint(p,projectionContext,id);candidate["parameters"]=p;
+                const auto expanded=expandedProjectionFeature(candidate,projectionContext)["parameters"].toObject();bool found=false;
+                for(const auto& row:expanded["points"].toArray()){const auto point=row.toObject();if(point["id"]==id){u=point["uMm"].toDouble();v=point["vMm"].toDouble();found=true;break;}}
+                if(!found)reject("Circle circumference source point is unavailable");sources.append(id);
+            }
+            picks[i]={u,v};
+        }
+        const auto resolved=circumcircle(picks[0],picks[1],picks[2],"Three-point circle");
+        candidate=addCircle(candidate,{{"centerUMm",resolved[0]},{"centerVMm",resolved[1]},{"diameterMm",2*resolved[2]}});
+        auto parameters=candidate["parameters"].toObject();const auto circle=parameters["entities"].toArray().last().toObject();auto constraints=parameters["constraints"].toArray();
+        for(const auto& source:sources)constraints.append(QJsonObject{{"id",newId()},{"type","pointOnCurve"},{"pointIds",QJsonArray{source}},{"entityIds",QJsonArray{circle["id"]}}});
+        parameters["constraints"]=constraints;candidate["parameters"]=parameters;const auto result=solveDraft(candidate,projectionContext);
+        return result.ok ? result : SolveResult{false,draft,result.diagnostics,result.error};
+    }catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
 }
 
 SketchGeometry::SolveResult SketchGeometry::addTwoPointCircle(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext) {
