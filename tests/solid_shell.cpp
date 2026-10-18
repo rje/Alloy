@@ -12,6 +12,26 @@
 static void check(bool okay,const char* message){if(!okay)throw std::runtime_error(message);}
 int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     {
+        CadDocument document;auto authored=document.authored();
+        const auto box=QJsonObject{{"id",CadDocument::newId()},{"bodyId",CadDocument::newId()},
+            {"ownerId",authored["documentId"]},{"type","box"},{"name","Stock"},{"visible",true},
+            {"parameters",QJsonObject{{"widthMm",40},{"depthMm",30},{"heightMm",20},{"xMm",0},{"yMm",0},{"zMm",0}}}};
+        authored["features"]=QJsonArray{box};
+        check(document.commit(authored,"Stock").isEmpty(),"open shell regression stock");
+        QJsonObject top;for(const auto& face:document.bodies()[0].supportFaces)if(face.role=="box.z1")
+            top={{"producerFeatureId",face.producerFeatureId},{"bodyId",face.bodyId},{"faceId",face.faceId}};
+        check(document.commit(CadDocument::shellCandidate(document.authored(),
+            {{"targetBodyId",box["bodyId"]},{"removedFace",top},{"thicknessMm",4}}),"Shell").isEmpty(),"valid open shell");
+        const auto stable=document.authored();const auto revision=document.revision();
+        const auto history=document.history().count();const auto shell=stable["features"].toArray().last().toObject();
+        check(!document.commit(CadDocument::shellCandidate(stable,
+            {{"featureId",shell["id"]},{"targetBodyId",box["bodyId"]},{"removedFace",top},{"thicknessMm",30}}),
+            "Exhausted inward offset").isEmpty(),"successful no-op offset must refuse");
+        check(document.lastEvaluationError()["code"]=="shell_invalid_result","no-op offset diagnostic");
+        check(document.authored()==stable && document.revision()==revision && document.history().count()==history,
+            "no-op offset refusal must preserve authored work and undo");
+    }
+    {
         CadDocument closed;
         QJsonObject parameters{{"widthMm",50},{"depthMm",80},{"heightMm",40},{"xMm",0},{"yMm",0},{"zMm",0}};
         auto authored=closed.authored();
@@ -23,7 +43,7 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
         if(!result.isEmpty())throw std::runtime_error(result.toStdString());
         check(std::abs(closed.bodies()[0].summary["volumeMm3"].toDouble()-(50*80*40-43*73*33))<1e-4,"closed cavity volume");
         check(closed.bodies()[0].supportFaces.size()==12,"all six closed cavity planes retained");
-        const auto stable=closed.authored();const auto id=stable["features"].toArray().last().toObject()["id"];
+        const auto stable=closed.authored();const auto id=stable["features"].toArray().last().toObject().value("id");
         check(!closed.commit(CadDocument::shellCandidate(stable,{{"featureId",id},
             {"targetBodyId",f["bodyId"]},{"thicknessMm",100}}),"Impossible cavity").isEmpty(),"oversized cavity refused");
         check(closed.authored()==stable,"closed failure atomic");
@@ -124,7 +144,7 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
         catch(const GeometryKernel::EvaluationError& error){refusedConflict=error.diagnostics()["code"]=="ambiguous_projection";}
         check(refusedConflict,"two different circle centers with one retained source identity did not refuse");
         const auto shellStage=source.authored();
-        const auto shellStageId=shellStage["features"].toArray().last().toObject()["id"];
+        const auto shellStageId=shellStage["features"].toArray().last().toObject().value("id");
         check(source.commit(CadDocument::shellCandidate(shellStage,
             {{"featureId",shellStageId},{"targetBodyId",sourceBody},{"thicknessMm",4}}),
             "Edit cavity").isEmpty(),"source cavity wall edit");
@@ -154,7 +174,7 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
         QSet<QString> innerIds;for(const auto& face:source.bodies()[0].supportFaces)
             if(face.role=="shell-inner")innerIds.insert(face.faceId);
         const auto beforeWallEdit=source.authored();
-        const auto shellId=beforeWallEdit["features"].toArray()[3].toObject()["id"];
+        const auto shellId=beforeWallEdit["features"].toArray()[3].toObject().value("id");
         check(source.commit(CadDocument::shellCandidate(beforeWallEdit,
             {{"featureId",shellId},{"targetBodyId",sourceBody},{"thicknessMm",4}}),
             "Edit closed wall").isEmpty(),"source wall edit with downstream split");
@@ -186,7 +206,7 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     const auto cap=document.bodies()[0].supportFaces[0];
     QJsonObject support{{"producerFeatureId",cap.producerFeatureId},{"bodyId",cap.bodyId},{"faceId",cap.faceId}};
     check(document.commit(CadDocument::lengthParameterCandidate(document.authored(),{{"name","Wall"},{"value",2},{"units","mm"}}),"Add Wall").isEmpty(),"Wall parameter created");
-    const auto wallId=document.authored()["userParameters"].toArray()[0].toObject()["id"];
+    const auto wallId=document.authored()["userParameters"].toArray()[0].toObject().value("id");
     const auto before=document.authored();
     QJsonObject arguments{{"targetBodyId",bodyId},{"removedFace",support},{"thicknessMm",2},{"thicknessParameterId",wallId}};
     const auto candidate=CadDocument::shellCandidate(before,arguments);

@@ -383,21 +383,23 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Stable identities and refusals exist in bounded operations; no general native repair/rebind workflow is inventoried. Enclosure port-depth edit safely refuses a changed retained rim boundary; boundary repair remains unresolved in TUT-035.",
+      "gap": "Packaged saved-fixture refusals preserve authored work and exact support IDs; native repair/discoverability and general rebind remain open. Enclosure rim boundary repair remains unresolved in TUT-035.",
       "apiIds": [],
       "issueKeys": [
         "HIS-002",
         "SKT-025",
         "DOC-012",
-        "REL-015"
+        "REL-015",
+        "REL-050"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
       ],
       "receipts": [
-        "docs/validation/geometric-references.md"
+        "docs/validation/geometric-references.md",
+        "docs/validation/actionable-failures-packaged.md"
       ],
-      "planningStatus": "Existing scope owners; verify accepted subset before pulling"
+      "planningStatus": "Packaged Mac refusal slice accepted; native repair/rebind owners remain open"
     },
     {
       "id": "sketch.lifecycle",
@@ -3906,19 +3908,20 @@
       "label": "Actionable dependency and geometry failure preflight",
       "category": "Documents",
       "scope": "proposed-v1",
-      "implementation": "missing",
+      "implementation": "partial",
       "nativeEvidence": "unknown",
-      "gap": "Structured refusal exists; broad native recovery advice and retained-reference corpus remain incomplete.",
+      "gap": "Five packaged macOS saved-fixture failure/recovery cases pass through local control, including an exhausted Shell regression fix. Physical native error presentation remains REL-050; broad automatic repair remains open.",
       "apiIds": [],
       "issueKeys": [
         "REL-015",
+        "REL-050",
         "REL-001"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
       ],
-      "receipts": [],
-      "planningStatus": "Existing scope owners; verify accepted subset before pulling"
+      "receipts": ["docs/validation/actionable-failures-packaged.md"],
+      "planningStatus": "Accepted packaged Mac API/GPU slice; REL-050 owns native physical remainder"
     },
     {
       "id": "release.platforms",

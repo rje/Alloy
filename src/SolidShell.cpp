@@ -192,6 +192,11 @@ void SolidShell::evaluate(EvaluatedBody& body,const QJsonObject& parameters,cons
     if(!summary["valid"].toBool() || !summary["closed"].toBool()
         || summary["topology"].toObject()["solids"].toInt()!=1 || summary["volumeMm3"].toDouble()<=0)
         fail("shell_invalid_result","Shell must produce one valid closed solid");
+    // OCCT can report success for an exhausted inward offset while returning
+    // the original stock. A valid BRep alone does not establish a hollowing.
+    if(summary["volumeMm3"].toDouble()>=body.summary["volumeMm3"].toDouble()-
+        std::max(1e-7,body.summary["volumeMm3"].toDouble()*1e-10))
+        fail("shell_invalid_result","Shell did not remove material; reduce the thickness or edit the source body");
     const auto sourcePlane=BRepAdaptor_Surface(source->face).Plane();
     TopTools_IndexedMapOfShape sourceEdges;TopExp::MapShapes(source->face,TopAbs_EDGE,sourceEdges);
     TopTools_IndexedMapOfShape historyFaces;

@@ -87,6 +87,10 @@ tools, projection, saved Home and custom views.
 The [local macOS arm64 package](docs/validation/macos-relocatable-preview.md)
 passes distinct-path extraction, bundled runtime and GPU/API checks on the
 development Mac. Clean-host and other-platform qualification remain open.
+[Packaged failure/recovery fixtures](docs/validation/actionable-failures-packaged.md)
+now refuse exhausted Shell, missing sketch/Project supports and stale edits
+without losing saved work; ambiguous Section support is marked unavailable.
+Physical native failure/recovery input remains a separate gate.
 
 Navigation now includes [free orbit](docs/validation/free-orbit-navigation.md),
 [constrained orbit and pivots](docs/validation/constrained-orbit-pivot.md),

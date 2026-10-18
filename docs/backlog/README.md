@@ -7,9 +7,12 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **535 issues**: **419 implementation, 23 research,
-1 research/design, 22 epics, and 70 validation gates**. Counts describe decomposition, not coverage.
+The current local backlog contains **536 issues**: **419 implementation, 23 research,
+1 research/design, 22 epics, and 71 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
+SKT-114/#538 retains crossing-line Chamfer kept-side selection after the
+accepted connected-corner modes. REL-050/#539 retains physical/native failure
+message and recovery checks after the [packaged REL-015 slice](../validation/actionable-failures-packaged.md).
 
 The 2026-10-17 v1 inventory reconciliation added 20 bounded implementation
 children, [#496–#515](github.md), for proposed tools previously owned only by
