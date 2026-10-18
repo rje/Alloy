@@ -101,8 +101,11 @@ while preserving linked support and an adjacent Offset owner.
 [Support-face loop Offset Delete](docs/validation/sketch-loop-offset-delete.md)
 now removes the selected generated profile's retained owner while preserving
 its support and an independent sketch. Consumed-profile deletion refuses before
-changing the draft; planar-inset native qualification and multiple owners in
-one sketch remain separate tasks.
+changing the draft; multiple owners in one sketch remain separate work.
+[Planar-inset loop Delete](docs/validation/sketch-planar-inset-delete.md) now
+also passes on a retained 18-edge enclosure support through the real app,
+native viewport input, exact history/reopen and GPU captures. Multiple owners
+within one sketch remain open.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,

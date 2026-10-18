@@ -43,8 +43,8 @@ checks. Linked/projected deletion remains Todo SKT-143/#569; its bounded
 retained line/point/circle Delete slice now depends on accepted SKT-066/071,
 while broad source repair remains Todo SKT-026/#160. SKT-144–147/#570–573
 now have independently accepted bounded Offset owner deletion, including the
-single-owner support-face loop under SKT-145/#571. Its planar-inset actual-app
-variant and multiple owners in one sketch remain Todo SKT-152–153/#578–579; stale-support recovery text is SKT-154/#580.
+single-owner support-face loop under SKT-145/#571. Its planar-inset actual-app variant is now accepted under SKT-152/#578
+with a retained 18-edge enclosure fixture, native/API input, exact history and GPU captures. Multiple owners in one sketch remain Todo SKT-153/#579; stale-support recovery text is SKT-154/#580.
 SKT-148/#574 now accepts
 fit-spline Mirror Delete through core, real-app API, native Qt and independent
 review. SKT-149/#575 retains fit-spline Offset association-only removal as

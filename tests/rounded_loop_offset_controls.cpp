@@ -34,21 +34,24 @@ private slots:
         const auto base=call(window,"document.inspect");const auto features=base.value("authored").toObject().value("features").toArray();const auto target=features[features.size()-2].toObject();
         call(window,"sketch.edit",{{"sketchId",target.value("id")}});call(window,"sketch.lookAt");call(window,"view.fit");call(window,"sketch.tool",{{"tool","select"}});
         const auto original=session(window).value("draftSketch").toObject();
+        QTest::qWait(250); // Settle queued sketch-palette layout before the input sequence.
         // Initial harness activation only. The actual click must establish focus and selection.
         view->setFocus(Qt::OtherFocusReason);QVERIFY(view->hasFocus());
         const auto frame=session(window).value("resolvedFrame").toObject();QPoint picked(-1,-1);QString profile;
-        for(double u=-65;u<=65 && picked.x()<0;u+=.75)for(double v=-35;v<=35;v+=.75){
+        for(double u=-65;u<=65 && picked.x()<0;u+=.75)for(double v=-65;v<=65;v+=.5){
             const auto pixel=view->projectSketchPoint(u,v,"face",frame);const QPoint point(qRound(pixel.value("x").toDouble()),qRound(pixel.value("y").toDouble()));
             if(!view->rect().adjusted(10,10,-10,-10).contains(point))continue;
             const auto hit=view->pickSketch(original,point.x(),point.y(),{},frame);
-            if(hit.value("kind")=="profile"){picked=point;profile=hit.value("profileId").toString();break;}
+            if(hit.value("kind")=="profile" && QApplication::widgetAt(view->mapToGlobal(point))==view){picked=point;profile=hit.value("profileId").toString();break;}
         }
         QVERIFY(picked.x()>=0);call(window,"capture.screenshot",{{"path",output+"/native-before.png"}});
         QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,picked);
         QTRY_COMPARE(session(window).value("selection").toObject().value("profileIds").toArray(),QJsonArray{profile});QVERIFY(view->hasFocus());
         call(window,"capture.screenshot",{{"path",output+"/native-selected.png"}});
+        const auto historyIndex=session(window).value("draftHistory").toObject().value("index").toInt();
         QTest::keyClick(QApplication::focusWidget(),Qt::Key_Delete);
         QTRY_VERIFY(!session(window).value("draftSketch").toObject().value("parameters").toObject().contains("loopOffsets"));
+        QCOMPARE(session(window).value("draftHistory").toObject().value("index").toInt(),historyIndex+1);
         const auto deleted=session(window).value("draftSketch").toObject();QCOMPARE(deleted.value("parameters").toObject().value("support"),original.value("parameters").toObject().value("support"));
         call(window,"capture.screenshot",{{"path",output+"/native-deleted.png"}});
         call(window,"history.undo");QCOMPARE(session(window).value("draftSketch").toObject(),original);call(window,"capture.screenshot",{{"path",output+"/native-undone.png"}});
