@@ -67,7 +67,7 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try {
     worldZ(document.sketches()[1],50);const auto originalFrame=document.sketches()[1].resolvedFrame;
     check(attached["parameters"].toObject()["plane"]=="face" && !attached["parameters"].toObject().contains("frame"),"Authored support persisted a stale frame");
     const auto attachedId=attached["id"].toString(),profileId=document.sketches()[1].profiles[0].profileId;
-    const auto radiusId=f["parameters"].toObject()["dimensions"].toArray().last().toObject()["id"];
+    const auto radiusId=f["parameters"].toObject()["dimensions"].toArray().last().toObject().value("id");
     f=accepted(SketchGeometry::updateDimension(f,{{"dimensionId",radiusId},{"valueMm",90}}));
     f=accepted(SketchGeometry::updateDimension(f,{{"dimensionId",capDimension},{"valueMm",120}}));
     check(document.commit(SketchGeometry::replaceFeature(document.authored(),f),"Resize support source").isEmpty(),"Parent radius/width edit failed");
@@ -218,7 +218,7 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try {
     check(snapReopened.save(linkedPath).isEmpty(),"Save center referenced guide");CadDocument centersReopened;check(centersReopened.open(linkedPath).isEmpty() && centersReopened.authored()==afterCenterEdit,"Center references lost on reopen");
     const auto inlineBase=SketchGeometry::findFeature(centersReopened.authored(),guide["id"].toString());
     const auto inlineContext=GeometryKernel::projectionContext(centersReopened.evaluation(),inlineBase);
-    const auto inlineTarget=entity(inlineBase,0)["startPointId"];
+    const auto inlineTarget=entity(inlineBase,0).value("startPointId");
     const auto inlineCircle=SketchGeometry::addPointerCircle(inlineBase,{{"centerUMm",-999},{"centerVMm",-999},{"diameterMm",20},{"drivingDiameterMm",50},{"centerSnapTarget",QJsonObject{{"kind","point"},{"pointId",inlineTarget}}}},inlineContext);
     const auto inlineFeature=accepted(inlineCircle);const auto inlineParameters=inlineFeature["parameters"].toObject();
     const auto inlineEntity=inlineParameters["entities"].toArray().last().toObject(),inlineDimension=inlineParameters["dimensions"].toArray().last().toObject();

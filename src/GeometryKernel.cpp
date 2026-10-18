@@ -622,6 +622,74 @@ EvaluatedProfile GeometryKernel::unionProfiles(const std::vector<EvaluatedProfil
         }
         lineage=std::move(next);
     }
+    // A closed circle's parameter seam can split one retained boundary into
+    // two edges, although the seam has no authored contact. Remove only those
+    // artificial vertices before prism generation. Keep every real contact and
+    // every noncircular vertex, so straight boundary ancestry is unchanged.
+    TopTools_IndexedMapOfShape vertices;TopExp::MapShapes(shape,TopAbs_VERTEX,vertices);
+    ShapeUpgrade_UnifySameDomain unify(shape,true,false,false);
+    bool hasCircularSeam=false;
+    for(int i=1;i<=vertices.Extent();++i) {
+        TopTools_IndexedMapOfShape incident;
+        QString sketchId,entityId;bool seam=true;
+        for(const auto& boundary:lineage) {
+            TopoDS_Vertex a,b;TopExp::Vertices(boundary.edge,a,b,true);
+            if(!a.IsSame(vertices(i)) && !b.IsSame(vertices(i)))continue;
+            incident.Add(boundary.edge);
+            seam &= boundary.type=="circle"
+                && (!a.IsSame(vertices(i)) || boundary.startContact.isEmpty())
+                && (!b.IsSame(vertices(i)) || boundary.endContact.isEmpty());
+            if(sketchId.isEmpty()){sketchId=boundary.sourceSketchId;entityId=boundary.sourceEntityId;}
+            else seam &= sketchId==boundary.sourceSketchId && entityId==boundary.sourceEntityId;
+        }
+        seam &= incident.Extent()==2;
+        if(seam)hasCircularSeam=true;else unify.KeepShape(vertices(i));
+    }
+    if(hasCircularSeam) {
+        unify.Build();const auto unified=unify.Shape();
+        TopTools_IndexedMapOfShape present;TopExp::MapShapes(unified,TopAbs_EDGE,present);
+        std::vector<EvaluatedBoundaryEdge> canonical;
+        for(const auto& source:lineage) {
+            TopTools_IndexedMapOfShape descendants;
+            if(present.Contains(source.edge))descendants.Add(source.edge);
+            for(const auto& changed:unify.History()->Modified(source.edge))
+                if(changed.ShapeType()==TopAbs_EDGE && present.Contains(changed))descendants.Add(changed);
+            if(descendants.Extent()!=1)throw std::runtime_error("Circular seam has no unique boundary history");
+            auto mapped=source;mapped.edge=TopoDS::Edge(descendants(1));
+            auto prior=std::find_if(canonical.begin(),canonical.end(),[&](const auto& edge){return edge.edge.IsSame(mapped.edge);});
+            if(prior!=canonical.end()) {
+                if(prior->sourceSketchId!=source.sourceSketchId || prior->sourceEntityId!=source.sourceEntityId)
+                    throw std::runtime_error("Circular seam merged distinct boundary sources");
+                continue;
+            }
+            // History chooses the edge; exact shared vertices retain its two
+            // oriented contacts. The removed parameter seam contributes none.
+            if(!mapped.edge.IsSame(source.edge)) {
+                mapped.startContact.clear();mapped.endContact.clear();
+                TopoDS_Vertex a,b;TopExp::Vertices(mapped.edge,a,b,true);
+                bool foundA=false,foundB=false;
+                const auto contact=[&](const TopoDS_Vertex& vertex,QString& value,bool& found,
+                    const TopoDS_Vertex& original,const QString& retained) {
+                    bool same=vertex.IsSame(original);
+                    for(const auto& changed:unify.History()->Modified(original))same |= vertex.IsSame(changed);
+                    if(!same)return;
+                    if(found && value!=retained)throw std::runtime_error("Ambiguous circular seam endpoint lineage");
+                    value=retained;found=true;
+                };
+                for(const auto& ancestor:lineage) {
+                    if(ancestor.sourceSketchId!=source.sourceSketchId || ancestor.sourceEntityId!=source.sourceEntityId)continue;
+                    TopoDS_Vertex c,d;TopExp::Vertices(ancestor.edge,c,d,true);
+                    contact(a,mapped.startContact,foundA,c,ancestor.startContact);
+                    contact(a,mapped.startContact,foundA,d,ancestor.endContact);
+                    contact(b,mapped.endContact,foundB,c,ancestor.startContact);
+                    contact(b,mapped.endContact,foundB,d,ancestor.endContact);
+                }
+                if(!foundA || !foundB)throw std::runtime_error("Circular seam lost retained endpoint lineage");
+            }
+            canonical.push_back(mapped);
+        }
+        shape=unified;lineage=std::move(canonical);
+    }
     if(shape.IsNull() || !BRepCheck_Analyzer(shape).IsValid() || count(shape,TopAbs_FACE)!=1)
         throw std::invalid_argument("Selected regions must form one connected planar face");
     TopExp_Explorer face(shape,TopAbs_FACE);const auto united=TopoDS::Face(face.Current());
