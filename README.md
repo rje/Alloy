@@ -23,6 +23,9 @@ now passes exact geometry, focus, history and reopen checks.
 [Direct sketch source edits](docs/validation/responsive-sketch-source-edit.md)
 also evaluate off-thread: the accepted iron edit preserved its exact solid,
 references and history while navigation and status stayed responsive.
+[Surface Trim panel partitions and commits](docs/validation/responsive-surface-trim.md)
+now keep the measured corrected-iron paths responsive, with exact committed
+geometry and history; preview/commit consistency remains tracked separately.
 
 The [complete surface shoehorn](docs/validation/shoehorn-complete.md) now has
 an independently accepted full creation movie, editable model and checked STL:

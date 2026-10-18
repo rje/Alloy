@@ -43,6 +43,11 @@ REL-043/#489 separately tracks a pre-existing Surface Trim preview/commit
 geometry mismatch caused by viewport-dependent bounds. REL-038's background
 partition matches the accepted committed geometry; its runtime gate must use
 that committed baseline, not the stale live-preview extent.
+REL-038/#481 now independently accepts the panel and connected-rear
+partition/commit worker paths, exact committed geometry/ancestry and
+history/reopen; see [the receipt](../validation/responsive-surface-trim.md).
+The interactive target click still partitions synchronously, and REL-043
+retains preview/commit consistency.
 
 ## Active delivery order
 

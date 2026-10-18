@@ -2,6 +2,17 @@
 
 ## Active user order (2026-10-17)
 
+REL-038/#481 is independently accepted for fully specified Surface Trim panel
+partition and final commits on the corrected iron. Panel partition/commit and
+connected-rear partition/commit all ran off-thread with responsive status,
+pan and GUI heartbeat; exact accepted **committed** geometry/source ancestry,
+within-run IDs, one history entry, Undo/Redo and reopen passed. The old live
+preview used viewport-meshed bounds and differed from commit; REL-043/#489
+tracks that pre-existing visual/geometry discrepancy. Interactive target-click
+cache misses and direct Trim API responsiveness remain outside this bounded
+gate. See [the receipt](validation/responsive-surface-trim.md). REL-039 Loft
+and cumulative REL-016 remain open.
+
 REL-042/#488 is independently accepted on the saved corrected-iron pre-bottom
 checkpoint. One macOS LaunchServices bundle launch produced an active native
 window; Sketch Edit itself produced viewport focus without inter-step repair.

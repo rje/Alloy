@@ -314,6 +314,8 @@ private:
     void startGeometryEvaluation();
     void pollGeometryEvaluation();
     void invalidateGeometryEvaluation();
+    struct SurfaceTrimPreviewSource;
+    struct SurfaceTrimPreviewPartition;
     struct BoundaryFillPreviewSource;
     struct BoundaryFillPreviewPartition;
     struct GeometryEvaluation {
@@ -328,6 +330,8 @@ private:
         std::shared_ptr<const EvaluatedDocument> source;
         std::shared_ptr<const BoundaryFillPreviewSource> boundarySource;
         std::shared_ptr<const BoundaryFillPreviewPartition> boundaryPartition;
+        std::shared_ptr<const SurfaceTrimPreviewSource> trimSource;
+        std::shared_ptr<const SurfaceTrimPreviewPartition> trimPartition;
         qint64 sourceMs = 0, fullMs = 0, stageMs = 0;
         QString error;
     };
@@ -350,7 +354,7 @@ private:
     QShortcut* surfaceExtrudeEscape_=nullptr;
     QJsonObject surfaceTrimCandidate(const QJsonObject& inputs) const;
     QJsonObject beginSurfaceTrim(const QJsonObject& overrides={});
-    QJsonObject previewSurfaceTrim();
+    QJsonObject previewSurfaceTrim(bool asynchronous=false);
     QJsonObject selectSurfaceTrimEntity(const QString& sketchId,const QString& entityId);
     QJsonObject selectSurfaceTrimRegion(const QString& regionId);
     QJsonObject selectSurfaceTrimBody(const QString& bodyId);
@@ -360,11 +364,13 @@ private:
     QDockWidget* surfaceTrimDock_=nullptr;
     QShortcut* surfaceTrimEscape_=nullptr;
     std::vector<EvaluatedBody> surfaceTrimPickBodies_;
-    struct SurfaceTrimPreviewSource;
-    struct SurfaceTrimPreviewPartition;
     std::shared_ptr<const SurfaceTrimPreviewSource> surfaceTrimSource_;
     std::shared_ptr<const SurfaceTrimPreviewPartition> surfaceTrimPartition_;
     const EvaluatedDocument& surfaceTrimSourceStage();
+    QJsonObject queueSurfaceTrimEvaluation(const QString& phase,const QJsonObject& key={},const QJsonObject& feature={});
+    static void evaluateSurfaceTrimPartition(GeometryEvaluation& task);
+    void completeSurfaceTrimEvaluation(const std::shared_ptr<GeometryEvaluation>& task);
+    void refreshSurfaceTrimPending();
     void registerBoundaryFillCommands();
     QJsonObject boundaryFillCandidate(const QJsonObject& inputs) const;
     QJsonObject boundaryFillFeature(const QJsonObject& inputs) const;

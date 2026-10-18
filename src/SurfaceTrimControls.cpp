@@ -11,6 +11,9 @@
 #include <QPushButton>
 #include <QShortcut>
 #include <QSignalBlocker>
+#include <QDateTime>
+#include <QElapsedTimer>
+#include <QStatusBar>
 #include <QMap>
 #include <cmath>
 #include <algorithm>
@@ -97,10 +100,12 @@ QJsonObject AlloyWindow::beginSurfaceTrim(const QJsonObject& overrides){
         {"selectionRole",(inputs.value("toolEntityIds").toArray().size()==2 || !inputs.value("toolBodyId").toString().isEmpty())
             ?(inputs.value("targetBodyId").toString().isEmpty()?"target":"region"):"tool"},
         {"inputSchema",findCommand("surface.trim")->parameters}};
-    showSurfaceTrim();previewSurfaceTrim();view_->setFocus(Qt::OtherFocusReason);return session_;
+    showSurfaceTrim();previewSurfaceTrim(true);view_->setFocus(Qt::OtherFocusReason);return session_;
 }
 
-QJsonObject AlloyWindow::previewSurfaceTrim(){
+QJsonObject AlloyWindow::previewSurfaceTrim(bool asynchronous){
+    if(session_.value("evaluationStatus")=="pending")return failure("evaluation_busy","Trim evaluation is pending; wait or Cancel");
+    session_.remove("evaluationStatus");
     const auto inputs=session_["inputs"].toObject();
     session_["previewed"]=false;session_["geometryEvaluated"]=false;
     session_.remove("geometry");session_.remove("documentDraft");session_.remove("regions");surfaceTrimPickBodies_.clear();
@@ -108,7 +113,7 @@ QJsonObject AlloyWindow::previewSurfaceTrim(){
     view_->clearPreview();
     auto reject=[&](const QString& code,const QString& message,const QJsonObject& details=QJsonObject{}){
         auto response=failure(code,message);auto error=response["error"].toObject();error["diagnostics"]=details;
-        response["error"]=error;session_["previewError"]=error;
+        response["error"]=error;session_["previewError"]=error;session_["evaluationStatus"]="failed";
         if(surfaceTrimDock_)if(auto* label=surfaceTrimDock_->findChild<QLabel*>("surfaceTrim.error"))label->setText(message);
         return response;
     };
@@ -143,15 +148,26 @@ QJsonObject AlloyWindow::previewSurfaceTrim(){
         surfaceTrimSource_.reset();surfaceTrimPartition_.reset();
         return reject("stale_session","The document changed; cancel and restart Trim");
     }
-    const auto edit=inputs["featureId"].toString();
-    const auto& stage=surfaceTrimSourceStage();
-    // Selection and the display name cannot alter a partition. Everything
-    // else is compared exactly, including ordered tool references and margin.
+    const auto edit=inputs.value("featureId").toString();
     auto geometryInputs=inputs;geometryInputs.remove("removedRegionIds");geometryInputs.remove("name");
-    auto partitionKey=surfaceTrimSource_->key;
-    partitionKey["featureId"]=edit.isEmpty()?session_.value("newFeatureId"):QJsonValue(edit);
+    const QJsonObject sourceKey{{"sessionId",session_.value("id")},{"documentId",document_->authored().value("documentId")},
+        {"revision",static_cast<qint64>(document_->revision())},{"featureId",inputs.value("featureId")}};
+    auto partitionKey=sourceKey;partitionKey["featureId"]=edit.isEmpty()?session_.value("newFeatureId"):QJsonValue(edit);
     partitionKey["inputs"]=geometryInputs;
     if(surfaceTrimPartition_ && surfaceTrimPartition_->key!=partitionKey)surfaceTrimPartition_.reset();
+    const bool hasTools=inputs.contains("toolBodyId") ? !inputs.value("toolBodyId").toString().isEmpty()
+        : inputs.value("toolEntityIds").toArray().size()==2 && !inputs.value("toolSketchId").toString().isEmpty();
+    if(asynchronous && ((hasTools && !inputs.value("targetBodyId").toString().isEmpty() && !surfaceTrimPartition_)
+        || (!edit.isEmpty() && (!surfaceTrimSource_ || surfaceTrimSource_->key!=sourceKey)))){
+        QJsonObject feature;
+        if(hasTools && !inputs.value("targetBodyId").toString().isEmpty())try{
+            auto args=inputs;args["removedRegionIds"]=QJsonArray{CadDocument::newId()};
+            const auto candidate=surfaceTrimCandidate(args);const auto fid=partitionKey.value("featureId");
+            for(const auto& row:candidate.value("features").toArray())if(row.toObject().value("id")==fid){feature=row.toObject();break;}
+        }catch(const std::exception& e){return reject("invalid_arguments",QString::fromUtf8(e.what()));}
+        return queueSurfaceTrimEvaluation("partition",partitionKey,feature);
+    }
+    const auto& stage=surfaceTrimSourceStage();
     QSet<QString> visible;for(const auto& sketch:stage.sketches)if(sketch.visible)visible.insert(sketch.featureId);
     view_->setCommandSketches(visible);
     if(!edit.isEmpty())view_->setBodyStage(stage.bodies,"surface-trim-source:"+session_["id"].toString());
@@ -173,6 +189,8 @@ QJsonObject AlloyWindow::previewSurfaceTrim(){
     try{
         const bool reused=bool(surfaceTrimPartition_);
         if(!reused){
+            // Keep native target binding + region selection in one gesture.
+            // Only dialog-open partitions and final commits use the worker.
             session_["partitionBuildCount"]=session_.value("partitionBuildCount").toInteger()+1;
             surfaceTrimPartition_=std::make_shared<const SurfaceTrimPreviewPartition>(SurfaceTrimPreviewPartition{
                 partitionKey,SurfaceTrim::split(feature,*target,stage)});
@@ -213,7 +231,7 @@ QJsonObject AlloyWindow::previewSurfaceTrim(){
         // document transaction validates all downstream features once on OK.
         session_["geometry"]=QJsonObject{{"regions",regionRows},{"projection",split.projection},
             {"result",selectedBody.summary}};
-        session_["documentDraft"]=candidate;session_["previewed"]=true;session_.remove("previewError");
+        session_["documentDraft"]=candidate;session_["previewed"]=true;session_["evaluationStatus"]="completed";session_.remove("previewError");
         if(surfaceTrimDock_){surfaceTrimDock_->findChild<QLabel*>("surfaceTrim.error")->clear();
             surfaceTrimDock_->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok)->setEnabled(true);}
         return session_;
@@ -374,4 +392,103 @@ void AlloyWindow::showSurfaceTrim(){
         surfaceTrimEscape_->setContext(Qt::WidgetShortcut);connect(surfaceTrimEscape_,&QShortcut::activated,this,cancel);}
     surfaceTrimEscape_->setEnabled(true);
     canvasWindow_->addDockWidget(Qt::RightDockWidgetArea,surfaceTrimDock_);surfaceTrimDock_->show();
+}
+
+void AlloyWindow::refreshSurfaceTrimPending(){
+    const bool pending=session_.value("evaluationStatus")=="pending";
+    if(surfaceTrimDock_){
+        for(auto* list:surfaceTrimDock_->findChildren<QListWidget*>())list->setEnabled(!pending);
+        auto* buttons=surfaceTrimDock_->findChild<QDialogButtonBox*>();
+        for(auto* button:surfaceTrimDock_->findChildren<QPushButton*>())
+            button->setEnabled(!pending || (buttons && button==buttons->button(QDialogButtonBox::Cancel)));
+        if(buttons)buttons->button(QDialogButtonBox::Ok)->setEnabled(!pending && session_.value("previewed").toBool());
+        if(auto* label=surfaceTrimDock_->findChild<QLabel*>("surfaceTrim.error"))label->setText(pending
+            ? "Evaluating Trim… You can navigate or Cancel." : session_.value("previewError").toObject().value("message").toString());
+    }
+    if(pending){status_->hide();statusBar()->showMessage("Evaluating Trim… You can navigate or Cancel to discard the result.");}
+    else {status_->show();if(statusBar()->currentMessage().startsWith("Evaluating Trim"))statusBar()->clearMessage();}
+}
+
+QJsonObject AlloyWindow::queueSurfaceTrimEvaluation(const QString& phase,const QJsonObject& key,const QJsonObject& feature){
+    if(session_.value("evaluationStatus")=="pending")return phase=="commit" && session_.value("evaluationPhase")=="commit"
+        ? session_ : failure("evaluation_pending","Wait for Trim regions before accepting");
+    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))
+        return failure("stale_session","The document changed; cancel and restart Trim");
+    if(phase=="commit" && !session_.value("previewed").toBool())return failure("trim_region_required","Select valid removable portions before accepting");
+    if(geometryEvaluationRunning_ || geometryEvaluationQueued_)return failure("evaluation_busy","Background geometry is still finishing");
+    auto task=std::make_shared<GeometryEvaluation>();task->command="surface.trim";task->phase=phase;
+    task->document=document_;task->documentId=document_->authored().value("documentId").toString();task->tabId=activeTabId_;
+    task->base=document_->authored();task->revision=document_->revision();task->sessionId=session_.value("id").toString();
+    task->generation=++geometryEvaluationGeneration_;task->inputs=session_.value("inputs").toObject();task->ownerId=document_->activeOwnerId();
+    task->featureId=task->inputs.value("featureId").toString(session_.value("newFeatureId").toString());task->feature=feature;task->cacheKey=key;
+    if(phase=="commit")try{task->candidate=surfaceTrimCandidate(task->inputs);}catch(const std::exception& e){return failure("invalid_arguments",QString::fromUtf8(e.what()));}
+    else if(!feature.isEmpty())session_["partitionBuildCount"]=session_.value("partitionBuildCount").toInteger()+1;
+    geometryEvaluationTerminal_={};documentOpenOperation_={};sketchEvaluationOperation_={};geometryEvaluationQueued_=task;
+    session_["evaluationPhase"]=phase;session_["evaluationStatus"]="pending";session_["previewGeneration"]=static_cast<qint64>(task->generation);
+    session_["evaluationHeartbeat"]=QJsonObject{{"ticks",0},{"lastMs",QDateTime::currentMSecsSinceEpoch()},{"maxGapMs",0}};
+    session_["cancellation"]="Discard result; running kernel evaluation continues";session_.remove("previewError");
+    refreshSurfaceTrimPending();startGeometryEvaluation();return session_;
+}
+
+void AlloyWindow::evaluateSurfaceTrimPartition(GeometryEvaluation& task){
+    // Serial worker only: source and partition have fresh independent topology.
+    QElapsedTimer timer;timer.start();
+    try{
+        auto prefix=task.base;const auto edit=task.inputs.value("featureId").toString();
+        if(!edit.isEmpty()){
+            QJsonArray features;for(const auto& row:prefix.value("features").toArray()){
+                if(row.toObject().value("id")==edit)break;features.append(row);}
+            prefix["features"]=features;prefix.remove("objectOwners");prefix.remove("bodyNames");
+        }
+        const QJsonObject sourceKey{{"sessionId",task.sessionId},{"documentId",task.documentId},
+            {"revision",static_cast<qint64>(task.revision)},{"featureId",task.inputs.value("featureId")}};
+        auto source=std::make_shared<const SurfaceTrimPreviewSource>(SurfaceTrimPreviewSource{sourceKey,GeometryKernel::evaluateDocument(prefix)});
+        task.sourceMs=timer.restart();
+        if(!task.feature.isEmpty()){
+            const EvaluatedBody* target=nullptr;for(const auto& body:source->stage.bodies)if(body.bodyId==task.inputs.value("targetBodyId"))target=&body;
+            if(!target)throw GeometryKernel::EvaluationError({{"code","trim_target_required"},{"message","Select one current local surface body"}});
+            task.trimPartition=std::make_shared<const SurfaceTrimPreviewPartition>(SurfaceTrimPreviewPartition{
+                task.cacheKey,SurfaceTrim::split(task.feature,*target,source->stage)});
+        }
+        task.stageMs=timer.elapsed();task.trimSource=std::move(source);
+    }catch(const GeometryKernel::EvaluationError& e){task.full.diagnostics=e.diagnostics();task.error=QString::fromUtf8(e.what());}
+}
+
+void AlloyWindow::completeSurfaceTrimEvaluation(const std::shared_ptr<GeometryEvaluation>& task){
+    status_->show();if(statusBar()->currentMessage().startsWith("Evaluating Trim"))statusBar()->clearMessage();
+    if(session_.value("id")!=task->sessionId || session_.value("command")!=task->command || geometryEvaluationGeneration_!=task->generation)return;
+    auto reject=[&](const QString& code,const QString& message,const QJsonObject& diagnostics=QJsonObject{}){
+        session_["evaluationStatus"]="failed";session_["previewed"]=false;
+        session_["previewError"]=QJsonObject{{"code",code},{"message",message},{"diagnostics",diagnostics}};refreshSurfaceTrimPending();
+    };
+    if(document_!=task->document || activeTabId_!=task->tabId || document_->revision()!=task->revision || document_->authored()!=task->base
+        || session_.value("inputs").toObject()!=task->inputs || document_->activeOwnerId()!=task->ownerId
+        || task->featureId!=task->inputs.value("featureId").toString(session_.value("newFeatureId").toString())){
+        reject("stale_session","The document or Trim selection changed; cancel and restart");return;
+    }
+    session_["evaluationTimingMs"]=QJsonObject{{"source",task->sourceMs},{"partition",task->stageMs},{"full",task->fullMs}};
+    if(!task->error.isEmpty()){reject(task->full.diagnostics.value("code").toString("evaluation_failed"),task->error,task->full.diagnostics);return;}
+    if(task->phase=="partition"){
+        if(!task->trimSource){reject("evaluation_failed","Trim source is unavailable");return;}
+        surfaceTrimSource_=task->trimSource;surfaceTrimPartition_=task->trimPartition;
+        session_.remove("evaluationStatus");const auto preview=previewSurfaceTrim();
+        session_["evaluationPhase"]="partition";session_["previewGeneration"]=static_cast<qint64>(task->generation);session_["partitionReused"]=false;
+        const auto detail=preview.value("error").toObject();const auto code=detail.value("code").toString();
+        const bool awaitingSelection=(code=="trim_region_required" && !session_.value("regions").toArray().isEmpty())
+            || (task->feature.isEmpty() && (code=="trim_tool_required" || code=="trim_target_required"));
+        if(preview.value("ok").isBool() && !preview.value("ok").toBool() && !awaitingSelection)
+            reject(code,detail.value("message").toString(),detail.value("diagnostics").toObject());
+        else session_["evaluationStatus"]="completed";
+        refreshSurfaceTrimPending();refresh();return;
+    }
+    if(!task->full.ok){reject("evaluation_failed",task->full.error,task->full.diagnostics);return;}
+    const auto error=document_->commitSurfaceTrimEvaluation(task->full,task->candidate,task->base,task->revision);
+    if(!error.isEmpty()){reject("evaluation_failed",error,document_->lastEvaluationError());return;}
+    QJsonObject terminal{{"id",task->sessionId},{"sessionId",task->sessionId},{"command",task->command},
+        {"previewGeneration",static_cast<qint64>(task->generation)},{"evaluationStatus","completed"},{"status","committed"},
+        {"evaluationTimingMs",session_.value("evaluationTimingMs")},{"evaluationHeartbeat",session_.value("evaluationHeartbeat")},
+        {"commandResult",QJsonObject{{"ok",true},{"completion","completed"},{"result",document_->state()}}}};
+    session_["evaluationStatus"]="completed";finishSession(task->sessionId,false);refresh();
+    const auto recoveryError=syncRecovery();terminal["recovery"]=QJsonObject{{"durable",recoveryError.isEmpty()},{"warning",recoveryError}};
+    geometryEvaluationTerminal_=terminal;
 }

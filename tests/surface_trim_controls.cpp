@@ -15,16 +15,68 @@
 #include <QMenu>
 #include <QTimer>
 #include <QAction>
+#include <QElapsedTimer>
+#include <QTemporaryDir>
 
 class SurfaceTrimControlsTest final:public QObject {
  Q_OBJECT
+ QJsonObject response(AlloyWindow& window,const QString& command,const QJsonObject& args={}){
+  auto result=window.execute(command,args);const auto initial=result.value("result").toObject();QElapsedTimer deadline;deadline.start();
+  while(result.value("completion")=="pending"){
+   QTest::qWait(25);result=window.execute("command.status",{{"session",initial.value("id")},{"generation",initial.value("previewGeneration")}});
+   if(deadline.elapsed()>180000)qFatal("Trim evaluation timed out");
+  }
+  return result;
+ }
  QJsonObject call(AlloyWindow& window,const QString& command,const QJsonObject& args={}){
-  const auto response=window.execute(command,args);
-  if(!response["ok"].toBool())qFatal("%s",QJsonDocument(response).toJson().constData());
-  return response["result"].toObject();
+  const auto result=response(window,command,args);
+  if(!result.value("ok").toBool())qFatal("%s",QJsonDocument(result).toJson().constData());return result.value("result").toObject();
  }
  QJsonObject session(AlloyWindow& window){return window.state()["activeSession"].toObject();}
 private slots:
+ void asynchronousPartitionCommitContracts(){
+  QTemporaryDir temp;QVERIFY(temp.isValid());CadDocument fixture;
+  auto sheet=[&](const QString& plane,double a,double b,double reach,double offset=0){
+   auto sketch=SketchGeometry::newFeature(fixture.authored().value("documentId").toString(),plane,"Source");
+   sketch=SketchGeometry::addLine(sketch,{{"u1Mm",a},{"v1Mm",offset},{"u2Mm",b},{"v2Mm",offset}});
+   auto authored=fixture.authored();auto features=authored.value("features").toArray();features.append(sketch);authored["features"]=features;
+   if(!fixture.commit(authored,"Sketch").isEmpty())qFatal("Sketch fixture failed");
+   const auto entity=sketch.value("parameters").toObject().value("entities").toArray()[0].toObject().value("id");
+   if(!fixture.commit(CadDocument::surfaceExtrudeCandidate(fixture.authored(),{{"sketchId",sketch.value("id")},{"entityIds",QJsonArray{entity}},{"sideOneMm",reach},{"sideTwoMm",reach}}),"Sheet").isEmpty())qFatal("Sheet fixture failed");
+   return fixture.bodies().back().bodyId;
+  };
+  const auto target=sheet("XY",-20,20,10),tool=sheet("XZ",-30,30,20),badTool=sheet("XZ",-30,30,20,30);const auto path=temp.filePath("trim.alloy");QVERIFY(fixture.save(path).isEmpty());
+  AlloyWindow w;call(w,"document.open",{{"path",path},{"discard",true}});const auto before=call(w,"document.inspect");
+  const QJsonObject inputs{{"targetBodyId",target},{"toolBodyId",tool}};
+  auto pending=w.execute("surface.trimDialog",inputs);QCOMPARE(pending.value("completion").toString(),QString("pending"));auto operation=pending.value("result").toObject();
+  QVERIFY(w.state().value("geometryWork").toObject().value("resultDiscardAvailable").toBool());
+  auto* dock=w.findChild<QDockWidget*>("surfaceTrimDock");QVERIFY(dock);auto* buttons=dock->findChild<QDialogButtonBox*>();QVERIFY(buttons);
+  QVERIFY(!buttons->button(QDialogButtonBox::Ok)->isEnabled());QVERIFY(buttons->button(QDialogButtonBox::Cancel)->isEnabled());QVERIFY(!dock->findChild<QListWidget*>("surfaceTrim.regions")->isEnabled());
+  QCOMPARE(w.execute("command.update",{{"session",operation.value("id")},{"inputs",QJsonObject{{"name","Changed"}}}}).value("error").toObject().value("code").toString(),QString("evaluation_busy"));
+  QVERIFY(call(w,"command.cancel",{{"session",operation.value("id")}}).value("resultDiscarded").toBool());
+  QTRY_VERIFY_WITH_TIMEOUT(!w.state().value("geometryWork").toObject().value("active").toBool(),10000);QCOMPARE(call(w,"document.inspect"),before);
+  QCOMPARE(w.execute("command.status",{{"session",operation.value("id")}}).value("error").toObject().value("code").toString(),QString("command_cancelled"));
+  pending=w.execute("surface.trimDialog",inputs);operation=pending.value("result").toObject();
+  QPushButton* change=nullptr;for(auto* button:w.findChild<QDockWidget*>("surfaceTrimDock")->findChildren<QPushButton*>())if(button->text()=="Change Tools")change=button;
+  QVERIFY(change && !change->isEnabled());QVERIFY(QMetaObject::invokeMethod(change,"clicked",Qt::DirectConnection,Q_ARG(bool,false)));
+  QJsonObject stale;QTRY_VERIFY_WITH_TIMEOUT((stale=w.execute("command.status",{{"session",operation.value("id")}})).value("completion")!="pending",10000);
+  QCOMPARE(stale.value("error").toObject().value("code").toString(),QString("stale_session"));QCOMPARE(call(w,"document.inspect"),before);call(w,"command.cancel",{{"session",operation.value("id")}});
+  const auto failed=response(w,"surface.trimDialog",{{"targetBodyId",target},{"toolBodyId",badTool}});QVERIFY(!failed.value("ok").toBool());QCOMPARE(failed.value("completion").toString(),QString("failed"));
+  QCOMPARE(call(w,"document.inspect"),before);call(w,"command.cancel",{{"session",failed.value("result").toObject().value("id")}});
+  auto ready=call(w,"surface.trimDialog",inputs);QCOMPARE(ready.value("evaluationStatus").toString(),QString("completed"));QCOMPARE(ready.value("regions").toArray().size(),2);QVERIFY(!ready.value("previewed").toBool());
+  const auto region=ready.value("regions").toArray()[0].toObject().value("regionId");call(w,"surface.trimRegion",{{"regionId",region}});
+  const auto preview=session(w);QVERIFY(preview.value("previewed").toBool());const auto expectedInputs=preview.value("inputs").toObject();
+  pending=w.execute("command.commit",{{"session",ready.value("id")}});QCOMPARE(pending.value("completion").toString(),QString("pending"));
+  call(w,"command.cancel",{{"session",ready.value("id")}});QTRY_VERIFY_WITH_TIMEOUT(!w.state().value("geometryWork").toObject().value("active").toBool(),10000);QCOMPARE(call(w,"document.inspect"),before);
+  auto reopened=call(w,"surface.trimDialog",inputs);call(w,"surface.trimRegion",{{"regionId",reopened.value("regions").toArray()[0].toObject().value("regionId")}});
+  const auto accepted=call(w,"command.commit",{{"session",reopened.value("id")}});QCOMPARE(accepted.value("status").toString(),QString("committed"));QVERIFY(session(w).isEmpty());
+  const auto after=call(w,"document.inspect");QCOMPARE(after.value("undo").toObject().value("count").toInt(),1);const auto feature=after.value("authored").toObject().value("features").toArray().last().toObject();
+  auto args=expectedInputs;args["removedRegionIds"]=feature.value("parameters").toObject().value("removedRegionIds");args["newFeatureId"]=feature.value("id");
+  QVERIFY(fixture.commit(CadDocument::surfaceTrimCandidate(fixture.authored(),args),"Baseline").isEmpty());QCOMPARE(after.value("evaluation").toObject().value("bodies"),fixture.state().value("evaluation").toObject().value("bodies"));
+  call(w,"history.undo");QCOMPARE(call(w,"document.inspect").value("authored"),before.value("authored"));call(w,"history.redo");QCOMPARE(call(w,"document.inspect").value("authored"),after.value("authored"));
+  const auto edit=call(w,"feature.editDialog",{{"featureId",feature.value("id")}});QVERIFY(edit.value("previewed").toBool());call(w,"command.cancel",{{"session",edit.value("id")}});
+  const auto saved=temp.filePath("saved.alloy");call(w,"document.save",{{"path",saved}});call(w,"document.open",{{"path",saved},{"discard",true}});QCOMPARE(call(w,"document.inspect").value("evaluation").toObject().value("bodies"),after.value("evaluation").toObject().value("bodies"));
+ }
  void actualCurvedToolFirstTargetPreviewCancel(){
   const auto source=qEnvironmentVariable("ALLOY_CURVED_TRIM_SOURCE"),out=qEnvironmentVariable("ALLOY_SURFACE_TRIM_EVIDENCE");
   const auto selection=qEnvironmentVariable("ALLOY_CURVED_TRIM_SELECTION");if(source.isEmpty())QSKIP("No actual four-body curved Trim source supplied");

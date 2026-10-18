@@ -1305,13 +1305,17 @@ void AlloyWindow::updateTimelineDrop(const QPoint& globalPosition) {
 }
 
 bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
-    if(watched==view_ && geometryEvaluationRunning_ && (geometryEvaluationRunning_->command=="sketch.edit" || geometryEvaluationRunning_->command=="sketch.finish" || geometryEvaluationRunning_->command=="feature.edit")){
+    if(watched==view_ && geometryEvaluationRunning_ && (geometryEvaluationRunning_->command=="sketch.edit" || geometryEvaluationRunning_->command=="sketch.finish" || geometryEvaluationRunning_->command=="feature.edit" || geometryEvaluationRunning_->command=="surface.trim")){
         if(event->type()==QEvent::ContextMenu)return true;
         if(event->type()==QEvent::ShortcutOverride){event->accept();return true;}
         if(event->type()==QEvent::KeyPress || event->type()==QEvent::KeyRelease){
             const auto key=static_cast<QKeyEvent*>(event)->key();
-            if(key==Qt::Key_Escape && event->type()==QEvent::KeyPress && sketchEvaluationOperation_.value("evaluationStatus")=="pending")
-                execute("command.cancel",{{"session",sketchEvaluationOperation_.value("id")}});
+            if(key==Qt::Key_Escape && event->type()==QEvent::KeyPress){
+                if(session_.value("command")=="surface.trim" && session_.value("evaluationStatus")=="pending")
+                    execute("command.cancel",{{"session",session_.value("id")}});
+                else if(sketchEvaluationOperation_.value("evaluationStatus")=="pending")
+                    execute("command.cancel",{{"session",sketchEvaluationOperation_.value("id")}});
+            }
             if(key!=Qt::Key_Shift && key!=Qt::Key_Alt && key!=Qt::Key_Control && key!=Qt::Key_Meta)return true;
         }
         if(event->type()==QEvent::MouseButtonPress || event->type()==QEvent::MouseButtonRelease
@@ -6228,6 +6232,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
         const bool safe=id=="commands.list" || id=="app.state" || id=="document.inspect" || id=="command.cancel"
             || (session_.value("command")=="surface.extrude" && (id=="command.preview" || id=="command.update" || id=="command.commit"
                 || id=="surface.extrudeEntity" || id=="surface.extrudeProfile" || id=="selection.pick"))
+            || (session_.value("command")=="surface.trim" && id=="command.commit")
             || (session_.value("command")=="surface.boundaryFill" && (id=="command.commit" || id=="command.preview" || id=="surface.boundaryFillSelectCells"))
             || id=="view.orbit" || id=="view.pan" || id=="view.zoom" || id=="view.orientation" || id=="view.home"
             || id=="view.fit" || id=="capture.screenshot" || id=="capture.viewport" || id=="capture.dialog";
@@ -6433,7 +6438,7 @@ QJsonObject AlloyWindow::state() const {
         {"recovery",QJsonObject{{"available",recovery_->error().isEmpty()},{"warning",recoveryWarning_},
             {"staleCount",recovery_->list().size()},{"scope","committed authored state only"}}},
         {"inlineEditor",inlineEditorState()},
-        {"geometryWork",QJsonObject{{"active",geometryBusyActive_ || bool(geometryEvaluationRunning_)},{"cancellable",false},{"resultDiscardAvailable",sketchEvaluationOperation_.value("evaluationStatus")=="pending" || documentOpenOperation_.value("evaluationStatus")=="pending" || session_.value("command")=="surface.extrude" || session_.value("command")=="surface.boundaryFill"},{"last",lastGeometryWork_}}},
+        {"geometryWork",QJsonObject{{"active",geometryBusyActive_ || bool(geometryEvaluationRunning_)},{"cancellable",false},{"resultDiscardAvailable",sketchEvaluationOperation_.value("evaluationStatus")=="pending" || documentOpenOperation_.value("evaluationStatus")=="pending" || session_.value("command")=="surface.extrude" || session_.value("command")=="surface.boundaryFill" || (session_.value("command")=="surface.trim" && session_.value("evaluationStatus")=="pending")},{"last",lastGeometryWork_}}},
         {"focus",QJsonObject{{"widgetClass",QApplication::focusWidget() ? QApplication::focusWidget()->metaObject()->className() : ""},
             {"widgetName",QApplication::focusWidget() ? QApplication::focusWidget()->objectName() : QString{}},
             {"viewport",QApplication::focusWidget()==view_},
@@ -6520,7 +6525,7 @@ void AlloyWindow::refresh() {
     const auto historicalSketchId=session_.value("command")=="sketch.edit"
         && session_.value("baseDocumentRevision").toInteger()==static_cast<qint64>(document_->revision())
         ? session_.value("inputs").toObject().value("sketchId").toString() : QString{};
-    if(session_.value("command")!="component.copyPlacement" && session_.value("command")!="solid.splitBody" && session_.value("command")!="solid.sweep" && session_.value("command")!="solid.revolve" && session_.value("command")!="solid.sphere" && session_.value("command")!="solid.chamfer" && session_.value("command")!="solid.fillet" && session_.value("command")!="solid.rectangularPattern" && session_.value("command")!="solid.loft" && session_.value("command")!="solid.shell" && session_.value("command")!="solid.circularPattern" && session_.value("command")!="solid.mirror" && session_.value("command")!="solid.move" && session_.value("command")!="solid.combine" && !(session_.value("command")=="solid.extrude" && !session_.value("inputs").toObject().value("featureId").toString().isEmpty()) && session_.value("command")!="surface.boundaryFill" && historicalSketchId.isEmpty())view_->clearBodyStage();
+    if(session_.value("command")!="component.copyPlacement" && session_.value("command")!="solid.splitBody" && session_.value("command")!="solid.sweep" && session_.value("command")!="solid.revolve" && session_.value("command")!="solid.sphere" && session_.value("command")!="solid.chamfer" && session_.value("command")!="solid.fillet" && session_.value("command")!="solid.rectangularPattern" && session_.value("command")!="solid.loft" && session_.value("command")!="solid.shell" && session_.value("command")!="solid.circularPattern" && session_.value("command")!="solid.mirror" && session_.value("command")!="solid.move" && session_.value("command")!="solid.combine" && !(session_.value("command")=="solid.extrude" && !session_.value("inputs").toObject().value("featureId").toString().isEmpty()) && session_.value("command")!="surface.boundaryFill" && session_.value("command")!="surface.trim" && historicalSketchId.isEmpty())view_->clearBodyStage();
     if(displayedDocumentRevision_!=document_->revision()) {
         const QSignalBlocker block(tree_);
         // Keep Browser rows keyed by their stable IDs. Removing all children on
@@ -8354,6 +8359,10 @@ void AlloyWindow::showPathPlane() {
 }
 
 QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
+    if(commit && session_.value("command")=="surface.trim") {
+        if(session_.value("id")!=id)return failure("invalid_session","Trim is no longer active");
+        return queueSurfaceTrimEvaluation("commit");
+    }
     if(session_.value("command")=="surface.boundaryFill")return finishBoundaryFill(id,commit);
     if(!sectionEdit_.isEmpty())return finishSectionEdit(id,commit);
     if(session_.value("command")=="component.copyPlacement")return finishComponentCopy(id,commit);
@@ -8441,6 +8450,12 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     const auto splitPreviousPlane=session_.value("previousPlane").toString();
     const auto midplanePreviousFace=session_.value("previousFace").toObject();
     const auto midplanePreviousPlane=session_.value("previousPlane").toString();
+    if(target=="surface.trim" && session_.value("evaluationStatus")=="pending"){
+        result["resultDiscarded"]=true;result["evaluationStillRunning"]=bool(geometryEvaluationRunning_);
+        geometryEvaluationTerminal_={{"id",id},{"sessionId",id},{"command",target},{"previewGeneration",session_.value("previewGeneration")},
+            {"evaluationStatus","failed"},{"status","cancelled"},{"previewError",QJsonObject{{"code","command_cancelled"},{"message","Trim result discarded; running kernel evaluation continues"}}}};
+        invalidateGeometryEvaluation();
+    }
     surfaceTrimSource_.reset();surfaceTrimPartition_.reset();
     loftSource_.reset();loftPreview_.reset();
     if(target=="surface.extrude"){

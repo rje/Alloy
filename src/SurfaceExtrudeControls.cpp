@@ -224,6 +224,7 @@ void AlloyWindow::startGeometryEvaluation() {
         try {
             QElapsedTimer timer;timer.start();
             if(task->command=="document.open"){task->full=CadDocument::prepareOpen(task->inputs.value("path").toString());task->fullMs=timer.elapsed();}
+            else if(task->command=="surface.trim" && task->phase=="partition")evaluateSurfaceTrimPartition(*task);
             else if(task->command=="surface.boundaryFill" && task->phase=="partition")evaluateBoundaryFillPartition(*task);
             else {
                 if(task->needsSource){
@@ -256,7 +257,7 @@ void AlloyWindow::startGeometryEvaluation() {
 }
 
 void AlloyWindow::pollGeometryEvaluation() {
-    if((session_.value("command")=="surface.extrude" || session_.value("command")=="surface.boundaryFill") && session_.value("evaluationStatus")=="pending"){
+    if((session_.value("command")=="surface.extrude" || session_.value("command")=="surface.boundaryFill" || session_.value("command")=="surface.trim") && session_.value("evaluationStatus")=="pending"){
         auto heartbeat=session_.value("evaluationHeartbeat").toObject();const auto now=QDateTime::currentMSecsSinceEpoch();
         heartbeat["ticks"]=heartbeat["ticks"].toInteger()+1;
         heartbeat["maxGapMs"]=std::max(heartbeat["maxGapMs"].toInteger(),now-heartbeat["lastMs"].toInteger());
@@ -281,6 +282,7 @@ void AlloyWindow::pollGeometryEvaluation() {
         && session_.value("command")==task->command && geometryEvaluationGeneration_==task->generation;
     if(task->command=="sketch.edit" || task->command=="sketch.finish" || task->command=="feature.edit")completeSketchEvaluation(task);
     else if(task->command=="document.open")completeDocumentOpen(task);
+    else if(task->command=="surface.trim")completeSurfaceTrimEvaluation(task);
     else if(task->command=="surface.boundaryFill"){
         if(task->phase=="partition")completeBoundaryFillPartition(task);else completeBoundaryFillCommit(task);
     }
