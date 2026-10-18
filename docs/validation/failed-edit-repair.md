@@ -1,0 +1,7 @@
+# Transient failed-edit inspection (HIS-009)
+
+Accepted 2026-10-18 for one face-supported sketch after a Combine edit removes its exact support. The failed candidate is retained in a cancellable inspection session with its base revision, exact diagnostic, impacted sketch, and evaluated valid prefix. The committed authored document and solid remain valid. The panel labels the last accepted sketch cache distinctly from the failed candidate; shared selection and Delete reach the exact missing-support refusal without publishing an edit. Cancel restores the committed selection and camera. A later document edit invalidates the session.
+
+The implementation and tests are in `src/FailedEditRepair.cpp`, `tests/failed_edit_repair_controls.cpp`, and `tests/failed_edit_repair_api.py`. The retained [external evidence](../../../Alloy-reference-records/validation/his009-failed-edit-2026-10-18/receipt.md) includes the fixture variation, full API transcript, GPU captures, exact model checks, build and test commands. Focused Qt controls passed 3/3, the real-app API lifecycle passed both split/deleted-support routes, and the original atomic-refusal fixture passed. Independent Sol source/capture review found no blocking issue.
+
+This is an Alloy inspection policy, not a claim of exact reference-product behavior. It does not commit or persist broken documents, reassign a sketch plane, remap a generated boundary, or supply recovery wording. Native physical input is unqualified while the macOS console is locked. SKT-160, SKT-161, and SKT-154 own those separate follow-ups.

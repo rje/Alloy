@@ -383,7 +383,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Atomic support failure preserves the valid committed document. HIS-009 will expose a transient failed-edit repair session; SKT-160 will explicitly reassign one ordinary planar sketch; SKT-161 must define generated Offset boundary policy. Native repair and wider supports remain open.",
+      "gap": "Atomic support failure preserves the valid committed document. HIS-009 accepts a transient cached-sketch inspection and exact-support Delete refusal, with physical native input still open. SKT-160 must explicitly reassign one ordinary planar sketch; SKT-161 must define generated Offset boundary policy. Native repair and wider supports remain open.",
       "apiIds": [],
       "issueKeys": [
         "HIS-002",
@@ -401,9 +401,10 @@
       "receipts": [
         "docs/validation/geometric-references.md",
         "docs/validation/actionable-failures-packaged.md",
-        "docs/validation/enclosure-connector-clearance.md"
+        "docs/validation/enclosure-connector-clearance.md",
+        "docs/validation/failed-edit-repair.md"
       ],
-      "planningStatus": "Bounded repair-session/ordinary-plane/policy children allocated; no repair implementation accepted yet"
+      "planningStatus": "HIS-009 transient inspection accepted; explicit repair and generated-boundary policy remain open"
     },
     {
       "id": "sketch.lifecycle",
@@ -412,7 +413,7 @@
       "scope": "proposed-v1",
       "implementation": "present",
       "nativeEvidence": "partial",
-      "gap": "Atomic support failure preserves the valid committed document. HIS-009 will expose a transient failed-edit repair session; SKT-160 will explicitly reassign one ordinary planar sketch; SKT-161 must define generated Offset boundary policy. Native repair and wider supports remain open.",
+      "gap": "Atomic support failure preserves the valid committed document. HIS-009 accepts a transient cached-sketch inspection and exact-support Delete refusal, with physical native input still open. SKT-160 must explicitly reassign one ordinary planar sketch; SKT-161 must define generated Offset boundary policy. Native repair and wider supports remain open.",
       "apiIds": [
         "sketch.begin",
         "sketch.cancel",

@@ -118,6 +118,8 @@ dependency refusal and exact history/reopen.
 [Ordinary bracket input prefix](docs/validation/ordinary-bracket-input-prefix.md) now keeps viewport keyboard focus after Extrude commit/cancel, so the next native Undo works without a repair click. Save As Mesh sheet/chooser input remains open.
 [Rounded bracket provenance](docs/validation/prism-provenance.md) now preserves exact circular contacts through region union; both saved brackets reopen and survive source edits without ambiguous prism faces.
 
+[Failed upstream edit inspection](docs/validation/failed-edit-repair.md) now retains a transient support-loss Combine candidate alongside the unchanged committed model. A labeled cached sketch supports selection and exact-support Delete refusal; Cancel restores the prior state. Explicit plane reassignment remains open.
+
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,
 alongside completion of the advanced modeling tutorials.
