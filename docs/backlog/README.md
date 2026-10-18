@@ -10,6 +10,11 @@ dependency keys with issue numbers.
 The current local backlog contains **582 issues**: **460 implementation, 24 research,
 2 research/design, 22 epics, and 74 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
+REL-012/#415 is Todo/blocked before native input: two retained bracket fixtures
+now fail Open on ambiguous cylindrical-prism face provenance. GEO-006/#309 owns
+both exact repros; see the external
+`../Alloy-reference-records/validation/rel012-ordinary-input-2026-10-18/README.md`
+for restart evidence. No UI failure or fix was accepted from that probe.
 SKT-115–121 and SKT-123–124/#540–546, #548–549 are accepted analytic constraint pairs and endpoint contacts; SKT-129/#554 accepts distinct-ID arc/line endpoint Tangent and SKT-022/#163 is closed for its declared v1 analytic scope. SKT-122/#547 and SKT-130–132/#555–557 retain later multi-pair Symmetry, spline constraints and branch-control research.
 SKT-125/#550 accepts per-entity sketch status and Find Under-Constrained; SKT-126/#551 accepts independent sketch visibility and hidden-target picking; SKT-127/#552 accepts contextual point relations and Delete Coincident. SKT-128/#553 accepts a bounded glyph/edit inventory, including a readable Vertical mark; SKT-133/#558 accepts point/line Fix/UnFix; SKT-134/#559 accepts Center Circle Fix/UnFix; SKT-135/#560 accepts ordinary finite Arc Fix/UnFix; SKT-139/#564 accepts Two-Point Circle Fix; SKT-140/#565 qualifies the other v1 authored circle modes. SKT-023/#164 is accepted for its declared v1 analytic scope; later geometry/ownership work remains SKT-136–138/#561–563.
 SKT-114/#538 retains crossing-line Chamfer kept-side selection after the

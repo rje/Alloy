@@ -2,6 +2,8 @@
 
 ## Current v1 delivery direction (2026-10-17)
 
+REL-012/#415 native bracket input gate is Todo/blocked on GEO-006/#309: both retained full-size and angle-bracket checkpoints fail document.open before input with ambiguous cylindrical-prism face provenance. Exact models and failure evidence are external under ../Alloy-reference-records/validation/rel012-ordinary-input-2026-10-18/. No UI defect or product fix was accepted; resume after the geometry owner restores an existing checkpoint.
+
 The user reviewed the private printable-part v1 design as a reasonable working
 direction and asked that partial work stop accumulating. REL-030 remains open
 for final scope reconciliation after a [150-row inventory audit](v1/inventory-reconciliation.md)
