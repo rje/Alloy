@@ -48,12 +48,15 @@ int main(int argc, char** argv) {
         const auto cutter = primitive(document.authored(),"cylinder",
             {{"radiusMm",3},{"heightMm",10},{"xMm",10},{"yMm",15},{"zMm",-1}},false);
         commit(document,append(append(document.authored(),plate),cutter),"Create plate and tool");
+        auto named = document.authored();
+        named["bodyNames"] = QJsonObject{{plate["bodyId"].toString(),"Plate"},{cutter["bodyId"].toString(),"Cutter"}};
+        commit(document,named,"Name target and tool");
         const auto before = document.authored();const auto beforeShape = body(document,plate).shape;
         auto args = combine(plate,cutter,"cut");const auto booleanId = CadDocument::newId();args["newFeatureId"] = booleanId;
         const auto candidate = CadDocument::booleanCandidate(before,args);
         const auto preview = CadDocument::evaluateCandidate(candidate);
         check(preview.ok,preview.error.toUtf8().constData());
-        check(document.authored() == before && document.bodies().size() == 2 && document.history().count() == 1,
+        check(document.authored() == before && document.bodies().size() == 2 && document.history().count() == 2,
             "Boolean preview is disposable and hidden tool inputs are explicit");
         near(GeometryKernel::summarize(beforeShape)["volumeMm3"].toDouble(),3000,"candidate leaves shared live input topology unchanged");
         near(preview.evaluation->bodies[0].summary["volumeMm3"].toDouble(),3000-45*std::numbers::pi,"radius-3 through-hole analytic volume");
@@ -61,6 +64,7 @@ int main(int argc, char** argv) {
         check(document.bodies().size() == 1 && body(document,plate).featureId == plate["id"].toString()
             && body(document,plate).summary["lastModifierFeatureId"] == booleanId && body(document,plate).visible,
             "tool consumption preserves target producer identity, visibility and modifier identity");
+        check(body(document,plate).name == "Plate" && document.authored()["bodyNames"] == named["bodyNames"],"consumed named tools retain dormant metadata and target name");
         check(body(document,plate).summary["valid"].toBool() && body(document,plate).summary["closed"].toBool()
             && body(document,plate).summary["topology"].toObject()["solids"] == 1,"cut produces one real valid closed solid");
         document.history().undo();check(document.authored() == before && document.bodies().size() == 2,"undo restores target and consumed tool");
@@ -73,6 +77,7 @@ int main(int argc, char** argv) {
         commit(document,CadDocument::booleanCandidate(document.authored(),edit),"Edit Combine operation");
         near(body(document,plate).summary["volumeMm3"].toDouble(),3750+45*std::numbers::pi,"join includes only boss volume outside plate");
         check(document.bodies().size() == 2 && !body(document,cutter).visible,"Keep Tools retains tool identity and hidden presentation");
+        check(body(document,plate).name == "Plate" && body(document,cutter).name == "Cutter","Keep Tools edit restores named tool identity");
         const auto saved = document.authored();
         QTemporaryDir directory;check(directory.isValid(),"native storage fixture directory");
         const auto path = directory.path()+"/plate-combine.alloy";

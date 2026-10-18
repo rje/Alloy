@@ -67,6 +67,8 @@ now qualify Three-Point, tangent and retained Center Circle source relations
 through native input, conflict recovery and reopen.
 [Arc Fix/UnFix](docs/validation/sketch-fix-arc.md) now retains center, radius
 and sweep locks through native interaction and a downstream rounded solid.
+[Named Combine recovery](docs/validation/combine-naming-recovery.md) now keeps
+consumed tool names in history and allows a valid retry after an empty result.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,

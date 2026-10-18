@@ -31,5 +31,6 @@ dated source evidence is kept outside Git in the enclosure split/snap contract.
 
 Astra accepted bounded authoring/API and context open/Cancel scope on 2026-10-14
 at `2c86584` (integrated `cc52857`). DOC-031 native Qt validation was accepted
-on 2026-10-14 with the qualified focus evidence above. Named body consumption is an atomic refusal,
-not automatic stale-name cleanup.
+on 2026-10-14 with the qualified focus evidence above. The original receipt refused named body consumption. The current
+[SOL-071 accepted slice](combine-naming-recovery.md) retains dormant tool names for
+supported Combine consumption; it does not clean up unknown names automatically.

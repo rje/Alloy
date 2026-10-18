@@ -25,6 +25,11 @@ second placement driver and size/orientation conflict contract. REL-049/#529 rec
 functionality and packaging gates first, then audit intrinsic cost across
 supported commands, including simple corrected-iron Cuts, and create/complete
 measured optimization children. Off-thread execution alone is insufficient.
+The working partial-row v1 disposition is in
+[docs/v1/partial-row-disposition.md](v1/partial-row-disposition.md).
+SOL-071/#566 now accepts named Combine target/tool consumption and readable
+invalid-result recovery through native input, real-app API, history/reopen and
+Apple M4 captures; see [its receipt](validation/combine-naming-recovery.md).
 SKT-094/#499 now accepts the documented Three-Point Rectangle workflow:
 three native points, typed Tab-lock lengths, retained Parallel/Perpendicular
 relations, a source-driven corner, downstream extrusion and independently read

@@ -27,8 +27,8 @@ inspection, OBJ output and active-preview visibility responsiveness. Other
 broader parent issues must be split when pulled; see
 [the ownership audit](../v1/ownership-audit.md).
 The [partial-row disposition](../v1/partial-row-disposition.md) names the
-working minimum v1 variants; SOL-071/#566 retains ordinary Combine naming and
-invalid-result recovery as an explicit Todo.
+working minimum v1 variants; SOL-071/#566 now accepts ordinary Combine naming
+and invalid-result recovery with native/API evidence.
 The user's first-v1 scope decision requires 3MF export and modeled printable
 threads. XCH-011/#524 has a bounded [Core 3MF export receipt](../validation/3mf-export.md)
 with actual app/native/independent consumer evidence; XCH-005 retains import

@@ -15,7 +15,7 @@ inventory, release-gate and site reconciliation.
 | `sketch.fillet` | Accepted one- and multiple-line-junction fillets, including shared-line and dimension treatment | Analytic/spline junctions and wider options |
 | `sketch.mirror` | Associative line/arc and ordinary open fit-spline Mirror | Closed/control/offset splines and transformed support |
 | `solid.primitives` | Box, Cylinder and Sphere, including accepted Sphere Cut/Repeat | Other primitive commands retain their separate owners |
-| `solid.combine` | Explicit-target Join/Cut/Intersect, Keep Tools and ordinary invalid-result recovery | SOL-071/#566 owns v1 names/recovery; broad topology remains later work |
+| `solid.combine` | Explicit-target Join/Cut/Intersect, Keep Tools and ordinary invalid-result recovery | SOL-071/#566 accepts bounded names/recovery; broad topology remains later work |
 | `body.rename` | Current local body via Browser/shared command, retaining identity | Imported/nonlocal organization policy; physical gestures stay in release input gates |
 | `construction.midplane` | Retained plane between supported parallel planar faces | Nonparallel/angular-bisector cases |
 | `construction.path-plane` | Start/End plane on supported retained fit-spline path | Arbitrary fractions and other curves |

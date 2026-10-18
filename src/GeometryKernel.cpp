@@ -822,7 +822,7 @@ TopoDS_Shape GeometryKernel::booleanOperation(const QString& operation, const To
         qInfo().noquote()<<"Boolean simplification"<<QJsonDocument(builder.simplificationStatus).toJson(QJsonDocument::Compact);
     const auto shape = builder.Shape();
     if (shape.IsNull() || count(shape,TopAbs_SOLID) == 0)
-        reject("boolean_empty_result","Boolean result is empty or has no solid volume; the target was preserved");
+        reject("boolean_empty_result","No solid result remains. Check body overlap or change Operation; the target was preserved");
     if (count(shape,TopAbs_SOLID) != 1)
         reject("boolean_multiple_solids","This Combine slice requires one connected solid; disconnected or split results are unsupported");
     // Refuse stray faces/edges rather than silently dropping lower-dimensional
@@ -1384,6 +1384,10 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
             intentionallyRemoved.insert(feature["parameters"].toObject()["bodyId"].toString());
         if(feature["id"]==evaluatedId && feature["type"]=="boundaryFill" && feature["parameters"].toObject()["removeTools"].toBool())
             for(const auto& ref:feature["parameters"].toObject()["tools"].toArray())intentionallyRemoved.insert(ref.toObject()["bodyId"].toString());
+        // Consumed tools still exist in authored history. Keep their metadata
+        // dormant so Undo and Keep Tools edits restore the same body identity.
+        if(feature["id"]==evaluatedId && feature["type"]=="boolean" && !feature["parameters"].toObject()["keepTools"].toBool())
+            for(const auto& id:feature["parameters"].toObject()["toolBodyIds"].toArray())intentionallyRemoved.insert(id.toString());
     }
     for(auto& body:evaluated.bodies){
         if(body.occurrenceId.isEmpty() && featureTypes.value(body.featureId)!="stepImport"
