@@ -54,3 +54,12 @@ Save Cancel/Save, return/next input and independent mesh readback on the exact
 saved bracket. Do not repair focus between user steps. The accepted
 [REL-051 prefix](ordinary-bracket-input-prefix.md) and its shared-API mesh
 readback remain separate evidence.
+
+FND-028/#589 identified the immediate session prerequisite: on 2026-10-18 the
+logged-in Aqua console was locked (`IOConsoleLocked` and the current user's
+`CGSSessionScreenIsLocked` were both true). The read-only
+`python3 tools/native_input_preflight.py` exits 2 with that condition before an
+editor is launched. Its external `native-session-preflight01` receipt contains
+the exact observation and strict-gate restart command. Once the session owner
+unlocks the Mac, rerun the preflight; an exit 0 only admits the subsequent
+AppKit/Qt activation check and does not by itself accept modal input.
