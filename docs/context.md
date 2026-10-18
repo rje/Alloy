@@ -38,7 +38,9 @@ See [the command record](research/commands/sketch-three-point-rectangle.md).
 SKT-095/#500 is active for the documented Three-Point Circle only. The dated
 public command review identified two distinct line-tangent input workflows;
 SKT-107/#531 and SKT-108/#532 retain 2-Tangent and 3-Tangent Circle as Todo
-children with their own native/solver gates. The backlog contains 529 issues.
+children with their own native/solver gates. SKT-109/#533 retains the public
+Circle Feature Options palette switch after those modes exist. The backlog
+contains 530 issues.
 SKT-093/#498 now accepts Inscribed, Circumscribed and Edge Polygon creation,
 retained edits, native numeric refusal, three closed regions, downstream
 extrusion, history/reopen and independently read STL. Astra reviewed the

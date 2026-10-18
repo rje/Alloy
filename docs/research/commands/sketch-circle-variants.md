@@ -17,3 +17,8 @@ solution-branch rules are unknown. Arc/circle tangent targets are outside
 these documented straight-line creation modes. Keep native input, authored
 relations, analytic profile, history, GPU presentation and downstream solids
 as distinct acceptance evidence.
+
+The public Circle help also describes switching creation types through Sketch
+Palette Feature Options while a Circle tool is active. SKT-109/#533 owns this
+family-wide control after the individual modes are accepted; its pending-pick
+reset behavior requires an explicit researched or Alloy policy.

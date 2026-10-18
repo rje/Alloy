@@ -3089,14 +3089,15 @@
       "scope": "proposed-v1",
       "implementation": "missing",
       "nativeEvidence": "unknown",
-      "gap": "No authoring route yet for the three documented modes. SKT-095 owns three circumference picks; SKT-107 owns two line picks then radius; SKT-108 owns three line picks with immediate result. Public evidence limits tangent inputs to straight sketch lines.",
+      "gap": "No authoring route yet for the three documented modes. SKT-095 owns three circumference picks; SKT-107 owns two line picks then radius; SKT-108 owns three line picks with immediate result. SKT-109 owns the documented Circle Feature Options type switch. Public evidence limits tangent inputs to straight sketch lines.",
       "apiIds": [],
       "issueKeys": [
         "SKT-006",
         "ADV-005",
         "SKT-095",
         "SKT-107",
-        "SKT-108"
+        "SKT-108",
+        "SKT-109"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
