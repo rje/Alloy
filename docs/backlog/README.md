@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **486 issues**: **375 implementation, 23 research,
+The current publication contains **487 issues**: **376 implementation, 23 research,
 22 epics, and 66 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
@@ -48,6 +48,9 @@ partition/commit worker paths, exact committed geometry/ancestry and
 history/reopen; see [the receipt](../validation/responsive-surface-trim.md).
 The interactive target click still partitions synchronously, and REL-043
 retains preview/commit consistency.
+REL-039/#482 is narrowed to the two measured corrected-iron no-guide New Body
+Loft waits. REL-044/#490 retains guided-rail, new-component and ordinary Loft
+responsiveness so the original broader acceptance is not silently reduced.
 
 ## Active delivery order
 
