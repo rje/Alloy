@@ -1351,6 +1351,57 @@ private slots:
             QVERIFY2(run(window,"sketch.cancel"),error_.constData());
         }
     }
+    void sketchCircleOffsetDelete() {
+        AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+#ifdef Q_OS_MACOS
+        QProcess activation;activation.start("osascript",{"-e",QString("tell application \"System Events\" to set frontmost of first application process whose unix id is %1 to true").arg(QCoreApplication::applicationPid())});
+        QVERIFY(activation.waitForFinished(5000));QCOMPARE(activation.exitCode(),0);
+#endif
+        window.raise();window.activateWindow();window.windowHandle()->requestActivate();QApplication::setActiveWindow(&window);QTRY_VERIFY(window.isActiveWindow());
+        auto* view=viewport(window);QVERIFY(view);
+        auto params=[&]{return session(window).value("draftSketch").toObject().value("parameters").toObject();};
+        for(const QString route:{QString("canvas"),QString("badge"),QString("context")}) {
+            QVERIFY2(run(window,"sketch.begin",{{"plane","XY"}}),error_.constData());
+            QVERIFY2(run(window,"sketch.addCircle",{{"centerX",-8},{"centerY",0},{"diameter",30}}),error_.constData());
+            const auto source=params().value("entities").toArray().last().toObject();
+            QVERIFY2(run(window,"sketch.circleOffset",{{"sourceEntityId",source.value("id")},{"distance",-4}}),error_.constData());
+            const auto target=params().value("entities").toArray().last().toObject();
+            const auto relation=params().value("constraints").toArray().last().toObject();
+            const auto original=params();const auto index=session(window).value("draftHistory").toObject().value("index").toInt();
+            qInfo()<<"Native Circle Offset Delete fixture"<<route;
+            if(route=="badge") {
+                auto glyphs=[&]{return window.state().value("viewport").toObject().value("gpu").toObject().value("sketchConstraintGlyphs").toArray();};
+                QTRY_VERIFY(!glyphs().isEmpty());QJsonObject bounds;
+                for(const auto& row:glyphs())if(row.toObject().value("constraintId")==relation.value("id"))bounds=row.toObject().value("bounds").toObject();
+                QVERIFY(!bounds.isEmpty());
+                const QPoint badge(qRound(bounds.value("x").toDouble()+bounds.value("width").toDouble()/2),qRound(bounds.value("y").toDouble()+bounds.value("height").toDouble()/2));
+                QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,badge);
+                QCOMPARE(session(window).value("selection").toObject().value("constraintIds").toArray(),QJsonArray{relation.value("id")});
+                QVERIFY(view->hasFocus());QTest::keyClick(view,Qt::Key_Delete);
+                QTRY_COMPARE(params().value("constraints").toArray().size(),1);
+                QCOMPARE(params().value("entities"),original.value("entities"));QCOMPARE(params().value("points"),original.value("points"));
+                QCOMPARE(params().value("constraints").toArray().first(),original.value("constraints").toArray().first());
+            } else {
+                const auto pixel=sketchPixel(view,-8,-11);
+                QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,pixel);
+                QCOMPARE(session(window).value("selection").toObject().value("entityIds").toArray(),QJsonArray{target.value("id")});
+                QVERIFY(view->hasFocus());
+                if(route=="context") {
+                    QContextMenuEvent context(QContextMenuEvent::Mouse,pixel,view->mapToGlobal(pixel));QApplication::sendEvent(view,&context);
+                    auto* menu=view->findChild<QMenu*>("context.sketchGeometry");QVERIFY(menu);QTRY_COMPARE(QApplication::activePopupWidget(),menu);
+                    auto* remove=menu->findChild<QAction*>("sketch.action.deleteGeometry");QVERIFY(remove);
+                    QTest::mouseClick(menu,Qt::LeftButton,Qt::NoModifier,menu->actionGeometry(remove).center());QTRY_VERIFY(QApplication::activePopupWidget()==nullptr);
+                } else QTest::keyClick(view,Qt::Key_Delete);
+                QTRY_COMPARE(params().value("entities").toArray(),QJsonArray{source});
+                QVERIFY(params().value("constraints").toArray().isEmpty());
+            }
+            QCOMPARE(session(window).value("draftHistory").toObject().value("index").toInt(),index+1);
+            const auto removed=params();QVERIFY2(run(window,"history.undo"),error_.constData());QCOMPARE(params(),original);
+            QVERIFY2(run(window,"history.redo"),error_.constData());QCOMPARE(params(),removed);
+            QVERIFY2(run(window,"sketch.cancel"),error_.constData());
+        }
+    }
     void pressPullProfileModifierToggle() {
         AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
         QVERIFY(QTest::qWaitForWindowExposed(&window));

@@ -29,7 +29,7 @@ int main(int argc,char** argv){
         const auto source=sketch["parameters"].toObject()["entities"].toArray()[0].toObject();
         auto sized=SketchGeometry::addDimension(sketch,{{"kind","diameter"},{"entityId",source["id"]},{"valueMm",6.3}});
         check(sized.ok,sized.error.toUtf8().constData());sketch=sized.feature;
-        const auto diameterId=sketch["parameters"].toObject()["dimensions"].toArray()[0].toObject()["id"];
+        const auto diameterId=sketch.value("parameters").toObject().value("dimensions").toArray()[0].toObject().value("id");
         auto invalid=SketchGeometry::addCircleOffset(sketch,{{"sourceEntityId",source["id"]},{"distanceMm",-3.15}});
         check(!invalid.ok && invalid.feature==sketch,"impossible inward radius leaves sketch unchanged");
         auto result=SketchGeometry::addCircleOffset(sketch,{{"sourceEntityId",source["id"]},{"distanceMm",-1}});
@@ -62,6 +62,41 @@ int main(int argc,char** argv){
         near(point(sketch,sourceCenterId)["vMm"].toDouble(),10,"source center reaches requested y");
         near(point(sketch,targetCenterId)["uMm"].toDouble(),9,"target center follows source center x");
         near(point(sketch,targetCenterId)["vMm"].toDouble(),10,"target center follows source center y");
+        // Result geometry Delete is an explicit retained-owner operation. Keep
+        // source annotations and an unrelated fixed circle byte-for-byte.
+        auto fixture=SketchGeometry::addCircle(sketch,{{"centerUMm",30},{"centerVMm",0},{"diameterMm",8}});
+        const auto unrelated=fixture.value("parameters").toObject().value("entities").toArray().last().toObject();
+        auto fixed=SketchGeometry::toggleFixed(fixture,{{"entityIds",QJsonArray{unrelated.value("id")}}});
+        check(fixed.ok,"unrelated fixed circle");fixture=fixed.feature;
+        fixed=SketchGeometry::addConstraint(fixture,{{"type","fixed"},{"pointIds",QJsonArray{sourceCenterId}}});
+        check(fixed.ok,"source center relation");fixture=fixed.feature;
+        const auto baseline=fixture.value("parameters").toObject();
+        for(const auto& ids: {QJsonArray{source.value("id")},QJsonArray{source.value("id"),target.value("id")},QJsonArray{target.value("id"),"stale"}}) {
+            const auto refused=SketchGeometry::deleteEntities(fixture,ids);
+            check(!refused.ok && refused.feature==fixture,"source/mixed/stale Delete must refuse atomically");
+        }
+        auto deleted=SketchGeometry::deleteEntities(fixture,{target.value("id")});
+        check(deleted.ok,deleted.error.toUtf8().constData());
+        auto expected=baseline;
+        QJsonArray keptEntities,keptPoints,keptRelations;
+        for(const auto& row:baseline.value("entities").toArray())if(row.toObject().value("id")!=target.value("id"))keptEntities.append(row);
+        for(const auto& row:baseline.value("points").toArray())if(row.toObject().value("id")!=targetCenterId)keptPoints.append(row);
+        for(const auto& row:baseline.value("constraints").toArray()) {
+            const auto r=row.toObject();
+            if(r.value("id")!=relation.value("id") && !(r.value("type")=="coincident" && r.value("pointIds").toArray().contains(targetCenterId)))keptRelations.append(row);
+        }
+        expected["entities"]=keptEntities;expected["points"]=keptPoints;expected["constraints"]=keptRelations;
+        check(deleted.feature.value("parameters").toObject()==expected,"result Delete changed unrelated authored data");
+        check(SketchGeometry::evaluateFeature(deleted.feature).profiles.size()==2,"surviving circles evaluate");
+        // A survivor sharing the generated center preserves that point, while
+        // the exact owner-created center relation must still be removed.
+        auto shared=SketchGeometry::addCircle(fixture,{{"centerUMm",9},{"centerVMm",10},{"diameterMm",2}});
+        auto sharedParams=shared.value("parameters").toObject();auto es=sharedParams.value("entities").toArray();
+        auto circle=es.last().toObject();circle["centerPointId"]=targetCenterId;es[es.size()-1]=circle;sharedParams["entities"]=es;shared["parameters"]=sharedParams;
+        deleted=SketchGeometry::deleteEntities(shared,{target.value("id")});check(deleted.ok,"shared center deletion");
+        check(!point(deleted.feature,targetCenterId).isEmpty(),"shared center retired");
+        for(const auto& row:deleted.feature.value("parameters").toObject().value("constraints").toArray())
+            check(!row.toObject().value("pointIds").toArray().contains(targetCenterId),"owner center coincidence survived shared point");
         check(document.commit(SketchGeometry::replaceFeature(document.authored(),sketch),"Offset circle").isEmpty(),"offset sketch commits");
         const auto committed=document.authored();document.history().undo();check(document.sketches().empty(),"undo removes offset sketch");
         document.history().redo();check(document.authored()==committed,"redo retains source/result/relation IDs");

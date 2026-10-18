@@ -1711,6 +1711,30 @@ SketchGeometry::SolveResult SketchGeometry::deleteEntities(const QJsonObject& dr
             }
             if(kept.isEmpty())parameters.remove(key);else parameters[key]=kept;
         }
+        // A retained Circle Offset has one result, rather than a group row.
+        // Removing its glyph remains association-only in deleteSelection; only
+        // geometry Delete retires this owner and its center coincidence.
+        for(const auto& value:parameters.value("constraints").toArray()) {
+            const auto relation=value.toObject();
+            if(relation.value("type")!="circleOffset")continue;
+            const auto pair=relation.value("entityIds").toArray();
+            if(targets.contains(pair[0].toString()))reject("Delete the Offset result first, separately from its source geometry");
+            if(!targets.contains(pair[1].toString()))continue;
+            const auto resolvedEntities=expandedProjectionFeature(draft,projectionContext).value("parameters").toObject().value("entities").toArray();
+            QString sourceCenter,resultCenter;
+            for(const auto& row:resolvedEntities) {
+                const auto entity=row.toObject();
+                if(entity.value("id")==pair[0])sourceCenter=entity.value("centerPointId").toString();
+                if(entity.value("id")==pair[1])resultCenter=entity.value("centerPointId").toString();
+            }
+            ownerRelations.insert(relation.value("id").toString());
+            for(const auto& row:parameters.value("constraints").toArray()) {
+                const auto centerRelation=row.toObject();const auto points=centerRelation.value("pointIds").toArray();
+                if(sourceCenter!=resultCenter && centerRelation.value("type")=="coincident" && points.size()==2
+                    && points.contains(sourceCenter) && points.contains(resultCenter))
+                    ownerRelations.insert(centerRelation.value("id").toString());
+            }
+        }
         for(const auto& value:authoredEntities) {
             const auto entity=value.toObject();const auto id=entity["id"].toString();
             if(!targets.contains(id))continue;

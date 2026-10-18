@@ -81,6 +81,10 @@ and linked projections remain separate Todo work.
 [Fit-spline Mirror Delete](docs/validation/sketch-fit-spline-mirror-delete.md)
 now covers mixed line, arc and fit-spline owners through the same shared
 command, including native canvas, list and context routes.
+[Circle Offset Delete](docs/validation/sketch-circle-offset-delete.md) now
+removes a selected derived circle and its owner relations while preserving the
+source. Deleting its Offset badge removes only the association. Earlier
+historical-edit preflight for downstream profiles remains SKT-150/#576.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,
