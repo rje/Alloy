@@ -3013,6 +3013,49 @@ SketchGeometry::SolveResult SketchGeometry::addPointerCircle(const QJsonObject& 
     } catch (const std::exception& error) { return invalidDraft(draft,QString::fromUtf8(error.what())); }
 }
 
+// The placement point selects the signed half-plane of each directed line.
+// Only nonparallel finite authored segments are supported; radius is either
+// explicit or the orthogonal projection onto that signed angle bisector.
+SketchGeometry::SolveResult SketchGeometry::addTwoTangentCircle(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext) {
+    try {
+        validateDraft(draft);checkFields(arguments,{"lineIds","uMm","vMm","radiusMm"});
+        const auto ids=arguments["lineIds"].toArray();
+        if(ids.size()!=2 || ids[0]==ids[1])reject("Choose two distinct straight sketch lines");
+        const auto parameters=draft["parameters"].toObject();QMap<QString,QJsonObject> points;
+        for(const auto& row:parameters["points"].toArray()){const auto p=row.toObject();points[p["id"].toString()]=p;}
+        std::array<QPointF,2> starts,directions,normals;std::array<double,2> offsets,signs,lengths;
+        const QPointF pointer(coordinate(arguments,"uMm"),coordinate(arguments,"vMm"));
+        for(int i=0;i<2;++i){
+            QJsonObject line;for(const auto& row:parameters["entities"].toArray())if(row.toObject()["id"]==ids[i])line=row.toObject();
+            if(line["type"]!="line")reject("Tangent Circle requires authored straight sketch lines");
+            const auto a=points.value(line["startPointId"].toString()),b=points.value(line["endPointId"].toString());
+            starts[i]={a["uMm"].toDouble(),a["vMm"].toDouble()};directions[i]=QPointF(b["uMm"].toDouble(),b["vMm"].toDouble())-starts[i];
+            lengths[i]=std::hypot(directions[i].x(),directions[i].y());if(lengths[i]<minimumLength)reject("Tangent line is degenerate");
+            normals[i]={-directions[i].y()/lengths[i],directions[i].x()/lengths[i]};offsets[i]=QPointF::dotProduct(normals[i],starts[i]);
+            const double side=QPointF::dotProduct(normals[i],pointer)-offsets[i];
+            if(std::abs(side)<1e-7)reject("Placement on a defining line has ambiguous side");signs[i]=side>0 ? 1 : -1;
+        }
+        const double determinant=normals[0].x()*normals[1].y()-normals[0].y()*normals[1].x();
+        if(std::abs(determinant)<1e-6)reject("Parallel or nearly parallel tangent lines are unsupported");
+        auto intersect=[&](double a,double b){return QPointF((a*normals[1].y()-normals[0].y()*b)/determinant,(normals[0].x()*b-a*normals[1].x())/determinant);};
+        const auto origin=intersect(offsets[0],offsets[1]),axis=intersect(signs[0],signs[1]);
+        const double radius=arguments.contains("radiusMm") ? coordinate(arguments,"radiusMm") : QPointF::dotProduct(pointer-origin,axis)/QPointF::dotProduct(axis,axis);
+        if(radius<minimumLength || radius>maximumLength)reject("Radius must be from 0.001 to 100000 mm");
+        const auto center=origin+radius*axis;
+        for(int i=0;i<2;++i){const double foot=QPointF::dotProduct(center-starts[i],directions[i])/(lengths[i]*lengths[i]);if(foot< -1e-8 || foot>1+1e-8)reject("Tangent contact is outside a finite selected line");}
+        auto result=addPointerCircle(draft,{{"centerUMm",center.x()},{"centerVMm",center.y()},{"diameterMm",2*radius},{"drivingDiameterMm",2*radius}},projectionContext);
+        if(!result.ok)return {false,draft,result.diagnostics,result.error};
+        auto candidate=result.feature;auto p=candidate["parameters"].toObject();auto relations=p["constraints"].toArray();const auto circle=p["entities"].toArray().last().toObject();
+        for(int i=0;i<2;++i)relations.append(QJsonObject{{"id",newId()},{"type","tangent"},{"entityIds",QJsonArray{circle["id"],ids[i]}},{"side",signs[i]}});
+        p["constraints"]=relations;
+        // Radius is the documented input. Use the ordinary editable radius dimension.
+        auto dimensions=p["dimensions"].toArray();auto dimension=dimensions.last().toObject();dimension["kind"]="radius";dimension["valueMm"]=radius;dimensions[dimensions.size()-1]=dimension;p["dimensions"]=dimensions;
+        candidate["parameters"]=p;result=solveDraft(candidate,projectionContext);
+        if(!result.ok)return {false,draft,result.diagnostics,result.error};
+        result.diagnostics["createdCircleId"]=circle["id"];result.diagnostics["createdDimensionId"]=dimension["id"];return result;
+    }catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
+}
+
 SketchGeometry::SolveResult SketchGeometry::addThreePointCircle(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext) {
     try {
         validateDraft(draft);

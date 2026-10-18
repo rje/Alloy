@@ -523,6 +523,10 @@ private:
     QJsonObject splineCommand(const QString& operation,const QJsonObject& inputs = {});
     QJsonObject splinePointer(const QJsonObject& inputs,bool place);
     QJsonObject appendSketchEntity(const QString& tool, const QJsonObject& inputs);
+    QLineEdit* tangentCircleRadius_ = nullptr;
+    void clearTwoTangentCircleInput();
+    QJsonObject appendTwoTangentCircle(const QJsonObject& inputs);
+    QJsonObject twoTangentCircleGesture(const QJsonObject& pixels, bool commit);
     QJsonObject appendThreePointCircle(const QJsonObject& inputs);
     QJsonObject threePointCircleGesture(const QJsonObject& point,bool commit);
     QJsonObject appendThreePointRectangle(const QJsonObject& inputs);

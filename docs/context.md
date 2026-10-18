@@ -40,10 +40,13 @@ circumference picks, disposable preview, retained source-point relations,
 source-edit recompute, downstream extrusion, history/reopen and independently
 read STL. See [the receipt](validation/sketch-three-point-circle.md). The dated
 public command review identified two distinct line-tangent input workflows;
-SKT-107/#531 and SKT-108/#532 retain 2-Tangent and 3-Tangent Circle as Todo
-children with their own native/solver gates. SKT-109/#533 retains the public
-Circle Feature Options palette switch after those modes exist. The backlog
-contains 530 issues.
+SKT-107/#531 now accepts the bounded 2-Tangent Circle on two authored straight
+lines: a native two-line/radius/click workflow, two retained Tangent relations,
+source-line and radius edits, history/reopen and actual GPU captures. See
+[the receipt](validation/sketch-two-tangent-circle.md). SKT-108/#532 retains
+3-Tangent Circle as Todo with its own native/solver gate; SKT-109/#533 retains
+the Circle Feature Options switch as blocked until the final mode exists. The
+backlog contains 530 issues.
 SKT-093/#498 now accepts Inscribed, Circumscribed and Edge Polygon creation,
 retained edits, native numeric refusal, three closed regions, downstream
 extrusion, history/reopen and independently read STL. Astra reviewed the

@@ -330,6 +330,9 @@ and datum edits, history and reopen.
 an analytic circle through three ordered circumference picks. Snapped source
 points retain solver relations; source edits update the circular profile and
 downstream extrusion. Native input, history/reopen and STL readback pass.
+[Two-Tangent Circle](docs/validation/sketch-two-tangent-circle.md) now creates
+an editable analytic circle against two straight sketch lines with a typed or
+pointer radius; moving the source lines retains both tangencies.
 
 [Explicit arc-line Tangent](docs/validation/sketch-arc-line-tangent.md) now
 constrains an arc and line sharing an endpoint, with either native pick order
