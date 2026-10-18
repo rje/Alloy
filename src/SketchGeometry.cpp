@@ -1650,7 +1650,7 @@ SketchGeometry::SolveResult SketchGeometry::deleteEntities(const QJsonObject& dr
         QSet<QString> ownerPoints,ownerRelations,ownerIds;
         QJsonArray removedGroups;
         const auto requestedEntities=targets;
-        for(const auto& key:{"slotGroups","arcSlotGroups","polygonGroups","chamferGroups"}) {
+        for(const auto& key:{"slotGroups","arcSlotGroups","polygonGroups","chamferGroups","mirrorGroups","openChainOffsets"}) {
             QJsonArray kept;
             for(const auto& row:parameters.value(key).toArray()) {
                 const auto group=row.toObject();QSet<QString> members;
@@ -1663,8 +1663,40 @@ SketchGeometry::SolveResult SketchGeometry::deleteEntities(const QJsonObject& dr
                 if(family=="slotGroups"){add("centerlineId");add("sideIds");add("arcIds");}
                 else if(family=="arcSlotGroups"){add("pathArcId");add("outerArcId");add("innerArcId");add("capIds");}
                 else if(family=="polygonGroups")add("entityIds");
+                else if(family=="mirrorGroups")
+                    for(const auto& pair:group.value("entityPairs").toArray())members.insert(pair.toObject().value("resultEntityId").toString());
+                else if(family=="openChainOffsets")add("generatedEntityIds");
                 else add("lineId");
                 if(!members.intersects(requestedEntities)){kept.append(row);continue;}
+                if(family=="mirrorGroups" || family=="openChainOffsets") {
+                    QSet<QString> inputs;
+                    if(family=="mirrorGroups") {
+                        inputs.insert(group.value("axisEntityId").toString());
+                        for(const auto& pair:group.value("entityPairs").toArray())
+                            inputs.insert(pair.toObject().value("sourceEntityId").toString());
+                    } else {
+                        inputs.insert(group.value("topEntityId").toString());
+                        for(const auto& id:group.value("sourceEntityIds").toArray())inputs.insert(id.toString());
+                    }
+                    if(inputs.intersects(requestedEntities))reject("Delete the generated owner separately from its source geometry");
+                }
+                if(family=="mirrorGroups") {
+                    // Fit-spline Mirror deletion has its own deferred contract.
+                    // A mixed owner must never be partially retired.
+                    for(const auto& pair:group.value("entityPairs").toArray()) {
+                        const auto sourceId=pair.toObject().value("sourceEntityId");
+                        for(const auto& value:authoredEntities) {
+                            const auto source=value.toObject();
+                            if(source.value("id")==sourceId && source.value("type")!="line" && source.value("type")!="arc")
+                                reject("Mirror Delete currently supports line and arc owners only");
+                        }
+                    }
+                    for(const auto& pair:group.value("pointPairs").toArray())
+                        ownerPoints.insert(pair.toObject().value("resultPointId").toString());
+                }
+                if(family=="openChainOffsets")
+                    for(const auto& field:{"generatedPointIds","topIntersectionPointIds"})
+                        for(const auto& id:group.value(field).toArray())ownerPoints.insert(id.toString());
                 targets.unite(members);ownerIds.insert(group.value("id").toString());removedGroups.append(group.value("id"));
                 if(family=="slotGroups")ownerPoints.insert(group.value("centerPointId").toString());
                 if(family=="polygonGroups" || family=="chamferGroups")

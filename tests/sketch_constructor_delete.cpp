@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 #include "CadDocument.h"
 #include "SketchGeometry.h"
+#include "SketchOpenChainOffset.h"
+#include "SketchSpline.h"
 #include <QCoreApplication>
 #include <iostream>
 #include <stdexcept>
@@ -51,6 +53,50 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
  const auto seed=p(mirror).value("entities").toArray()[1].toObject().value("id");
  mirror=good(SketchGeometry::mirrorEntities(mirror,{{"sourceEntityIds",QJsonArray{seed}},{"axisEntityId",axis}}));
  const auto member=p(mirror).value("mirrorGroups").toArray()[0].toObject().value("entityPairs").toArray()[0].toObject().value("resultEntityId");
- const auto unsupported=SketchGeometry::deleteEntities(mirror,{member});check(!unsupported.ok && unsupported.feature==mirror,"unsupported Mirror must refuse atomically");
+ const auto removedMirror=good(SketchGeometry::deleteEntities(mirror,{member}));check(!p(removedMirror).contains("mirrorGroups") && p(removedMirror).value("entities").toArray().size()==2,"Mirror owner removal failed");
+
+ auto atomic=[](const QJsonObject& f,const QJsonArray& ids){const auto r=SketchGeometry::deleteEntities(f,ids);check(!r.ok && r.feature==f,"unsafe Delete was not atomic");};
+ atomic(mirror,{seed});atomic(mirror,{axis});atomic(mirror,{member,seed});atomic(mirror,{member,"stale"});
+ // A shared on-axis source/result point must survive owner removal.
+ auto shared=SketchGeometry::addLine(empty,{{"u1Mm",-30},{"v1Mm",0},{"u2Mm",30},{"v2Mm",0}});
+ const auto sharedAxis=p(shared).value("entities").toArray().last().toObject().value("id");
+ shared=SketchGeometry::addLine(shared,{{"u1Mm",0},{"v1Mm",0},{"u2Mm",10},{"v2Mm",12}});
+ const auto sharedLine=p(shared).value("entities").toArray().last().toObject();
+ shared=SketchGeometry::addArc(shared,{{"centerUMm",18},{"centerVMm",15},{"radiusMm",4},{"startAngleDeg",0},{"sweepAngleDeg",120}});
+ const auto arcId=p(shared).value("entities").toArray().last().toObject().value("id");
+ shared=good(SketchGeometry::solveDraft(shared));auto sharedBaseline=p(shared);sharedBaseline["constraints"]=QJsonArray{};
+ shared=good(SketchGeometry::mirrorEntities(shared,{{"sourceEntityIds",QJsonArray{sharedLine.value("id"),arcId}},{"axisEntityId",sharedAxis}}));
+ const auto sharedGroup=p(shared).value("mirrorGroups").toArray()[0].toObject();
+ const auto sharedTarget=sharedGroup.value("entityPairs").toArray()[1].toObject().value("resultEntityId");
+ const auto sharedAfter=p(good(SketchGeometry::deleteEntities(shared,{sharedTarget})));check(sharedAfter==sharedBaseline,"mixed line/arc Mirror lost shared source point or left generated points");
+ auto measured=good(SketchGeometry::addDimension(shared,{{"kind","radius"},{"entityId",sharedTarget},{"driving",false}}));
+ const auto measuredRemoved=good(SketchGeometry::deleteEntities(measured,{sharedTarget}));
+ check(p(measuredRemoved).value("dimensions").toArray().isEmpty(),"Mirror read-only measurement survived");
+ // A surviving Chamfer owns a Mirror result: refuse the group before publishing.
+ const auto mirrorLine=sharedGroup.value("entityPairs").toArray()[0].toObject().value("resultEntityId");
+ auto dependent=good(SketchGeometry::chamferCorner(shared,{{"entityIds",QJsonArray{sharedLine.value("id"),mirrorLine}},{"distanceMm",2}}));
+ atomic(dependent,{sharedTarget});
+ auto spline=good(SketchSpline::add(mirror,{{"points",QJsonArray{QJsonObject{{"uMm",-15},{"vMm",20}},QJsonObject{{"uMm",0},{"vMm",25}},QJsonObject{{"uMm",15},{"vMm",20}}}}}));
+ const auto splineId=p(spline).value("entities").toArray().last().toObject().value("id");
+ spline=good(SketchGeometry::mirrorEntities(spline,{{"sourceEntityIds",QJsonArray{splineId}},{"axisEntityId",axis}}));
+ atomic(spline,{p(spline).value("mirrorGroups").toArray().last().toObject().value("entityPairs").toArray()[0].toObject().value("resultEntityId")});
+ auto offset=empty;const double xy[][4]={{-12,10,-8,10},{-8,10,-6,0},{-6,0,6,0},{6,0,8,10},{8,10,12,10},{-8,10,8,10}};
+ for(const auto& e:xy)offset=SketchGeometry::addLine(offset,{{"u1Mm",e[0]},{"v1Mm",e[1]},{"u2Mm",e[2]},{"v2Mm",e[3]}});
+ offset=good(SketchGeometry::solveDraft(offset));auto offsetBaseline=p(offset);offsetBaseline["constraints"]=QJsonArray{};const auto offsetLines=offsetBaseline.value("entities").toArray();QJsonArray sources;
+ for(int i=0;i<5;++i)sources.append(offsetLines[i].toObject().value("id"));
+ offset=good(SketchGeometry::solveDraft(SketchOpenChainOffset::add(offset,p(offset),{{"sourceEntityIds",sources},{"topEntityId",offsetLines[5].toObject().value("id")},{"signedDistanceMm",-0.25}})));
+ const auto og=p(offset).value("openChainOffsets").toArray()[0].toObject();const auto ot=og.value("generatedEntityIds").toArray().at(2);
+ check(p(good(SketchGeometry::deleteEntities(offset,{ot})))==offsetBaseline,"Offset deletion changed sources or retained generated points");
+ auto offsetMeasured=good(SketchGeometry::addDimension(offset,{{"kind","linear"},{"entityId",ot},{"driving",false}}));
+ check(p(good(SketchGeometry::deleteEntities(offsetMeasured,{ot}))).value("dimensions").toArray().isEmpty(),"Offset measurement survived");
+ atomic(offset,{sources[0]});atomic(offset,{ot,sources[0]});atomic(offset,{ot,"stale"});
+ // Explicit closure uses genuine derived point identities. Keep both points and
+ // the unrelated closure after deleting the owning offset.
+ const auto hits=og.value("topIntersectionPointIds").toArray();QJsonObject left,right;
+ for(const auto& v:p(offset).value("points").toArray()){const auto q=v.toObject();if(q.value("id")==hits[0])left=q;if(q.value("id")==hits[1])right=q;}
+ offset=good(SketchGeometry::solveDraft(SketchGeometry::addLine(offset,{{"u1Mm",left.value("uMm")},{"v1Mm",left.value("vMm")},{"u2Mm",right.value("uMm")},{"v2Mm",right.value("vMm")},{"startPointId",hits[0]},{"endPointId",hits[1]}})));
+ const auto closure=p(offset).value("entities").toArray().last();
+ const auto offsetRemoved=p(good(SketchGeometry::deleteEntities(offset,{ot})));
+ check(offsetRemoved.value("entities").toArray().contains(closure) && offsetRemoved.value("points").toArray().contains(left) && offsetRemoved.value("points").toArray().contains(right),"shared closure IDs lost");
  std::cout<<"Constructor group Delete core contract passed\n";return 0;
  }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

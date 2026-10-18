@@ -1240,6 +1240,66 @@ private slots:
             QVERIFY2(run(window,"sketch.cancel"),error_.constData());
         }
     }
+    void sketchMirrorOpenChainDelete() {
+        AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+#ifdef Q_OS_MACOS
+        QProcess activation;activation.start("osascript",{"-e",QString("tell application \"System Events\" to set frontmost of first application process whose unix id is %1 to true").arg(QCoreApplication::applicationPid())});
+        QVERIFY(activation.waitForFinished(5000));QCOMPARE(activation.exitCode(),0);
+#endif
+        window.raise();window.activateWindow();window.windowHandle()->requestActivate();QApplication::setActiveWindow(&window);QTRY_VERIFY(window.isActiveWindow());
+        auto* view=viewport(window);QVERIFY(view);
+        auto params=[&]{return session(window).value("draftSketch").toObject().value("parameters").toObject();};
+        for(const auto* route:{"mirrorCanvas","offsetList","offsetContext"}) {
+            QVERIFY2(run(window,"sketch.begin",{{"plane","XY"}}),error_.constData());
+            const QString routeName=QString::fromLatin1(route);const bool mirror=routeName=="mirrorCanvas";
+            const QString key=mirror ? "mirrorGroups" : "openChainOffsets";QString target;QPointF pick;
+            qInfo()<<"Native Mirror/open-chain Delete fixture"<<routeName;
+            if(mirror) {
+                QVERIFY2(run(window,"sketch.line",{{"x1",-30},{"y1",0},{"x2",30},{"y2",0},{"units","mm"}}),error_.constData());
+                const auto axis=params().value("entities").toArray().last().toObject().value("id");
+                QVERIFY2(run(window,"sketch.line",{{"x1",-10},{"y1",15},{"x2",10},{"y2",15},{"units","mm"}}),error_.constData());
+                const auto source=params().value("entities").toArray().last().toObject().value("id");
+                QVERIFY2(run(window,"sketch.mirrorPreview",{{"sourceEntityIds",QJsonArray{source}},{"axisEntityId",axis}}),error_.constData());
+                QVERIFY2(run(window,"sketch.mirrorAccept"),error_.constData());
+                target=params().value(key).toArray()[0].toObject().value("entityPairs").toArray()[0].toObject().value("resultEntityId").toString();pick={3,-15};
+            } else {
+                const double xy[][4]={{-24,20,-16,20},{-16,20,-12,0},{-12,0,12,0},{12,0,16,20},{16,20,24,20},{-16,20,16,20}};QJsonArray sources;
+                for(int i=0;i<6;++i){const auto& e=xy[i];
+                    QVERIFY2(run(window,"sketch.line",{{"x1",e[0]},{"y1",e[1]},{"x2",e[2]},{"y2",e[3]},{"units","mm"}}),error_.constData());
+                    if(i<5)sources.append(params().value("entities").toArray().last().toObject().value("id"));
+                }
+                const auto top=params().value("entities").toArray().last().toObject().value("id");
+                QVERIFY2(run(window,"sketch.tool",{{"tool","offset"}}),error_.constData());
+                QVERIFY2(run(window,"sketch.offsetPreview",{{"sourceEntityIds",sources},{"topEntityId",top},{"distance",-2},{"units","mm"}}),error_.constData());
+                QVERIFY2(run(window,"sketch.offsetAccept"),error_.constData());
+                target=params().value(key).toArray()[0].toObject().value("generatedEntityIds").toArray()[2].toString();
+                const auto entity=params().value("entities").toArray();QJsonObject line;
+                for(const auto& row:entity)if(row.toObject().value("id")==target)line=row.toObject();
+                QJsonObject a,b;for(const auto& row:params().value("points").toArray()){const auto q=row.toObject();if(q.value("id")==line.value("startPointId"))a=q;if(q.value("id")==line.value("endPointId"))b=q;}
+                pick={(a.value("uMm").toDouble()+b.value("uMm").toDouble())/2+3,(a.value("vMm").toDouble()+b.value("vMm").toDouble())/2};
+            }
+            const auto original=params();const auto index=session(window).value("draftHistory").toObject().value("index").toInt();
+            if(routeName=="offsetList") {
+                auto* tree=window.findChild<QTreeWidget*>("sketch.selection");QVERIFY(tree);QTreeWidgetItem* row=nullptr;
+                for(QTreeWidgetItemIterator it(tree);*it;++it)if((*it)->data(0,Qt::UserRole+1).toString()==target)row=*it;
+                QVERIFY(row);tree->scrollToItem(row);QTest::mouseClick(tree->viewport(),Qt::LeftButton,Qt::NoModifier,tree->visualItemRect(row).center());
+                QCOMPARE(session(window).value("selection").toObject().value("entityIds").toArray(),QJsonArray{target});QVERIFY(tree->hasFocus());QTest::keyClick(tree,Qt::Key_Delete);
+            } else if(routeName=="offsetContext") {
+                const auto pixel=sketchPixel(view,pick.x(),pick.y());QContextMenuEvent context(QContextMenuEvent::Mouse,pixel,view->mapToGlobal(pixel));QApplication::sendEvent(view,&context);
+                auto* menu=view->findChild<QMenu*>("context.sketchGeometry");QVERIFY(menu);QTRY_COMPARE(QApplication::activePopupWidget(),menu);
+                QCOMPARE(session(window).value("selection").toObject().value("entityIds").toArray(),QJsonArray{target});
+                auto* remove=menu->findChild<QAction*>("sketch.action.deleteGeometry");QVERIFY(remove);QTest::mouseClick(menu,Qt::LeftButton,Qt::NoModifier,menu->actionGeometry(remove).center());QTRY_VERIFY(QApplication::activePopupWidget()==nullptr);
+            } else {
+                QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,sketchPixel(view,pick.x(),pick.y()));
+                QCOMPARE(session(window).value("selection").toObject().value("entityIds").toArray(),QJsonArray{target});QVERIFY(view->hasFocus());QTest::keyClick(view,Qt::Key_Delete);
+            }
+            QTRY_VERIFY(!params().contains(key));QCOMPARE(session(window).value("draftHistory").toObject().value("index").toInt(),index+1);
+            const auto removed=params();QVERIFY2(run(window,"history.undo"),error_.constData());QCOMPARE(params(),original);
+            QVERIFY2(run(window,"history.redo"),error_.constData());QCOMPARE(params(),removed);
+            QVERIFY2(run(window,"sketch.cancel"),error_.constData());
+        }
+    }
     void pressPullProfileModifierToggle() {
         AlloyWindow window;window.resize(1180,760);window.show();window.activateWindow();
         QVERIFY(QTest::qWaitForWindowExposed(&window));

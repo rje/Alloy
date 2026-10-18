@@ -73,8 +73,11 @@ consumed tool names in history and allows a valid retry after an empty result.
 removes selected ellipses, conics and splines while preserving shared sketch
 relations. [Constructor-group Delete](docs/validation/sketch-constructor-group-delete.md)
 now removes a selected Slot, Arc Slot, Polygon or Chamfer member through its
-whole owning group, with undo/reopen and shared-reference checks; mirrored,
-offset and projected groups remain separate work.
+whole owning group, with undo/reopen and shared-reference checks.
+[Mirror and open-chain Offset Delete](docs/validation/skt142-mirror-openchain-delete.md)
+now removes a selected generated result through its whole retained owner while
+preserving source geometry, shared points and parameters; fit-spline Mirror,
+other Offset owners and linked projections remain separate Todo work.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,
