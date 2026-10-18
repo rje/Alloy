@@ -59,6 +59,8 @@ supports repeat-click unfix; other curve families remain tracked separately.
 [Center Circle Fix/UnFix](docs/validation/sketch-fix-circle.md) now retains
 center and radius locks through native repeat-click unfix, a radius edit,
 history and reopen.
+[Arc Fix/UnFix](docs/validation/sketch-fix-arc.md) now retains center, radius
+and sweep locks through native interaction and a downstream rounded solid.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,

@@ -600,7 +600,7 @@ AlloyWindow::AlloyWindow() {
         action->setToolTip(type=="tangent" ? "Pick two circles, an arc and circle, or a line with a circle or arc; Escape exits"
             : type=="symmetry" ? "Pick two matching lines, circles or arcs, then a construction symmetry axis; Escape exits"
             : type=="midpoint" ? "Pick a line or arc, then its midpoint point or sketch origin; Escape exits"
-            : type=="fixed" ? "Select a point, straight line or circle; click again to unfix" : type=="coincident" ? "Select two points"
+            : type=="fixed" ? "Select a point, straight line, circle or arc; click again to unfix" : type=="coincident" ? "Select two points"
             : type=="horizontalVertical" ? "Pick one line or two points; the first point is the initial reference" : type=="horizontal" || type=="vertical" ? "Pick one line" : type=="concentric" ? "Pick two circles or arcs" : "Pick a compatible pair; repeat pairs; Escape exits");
         connect(action,&QAction::triggered,this,[this,type]{sketchResponse(execute("sketch.constraintTool",{{"type",type}}));});
     }
@@ -4942,7 +4942,7 @@ void AlloyWindow::registerCommands() {
             return publishSketchSolve(SketchGeometry::setCenterline(session_.value("draftSketch").toObject(),
                 {{"entityIds",chosen},{"centerline",!allCenterline}},session_.value("projectionContext").toObject()));
         });
-    add("sketch.fixToggle","Fix/UnFix","Toggle one authored straight line, circle or sketch point; fixed targets turn green. The sketch origin remains fixed.",
+    add("sketch.fixToggle","Fix/UnFix","Toggle one authored straight line, circle, arc or sketch point; fixed targets turn green. The sketch origin remains fixed.",
         {{"pointIds",ids},{"entityIds",ids},{"session",optionalSession}},[this](const auto& a){
             if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
             if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
@@ -10941,7 +10941,7 @@ QJsonObject AlloyWindow::setSketchSelection(const QJsonObject& selection) {
     const auto constraintType=session_.value("constraintType").toString();
     if(session_.value("tool")=="constraint" && constraintType=="fixed"
         && normalized.value("pointIds").toArray().size()+normalized.value("entityIds").toArray().size()>1)
-        return failure("invalid_constraint_target","Fix/UnFix requires one point, authored straight line or circle");
+        return failure("invalid_constraint_target","Fix/UnFix requires one point, authored straight line, circle or arc");
     const bool analyticConstraint=session_.value("tool")=="constraint"
         && QStringList{"concentric","collinear","symmetry","tangent"}.contains(constraintType);
     if(analyticConstraint){
@@ -11027,7 +11027,7 @@ QJsonObject AlloyWindow::setSketchSelection(const QJsonObject& selection) {
         const int required=type=="symmetry" ? 3 : type=="fixed" || type=="horizontal" || type=="vertical" || (type=="horizontalVertical" && field=="entityIds") ? 1 : 2;
         const auto targets=normalized[field].toArray();
         const auto label=type=="fixed" ? QString("Fix/UnFix") : type=="horizontalVertical" ? QString("Horizontal/Vertical") : type.first(1).toUpper()+type.sliced(1);
-        session_["constraintPrompt"]=type=="fixed" ? QString("Fix/UnFix · Pick point, straight line or circle; click fixed target to unfix · Escape exits") : type=="collinear" ? (targets.isEmpty() ? QString("Collinear · Pick first line")
+        session_["constraintPrompt"]=type=="fixed" ? QString("Fix/UnFix · Pick point, straight line, circle or arc; click fixed target to unfix · Escape exits") : type=="collinear" ? (targets.isEmpty() ? QString("Collinear · Pick first line")
             : QString("Collinear · Pick second line"))
             : type=="tangent" ? (targets.isEmpty() ? QString("Tangent · Pick curve or line")
             : QString("Tangent · Pick matching curve or line"))
@@ -11066,7 +11066,7 @@ QJsonObject AlloyWindow::setSketchSelection(const QJsonObject& selection) {
             }
             session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}},{"profileIds",QJsonArray{}}};
             if(analyticConstraint)session_["constraintPickStatus"]="applied";
-            session_["constraintPrompt"]=type=="fixed" ? QString("Fix/UnFix · Pick point, straight line or circle; click fixed target to unfix · Escape exits")
+            session_["constraintPrompt"]=type=="fixed" ? QString("Fix/UnFix · Pick point, straight line, circle or arc; click fixed target to unfix · Escape exits")
                 : type=="collinear" ? QString("Collinear · Applied")
                 : label+" · Applied; pick next "+(field=="pointIds" ? "point" : "curve")+" · Escape exits";
             auto completed=result;completed["constraintApplied"]=true;completed["constraintType"]=type;completed["selection"]=session_["selection"];return completed;
@@ -12014,8 +12014,8 @@ void AlloyWindow::refreshSketchControls() {
         const auto constraint=entry.toObject();const auto type=constraint["type"]=="pointOnCurve" ? QString("coincident") :
             (constraint["type"]=="arcTangent" || constraint["type"]=="circleTangent" || constraint["type"]=="arcEndpointArcTangent" || constraint["type"]=="arcEndpointCircleTangent" || constraint["type"]=="arcCircleTangent" || constraint["type"]=="arcArcTangent") ? QString("tangent") :
             constraint["type"]=="supportLine" ? QString("support line (internal)") : constraint["type"].toString();
-        for(const auto& id:constraint["entityIds"].toArray())relations[id.toString()].append((type=="fixedLine" || type=="fixedCircle") ? QString("Fixed") : type.first(1).toUpper()+type.sliced(1));
-        for(const auto& id:constraint["pointIds"].toArray())relations[id.toString()].append((type=="fixedLine" || type=="fixedCircle") ? QString("Fixed") : type.first(1).toUpper()+type.sliced(1));
+        for(const auto& id:constraint["entityIds"].toArray())relations[id.toString()].append((type=="fixedLine" || type=="fixedCircle" || type=="fixedArc") ? QString("Fixed") : type.first(1).toUpper()+type.sliced(1));
+        for(const auto& id:constraint["pointIds"].toArray())relations[id.toString()].append((type=="fixedLine" || type=="fixedCircle" || type=="fixedArc") ? QString("Fixed") : type.first(1).toUpper()+type.sliced(1));
     }
     QMap<QString,QString> entityRoles;
     for(const auto& row:session_.value("solverDiagnostics").toObject().value("entityRoles").toArray()){
@@ -12495,7 +12495,7 @@ void AlloyWindow::showSketch() {
             button->setToolTip(type=="tangent" ? "Pick two circles, an arc and circle, or a line with a circle or arc; Escape exits"
                 : type=="symmetry" ? "Pick two matching lines, circles or arcs, then a construction symmetry axis; Escape exits"
                 : type=="midpoint" ? "Pick a line or arc, then a point or sketch origin; Escape exits"
-                : type=="fixed" ? "Select a point, straight line or circle; click again to unfix" : type=="coincident" ? "Select two points"
+                : type=="fixed" ? "Select a point, straight line, circle or arc; click again to unfix" : type=="coincident" ? "Select two points"
                 : type=="horizontalVertical" ? "Pick one line or two points; the first point is the initial reference" : type=="horizontal" || type=="vertical" ? "Pick one line" : type=="equal" ? "Pick two lines or two circles/arcs; repeat pairs; Escape exits" : type=="concentric" ? "Pick two circles or arcs; repeat pairs; Escape exits" : "Pick two lines; repeat pairs; Escape exits");
             constraints->addWidget(button,i/2,i%2);
             connect(button,&QPushButton::toggled,this,[this,type](bool checked){

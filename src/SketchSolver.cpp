@@ -289,6 +289,13 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             } else if(type=="pointOnCurve" || type=="supportLine") {
                 const auto id=reference(constraint,"entityIds",0);auto& p=point(reference(constraint,"pointIds",0));
                 if(lineMap.contains(id))solver.addConstraintPointOnLine(p,line(id),t);else solver.addConstraintPointOnCircle(p,circleMap.at(id),t);
+            } else if(type=="fixedArc") {
+                auto& arc=arcMap.at(reference(constraint,"entityIds",0));
+                solver.addConstraintEqual(arc.center.x,constant(number(constraint,"uMm")),t);
+                solver.addConstraintEqual(arc.center.y,constant(number(constraint,"vMm")),t);
+                solver.addConstraintEqual(arc.rad,constant(number(constraint,"radiusMm")),t);
+                solver.addConstraintEqual(arc.startAngle,constant(number(constraint,"startAngleDeg")*degrees),t);
+                solver.addConstraintEqual(arc.endAngle,constant((number(constraint,"startAngleDeg")+number(constraint,"sweepAngleDeg"))*degrees),t);
             } else if(type=="fixedCircle") {
                 auto& circle=circleMap.at(reference(constraint,"entityIds",0));
                 solver.addConstraintEqual(circle.center.x,constant(number(constraint,"uMm")),t);
@@ -501,7 +508,7 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             bool scopedFixedGeometryRedundancy=false;
             if(!redundant.empty() && conflicts.empty() && status==GCS::SolveStatus::Success) {
                 auto base=parameters;QJsonArray kept;bool hasFixedGeometry=false;
-                for(const auto& value:constraints)if(value.toObject()["type"]=="fixedLine" || value.toObject()["type"]=="fixedCircle")hasFixedGeometry=true;else kept.append(value);
+                for(const auto& value:constraints)if(value.toObject()["type"]=="fixedLine" || value.toObject()["type"]=="fixedCircle" || value.toObject()["type"]=="fixedArc")hasFixedGeometry=true;else kept.append(value);
                 if(hasFixedGeometry){base["constraints"]=kept;scopedFixedGeometryRedundancy=SketchSolver::solve(base,lockedPointIds).accepted;}
             }
             if(scopedFixedGeometryRedundancy)result.diagnostics["acceptedFixedGeometryDependentRedundancyIds"]=mapped(redundant);
@@ -640,6 +647,7 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 const auto& anchor=point(reference(c,"pointIds",0));const auto& vertex=point(reference(c,"pointIds",1));
                 check(*vertex.x-*anchor.x-number(c,"offsetUMm"),lengthTolerance);check(*vertex.y-*anchor.y-number(c,"offsetVMm"),lengthTolerance);
             }
+            else if(type=="fixedArc") {const auto& arc=arcMap.at(reference(c,"entityIds",0));check(*arc.center.x-number(c,"uMm"),lengthTolerance);check(*arc.center.y-number(c,"vMm"),lengthTolerance);check(*arc.rad-number(c,"radiusMm"),lengthTolerance);check(*arc.startAngle-number(c,"startAngleDeg")*degrees,1e-7);check(*arc.endAngle-(number(c,"startAngleDeg")+number(c,"sweepAngleDeg"))*degrees,1e-7);}
             else if(type=="fixedCircle") {const auto& circle=circleMap.at(reference(c,"entityIds",0));check(*circle.center.x-number(c,"uMm"),lengthTolerance);check(*circle.center.y-number(c,"vMm"),lengthTolerance);check(*circle.rad-number(c,"radiusMm"),lengthTolerance);}
             else if(type=="fixedLine") {const auto positions=c["coordinates"].toArray();for(int i=0;i<2;++i){const auto& p=point(reference(c,"pointIds",i));const auto position=positions[i].toObject();check(*p.x-number(position,"uMm"),lengthTolerance);check(*p.y-number(position,"vMm"),lengthTolerance);}}
             else if(type=="fixed") {const auto& p=point(reference(c,"pointIds",0));check(*p.x-number(c,"uMm"),lengthTolerance);check(*p.y-number(c,"vMm"),lengthTolerance);}
