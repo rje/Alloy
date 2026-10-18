@@ -5148,7 +5148,7 @@ void AlloyWindow::registerCommands() {
         });
     add("sketch.deleteSelection","Delete sketch selection","Remove selected sketch geometry or annotations in one solved draft edit.",
         {{"constraintIds",optional(parameter("array","Distinct stable constraint UUIDs to remove."))},{"dimensionId",optional(dimensionId)},
-         {"entityIds",optional(parameter("array","Distinct sketch entity UUIDs; a constructor member removes its whole owning group."))},{"pointIds",optional(parameter("array","Distinct authored point UUIDs to remove."))},{"profileIds",optional(parameter("array","One generated support-face loop Offset result profile UUID."))}},[this](const auto& a){
+         {"entityIds",optional(parameter("array","Distinct sketch entity UUIDs; a constructor member removes its whole owning group."))},{"pointIds",optional(parameter("array","Distinct authored or linked projected point UUIDs to remove."))},{"profileIds",optional(parameter("array","One generated support-face loop Offset result profile UUID."))}},[this](const auto& a){
             if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
             if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","Restart this sketch");
             if(session_.value("tool")!="select" || session_.contains("pendingDimension") || session_.contains("pendingCircleDiameter"))return failure("pending_input_active","Return to Select before deleting sketch selection");
@@ -7622,8 +7622,16 @@ void AlloyWindow::refresh() {
             sketchProfileInfo_->ensurePolished();
             const int width=std::max(80,sketchProfileInfo_->contentsRect().width());
             const int textHeight=sketchProfileInfo_->fontMetrics().boundingRect(QRect(0,0,width,100000),Qt::TextWordWrap,sketchProfileInfo_->text()).height();
+            const int previousMinimumHeight=sketchProfileInfo_->minimumHeight();
             sketchProfileInfo_->setMinimumHeight(std::max({sketchProfileInfo_->sizeHint().height(),sketchProfileInfo_->heightForWidth(width),textHeight+2*sketchProfileInfo_->margin()}));
             sketchProfileInfo_->updateGeometry();
+            // Raising the minimum height resizes the label immediately; place
+            // its following controls in the same refresh, before a capture or
+            // native input can observe the old layout positions underneath it.
+            if(sketchProfileInfo_->minimumHeight()!=previousMinimumHeight)
+                if(auto* profileLayout=sketchProfileInfo_->parentWidget()->layout()) {
+                    profileLayout->invalidate();profileLayout->activate();
+                }
             sketchProfileInfo_->setToolTip(QString::fromUtf8(QJsonDocument(profileDiagnostics).toJson(QJsonDocument::Indented)));
         }
         if(!current && sketchError_)sketchError_->setText("The document changed. Cancel and restart this sketch.");
@@ -10931,7 +10939,8 @@ QJsonObject AlloyWindow::traverseSketchHistory(int direction) {
         auto response=failure("projection_unavailable",QString::fromUtf8(error.what()));
         auto details=response["error"].toObject();details["diagnostics"]=error.diagnostics();response["error"]=details;return response;
     }
-    const auto evaluated=evaluateSketchDraft(entry.draft);
+    const auto evaluated=entry.draft.value("parameters").toObject().contains("loopOffsets") ? evaluateSketchDraft(entry.draft)
+        : SketchGeometry::evaluateFeature(entry.draft,session_.value("resolvedFrame").toObject(),context);
     sketchHistoryIndex_=next;sketchHistoryGroup_.clear();
     cancelDimension();view_->clearSketchCursor();
     session_["draftSketch"]=entry.draft;session_["solverDiagnostics"]=entry.diagnostics;session_["projectionContext"]=context;
@@ -12076,7 +12085,14 @@ void AlloyWindow::refreshSketchControls() {
     }
     if(changed || unitChanged) {
         const QSignalBlocker block(sketchSelectionTree_);
-        const auto presented=SketchGeometry::chamferPresentation(draft).value("parameters").toObject();
+        auto rowDraft=draft;
+        if(parameters.contains("projections") || parameters.contains("circleProjections") || parameters.contains("pointProjections")) {
+            // An unavailable source must not turn a controls refresh into an
+            // exception. The command/solve path reports the missing reference.
+            try {rowDraft=SketchGeometry::expandedProjectionFeature(draft,session_.value("projectionContext").toObject());}
+            catch(const std::invalid_argument&) {}
+        }
+        const auto presented=SketchGeometry::chamferPresentation(rowDraft).value("parameters").toObject();
         const auto pointEntries=presented.value("points").toArray(),entityEntries=presented.value("entities").toArray();
         auto* pointGroup=sketchSelectionTree_->topLevelItemCount()==2 ? sketchSelectionTree_->topLevelItem(0) : nullptr;
         auto* lineGroup=sketchSelectionTree_->topLevelItemCount()==2 ? sketchSelectionTree_->topLevelItem(1) : nullptr;

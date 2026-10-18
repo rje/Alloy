@@ -106,6 +106,11 @@ changing the draft; multiple owners in one sketch remain separate work.
 also passes on a retained 18-edge enclosure support through the real app,
 native viewport input, exact history/reopen and GPU captures. Multiple owners
 within one sketch remain open.
+[Linked projection Delete](docs/validation/sketch-linked-projection-delete.md)
+now removes selected retained line, circle or point results through the shared
+sketch command, with native canvas/list/context routes, source preservation,
+dependency refusal and exact history/reopen. Overlapping curve selection and
+multi-boundary face projection remain separate Todo work.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,
