@@ -2,6 +2,14 @@
 
 ## Active user order (2026-10-17)
 
+REL-046/#492 is the active cumulative gate: replay the accepted 44-stage
+corrected-iron creation against the integrated responsive build, record actual
+frame cadence and former long-stage interaction, and independently check the
+native model and exports. The bounded command receipts below do not by
+themselves prove the full workflow is continuously usable. No new recording
+has passed yet. REL-016 retains wider representative-model/physical/platform
+readiness.
+
 REL-045/#491 is independently accepted for the corrected-iron interactive
 Surface Trim target click. The original camera/ray/viewport/face intent stays
 fixed while private partitioning runs for 18.829 s; after pan and orbit, the
