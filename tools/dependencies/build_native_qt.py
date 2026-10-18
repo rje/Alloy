@@ -46,10 +46,24 @@ def extract_and_patch(archive, source):
                 continue
             member.name = str(Path(*parts[1:]))
             stream.extract(member, source, filter='data')
-    subprocess.run(['git', 'apply', '--check', str(PATCH)], cwd=source, check=True)
-    subprocess.run(['git', 'apply', str(PATCH)], cwd=source, check=True)
-    if sha(source / ITEMVIEW) != ITEMVIEW_SHA256:
-        raise RuntimeError('Patched Qt item-view source does not match the admitted input')
+    subprocess.run(['git', '-c', 'core.autocrlf=false', 'apply', '--check', str(PATCH)], cwd=source, check=True)
+    subprocess.run(['git', '-c', 'core.autocrlf=false', 'apply', str(PATCH)], cwd=source, check=True)
+    patched = source / ITEMVIEW
+    if sha(patched) != ITEMVIEW_SHA256:
+        # Git for Windows can write CRLF after applying the LF patch to an
+        # unpacked source tree. Admit only the exact already-reviewed source
+        # bytes after line-ending normalization; no other mismatch is accepted.
+        observed = patched.read_bytes()
+        normalized = observed.replace(b'\r\n', b'\n')
+        if observed == normalized:
+            raise RuntimeError(f'Patched Qt item-view SHA-256 mismatch: {sha(patched)}')
+        import hashlib
+        if hashlib.sha256(normalized).hexdigest() != ITEMVIEW_SHA256:
+            raise RuntimeError(f'Patched Qt item-view SHA-256 mismatch after CRLF normalization: {sha(patched)}')
+        patched.write_bytes(normalized)
+        print('Normalized Git-for-Windows CRLF output to admitted LF item-view source', flush=True)
+    if sha(patched) != ITEMVIEW_SHA256:
+        raise RuntimeError('Patched Qt item-view source changed after normalization')
 
 
 def configuration(target, prefix):
