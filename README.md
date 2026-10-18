@@ -88,8 +88,9 @@ historical-edit preflight for downstream profiles remains SKT-150/#576.
 [Fit-spline Offset Delete](docs/validation/sketch-fit-spline-offset-delete.md)
 now removes one selected generated curve and its derived endpoints while
 preserving the source and sibling. [Direct curve selection through source grips](docs/validation/derived-curve-hit-priority.md)
-now passes native click and deliberate grip-drag checks. Association-only
-removal remains SKT-149/#575.
+now passes native click and deliberate grip-drag checks. [Break Link](docs/validation/sketch-fit-spline-offset-association.md)
+keeps both curves and converts the result to an independently editable spline
+within a measured 0.001 mm tolerance.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,

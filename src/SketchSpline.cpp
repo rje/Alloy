@@ -28,14 +28,32 @@ SketchGeometry::SolveResult finish(const QJsonObject& d,const QJsonObject& p,con
 QString SketchSpline::validate(const QJsonObject& p,const QJsonObject& e){
  try{
  const bool control=e["type"]=="controlSpline";const bool display=e.contains("curvatureComb");
- require(e.size()==8+int(display)&&e["version"]==1&&e["pointIds"].isArray(),"Invalid spline intent");
- if(control)require(e["knotPolicy"]=="clampedUniform"&&e["maximumDegree"].isDouble()&&(e["maximumDegree"].toDouble()==3||e["maximumDegree"].toDouble()==5),"Control spline maximum degree must be 3 or 5");
+ const bool explicitKnots=control&&e["knotPolicy"]=="clampedExplicit";
+ require(e.size()==8+int(display)+2*int(explicitKnots)&&e["version"]==1&&e["pointIds"].isArray(),"Invalid spline intent");
+ if(control)require((e["knotPolicy"]=="clampedUniform"||explicitKnots)&&e["maximumDegree"].isDouble()&&(e["maximumDegree"].toDouble()==3||e["maximumDegree"].toDouble()==5),"Control spline maximum degree must be 3 or 5");
  else require(e["type"]=="fitSpline"&&e["parameterization"]=="chordLength"&&e["tangentHandles"].isObject(),"Invalid fit spline intent");
  if(display){const auto c=e["curvatureComb"].toObject();require(c.size()==3&&c["enabled"].isBool()&&c["density"].isDouble()&&c["density"].toDouble()==c["density"].toInt()&&c["density"].toInt()>=4&&c["density"].toInt()<=256&&c["scale"].isDouble()&&std::isfinite(c["scale"].toDouble())&&c["scale"].toDouble()>=0.01&&c["scale"].toDouble()<=100,"Comb requires enabled, density4..256 and relative scale0.01..100");}
  const auto ps=points(p);const auto ids=e["pointIds"].toArray();require(ids.size()>=2&&ids.size()<=128,"Fit spline requires 2..128 points");QSet<QString> used;
  for(const auto& id:ids){require(id.isString()&&ps.contains(id.toString())&&!used.contains(id.toString()),"Spline point references must be distinct existing UUIDs");used.insert(id.toString());}
  require(e["startPointId"]==ids.first()&&e["endPointId"]==ids.last(),"Spline endpoint identities must match fit order");
- if(control){require(ps[ids.first().toString()].Distance(ps[ids.last().toString()])>=0.001,"Open control spline endpoints must be distinct");return {};}
+ if(control){
+  require(ps[ids.first().toString()].Distance(ps[ids.last().toString()])>=0.001,"Open control spline endpoints must be distinct");
+  if(explicitKnots){
+   const auto knots=e["knots"].toArray(),mults=e["multiplicities"].toArray();
+   const int degree=std::min(e["maximumDegree"].toInt(),int(ids.size())-1);
+   require(knots.size()>=2&&knots.size()<=128&&knots.size()==mults.size(),"Explicit spline needs matching knots and multiplicities");
+   int sum=0;double previous=-1;
+   for(int i=0;i<knots.size();++i){
+    const double knot=knots[i].toDouble(-1),multiple=mults[i].toDouble(-1);
+    require(knots[i].isDouble()&&std::isfinite(knot)&&knot>=0&&knot<=1&&knot>previous,"Explicit knots must increase within [0,1]");
+    require(mults[i].isDouble()&&std::isfinite(multiple)&&multiple==std::floor(multiple)&&multiple>=1&&multiple<=degree+1,"Invalid spline knot multiplicity");
+    require((i==0||i==knots.size()-1)?multiple==degree+1:multiple<=degree,"Explicit spline must be open and clamped");
+    sum+=int(multiple);previous=knot;
+   }
+   require(knots.first()==0&&knots.last()==1&&sum==ids.size()+degree+1,"Explicit spline knot count or normalized domain is invalid");
+  }
+  return {};
+ }
  const auto hs=e["tangentHandles"].toObject();for(auto it=hs.begin();it!=hs.end();++it){require(used.contains(it.key())&&it.value().isObject(),"Spline handle must belong to its fit point");const auto h=it.value().toObject();require(h.size()==2&&std::hypot(number(h,"duMm"),number(h,"dvMm"))>=0.001,"Spline tangent must have nonzero direction and weight");}
  for(int i=1;i<ids.size();++i)require(ps[ids[i].toString()].Distance(ps[ids[i-1].toString()])>=0.001,"Spline consecutive fit points must be at least 0.001 mm apart");
  return {};
@@ -46,10 +64,12 @@ SketchSpline::Evaluation SketchSpline::evaluate(const QJsonObject& p,const QJson
  const auto err=validate(p,e);if(!err.isEmpty())throw std::invalid_argument(err.toStdString());
  const auto ps=points(p);const auto ids=e["pointIds"].toArray();const int count=ids.size();Evaluation result;
  if(e["type"]=="controlSpline"){
-  const int degree=std::min(e["maximumDegree"].toInt(),count-1),knotCount=count-degree+1;
+  const int degree=std::min(e["maximumDegree"].toInt(),count-1);
+  const bool explicitKnots=e["knotPolicy"]=="clampedExplicit";
+  const int knotCount=explicitKnots?e["knots"].toArray().size():count-degree+1;
   TColgp_Array1OfPnt poles(1,count);TColStd_Array1OfReal knots(1,knotCount);TColStd_Array1OfInteger mults(1,knotCount);
   for(int i=0;i<count;++i)poles.SetValue(i+1,world(ps[ids[i].toString()],frame));
-  for(int i=0;i<knotCount;++i){knots.SetValue(i+1,double(i)/(knotCount-1));mults.SetValue(i+1,i==0||i==knotCount-1?degree+1:1);}
+  for(int i=0;i<knotCount;++i){knots.SetValue(i+1,explicitKnots?e["knots"].toArray()[i].toDouble():double(i)/(knotCount-1));mults.SetValue(i+1,explicitKnots?e["multiplicities"].toArray()[i].toInt():(i==0||i==knotCount-1?degree+1:1));}
   result.curve=new Geom_BSplineCurve(poles,knots,mults,degree,false);return result;
  }
  Handle(TColgp_HArray1OfPnt) fit=new TColgp_HArray1OfPnt(1,count);Handle(TColStd_HArray1OfReal) ts=new TColStd_HArray1OfReal(1,count);

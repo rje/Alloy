@@ -3892,6 +3892,13 @@ void ReferenceView::contextMenuEvent(QContextMenuEvent* e) {
         if(!entities.isEmpty() || !points.isEmpty()) {
             auto* menu=new QMenu(this);menu->setObjectName("context.sketchGeometry");menu->setAttribute(Qt::WA_DeleteOnClose);
             auto* remove=menu->addAction("Delete");remove->setObjectName("sketch.action.deleteGeometry");
+            QAction* breakLink=nullptr;
+            if(entities.size()==1&&points.isEmpty())for(const auto& value:decorationFeature_.value("parameters").toObject().value("entities").toArray()){
+                const auto entity=value.toObject();if(entity.value("id")==entities[0]&&entity.value("type")=="fitSplineOffset"){
+                    breakLink=menu->addAction("Break Link");breakLink->setObjectName("sketch.action.breakOffsetLink");
+                    breakLink->setToolTip("Keep both curves; convert the result to editable control points (0.001 mm tolerance).");
+                }
+            }
             QMap<QAction*,QString> coincidentActions;
             for(const auto& value:decorationFeature_.value("parameters").toObject().value("constraints").toArray()) {
                 const auto relation=value.toObject();const auto kind=relation.value("type").toString();
@@ -3910,12 +3917,14 @@ void ReferenceView::contextMenuEvent(QContextMenuEvent* e) {
             lastContextMenu_["phase"]="open";lastContextMenu_["origin"]="sketch";
             lastContextMenu_["actions"]=QJsonArray{QJsonObject{{"id",remove->objectName()},{"enabled",true}}};
             auto actions=lastContextMenu_.value("actions").toArray();
+            if(breakLink)actions.append(QJsonObject{{"id",breakLink->objectName()},{"enabled",true}});
             for(auto i=coincidentActions.begin();i!=coincidentActions.end();++i)actions.append(QJsonObject{{"id",i.key()->objectName()},{"constraintId",i.value()},{"enabled",true}});
             lastContextMenu_["actions"]=actions;
             ++contextMenuShownCount_;
-            connect(menu,&QMenu::triggered,this,[this,remove,toggle,entities,points,coincidentActions](QAction* action){
+            connect(menu,&QMenu::triggered,this,[this,remove,toggle,breakLink,entities,points,coincidentActions](QAction* action){
                 lastContextMenu_["result"]=action->objectName();
                 if(action==remove)QTimer::singleShot(0,this,[this,entities,points]{dispatch("sketch.deleteSelection",{{"entityIds",entities},{"pointIds",points}});});
+                else if(breakLink && action==breakLink)QTimer::singleShot(0,this,[this,entities]{dispatch("sketch.splineOffsetBreakLink",{{"offsetEntityId",entities[0]}});});
                 else if(coincidentActions.contains(action)) {
                     const auto id=coincidentActions.value(action);lastContextMenu_["constraintId"]=id;
                     QTimer::singleShot(0,this,[this,id]{dispatch("sketch.deleteCoincident",{{"constraintId",id}});});

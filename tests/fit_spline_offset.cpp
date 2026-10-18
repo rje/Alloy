@@ -81,6 +81,33 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     }
     check(firstSibling["signedDistanceMm"]==-5 && secondSibling["signedDistanceMm"]==-6,
         "explicit offset UUID edit does not silently change a sibling");
+    const auto conversion=SketchSplineOffset::breakLink(draft,offset.value("id").toString());
+    check(conversion.ok,"Break Link: "+conversion.error);
+    auto independent=conversion.feature;const auto control=find(independent,"controlSpline");
+    check(control.value("id")==offset.value("id")&&control.value("startPointId")==offset.value("startPointId")&&control.value("endPointId")==offset.value("endPointId"),"Break Link retains entity and endpoint IDs");
+    check(find(independent,"fitSpline")==source&&find(independent,"fitSplineOffset").isEmpty(),"Break Link preserves source and removes association");
+    check(point(independent,control.value("startPointId").toString())==point(draft,offset.value("startPointId").toString())&&point(independent,control.value("endPointId").toString())==point(draft,offset.value("endPointId").toString()),"Break Link preserves exact endpoint coordinates");
+    const auto independentCurve=SketchSpline::evaluate(independent.value("parameters").toObject(),control).curve;
+    double conversionError=0;for(int i=0;i<=1024;++i)conversionError=std::max(conversionError,independentCurve->Value(double(i)/1024).Distance(evaluated.curve->Value(double(i)/1024)));
+    check(conversionError<=1e-3,"Break Link measured shape preservation");
+    std::cout<<"Break Link poles "<<control.value("pointIds").toArray().size()<<" max sampled deviation mm "<<conversionError<<"\n";
+    const auto sourceMoved=accept(SketchGeometry::movePoint(independent,{{"pointId",sourceIds[1]},{"uMm",9},{"vMm",20}}));
+    const auto afterSource=SketchSpline::evaluate(sourceMoved.value("parameters").toObject(),control).curve;
+    for(int i=0;i<=32;++i)check(independentCurve->Value(double(i)/32).Distance(afterSource->Value(double(i)/32))<1e-10,"source edit no longer drives converted result");
+    const auto poleId=control.value("pointIds").toArray()[1].toString();const auto pole=point(sourceMoved,poleId);
+    const auto poleMoved=accept(SketchGeometry::movePoint(sourceMoved,{{"pointId",poleId},{"uMm",pole.value("uMm").toDouble()+2},{"vMm",pole.value("vMm")}}));
+    check(SketchSpline::evaluate(poleMoved.value("parameters").toObject(),control).curve->Pole(2).Distance(independentCurve->Pole(2))>1,"converted control pole is independently editable");
+    for(const auto& invalidId:QStringList{source.value("id").toString(),"missing"}){
+        const auto refusal=SketchSplineOffset::breakLink(draft,invalidId);check(!refusal.ok&&refusal.feature==draft,"wrong/stale Break Link refuses atomically");
+    }
+    // Explicit knot storage must remain normalized, clamped and count-valid.
+    for(const auto& mutation:QList<QJsonObject>{QJsonObject{{"knots",QJsonArray{0,0,1}}},QJsonObject{{"multiplicities",QJsonArray{6,2.5,6}}},QJsonObject{{"knots",QJsonArray{0,2}}}}){
+        auto invalid=control;for(auto i=mutation.begin();i!=mutation.end();++i)invalid[i.key()]=i.value();
+        check(!SketchSpline::validate(independent.value("parameters").toObject(),invalid).isEmpty(),"malformed explicit knot data refused");
+    }
+    CadDocument convertedDocument;auto storedIndependent=independent;storedIndependent["ownerId"]=convertedDocument.authored().value("documentId");check(convertedDocument.commit(SketchGeometry::replaceFeature(convertedDocument.authored(),storedIndependent),"Break Link").isEmpty(),"commit independent curve");
+    const auto convertedAuthored=convertedDocument.authored();convertedDocument.history().undo();check(convertedDocument.authored()!=convertedAuthored,"one-step conversion Undo");convertedDocument.history().redo();check(convertedDocument.authored()==convertedAuthored,"one-step conversion Redo");
+    QTemporaryDir conversionTemp;const auto convertedPath=conversionTemp.filePath("independent.alloy");check(convertedDocument.save(convertedPath).isEmpty(),"save independent curve");CadDocument convertedReopen;check(convertedReopen.open(convertedPath).isEmpty()&&convertedReopen.authored()==convertedAuthored,"reopen exact authored poles and knots");
     const auto firstSource=point(draft,sourceIds.first().toString()),lastSource=point(draft,sourceIds.last().toString());
     draft=accept(SketchGeometry::addPointerEntity(draft,"line",{{"u1Mm",firstSource["uMm"]},{"v1Mm",firstSource["vMm"]},
         {"u2Mm",evaluated.start.X()},{"v2Mm",evaluated.start.Y()},
@@ -92,6 +119,11 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
         {"u2Mm",evaluated.end.X()},{"v2Mm",evaluated.end.Y()},
         {"startSnapTarget",QJsonObject{{"kind","point"},{"pointId",sourceIds.last()}}},
         {"endSnapTarget",QJsonObject{{"kind","point"},{"pointId",offset["endPointId"]}}}}));
+    const auto connectedConversion=SketchSplineOffset::breakLink(draft,offset.value("id").toString());
+    check(connectedConversion.ok,"legal endpoint connector Lines survive Break Link: "+connectedConversion.error);
+    check(SketchGeometry::evaluateFeature(connectedConversion.feature).profiles.size()==1,"converted curve keeps closed connector profile");
+    auto dependent=draft;auto dependentParameters=dependent.value("parameters").toObject();dependentParameters["unsupportedConsumer"]=QJsonObject{{"entityId",offset.value("id")}};dependent["parameters"]=dependentParameters;
+    const auto refusedConversion=SketchSplineOffset::breakLink(dependent,offset.value("id").toString());check(!refusedConversion.ok&&refusedConversion.feature==dependent&&refusedConversion.error.contains("dependent"),"semantic dependency refuses conversion atomically");
     draft=accept(SketchGeometry::solveDraft(draft));
     inspect(draft,offset["id"].toString());
     const auto connector=draft["parameters"].toObject()["entities"].toArray()[2].toObject();

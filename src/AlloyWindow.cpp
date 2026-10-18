@@ -3627,6 +3627,23 @@ void AlloyWindow::registerCommands() {
         {{"offsetEntityId",parameter("string","Retained fit spline offset UUID.")},{"distance",offsetDistance},{"units",optional(units)},
          {"session",optional(parameter("string","Optional active sketch session identity."))}},
         [this](const auto& a){return appendSplineOffset(a,true);});
+    add("sketch.splineOffsetBreakLink","Break Offset Link","Keep source and result, converting the selected Offset into an editable control spline within 0.001 mm.",
+        {{"offsetEntityId",optional(parameter("string","Retained fit-spline Offset result UUID; otherwise use one selected result."))}},[this](const auto& a){
+            if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+            if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","Restart this sketch");
+            if(session_.value("tool")!="select")return failure("pending_input_active","Return to Select before breaking an Offset link");
+            const auto selection=session_.value("selection").toObject();const auto selected=selection.value("entityIds").toArray();
+            QString id=a.value("offsetEntityId").toString();
+            if(id.isEmpty()){
+                if(selected.size()!=1 || !selection.value("pointIds").toArray().isEmpty() || !selection.value("constraintIds").toArray().isEmpty() || !selection.value("dimensionId").toString().isEmpty())
+                    return failure("offset_required","Select one retained fit-spline Offset result to Break Link");
+                id=selected[0].toString();
+            }
+            const auto solved=SketchSplineOffset::breakLink(session_.value("draftSketch").toObject(),id,session_.value("projectionContext").toObject());
+            auto response=publishSketchSolve(solved);
+            if(solved.ok){response["conversion"]=solved.diagnostics;session_["selection"]=QJsonObject{{"entityIds",QJsonArray{id}},{"pointIds",QJsonArray{}}};}
+            return response;
+        });
     auto arcMode=parameter("string","Center/radius/sweep or named start/end/through construction.");arcMode["enum"]=QJsonArray{"center","threePoint"};
     QJsonObject arcSchema{{"mode",arcMode},{"units",optional(units)},{"session",sketchSession},
         {"startAngleDeg",optional(angle)},{"sweepAngleDeg",optional(angle)}};
@@ -7568,10 +7585,15 @@ void AlloyWindow::refresh() {
                 const auto preview=session_["pendingProject"].toObject()["previewGeometry"].toObject();
                 sketchProfileInfo_->setText(QString("%1 projected region(s) · preview only").arg(preview["profiles"].toArray().size()));
             }
+            // Apply the final stylesheet before measuring: polishing the label
+            // afterwards can change its font and invalidate the wrapped height.
+            sketchProfileInfo_->setStyleSheet(warning ? "color:#9a5800":"color:#53616b");
+            sketchProfileInfo_->ensurePolished();
             const int width=std::max(80,sketchProfileInfo_->contentsRect().width());
-            sketchProfileInfo_->setMinimumHeight(std::max(sketchProfileInfo_->sizeHint().height(),sketchProfileInfo_->heightForWidth(width)));
+            const int textHeight=sketchProfileInfo_->fontMetrics().boundingRect(QRect(0,0,width,100000),Qt::TextWordWrap,sketchProfileInfo_->text()).height();
+            sketchProfileInfo_->setMinimumHeight(std::max({sketchProfileInfo_->sizeHint().height(),sketchProfileInfo_->heightForWidth(width),textHeight+2*sketchProfileInfo_->margin()}));
             sketchProfileInfo_->updateGeometry();
-            sketchProfileInfo_->setStyleSheet(warning ? "color:#9a5800":"color:#53616b");sketchProfileInfo_->setToolTip(QString::fromUtf8(QJsonDocument(profileDiagnostics).toJson(QJsonDocument::Indented)));
+            sketchProfileInfo_->setToolTip(QString::fromUtf8(QJsonDocument(profileDiagnostics).toJson(QJsonDocument::Indented)));
         }
         if(!current && sketchError_)sketchError_->setText("The document changed. Cancel and restart this sketch.");
         const auto draftHistory=session_.value("draftHistory").toObject();
@@ -12357,7 +12379,7 @@ void AlloyWindow::showSketch() {
         });
         sketchCurveEntry_=new QPushButton("Enter curve values…");sketchCurveEntry_->setObjectName("sketch.curveEntry");sketchCurveEntry_->hide();layout->addWidget(sketchCurveEntry_);
         connect(sketchCurveEntry_,&QPushButton::clicked,this,[this]{showCurveEntry();});
-        layout->addLayout(form);buildSplinePalette(layout);sketchInfo_=new QLabel;sketchInfo_->setObjectName("sketch.info");sketchInfo_->setWordWrap(true);layout->addWidget(sketchInfo_);sketchProfileInfo_=new QLabel;sketchProfileInfo_->setObjectName("sketch.profileStatus");sketchProfileInfo_->setWordWrap(true);layout->addWidget(sketchProfileInfo_);
+        layout->addLayout(form);buildSplinePalette(layout);sketchInfo_=new QLabel;sketchInfo_->setObjectName("sketch.info");sketchInfo_->setWordWrap(true);layout->addWidget(sketchInfo_);sketchProfileInfo_=new QLabel;sketchProfileInfo_->setObjectName("sketch.profileStatus");sketchProfileInfo_->setWordWrap(true);sketchProfileInfo_->setAlignment(Qt::AlignLeft|Qt::AlignTop);sketchProfileInfo_->setSizePolicy(QSizePolicy::Preferred,QSizePolicy::Minimum);layout->addWidget(sketchProfileInfo_);
         buildChamferControls(layout);
         sketchFilletControls_=new QWidget;auto* filletForm=new QFormLayout(sketchFilletControls_);filletForm->setSizeConstraint(QLayout::SetMinimumSize);
         sketchFilletRadius_=new QLineEdit;sketchFilletRadius_->setObjectName("sketch.fillet.radius");
@@ -12465,7 +12487,7 @@ void AlloyWindow::showSketch() {
         mirrorEscape->setContext(Qt::WidgetWithChildrenShortcut);
         connect(mirrorEscape,&QShortcut::activated,this,[this]{sketchResponse(execute("sketch.mirrorExit"));});
         layout->addWidget(sketchMirrorControls_);sketchMirrorControls_->hide();
-        auto* guidance=new QLabel("Select geometry in the canvas or below.\nShift-click adds to the selection.");guidance->setWordWrap(true);layout->addWidget(guidance);
+        auto* guidance=new QLabel("Select geometry in the canvas or below.\nShift-click adds to the selection.");guidance->setObjectName("sketch.selectionGuidance");guidance->setWordWrap(true);layout->addWidget(guidance);
         sketchSelectionTree_=new QTreeWidget;sketchSelectionTree_->setObjectName("sketch.selection");sketchSelectionTree_->setHeaderHidden(true);
         sketchSelectionTree_->installEventFilter(this);
         sketchSelectionTree_->setSelectionMode(QAbstractItemView::ExtendedSelection);sketchSelectionTree_->setMaximumHeight(145);layout->addWidget(sketchSelectionTree_);

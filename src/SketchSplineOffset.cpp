@@ -5,6 +5,7 @@
 #include <Geom2dAPI_InterCurveCurve.hxx>
 #include <GeomAPI.hxx>
 #include <Geom_OffsetCurve.hxx>
+#include <GeomConvert_ApproxCurve.hxx>
 #include <gp_Ax3.hxx>
 #include <gp_Pln.hxx>
 #include <QJsonArray>
@@ -199,4 +200,74 @@ SketchGeometry::SolveResult SketchSplineOffset::update(const QJsonObject& draft,
         if(!result.ok)result.feature=draft;
         return result;
     }catch(const std::exception& error){return failed(draft,QString::fromUtf8(error.what()));}
+}
+
+// Association removal is an explicit authored conversion, separate from result
+// geometry Delete and annotation Delete. Never approximate again on reopen.
+SketchGeometry::SolveResult SketchSplineOffset::breakLink(const QJsonObject& draft,
+    const QString& entityId,const QJsonObject& context){
+    try{
+        auto parameters=draft.value("parameters").toObject();auto entities=parameters.value("entities").toArray();
+        int index=-1;for(int i=0;i<entities.size();++i)if(entities[i].toObject().value("id")==entityId)index=i;
+        require(index>=0,"Spline Offset entity is unavailable");const auto original=entities[index].toObject();
+        require(original.value("type")=="fitSplineOffset","Select one retained fit-spline Offset result to Break Link");
+        const QSet<QString> protectedIds{entityId,original.value("startPointId").toString(),original.value("endPointId").toString()};
+        // Legal straight endpoint connectors keep the same point IDs. Refuse
+        // other semantic consumers rather than silently change their meaning.
+        const auto references=[&](const auto& self,const QJsonValue& value)->bool{
+            if(value.isString())return protectedIds.contains(value.toString());
+            if(value.isArray()){for(const auto& child:value.toArray())if(self(self,child))return true;}
+            if(value.isObject()){const auto object=value.toObject();for(auto i=object.begin();i!=object.end();++i)if(self(self,i.value()))return true;}
+            return false;
+        };
+        for(auto i=parameters.begin();i!=parameters.end();++i){
+            if(i.key()=="points"||i.key()=="entities")continue;
+            require(!references(references,i.value()),"Remove dependent relations before breaking this Offset link");
+        }
+        for(int i=0;i<entities.size();++i){if(i==index)continue;const auto e=entities[i].toObject();
+            if(!references(references,e))continue;
+            require(e.value("type")=="line"&&!references(references,e.value("sourceEntityId")),
+                    "Remove dependent geometry before breaking this Offset link");
+        }
+        const auto exact=evaluate(parameters,original).curve;
+        constexpr double tolerance=1e-3;
+        GeomConvert_ApproxCurve approximation(exact,tolerance/4,GeomAbs_C2,32,5);
+        require(approximation.IsDone(),"Offset cannot be converted within the Break Link tolerance");
+        const auto curve=approximation.Curve();
+        require(!curve.IsNull()&&!curve->IsRational()&&!curve->IsPeriodic()&&curve->Degree()==5&&curve->NbPoles()<=128,
+                "Offset conversion exceeds the supported editable control-spline representation");
+        auto points=parameters.value("points").toArray();QMap<QString,gp_Pnt> endpoints;
+        for(const auto& value:points){const auto point=value.toObject();const auto id=point.value("id").toString();
+            if(id==original.value("startPointId")||id==original.value("endPointId"))endpoints[id]=gp_Pnt(point.value("uMm").toDouble(),point.value("vMm").toDouble(),0);
+        }
+        const auto startId=original.value("startPointId").toString(),endId=original.value("endPointId").toString();
+        require(endpoints.contains(startId)&&endpoints.contains(endId),"Offset conversion lost its endpoints");
+        curve->SetPole(1,endpoints[startId]);curve->SetPole(curve->NbPoles(),endpoints[endId]);
+        QJsonArray ids,knots,multiplicities;
+        for(int i=1;i<=curve->NbPoles();++i){
+            const auto id=i==1?startId:i==curve->NbPoles()?endId:newId();ids.append(id);
+            if(i==1||i==curve->NbPoles())continue;const auto point=curve->Pole(i);
+            points.append(QJsonObject{{"id",id},{"uMm",point.X()},{"vMm",point.Y()}});
+        }
+        const double first=curve->FirstParameter(),span=curve->LastParameter()-first;
+        for(int i=1;i<=curve->NbKnots();++i){knots.append((curve->Knot(i)-first)/span);multiplicities.append(curve->Multiplicity(i));}
+        entities[index]=QJsonObject{{"id",entityId},{"type","controlSpline"},{"version",1},{"pointIds",ids},
+            {"startPointId",startId},{"endPointId",endId},{"maximumDegree",5},{"knotPolicy","clampedExplicit"},
+            {"knots",knots},{"multiplicities",multiplicities}};
+        parameters["entities"]=entities;parameters["points"]=points;auto candidate=draft;candidate["parameters"]=parameters;
+        auto result=SketchGeometry::solveDraft(candidate,context);if(!result.ok){result.feature=draft;return result;}
+        const auto solvedParameters=result.feature.value("parameters").toObject();
+        const auto authored=SketchSpline::evaluate(solvedParameters,entities[index].toObject()).curve;
+        double measured=0;for(int i=0;i<=1024;++i){const double t=double(i)/1024;
+            measured=std::max(measured,authored->Value(t).Distance(exact->Value(exact->FirstParameter()+t*(exact->LastParameter()-exact->FirstParameter()))));
+        }
+        require(measured<=tolerance,"Offset conversion changed curve shape beyond the Break Link tolerance");
+        require(authored->StartPoint().Distance(endpoints[startId])<1e-10&&authored->EndPoint().Distance(endpoints[endId])<1e-10,
+                "Offset conversion changed an endpoint");
+        result.diagnostics["convertedEntityId"]=entityId;result.diagnostics["conversionToleranceMm"]=tolerance;
+        result.diagnostics["sampledMaximumDeviationMm"]=measured;result.diagnostics["conversionSampleCount"]=1025;
+        result.diagnostics["approximationMaximumErrorMm"]=approximation.MaxError();
+        return result;
+    }catch(const Standard_Failure& error){return failed(draft,QString::fromUtf8(error.GetMessageString()));}
+    catch(const std::exception& error){return failed(draft,QString::fromUtf8(error.what()));}
 }

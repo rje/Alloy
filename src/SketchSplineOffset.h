@@ -17,6 +17,8 @@ public:
     static QString validate(const QJsonObject& parameters,const QJsonObject& entity,bool checkGeometry);
     static SketchGeometry::SolveResult add(const QJsonObject& draft,const QJsonObject& arguments,
                                            const QJsonObject& context = {});
+    static SketchGeometry::SolveResult breakLink(const QJsonObject& draft,const QString& entityId,
+                                                 const QJsonObject& context = {});
     static SketchGeometry::SolveResult update(const QJsonObject& draft,const QJsonObject& arguments,
                                               const QJsonObject& context = {});
 };
