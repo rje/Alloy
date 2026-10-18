@@ -98,6 +98,11 @@ same sketch remains editable and preserves the saved solid.
 [Projection-backed rectangle Offset Delete](docs/validation/sketch-closed-rect-offset-delete.md)
 now removes one generated loop and restores its sources' recorded profile flags
 while preserving linked support and an adjacent Offset owner.
+[Support-face loop Offset Delete](docs/validation/sketch-loop-offset-delete.md)
+now removes the selected generated profile's retained owner while preserving
+its support and an independent sketch. Consumed-profile deletion refuses before
+changing the draft; planar-inset native qualification and multiple owners in
+one sketch remain separate tasks.
 
 Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,

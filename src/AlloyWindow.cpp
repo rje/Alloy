@@ -5148,11 +5148,11 @@ void AlloyWindow::registerCommands() {
         });
     add("sketch.deleteSelection","Delete sketch selection","Remove selected sketch geometry or annotations in one solved draft edit.",
         {{"constraintIds",optional(parameter("array","Distinct stable constraint UUIDs to remove."))},{"dimensionId",optional(dimensionId)},
-         {"entityIds",optional(parameter("array","Distinct sketch entity UUIDs; a constructor member removes its whole owning group."))},{"pointIds",optional(parameter("array","Distinct authored point UUIDs to remove."))}},[this](const auto& a){
+         {"entityIds",optional(parameter("array","Distinct sketch entity UUIDs; a constructor member removes its whole owning group."))},{"pointIds",optional(parameter("array","Distinct authored point UUIDs to remove."))},{"profileIds",optional(parameter("array","One generated support-face loop Offset result profile UUID."))}},[this](const auto& a){
             if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
             if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","Restart this sketch");
             if(session_.value("tool")!="select" || session_.contains("pendingDimension") || session_.contains("pendingCircleDiameter"))return failure("pending_input_active","Return to Select before deleting sketch selection");
-            const bool explicitTargets=a.contains("constraintIds") || a.contains("dimensionId") || a.contains("entityIds") || a.contains("pointIds");
+            const bool explicitTargets=a.contains("constraintIds") || a.contains("dimensionId") || a.contains("entityIds") || a.contains("pointIds") || a.contains("profileIds");
             const auto selected=session_.value("selection").toObject();
             if(!explicitTargets && selected.value("pointIds").toArray().size()==1 && selected.value("entityIds").toArray().isEmpty()){
                 const auto pointId=selected.value("pointIds").toArray().at(0);
@@ -5164,6 +5164,32 @@ void AlloyWindow::registerCommands() {
             const auto dim=explicitTargets ? a.value("dimensionId").toString() : selected.value("dimensionId").toString();
             const auto geometryIds=explicitTargets ? a.value("entityIds").toArray() : selected.value("entityIds").toArray();
             const auto pointIds=explicitTargets ? a.value("pointIds").toArray() : selected.value("pointIds").toArray();
+            const auto profileIds=explicitTargets ? a.value("profileIds").toArray() : selected.value("profileIds").toArray();
+            if(!profileIds.isEmpty()) {
+                if(!geometryIds.isEmpty() || !pointIds.isEmpty() || !ids.isEmpty() || !dim.isEmpty())
+                    return failure("ambiguous_delete_target","Select only the generated loop Offset result, then Delete");
+                const auto draft=session_.value("draftSketch").toObject();
+                if(!draft.value("parameters").toObject().contains("loopOffsets"))
+                    return failure("unsupported_profile_delete","Profile Delete requires a generated support-face loop Offset sketch");
+                try {
+                    const auto editId=session_.value("inputs").toObject().value("sketchId").toString();
+                    const auto history=editId.isEmpty() ? document_->evaluation() : sketchHistoryStage(editId);
+                    const auto support=GeometryKernel::resolveSketchSupport(history,draft.value("parameters").toObject().value("support").toObject());
+                    const auto candidate=RoundedLoopOffset::deleteProfile(draft,support,profileIds);
+                    auto solved=SketchGeometry::solveDraft(candidate,session_.value("projectionContext").toObject());
+                    if(!solved.ok)return failure("sketch_solve_failed",solved.error);
+                    solved.diagnostics["removedProfileIds"]=profileIds;
+                    solved.diagnostics["removedLoopOffsetIds"]=QJsonArray{draft.value("parameters").toObject().value("loopOffsets").toArray().first().toObject().value("id")};
+                    const auto refusal=preflightSketchDelete(solved.feature);if(!refusal.isEmpty())return refusal;
+                    const auto result=publishSketchSolve(solved);
+                    if(result.value("ok").isBool() && !result.value("ok").toBool())return result;
+                    session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}},{"profileIds",QJsonArray{}}};
+                    return result;
+                } catch(const GeometryKernel::EvaluationError& error) {
+                    const auto diagnostics=error.diagnostics();
+                    return failure(diagnostics.value("code").toString("offset_unavailable"),QString::fromUtf8(error.what()));
+                }
+            }
             if((!geometryIds.isEmpty() || !pointIds.isEmpty()) && (!ids.isEmpty() || !dim.isEmpty()))
                 return failure("ambiguous_delete_target","Select geometry or annotations, then Delete");
             if(!geometryIds.isEmpty() || !pointIds.isEmpty()) {

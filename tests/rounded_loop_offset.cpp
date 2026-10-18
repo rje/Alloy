@@ -41,6 +41,23 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     check(doc.commit(CadDocument::extrusionCandidate(doc.authored(),{{"sketchId",source["id"]},
         {"profileId",doc.sketches().front().profiles.front().profileId},{"distanceMm",2}}),"Base 2 mm").isEmpty(),"Base extrusion");
     const auto cap=topFace(doc);check(std::abs(cap.frame["origin"].toArray()[2].toDouble()-2)<1e-8,"Actual top face z2");
+    // Both generated-only owner schemas resolve an evaluated profile, never an authored edge.
+    for(const bool inset:{false,true}) {
+        auto owned=offsetSketch(doc,-1.5);auto p=owned.value("parameters").toObject();
+        if(inset){auto rows=p.value("loopOffsets").toArray();auto row=rows.first().toObject();row["kind"]="planarInsetV1";row["outerLoopId"]=RoundedLoopOffset::insetLoopId(cap);rows[0]=row;p["loopOffsets"]=rows;owned["parameters"]=p;}
+        const auto evaluated=RoundedLoopOffset::evaluate(owned,cap,cap.frame);const QJsonArray target{evaluated.profiles.front().profileId};
+        const auto changed=RoundedLoopOffset::deleteProfile(owned,cap,target);
+        auto expected=owned;auto ep=p;ep.remove("loopOffsets");expected["parameters"]=ep;check(changed==expected,"Delete touched support/sketch state");
+        check(SketchGeometry::solveDraft(changed).ok,"Empty supported sketch refused");
+        for(const auto& bad:{QJsonArray{},QJsonArray{target.first(),target.first()},QJsonArray{CadDocument::newId()}}){
+            bool refused=false;try{RoundedLoopOffset::deleteProfile(owned,cap,bad);}catch(const GeometryKernel::EvaluationError&){refused=true;}check(refused,"Invalid profile accepted");
+        }
+        auto stale=cap;stale.faceId=CadDocument::newId();bool refused=false;try{RoundedLoopOffset::deleteProfile(owned,stale,target);}catch(const GeometryKernel::EvaluationError&){refused=true;}check(refused,"Changed support accepted");
+        stale=cap;stale.boundaryEdges.front().edgeId=CadDocument::newId();stale.boundaryEdges.front().provenance["sourceEntityId"]=CadDocument::newId();refused=false;
+        try{RoundedLoopOffset::deleteProfile(owned,stale,target);}catch(const GeometryKernel::EvaluationError&){refused=true;}check(refused,"Changed lineage accepted");
+        auto malformed=owned;auto mp=p;auto rows=mp.value("loopOffsets").toArray();auto row=rows.first().toObject();row["unexpected"]=true;rows[0]=row;mp["loopOffsets"]=rows;malformed["parameters"]=mp;refused=false;
+        try{RoundedLoopOffset::deleteProfile(malformed,cap,target);}catch(const GeometryKernel::EvaluationError&){refused=true;}check(refused,"Malformed owner accepted");
+    }
     auto offset=offsetSketch(doc,-1.5);const auto authoredBefore=doc.authored();
     auto evaluated=RoundedLoopOffset::evaluate(offset,cap);
     const auto innerArea=57*27-4.5*4.5*(4-std::numbers::pi),rimArea=outerArea-innerArea;

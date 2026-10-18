@@ -32,22 +32,21 @@ QJsonObject AlloyWindow::preflightSketchDelete(const QJsonObject& candidate) con
             for(const auto& profile:sketch.profiles)if(ids.contains(profile.profileId)) {
                 QJsonArray affected;
                 for(const auto& id:profile.summary.value("sourceEntityIds").toArray())if(removed.contains(id.toString()))affected.append(id);
-                if(!affected.isEmpty())consumers.append(QJsonObject{{"featureId",feature.value("id")},{"featureName",feature.value("name")},
+                consumers.append(QJsonObject{{"featureId",feature.value("id")},{"featureName",feature.value("name")},
                     {"profileId",profile.profileId},{"sketchId",sketchId},{"removedEntityIds",affected}});
             }
     }
     if(consumers.isEmpty())return {};
-    // Evaluate only the affected sketch, never the downstream solid/history.
     const auto evaluated=evaluateSketchDraft(candidate);QSet<QString> available;
     for(const auto& profile:evaluated.profiles)available.insert(profile.profileId);
-    QJsonArray blocked;for(const auto& row:consumers)if(!available.contains(row.toObject().value("profileId").toString()))blocked.append(row);
+    QJsonArray blocked;for(const auto& consumer:consumers)if(!available.contains(consumer.toObject().value("profileId").toString()))blocked.append(consumer);
     if(blocked.isEmpty())return {};
     const auto owner=blocked.first().toObject();
     const auto name=owner.value("featureName").toString().isEmpty() ? QStringLiteral("Extrude") : owner.value("featureName").toString();
-    const auto message=QString("This curve is used by Extrude ‘%1’. Keep the curve, or cancel this sketch edit and edit that Extrude to choose a current profile.").arg(name);
+    const auto message=QString("This sketch result is used by Extrude ‘%1’. Keep the result, or cancel this sketch edit and edit that Extrude to choose a current profile.").arg(name);
     QJsonObject error{{"code","downstream_profile_in_use"},{"message",message}};
     auto diagnostics=owner;diagnostics["consumers"]=blocked;diagnostics["policy"]="alloy_pre_delete_refusal";
-    diagnostics["recovery"]="Keep the curve, or cancel sketch editing and edit the named Extrude to choose a current profile";
+    diagnostics["recovery"]="Keep the result, or cancel sketch editing and edit the named Extrude to choose a current profile";
     error["diagnostics"]=diagnostics;return {{"ok",false},{"error",error}};
 }
 

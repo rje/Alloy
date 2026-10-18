@@ -14,12 +14,49 @@
 class RoundedLoopOffsetControls final : public QObject {
     Q_OBJECT
     QJsonObject call(AlloyWindow& window,const QString& name,const QJsonObject& args={}){
-        const auto response=window.execute(name,args);
+        auto response=window.execute(name,args);
+        if(response.value("completion")=="pending") {
+            const auto operation=response.value("result").toObject();
+            for(int i=0;i<2000 && response.value("completion")=="pending";++i){QTest::qWait(10);response=window.execute("command.status",{{"session",operation.value("id")},{"generation",operation.value("previewGeneration")}});}
+        }
         if(!response["ok"].toBool())qFatal("%s",QJsonDocument(response).toJson().constData());
         return response["result"].toObject();
     }
     QJsonObject session(AlloyWindow& window){return window.state()["activeSession"].toObject();}
 private slots:
+    void generatedProfileDelete(){
+        const auto output=qEnvironmentVariable("ALLOY_LOOP_DELETE_EVIDENCE");
+        if(output.isEmpty())QSKIP("Set ALLOY_LOOP_DELETE_EVIDENCE to the API fixture directory");
+        AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1500,950);window.show();window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));QApplication::setActiveWindow(&window);
+        ReferenceView* view=nullptr;for(auto* child:window.findChildren<QWidget*>())if(auto* v=dynamic_cast<ReferenceView*>(child))view=v;QVERIFY(view);
+        call(window,"document.open",{{"path",output+"/native-before.alloy"}});
+        const auto base=call(window,"document.inspect");const auto features=base.value("authored").toObject().value("features").toArray();const auto target=features[features.size()-2].toObject();
+        call(window,"sketch.edit",{{"sketchId",target.value("id")}});call(window,"sketch.lookAt");call(window,"view.fit");call(window,"sketch.tool",{{"tool","select"}});
+        const auto original=session(window).value("draftSketch").toObject();
+        // Initial harness activation only. The actual click must establish focus and selection.
+        view->setFocus(Qt::OtherFocusReason);QVERIFY(view->hasFocus());
+        const auto frame=session(window).value("resolvedFrame").toObject();QPoint picked(-1,-1);QString profile;
+        for(double u=-65;u<=65 && picked.x()<0;u+=.75)for(double v=-35;v<=35;v+=.75){
+            const auto pixel=view->projectSketchPoint(u,v,"face",frame);const QPoint point(qRound(pixel.value("x").toDouble()),qRound(pixel.value("y").toDouble()));
+            if(!view->rect().adjusted(10,10,-10,-10).contains(point))continue;
+            const auto hit=view->pickSketch(original,point.x(),point.y(),{},frame);
+            if(hit.value("kind")=="profile"){picked=point;profile=hit.value("profileId").toString();break;}
+        }
+        QVERIFY(picked.x()>=0);call(window,"capture.screenshot",{{"path",output+"/native-before.png"}});
+        QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,picked);
+        QTRY_COMPARE(session(window).value("selection").toObject().value("profileIds").toArray(),QJsonArray{profile});QVERIFY(view->hasFocus());
+        call(window,"capture.screenshot",{{"path",output+"/native-selected.png"}});
+        QTest::keyClick(QApplication::focusWidget(),Qt::Key_Delete);
+        QTRY_VERIFY(!session(window).value("draftSketch").toObject().value("parameters").toObject().contains("loopOffsets"));
+        const auto deleted=session(window).value("draftSketch").toObject();QCOMPARE(deleted.value("parameters").toObject().value("support"),original.value("parameters").toObject().value("support"));
+        call(window,"capture.screenshot",{{"path",output+"/native-deleted.png"}});
+        call(window,"history.undo");QCOMPARE(session(window).value("draftSketch").toObject(),original);call(window,"capture.screenshot",{{"path",output+"/native-undone.png"}});
+        call(window,"history.redo");QCOMPARE(session(window).value("draftSketch").toObject(),deleted);call(window,"sketch.finish");
+        const auto final=call(window,"document.inspect").value("authored").toObject();const auto path=output+"/native-deleted.alloy";call(window,"document.save",{{"path",path}});
+        call(window,"document.open",{{"path",path},{"discard",true}});QCOMPARE(call(window,"document.inspect").value("authored").toObject(),final);
+        call(window,"capture.screenshot",{{"path",output+"/native-reopened.png"}});window.close();
+    }
     void actualBoundaryAndNativeSignedEntry(){
         AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1500,950);window.show();window.activateWindow();
         QVERIFY(QTest::qWaitForWindowExposed(&window));QApplication::setActiveWindow(&window);

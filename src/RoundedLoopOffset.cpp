@@ -220,3 +220,20 @@ EvaluatedSketch RoundedLoopOffset::evaluate(const QJsonObject& feature,const Eva
         {"loopOffsets",p["loopOffsets"]},{"boundsMm",QJsonObject{{"min",QJsonArray{x0,y0,z0}},{"max",QJsonArray{x1,y1,z1}},{"size",QJsonArray{x1-x0,y1-y0,z1-z0}}}}};
     return {feature["id"].toString(),feature["name"].toString(),"face",feature["visible"].toBool(),strokes,summary,{profile},support.frame,feature["ownerId"].toString(),{}};
 }
+
+QJsonObject RoundedLoopOffset::deleteProfile(const QJsonObject& feature,const EvaluatedSupportFace& support,
+    const QJsonArray& profileIds) {
+    const auto parameters=feature.value("parameters").toObject();
+    const auto error=validate(parameters);
+    if(!parameters.contains("loopOffsets") || !error.isEmpty())fail("invalid_offset_owner",error.isEmpty() ? "Select a retained loop Offset result" : error);
+    if(profileIds.size()!=1 || !profileIds.first().isString() || QUuid(profileIds.first().toString()).isNull())
+        fail("invalid_profile_target","Select exactly one current loop Offset result profile");
+    // Evaluation checks exact face and boundary lineage before resolving ownership.
+    const auto evaluated=evaluate(feature,support,support.frame);
+    const auto owner=parameters.value("loopOffsets").toArray().first().toObject();
+    if(evaluated.profiles.size()!=1 || evaluated.profiles.front().profileId!=profileIds.first().toString()
+        || evaluated.profiles.front().summary.value("offsetId")!=owner.value("id"))
+        fail("stale_profile","The loop Offset result changed; cancel and reopen the sketch, then select its current result");
+    auto candidate=feature;auto remaining=parameters;remaining.remove("loopOffsets");candidate["parameters"]=remaining;
+    return candidate;
+}
