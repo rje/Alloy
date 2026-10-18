@@ -7155,13 +7155,15 @@
       "priority": "P0",
       "depends_on": [
         "NAV-001",
-        "GEO-006"
+        "GEO-006",
+        "REL-052"
       ],
       "labels": [
         "area:rel",
-        "status:ready"
+        "status:ready",
+        "status:blocked"
       ],
-      "body": "## Initial-build readiness scope\nUse one existing bracket fixture to exercise command activation, text focus, selection, native popup dismissal, Escape/Return/Tab, modal return, timeline editing and export without interstep focus repair. Resolve concrete failures as bounded fixes; reuse FND-007, FND-015, SOL-016, SOL-058 and ASM-012 evidence and keep physical input distinct. Require an operable workflow with actionable errors, not every possible command permutation. Preserve failed-repro files and independently review final capture/input evidence.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n\n## Blocked audit 2026-10-18\nTwo retained bracket checkpoints fail document.open before any native input with Ambiguous cylindrical prism face provenance: full-size base Extrude 84190278-9d52-4c94-82ca-50ac3a3c8291 and angle-bracket base Extrude 2198224e-456b-4709-ae57-fb66ba077e1e. Exact models/status/logs/captures: ../Alloy-reference-records/validation/rel012-ordinary-input-2026-10-18/{probe02,angle-probe01}/. GEO-006/#309 owns the geometry failure and has both repros. No UI defect or source change accepted. Resume this native-input gate after #309 allows an existing checkpoint to open; physical OS input remains separate.\n\n## Ready to resume 2026-10-18\nGEO-006/#309 is accepted at d24173c: both exact saved bracket checkpoints now open unchanged through the actual app with independent geometry review. The earlier blocked evidence is retained as the before-state. Re-run the native input sequence; this gate is not yet accepted.\n"
+      "body": "## Initial-build readiness scope\nUse one existing bracket fixture to exercise command activation, text focus, selection, native popup dismissal, Escape/Return/Tab, modal return, timeline editing and export without interstep focus repair. Resolve concrete failures as bounded fixes; reuse FND-007, FND-015, SOL-016, SOL-058 and ASM-012 evidence and keep physical input distinct. Require an operable workflow with actionable errors, not every possible command permutation. Preserve failed-repro files and independently review final capture/input evidence.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n\n## Blocked audit 2026-10-18\nTwo retained bracket checkpoints fail document.open before any native input with Ambiguous cylindrical prism face provenance: full-size base Extrude 84190278-9d52-4c94-82ca-50ac3a3c8291 and angle-bracket base Extrude 2198224e-456b-4709-ae57-fb66ba077e1e. Exact models/status/logs/captures: ../Alloy-reference-records/validation/rel012-ordinary-input-2026-10-18/{probe02,angle-probe01}/. GEO-006/#309 owns the geometry failure and has both repros. No UI defect or source change accepted. Resume this native-input gate after #309 allows an existing checkpoint to open; physical OS input remains separate.\n\n## Ready to resume 2026-10-18\nGEO-006/#309 is accepted at d24173c: both exact saved bracket checkpoints now open unchanged through the actual app with independent geometry review. The earlier blocked evidence is retained as the before-state. Re-run the native input sequence; this gate is not yet accepted.\n\n## Split after native replay 2026-10-18\nGEO-006 fixed the Open blocker. Completed REL-051/#586 accepts native sketch\u2192Extrude Return/Cancel\u2192immediate Undo\u2192Browser popup Escape and separate API STL/readback (docs/validation/ordinary-bracket-input-prefix.md). Browser Save As Mesh remains an active modal while keyboard focus stays browser.tree after readiness; two app-owned focus approaches failed and were discarded. Exact failures and opt-in driver: ../Alloy-reference-records/validation/rel012-ordinary-input-2026-10-18/{focus-fix02,modal-queued01,full-gate-modal-repro.cpp}. REL-052/#587 owns sheet/OS chooser flow. Keep cumulative parent Todo/blocked until child and full same-fixture replay pass.\n"
     },
     {
       "key": "REL-013",
@@ -9773,6 +9775,41 @@
         "priority:P2"
       ],
       "body": "## Acceptance\nResearch public row labels, depth ordering, hierarchy, hover and cancel behavior; keep dated sources and unknowns outside the repository. Use one shared stable-ID candidate model for UI and API. Depth orders intersected targets along the camera ray, including behind-object candidates; Parents exposes actual Face \u2192 Body \u2192 Component \u2192 Parent Component identities. Choosing a parent selects that parent through the authoritative route rather than its child. Hidden/unavailable targets follow explicit policy. Native hold must expose both controls; verify leaf/parent identity, hover preview/reset without document/history mutation, natural focus on cancel, accepted leaf Delete and counterpart/source survival, explicit parent-selection/Delete policy, history/reopen and hardware GPU captures. Reuse overlapping line/circle regression plus one nested occurrence fixture. Split further topology/assembly families explicitly and mark exact styling unknown without a matched reference.\n\n## Dependencies\n- SKT-157\n- DOC-006\n\n## Provenance\nExplicit Depth/Parents remainder split from SKT-157/#583 after public evidence showed Parents is actual model ancestry. Contract and dated sources: ../Alloy-reference-records/knowledge/specs/select-other-depth-parents-child-2026-10-18.md.\n"
+    },
+    {
+      "key": "REL-051",
+      "title": "Restore viewport focus after Extrude closes",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "depends_on": [
+        "GEO-006"
+      ],
+      "labels": [
+        "kind:implementation",
+        "area:rel",
+        "phase:P4",
+        "priority:P0"
+      ],
+      "body": "## Acceptance\nUse the saved full-size illustrated bracket. Through native Qt input, activate a timeline sketch and cancel typed Circle input with Tab/Escape, Finish, edit Extrude distance with Tab preview/Cancel, reopen and commit a typed value with Return, then send Undo as the immediate next focused keystroke. Verify exact authored restoration, Browser row hit and popup Escape, readable GPU captures and one private editor. Separately export the unchanged model through the shared API and independently read STL geometry. Keep actual OS Save chooser and physical input outside this bounded slice. Preserve first-failure and accepted evidence.\n\n## Dependency\n- GEO-006\n\n## Provenance\nSplit completed focus slice from REL-012/#415 after the exact bracket reopen provenance blocker was fixed; retained gate evidence is ../Alloy-reference-records/validation/rel012-ordinary-input-2026-10-18/.\n\n## Accepted 2026-10-18\nThree-line app-owned Extrude finishSession focus handoff passes native full-size bracket Sketch Edit, C/Tab/Escape/Finish, Extrude Tab preview/Cancel, Return commit and immediate Undo without interstep focus repair, Browser popup Escape and exact authored restore. Separate API STL export/readback gives 3,640 oriented triangles. Independent Sol replay passed 3/3, matched model/STL hashes and inspected captures; no blocker. Receipt: docs/validation/ordinary-bracket-input-prefix.md. Native Save As Mesh remains REL-052/#587.\n"
+    },
+    {
+      "key": "REL-052",
+      "title": "Restore Save As Mesh modal and chooser keyboard flow",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "depends_on": [
+        "REL-051"
+      ],
+      "labels": [
+        "kind:implementation",
+        "status:ready",
+        "area:rel",
+        "phase:P4",
+        "priority:P0"
+      ],
+      "body": "## Acceptance\nStart from the exact saved bracket after the accepted REL-051 prefix/Undo. Native Browser row context \u2192 Save As Mesh must close the popup, activate the real sheet and naturally focus its first field. Exercise Tab/field keys/Escape and reopening without focus repair. In the actual OS Save chooser, Cancel returns to the sheet/parent without output; reopen and Save creates a real millimeter mesh with independent readback. Verify modal/chooser closure, next native input, exact authored/history preservation and readable captures. Keep API, Qt native, physical input and packaged-runtime evidence separate. Preserve failing `focus-fix02`, `modal-queued01` and opt-in `ALLOY_ORDINARY_INPUT_REQUIRE_MODAL=1` driver before coding; avoid another focus-only workaround that bypasses the real popup handoff.\n\n## Dependency\n- REL-051\n\n## Provenance\nExplicit unfinished export remainder split from REL-012/#415; exact repro and restart instructions are external at ../Alloy-reference-records/validation/rel012-ordinary-input-2026-10-18/.\n"
     }
   ]
 }

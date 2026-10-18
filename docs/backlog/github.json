@@ -2912,6 +2912,16 @@
       "number": 585,
       "url": "https://github.com/rje/Alloy/issues/585",
       "state": "open"
+    },
+    "REL-051": {
+      "number": 586,
+      "url": "https://github.com/rje/Alloy/issues/586",
+      "state": "closed"
+    },
+    "REL-052": {
+      "number": 587,
+      "url": "https://github.com/rje/Alloy/issues/587",
+      "state": "open"
     }
   }
 }

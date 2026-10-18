@@ -1,7 +1,10 @@
 # Ordinary bracket input: Extrude focus continuation
 
 2026-10-18, local macOS arm64 Release `build-preview-release`, Qt 6.11.2.
-This is a bounded REL-012 input prefix, pending independent review. The complete
+This is the accepted REL-051/#586 prefix of REL-012. Independent Sol review
+replayed the unchanged candidate (Qt 3/3), matched saved model and STL hashes,
+independently parsed the mesh and inspected the controls/captures; no blocker.
+The complete
 sketch-to-export native workflow remains open at export modal activation.
 
 The existing saved fullsize illustrated bracket now opens after GEO-006's
@@ -46,7 +49,7 @@ External evidence root:
 `resume06` preserves the pre-fix Extrude failure; `focus-fix02` records the
 export modal keyboard recipient; `modal-queued01` preserves the final rejected
 activation attempt; `accepted01` records the passing bounded candidate, screenshots,
-saved model and STL. The full failing driver is preserved as
+saved model and STL. `review01` records the independent rerun. The full failing driver is preserved as
 `full-gate-modal-repro.cpp`. Earlier fixture-open failures and harness corrections
 remain separate in the same evidence root. No physical human input, packaged
 qualification, other-platform runtime or exact reference visual parity is claimed.
