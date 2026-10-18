@@ -39,7 +39,9 @@ SKT-102/#525 accepts authored spline, ellipse and conic deletion after the
 SKT-141/#567 accepts whole-owner Slot, Arc Slot, Polygon and Chamfer deletion
 after core, API, native Qt and independent review. SKT-142/#568 accepts
 line/arc Mirror and open-chain Offset owner deletion after the same bounded
-checks. Linked/projected deletion remains Todo SKT-143/#569. SKT-144–147/#570–573
+checks. Linked/projected deletion remains Todo SKT-143/#569; its bounded
+retained line/point/circle Delete slice now depends on accepted SKT-066/071,
+while broad source repair remains Todo SKT-026/#160. SKT-144–147/#570–573
 now have independently accepted bounded Offset owner deletion, including the
 single-owner support-face loop under SKT-145/#571. Its planar-inset actual-app
 variant and multiple owners in one sketch remain Todo SKT-152–153/#578–579.

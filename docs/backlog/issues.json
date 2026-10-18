@@ -9480,16 +9480,17 @@
       "priority": "P1",
       "depends_on": [
         "SKT-102",
-        "SKT-026"
+        "SKT-066",
+        "SKT-071"
       ],
       "labels": [
         "kind:implementation",
-        "status:blocked",
+        "status:ready",
         "area:skt",
         "phase:P2",
         "priority:P1"
       ],
-      "body": "## Bounded result\nQualify Delete for selected projected/linked sketch geometry, including source-link and support ownership. Document whether the published workflow removes a local projection, breaks a link or requires an owning command; refuse stale/upstream dependencies clearly. Do not generic-strip projected JSON.\n\n## Acceptance\nResearch the affected public Delete workflow first with dated sources in ../Alloy-reference-records/knowledge. Native canvas/list and local API must use the same authoritative deletion command. Preserve unrelated authored IDs and constraints; fail atomically on unsupported ownership. Use one real-app native/API fixture with Undo/Redo, save/reopen, and hardware GPU capture. Physical hand input, other-platform runtime and exact reference styling remain separate release gates.\n\n## Split provenance\nRetained from SKT-102/#525 on 2026-10-18 after separating ordinary authored curve deletion from operation-owned group/derived deletion. Public source evidence and behavior uncertainties are in the external SKT-102 triage record.\n\n## Dependencies\n- SKT-102\n- SKT-026\n"
+      "body": "## Bounded result\nQualify Delete for selected projected/linked sketch geometry, including source-link and support ownership. Document whether the published workflow removes a local projection, breaks a link or requires an owning command; refuse stale/upstream dependencies clearly. Do not generic-strip projected JSON.\n\n## Acceptance\nResearch the affected public Delete workflow first with dated sources in ../Alloy-reference-records/knowledge. Native canvas/list and local API must use the same authoritative deletion command. Preserve unrelated authored IDs and constraints; fail atomically on unsupported ownership. Use one real-app native/API fixture with Undo/Redo, save/reopen, and hardware GPU capture. Physical hand input, other-platform runtime and exact reference styling remain separate release gates.\n\n## Split provenance\nRetained from SKT-102/#525 on 2026-10-18 after separating ordinary authored curve deletion from operation-owned group/derived deletion. Public source evidence and behavior uncertainties are in the external SKT-102 triage record.\n\n## Dependencies\n- SKT-102\n- SKT-026\n\n## Dependency correction and bounded current scope \u2014 2026-10-18\nThis Delete slice uses retained linked line/vertex and circular projection foundations accepted under SKT-066/#272 and SKT-071/#319. It does not require completion of broad SKT-026/#160, which remains Todo for independent-copy choice, relink/break-link repair, missing-source management and wider analytic projections. Current real-app scope is selected retained straight, circle and point projection records; face projection and broken-source repair remain SKT-026 or later bounded children. Public evidence and unknown live-selection cascade are in ../Alloy-reference-records/knowledge/specs/skt143-linked-projected-delete-2026-10-18.md.\n"
     },
     {
       "key": "SKT-144",
