@@ -1500,7 +1500,9 @@
         "SKT-128",
         "SKT-133",
         "SKT-134",
-        "SKT-135"
+        "SKT-135",
+        "SKT-139",
+        "SKT-140"
       ],
       "labels": [
         "kind:implementation",
@@ -1508,7 +1510,7 @@
         "priority:P1",
         "area:skt"
       ],
-      "body": "## Problem and result\nFinish the explicitly deferred portion of SKT-008.\n\n## Scope\n- Per-entity constrained/unconstrained/fixed/projected classification; whole-sketch DOF coloring is insufficient.\n- Selective geometry visibility and contextual point-relation reveal where documented.\n- Complete researched glyph repertoire and remaining relation-edit controls; do not invent permanent point-point Coincident icons contrary to public documentation.\n\n## Acceptance criteria\n- Mixed-freedom sketch shows independently checked per-entity roles while total DOF remains inspectable.\n- Geometry/dimension/constraint visibility operates independently with hidden targets unpickable and selection cleared.\n- Documented point-relation reveal and remaining glyph/edit controls have bounded actual visual/native receipts.\n- UI and API share authoritative commands and state. Retain stable references, atomic failure, unit correctness, undo/redo and native save/reopen where the operation authors data. Verify the real workflow proportionately; distinguish API, native input, geometry and visuals.\n\n## Split provenance\nSplit from #35 on 2026-10-12. The original now records only the independently accepted subset; this task retains the remaining requirements. Public evidence and uncertainty remain in the external knowledge archive and existing command contracts.\n\n## Status\nTodo. This broader scope is not implemented or accepted.\n\n## Bounded children \u2014 2026-10-18\nDated public-source review split this broad remainder into per-entity roles/list SKT-125/#550, independent visibility/picking SKT-126/#551, contextual point relations SKT-127/#552 and glyph/edit reconciliation SKT-128/#553, and geometry Fix/UnFix SKT-133/#558. The first four are accepted; point/line Fix/UnFix SKT-133/#558 is accepted; circle/arc follow-ups remain Todo, so this parent remains Todo.\n\n## Fix family disposition \u2014 2026-10-18\nSKT-133/#558 accepts the initial point/line Fix/UnFix subset. Circle and arc parameter locks remain v1 analytic children SKT-134 and SKT-135 of this parent. Ellipse/conic, spline and generated/projected ownership move to later-roadmap SKT-136\u2013138; those issues preserve the eventual family without blocking this parent's bounded v1 analytic closure.\n"
+      "body": "## Problem and result\nFinish the explicitly deferred portion of SKT-008.\n\n## Scope\n- Per-entity constrained/unconstrained/fixed/projected classification; whole-sketch DOF coloring is insufficient.\n- Selective geometry visibility and contextual point-relation reveal where documented.\n- Complete researched glyph repertoire and remaining relation-edit controls; do not invent permanent point-point Coincident icons contrary to public documentation.\n\n## Acceptance criteria\n- Mixed-freedom sketch shows independently checked per-entity roles while total DOF remains inspectable.\n- Geometry/dimension/constraint visibility operates independently with hidden targets unpickable and selection cleared.\n- Documented point-relation reveal and remaining glyph/edit controls have bounded actual visual/native receipts.\n- UI and API share authoritative commands and state. Retain stable references, atomic failure, unit correctness, undo/redo and native save/reopen where the operation authors data. Verify the real workflow proportionately; distinguish API, native input, geometry and visuals.\n\n## Split provenance\nSplit from #35 on 2026-10-12. The original now records only the independently accepted subset; this task retains the remaining requirements. Public evidence and uncertainty remain in the external knowledge archive and existing command contracts.\n\n## Status\nTodo. This broader scope is not implemented or accepted.\n\n## Bounded children \u2014 2026-10-18\nDated public-source review split this broad remainder into per-entity roles/list SKT-125/#550, independent visibility/picking SKT-126/#551, contextual point relations SKT-127/#552 and glyph/edit reconciliation SKT-128/#553, and geometry Fix/UnFix SKT-133/#558. The first four are accepted; point/line Fix/UnFix SKT-133/#558 is accepted; circle/arc follow-ups remain Todo, so this parent remains Todo.\n\n## Fix family disposition \u2014 2026-10-18\nSKT-133/#558 accepts the initial point/line Fix/UnFix subset. Circle and arc parameter locks remain v1 analytic children SKT-134 and SKT-135 of this parent. Ellipse/conic, spline and generated/projected ownership move to later-roadmap SKT-136\u2013138; those issues preserve the eventual family without blocking this parent's bounded v1 analytic closure.\n\n## Remaining circle modes \u2014 2026-10-18\nThe accepted Center Circle Fix slice SKT-134 does not qualify Two-Point Circle or every multi-input circle constructor. SKT-139/#564 and SKT-140/#565 retain those v1 modes. Circle Offset/group ownership stays later-roadmap SKT-138.\n"
     },
     {
       "key": "SKT-024",
@@ -9297,7 +9299,7 @@
         "phase:P2",
         "priority:P1"
       ],
-      "body": "## Bounded result\nFix and unfix an authored circle through the native tool. Lock center and radius under one stable relation ID; a second click removes exactly that ownership while preserving unrelated constraints and history. Test a dimensioned and undimensioned circle with clear conflict behavior. Parent SKT-023/#164 retains this v1 analytic gap.\n\n## Acceptance and evidence\nDated permitted-public-source contract: `../Alloy-reference-records/knowledge/specs/skt-128-glyph-inventory-2026-10-18.md` (P2/P3). Retain stable authored relations and one-step Undo/Redo, native/shared API state, atomic refusal, exact save/reopen and an inspected GPU capture. Do not add a permanent Fix badge. Split from SKT-133/#558; exact reference icon pixels and other-platform runtime remain unknown.\n\n## Dependencies\n- SKT-133\n"
+      "body": "## Bounded result\nFix and unfix an authored circle through the native tool. Lock center and radius under one stable relation ID; a second click removes exactly that ownership while preserving unrelated constraints and history. Test a dimensioned and undimensioned circle with clear conflict behavior. Parent SKT-023/#164 retains this v1 analytic gap.\n\n## Acceptance and evidence\nDated permitted-public-source contract: `../Alloy-reference-records/knowledge/specs/skt-128-glyph-inventory-2026-10-18.md` (P2/P3). Retain stable authored relations and one-step Undo/Redo, native/shared API state, atomic refusal, exact save/reopen and an inspected GPU capture. Do not add a permanent Fix badge. Split from SKT-133/#558; exact reference icon pixels and other-platform runtime remain unknown.\n\n## Dependencies\n- SKT-133\n\n## Explicit scope split \u2014 2026-10-18\nThe bounded implementation qualifies independent Center Circle with and without a radius driver. Two-Point Circle ownership moves to SKT-139/#564; Three-Point, 2/3-Tangent and retained-source Center Circle combinations move to validation SKT-140/#565. Circle Offset source/result stay SKT-138. Do not claim those modes complete from a Center Circle fixture.\n"
     },
     {
       "key": "SKT-135",
@@ -9370,7 +9372,46 @@
         "phase:P6",
         "priority:P2"
       ],
-      "body": "## Bounded result\nResearch and implement the ownership/read-only policy for Fix/UnFix on generated/grouped and linked projected geometry. Determine whether Fix targets the generated group, authored source, or is unavailable for each case using permitted public evidence. Preserve links and atomic refusal where unavailable. This later-roadmap family is explicitly transferred from SKT-133 and does not block bounded v1 analytic SKT-023.\n\n## Acceptance and evidence\nDated permitted-public-source contract: `../Alloy-reference-records/knowledge/specs/skt-128-glyph-inventory-2026-10-18.md` (P2/P3). Retain stable authored relations and one-step Undo/Redo, native/shared API state, atomic refusal, exact save/reopen and an inspected GPU capture. Do not add a permanent Fix badge. Split from SKT-133/#558; exact reference icon pixels and other-platform runtime remain unknown.\n\n## Dependencies\n- SKT-133\n- SKT-026\n"
+      "body": "## Bounded result\nResearch and implement the ownership/read-only policy for Fix/UnFix on generated/grouped and linked projected geometry. Determine whether Fix targets the generated group, authored source, or is unavailable for each case using permitted public evidence. Preserve links and atomic refusal where unavailable. This later-roadmap family is explicitly transferred from SKT-133 and does not block bounded v1 analytic SKT-023.\n\n## Acceptance and evidence\nDated permitted-public-source contract: `../Alloy-reference-records/knowledge/specs/skt-128-glyph-inventory-2026-10-18.md` (P2/P3). Retain stable authored relations and one-step Undo/Redo, native/shared API state, atomic refusal, exact save/reopen and an inspected GPU capture. Do not add a permanent Fix badge. Split from SKT-133/#558; exact reference icon pixels and other-platform runtime remain unknown.\n\n## Dependencies\n- SKT-133\n- SKT-026\n\n## Concrete inherited cases \u2014 2026-10-18\nCircle Offset source/result and other retained circle parameter groups must be included in the grouped/derived ownership policy; simply locking their evaluated center/radius is insufficient.\n"
+    },
+    {
+      "key": "SKT-139",
+      "title": "Fix and unfix Two-Point Circle with retained diameter endpoints",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-134",
+        "SKT-045"
+      ],
+      "labels": [
+        "kind:implementation",
+        "area:skt",
+        "phase:P2",
+        "priority:P1"
+      ],
+      "body": "## Bounded result\nTwo-Point Circle has `diameterStartPointId` and retained direction that own its placement and size. Implement a stable Fix/UnFix action that locks the authored diameter endpoints/direction and resulting center/radius coherently, then removes only that ownership on repeat tool click. Qualify a native two-point circle with an editable diameter and source move after unfix. Preserve existing Center Circle and linked group behavior.\n\n## Acceptance and evidence\nDated permitted public behavior: `../Alloy-reference-records/knowledge/specs/skt-128-glyph-inventory-2026-10-18.md` (P2/P3). Reuse SKT-134 center-circle Fix/UnFix authority and one actual-app/native fixture with stable IDs, atomic refusal, exact Undo/Redo/save/reopen and inspected GPU capture. No permanent Fix badge; exact reference pixels and physical/other-platform runtime remain unknown.\n\n## Dependencies\n- SKT-134\n- SKT-045\n"
+    },
+    {
+      "key": "SKT-140",
+      "title": "Qualify Fix across remaining authored circle modes",
+      "kind": "validation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-134",
+        "SKT-139",
+        "SKT-095",
+        "SKT-107",
+        "SKT-108"
+      ],
+      "labels": [
+        "kind:validation",
+        "area:skt",
+        "phase:P2",
+        "priority:P1"
+      ],
+      "body": "## Bounded result\nUse bounded real-app/native fixtures to qualify Fix/UnFix on Three-Point Circle, 2/3-Tangent Circle and Center Circle with retained snap/coincident or dimensional source relations. Verify solver ownership, refusal/recovery where constraints conflict, green presentation and exact reopen; split any concrete unsupported mode into linked Todo before closing. Circle Offset source/result are separately owned by SKT-138.\n\n## Acceptance and evidence\nDated permitted public behavior: `../Alloy-reference-records/knowledge/specs/skt-128-glyph-inventory-2026-10-18.md` (P2/P3). Reuse SKT-134 center-circle Fix/UnFix authority and one actual-app/native fixture with stable IDs, atomic refusal, exact Undo/Redo/save/reopen and inspected GPU capture. No permanent Fix badge; exact reference pixels and physical/other-platform runtime remain unknown.\n\n## Dependencies\n- SKT-134\n- SKT-139\n- SKT-095\n- SKT-107\n- SKT-108\n"
     }
   ]
 }
