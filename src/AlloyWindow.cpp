@@ -8961,6 +8961,9 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
         view_->selectSupportFace({},{});if(extrudeEscape_)extrudeEscape_->setEnabled(false);if(extrudeDock_)extrudeDock_->hide();
         view_->clearPreview();view_->setEditDisplay({},{});view_->clearBodyStage();
         if(!commit){selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->selectProfile({},{});}
+        // Closing the numeric command panel must hand keyboard input back to
+        // the canvas, including Return from the distance editor.
+        view_->setFocus(Qt::OtherFocusReason);
     }
     else if(target=="solid.combine") {
         if(combineEscape_)combineEscape_->setEnabled(false);if(combineDock_)combineDock_->hide();
