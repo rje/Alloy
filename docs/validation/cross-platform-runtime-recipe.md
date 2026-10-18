@@ -120,3 +120,16 @@ linking and `dependency-build.json` inventories OCCT/FreeType outputs. This is
 additional Mac build evidence; the artifact explicitly marks runtime/GPU and
 bundling untested. Linux, macOS Intel and the targeted Windows build were still
 running when this entry was made.
+
+The same matrix's Linux x64 job completed successfully at `b663b4d`.
+Artifact `12138153247` has GitHub digest
+`sha256:8174481f64e1064e45fe2fd317f04d48d12bfbd34df3cb8b27c63c43ace434bf`.
+The downloaded manifest records the admitted patched item-view source hash,
+Qt 6.11.2 built with accessibility, item views, Widgets, Network, FreeType,
+Fontconfig, OpenGL, XCB/GLX, D-Bus and the ATSPI bridge enabled. The offscreen
+item-view regression passed 5/5 under GCC 13.3.0 on Ubuntu 24.04. The Alloy
+binary compiled and linked; `dependency-build.json` inventories the pinned
+OCCT/FreeType outputs and application/solver libraries. The artifact explicitly
+marks bundling, loaded runtime and GPU untested. macOS Intel and corrected
+Windows remain under compilation; CI-009 stays open until those artifacts are
+inspected.
