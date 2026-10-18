@@ -96,3 +96,15 @@ script was looked up under 32-bit Program Files, so `cl` was absent. Commit
 [`39125746935`](https://github.com/rje/Alloy/actions/runs/39125746935) is the
 targeted retry. Neither initial failure nor the pending retry qualifies the
 Windows input. Retain both run IDs and inspect all remaining jobs before closure.
+
+The targeted `dd9de1f` run was canceled while queued behind the all-target
+matrix. A Windows-only run at `ea012ec`,
+[`39126604062`](https://github.com/rje/Alloy/actions/runs/39126604062),
+confirmed the VS environment but stopped after patch application because the
+item-view source bytes differed from the admitted LF hash. Commit `d6dbc21`
+forces LF patch application and admits a CRLF-normalized result only when its
+SHA-256 equals the previously reviewed LF source; any other mismatch still
+fails. Targeted run
+[`39126716732`](https://github.com/rje/Alloy/actions/runs/39126716732)
+checks that correction. The Windows compilation and regression remain unknown
+until its artifacts are inspected.
