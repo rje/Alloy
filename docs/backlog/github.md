@@ -495,3 +495,4 @@ This is a publication snapshot. Use `python3 tools/backlog.py ready` for the liv
 | [#488 REL-042: Verify historical sketch Finish on the saved iron checkpoint](https://github.com/rje/Alloy/issues/488) | P4 Initial release | validation | P0 | [#483](https://github.com/rje/Alloy/issues/483) |
 | [#489 REL-043: Make Surface Trim preview match committed partition across viewport mesh states](https://github.com/rje/Alloy/issues/489) | P4 Initial release | implementation | P1 | [#481](https://github.com/rje/Alloy/issues/481) |
 | [#490 REL-044: Keep guided and component Loft preview and commit responsive](https://github.com/rje/Alloy/issues/490) | P4 Initial release | implementation | P1 | [#482](https://github.com/rje/Alloy/issues/482) |
+| [#491 REL-045: Keep interactive Surface Trim target and region click responsive](https://github.com/rje/Alloy/issues/491) | P4 Initial release | implementation | P0 | [#489](https://github.com/rje/Alloy/issues/489) |

@@ -8208,6 +8208,22 @@
         "priority:P1"
       ],
       "body": "## Split from REL-039\nREL-039/#482 covers the two measured corrected-iron Inner handle no-guide New Body stalls: choosing the third boundary and committing the same candidate. Its exact prepared preview can be adopted as one New Body history transaction. Guided-rail and new-component Loft variants have different source/owner/occurrence adoption semantics and remain outside that bounded result. The original REL-039 contract named guided/no-rail behavior; this issue retains those uncompleted variants.\n\n## Bounded work\nMeasure one representative guided-rail Loft and one new-component Loft through real Alloy entrypoints. Keep slow preview and final commit off the UI thread where meaningful, with private source/candidate evaluation, ordered section/rail identity, owner/occurrence correctness, stale-result and Cancel-as-result-discard guards. Use exact transaction semantics for created components; do not reuse a New Body adoption wrapper if it would lose occurrence state. Preserve native boundary selection and error presentation. Split further if the two variants cannot be completed coherently together.\n\n## Verification\nSaved representative fixtures measure status/navigation/GUI heartbeat through preview/commit, compare exact surface/body and component lineage, one history operation, Undo/Redo and native reopen. Focused stale/Cancel and source/owner checks, independent review. Do not replay the complete iron movie merely for this child.\n\n## Dependency\nREL-039/#482 provides the no-guide prepared-preview worker pattern; REL-016/#419 retains cumulative responsiveness.\n"
+    },
+    {
+      "key": "REL-045",
+      "title": "Keep interactive Surface Trim target and region click responsive",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "depends_on": [
+        "REL-043"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P4",
+        "priority:P0"
+      ],
+      "body": "## Observed stall\nThe REL-043/#489 saved corrected-iron panel fixture measured 18.412 s synchronous blocking when the interactive last-tool/target click bound the target and chose its split region in one gesture. REL-038/#481 moved fully specified dialog partition and final commit to the serial worker; its narrowed scope intentionally left this native hit-and-region gesture unchanged. REL-043 made preview geometry match commit but did not change latency. Evidence: external validation/rel043-mesh-independent-trim-2026-10-17/receipt.json and saved-fixture transcript.\n\n## Bounded work\nPreserve the clicked target and split-region intent across private background partitioning, even if the viewport navigates while work runs. Capture the hit/camera/ray and immutable input identity needed to resolve the same region after partition, without touching live topology from the worker. Publish exact selected region/red preview only after session/document/tab/revision/input/generation guards; allow status/navigation/Cancel-as-result-discard and keep native controls coherent. Reuse the accepted serial worker and mesh-independent bounds, with no approximate region or changed Remove semantics.\n\n## Verification\nOne saved corrected-iron live click fixture measures status/navigation/GUI heartbeat through the 18.412 s partition, then compares selected target/region, preview projection/areas, committed geometry/reference ancestry, one history operation, Undo/Redo and native reopen to the accepted committed panel stage. Focused click-intent/stale/Cancel checks and independent source/visual review. No complete iron movie rerun required.\n\n## Dependencies\nREL-038/#481 provides asynchronous fully specified partition/commit; REL-043/#489 provides stable preview geometry. REL-016/#419 retains cumulative responsiveness.\n"
     }
   ]
 }

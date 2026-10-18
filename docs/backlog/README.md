@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **487 issues**: **376 implementation, 23 research,
+The current publication contains **488 issues**: **377 implementation, 23 research,
 22 epics, and 66 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
@@ -25,8 +25,8 @@ REL-036/#479 independently fixes the large-model interactive Open stall;
 see its [receipt](../validation/responsive-native-open.md). A 1.279 s final
 presentation interval remains a measured responsiveness follow-up under
 REL-037/#480. The corrected iron full recording is now independently accepted;
-REL-038/039/#481–482 retain measured Trim and Loft stalls as separate
-responsiveness work; REL-040/041 fixed the bounded sketch edit paths.
+REL-038/039/#481–482 fix the measured Trim and Inner Loft stalls;
+REL-040/041 fix the bounded sketch edit paths.
 REL-040/#483 now accepts the bounded historical Sketch Edit worker path and
 focused Finish command foundation. The saved iron Edit remained responsive
 through 53.331 s background evaluation, with exact draft publication; see
@@ -39,15 +39,17 @@ evaluation with responsive status/pan/GUI heartbeat, exact changed solid,
 stable face IDs, one history operation and reopen. See
 [the receipt](../validation/responsive-sketch-source-edit.md). This does not
 close cumulative REL-016.
-REL-043/#489 separately tracks a pre-existing Surface Trim preview/commit
-geometry mismatch caused by viewport-dependent bounds. REL-038's background
-partition matches the accepted committed geometry; its runtime gate must use
-that committed baseline, not the stale live-preview extent.
+REL-043/#489 independently fixes the pre-existing Surface Trim preview/commit
+geometry mismatch caused by viewport-dependent bounds. Live meshed and private
+fresh previews now match the accepted committed projection, regions and selected
+geometry; see [the receipt](../validation/mesh-independent-surface-trim.md).
+REL-045/#491 retains the separately measured 18.412 s synchronous interactive
+last-tool click.
 REL-038/#481 now independently accepts the panel and connected-rear
 partition/commit worker paths, exact committed geometry/ancestry and
 history/reopen; see [the receipt](../validation/responsive-surface-trim.md).
-The interactive target click still partitions synchronously, and REL-043
-retains preview/commit consistency.
+The interactive target click still partitions synchronously under REL-045;
+REL-043 now fixes preview/commit consistency.
 REL-039/#482 is narrowed to the two measured corrected-iron no-guide New Body
 Loft waits. REL-044/#490 retains guided-rail, new-component and ordinary Loft
 responsiveness so the original broader acceptance is not silently reduced.

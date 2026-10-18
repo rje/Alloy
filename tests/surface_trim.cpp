@@ -6,6 +6,11 @@
 #include <QCoreApplication>
 #include <QTemporaryDir>
 #include <BRepTools.hxx>
+#include <BRep_Tool.hxx>
+#include <TopoDS.hxx>
+#include <TopExp_Explorer.hxx>
+#include <Prs3d_Drawer.hxx>
+#include <StdPrs_ToolTriangulatedShape.hxx>
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
@@ -128,6 +133,12 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
             {"toolSketchId",tool["id"]},{"toolEntityIds",toolIds},{"removedRegionIds",QJsonArray{}},
             {"throughMarginMm",10.0},{"projectionMode","sketchNormalThroughTarget"},
             {"sourcePlane","XZ"},{"sourceNormal",QJsonArray{0,-1,0}}}}};
+    auto triangulatedFaces=[](const TopoDS_Shape& shape){int count=0;TopLoc_Location location;
+        for(TopExp_Explorer face(shape,TopAbs_FACE);face.More();face.Next())
+            if(!BRep_Tool::Triangulation(TopoDS::Face(face.Current()),location).IsNull())++count;
+        return count;
+    };
+    check(triangulatedFaces(source.shape)==0,"Fresh Trim source unexpectedly already tessellated");
     const auto split=SurfaceTrim::split(feature,source,document.evaluation());
     check(split.regions.size()==4,"Two separate inner region picks unavailable");
     QJsonArray removed;double removedArea=0;
@@ -145,6 +156,23 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     auto bothRemoved=source;SurfaceTrim::applySelection(bothRemoved,selectedFeature,split);
     check(bothRemoved.summary["valid"].toBool() && bothRemoved.supportFaces.size()==2,
         "Prepared partition could not remove both inner regions");
+    // Reproduce the live viewport's mesh on this private synchronous fixture.
+    // Projection, regions and selected geometry must retain the exact canonical
+    // unmeshed result, including lineage; never accept a wider area tolerance.
+    Handle(Prs3d_Drawer) drawer=new Prs3d_Drawer;
+    drawer->SetDeviationCoefficient(.0005);drawer->SetDeviationAngle(.10);
+    StdPrs_ToolTriangulatedShape::Tessellate(source.shape,drawer);
+    check(triangulatedFaces(source.shape)>0,"Viewport-parameter tessellation did not mesh the test source");
+    const auto meshedSplit=SurfaceTrim::split(feature,source,document.evaluation());
+    check(meshedSplit.projection==split.projection && SurfaceTrim::descriptors(meshedSplit)==partitionRegions,
+        "Viewport tessellation changed Trim projection or exact region descriptors");
+    auto meshedRemoved=source;SurfaceTrim::applySelection(meshedRemoved,selectedFeature,meshedSplit);
+    check(meshedRemoved.summary==bothRemoved.summary,"Viewport tessellation changed selected Trim geometry or lineage");
+    check(meshedRemoved.supportFaces.size()==bothRemoved.supportFaces.size() && meshedRemoved.solidEdges.size()==bothRemoved.solidEdges.size(),
+        "Viewport tessellation changed named Trim topology");
+    for(size_t i=0;i<bothRemoved.supportFaces.size();++i)check(meshedRemoved.supportFaces[i].faceId==bothRemoved.supportFaces[i].faceId,"Meshed Trim face identity changed");
+    for(size_t i=0;i<bothRemoved.solidEdges.size();++i)check(meshedRemoved.solidEdges[i].edgeId==bothRemoved.solidEdges[i].edgeId,"Meshed Trim edge identity changed");
+    std::cout<<"SURFACE_TRIM_MESH_INDEPENDENT_OK exactProjectionRegionsSelectedGeometryAndIDs\n";
     check(source.shape.IsSame(document.bodies().back().shape) && source.supportFaces.size()==2
         && SurfaceTrim::descriptors(split)==partitionRegions,"Selection mutated the source or partition");
     auto invalid=selectedParameters;invalid["removedRegionIds"]=QJsonArray{CadDocument::newId()};

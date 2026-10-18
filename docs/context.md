@@ -2,6 +2,15 @@
 
 ## Active user order (2026-10-17)
 
+REL-043/#489 is independently accepted: Surface Trim preview bounds now ignore
+incidental viewport triangulation and match the accepted committed panel
+projection/regions/selected geometry. The live meshed and private fresh app
+previews, Cancel, full committed authored/bodies, one history operation,
+Undo/Redo and native reopen passed. See
+[the receipt](validation/mesh-independent-surface-trim.md). Interactive
+last-tool selection still blocked for 18.412 s and is Todo REL-045/#491;
+the geometry consistency fix does not claim responsiveness for that click.
+
 REL-039/#482 is independently accepted for the corrected-iron Inner handle
 no-guide New Body Loft. Third-boundary preview evaluated for 19.149 s on the
 worker while status/pan/GUI heartbeat stayed responsive; cached OK took
@@ -18,10 +27,10 @@ connected-rear partition/commit all ran off-thread with responsive status,
 pan and GUI heartbeat; exact accepted **committed** geometry/source ancestry,
 within-run IDs, one history entry, Undo/Redo and reopen passed. The old live
 preview used viewport-meshed bounds and differed from commit; REL-043/#489
-tracks that pre-existing visual/geometry discrepancy. Interactive target-click
-cache misses and direct Trim API responsiveness remain outside this bounded
-gate. See [the receipt](validation/responsive-surface-trim.md). REL-039 Loft
-and cumulative REL-016 remain open.
+subsequently fixed that discrepancy. Interactive target-click cache misses
+and direct Trim API responsiveness remain outside this bounded gate. See
+[the receipt](validation/responsive-surface-trim.md). Cumulative REL-016
+remains open.
 
 REL-042/#488 is independently accepted on the saved corrected-iron pre-bottom
 checkpoint. One macOS LaunchServices bundle launch produced an active native
@@ -31,7 +40,8 @@ the worker with responsive status/pan/GUI heartbeat, and the resulting
 three-tool bodies/references, one history entry, Undo/Redo and native reopen
 matched the accepted stage. See [the receipt](validation/responsive-historical-sketch-finish.md).
 Physical input and the later Extrude/Fill suffix remain outside this bounded
-gate; REL-038/039 and cumulative REL-016 remain open.
+gate; REL-038/039 later passed their bounded paths, while cumulative REL-016
+remains open.
 
 REL-041/#484 is independently accepted for the direct no-session source edit
 that previously blocked the window for 55.825 s. On the saved corrected-iron

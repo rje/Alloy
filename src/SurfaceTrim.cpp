@@ -320,7 +320,9 @@ SurfaceTrimSplit SurfaceTrim::split(const QJsonObject& feature,const EvaluatedBo
         !((a.first.Distance(b.first)<mmTolerance && a.second.Distance(b.second)<mmTolerance)
             || (a.first.Distance(b.second)<mmTolerance && a.second.Distance(b.first)<mmTolerance)))
         reject("trim_tool_open","The two solved splines must meet at both endpoints");
-    Bnd_Box bounds;BRepBndLib::Add(target.shape,bounds);
+    // Cutter reach is part of the geometric result. Ignore incidental viewport
+    // triangulations so live previews use the same bounds as fresh evaluation.
+    Bnd_Box bounds;BRepBndLib::Add(target.shape,bounds,false);
     if(bounds.IsVoid())reject("trim_target_unsupported","Target has no finite bounds");
     Standard_Real xmin,ymin,zmin,xmax,ymax,zmax;bounds.Get(xmin,ymin,zmin,xmax,ymax,zmax);
     const auto margin=p["throughMarginMm"].toDouble();
