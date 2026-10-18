@@ -7,8 +7,8 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current publication contains **512 issues**: **400 implementation, 23 research,
-22 epics, and 67 validation gates**. Counts describe decomposition, not coverage.
+The current publication contains **513 issues**: **400 implementation, 23 research,
+22 epics, and 68 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 
 The 2026-10-17 v1 inventory reconciliation added 20 bounded implementation
@@ -16,6 +16,8 @@ children, [#496–#515](github.md), for proposed tools previously owned only by
 broad capability families or already closed partial slices. All are Todo on the
 project board. Their public workflow contracts and real-object fixtures remain
 to be researched and implemented; REL-030/#469 still owns final v1 scope review.
+DOC-016/#167 has a bounded [native exchange-sheet receipt](../validation/native-exchange-sheet.md);
+DOC-035/#516 retains the physical export-menu entry path as Todo.
 
 DOC-009/#21 now has a bounded, independently reviewed two-body Browser
 identity, visibility, selection and reopen receipt in

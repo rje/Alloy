@@ -520,3 +520,4 @@ This is a publication snapshot. Use `python3 tools/backlog.py ready` for the liv
 | [#513 SOL-068: Move a selected solid face with history](https://github.com/rje/Alloy/issues/513) | P3 Shape/import/print breadth | implementation | P2 | [#40](https://github.com/rje/Alloy/issues/40) |
 | [#514 SOL-069: Replace a selected face with a supported surface](https://github.com/rje/Alloy/issues/514) | P3 Shape/import/print breadth | implementation | P2 | [#40](https://github.com/rje/Alloy/issues/40) |
 | [#515 SOL-070: Delete a selected face with explicit heal options](https://github.com/rje/Alloy/issues/515) | P3 Shape/import/print breadth | implementation | P2 | [#40](https://github.com/rje/Alloy/issues/40) |
+| [#516 DOC-035: Qualify native File and Browser entry for STEP and mesh export](https://github.com/rje/Alloy/issues/516) | P4 Initial release | validation | P1 | [#167](https://github.com/rje/Alloy/issues/167) |

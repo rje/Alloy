@@ -4572,7 +4572,7 @@
         "priority:P0",
         "area:doc"
       ],
-      "body": "## Scope\nComplete the remaining native UI evidence for the implemented STEP/STL commands: File Open a STEP source, switch STEP export units in the sheet, and change nondefault mesh settings through Save As Mesh. Preserve the accepted format/API checks; do not rerun unrelated modeling.\n\n## Acceptance\nUse actual application controls and native file sheets, inspect selected body/unit/settings and actual exported file with independent readers. Keep source document unchanged by export. Confirm cancel leaves no output or authoring edit. Record tool limitations separately from proven app defects.\n\n## Current evidence\nSingle-solid STEP import/export, mm/in units, binary/ASCII STL refinement/manifold checks and bracket outputs pass real-app API and independent readback. Earlier native mm STEP export and default STL Save As Mesh passed (step-native-receipt.json and stl-native-receipt.json in exchange-finish/build-step/evidence). The current CUA Open path entry did not accept the target reliably; this does not establish a translator failure. No full native file-dialog claim.\n"
+      "body": "## Bounded native-sheet result\nQualify File Open of a STEP source through the actual macOS chooser, then operate the real STEP Export and Save As Mesh sheets with nondefault settings and native Save/Cancel. The shared local control may open the export sheets for this gate; physical File and Browser menu entry remains explicitly under [DOC-035/#516](https://github.com/rje/Alloy/issues/516).\n\n## Acceptance\nInspect the selected source/body, inch STEP unit and nondefault mesh refinement in actual app controls. Independently read the resulting STEP and STL, compare scale, geometry and units, and confirm export leaves the authored document and undo stack unchanged. Give Cancel a named output target and prove it does not exist afterward. Keep native entry method and remaining limitation explicit.\n\n## Evidence\nThe 2026-10-17 bounded receipt is `docs/validation/native-exchange-sheet.md`; external files are in `../Alloy-reference-records/validation/doc016-native-exchange-2026-10-17/`. The prior STEP/STL API and default native paths remain in `docs/validation/step-exchange.md` and `docs/validation/bracket-exchange.md`. Complete physical menu-to-export activation is retained by [DOC-035/#516](https://github.com/rje/Alloy/issues/516) and is not claimed by this issue."
     },
     {
       "key": "SKT-028",
@@ -8582,6 +8582,20 @@
         "area:sol"
       ],
       "body": "## Bounded result\nDelete a selected face with explicit heal options. This proposed printable-part v1 gap is a child of `ADV-001`; remaining modes stay on the parent roadmap.\n\n## Reference and scope\nBefore coding, record public command inputs, selection rules, defaults, preview, commit/cancel, history/edit behavior and visual examples in `../Alloy-reference-records/knowledge`, with dated provenance. Define a supported option subset and retain other noncloud modes on the parent.\n\n## Acceptance\n- Delete a face of a simple solid using a documented heal choice; verify watertightness/refusals and downstream references.\n- Native UI and local control use the same retained authored command. Check a meaningful upstream edit, one transactional refusal, Undo/Redo and save/reopen.\n- Inspect actual GPU presentation and native controls. For a printable solid, independently read back STL. Keep geometry, input and export evidence distinct.\n\n## Ownership\nInventory row `solid.face-edit`; parent `ADV-001`. Todo until its public command contract and real-object fixture are accepted. Its closure does not complete the whole capability family or release gate.\n"
+    },
+    {
+      "key": "DOC-035",
+      "title": "Qualify native File and Browser entry for STEP and mesh export",
+      "kind": "validation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [
+        "DOC-016"
+      ],
+      "labels": [
+        "area:doc"
+      ],
+      "body": "## Bounded result\nQualify the complete physical UI path from Alloy's File menu to Export STEP and Save As Mesh, plus the Browser body context-menu path to Save As Mesh. `DOC-016` independently validates native sheets, inch STEP, refined STL, Cancel and readback after shared-API sheet activation; this child retains the actual menu-entry gap.\n\n## Acceptance\n- From a loaded one-body design, use physical/native UI input to activate File > Export, File > Save As Mesh and the body context-menu Save As Mesh. Inspect actual selected body and active sheet; do not invoke the local control API to open those sheets for this gate.\n- Finish one representative native-menu export through its chooser and read the output independently; verify Cancel returns to the design without an output or authored edit.\n- Record whether a computer-control limitation or an Alloy defect prevents menu activation, with a matched native capture or human test. Keep these causes distinct and retain the issue Todo if the chain is unproven.\n\n## Existing evidence\nSee `docs/validation/native-exchange-sheet.md`. The prior computer-control binding problem is resolved for File Open and native sheets, but custom menu activation remains unqualified. Reuse the accepted source/readback fixture; do not rerun unrelated modeling or broad interchange tests."
     }
   ]
 }

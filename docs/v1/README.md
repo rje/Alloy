@@ -8,6 +8,9 @@ The first ownership pass linked 20 previously broad-only proposed tool areas to
 bounded Todo issues [#496–#515](../backlog/github.md). This establishes pullable
 owners, not feature completion or a final v1 scope decision. Existing partial
 rows still require real-workflow evidence and explicit release-gate disposition.
+The [DOC-016 native exchange-sheet gate](../validation/native-exchange-sheet.md)
+now has independently checked STEP/STL output; DOC-035/#516 retains physical
+export-menu activation.
 
 - [Command inventory](command-inventory.json): 150 capability rows and 397 runtime-cross-checked IDs, with explicit gaps and evidence.
 - [Inventory notes](inventory-notes.md): definitions and verification limits.

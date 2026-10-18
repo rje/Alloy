@@ -39,9 +39,11 @@ export test, and real-app STL unit/refinement/manifold test pass on this
 candidate. The prior native STEP export sheet and millimeter save passed
 independent readback. The earlier native default STL Save As Mesh sheet/save also passed;
 `exchange-finish/build-step/evidence/stl-native-receipt.json` records its
-12-triangle mesh, bounds and normals. Physical STEP unit-dropdown changes,
-native STEP File Open and nondefault mesh-setting interaction remain unqualified. These gaps concern UI
-operation; the shared command paths and format outputs above are verified.
+12-triangle mesh, bounds and normals. A later [native-sheet check](native-exchange-sheet.md)
+qualifies STEP File Open, inch selection, nondefault mesh settings and actual
+Save/Cancel, with independently checked outputs. Export sheet activation in
+that run used Alloy's local control; physical File/Browser menu entry remains
+under DOC-035/#516. The shared command paths and format outputs above are verified.
 The exact physical tutorial and multi-platform product gates remain open.
 
 The integrated main candidate a840d36 built successfully and repeated the

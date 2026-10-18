@@ -14,7 +14,12 @@ The 2026-10-17 ownership pass added 20 bounded Todo implementation issues
 [#496–#515](backlog/github.md) to the v1 inventory and GitHub project board.
 They cover proposed tools previously linked only to broad capability families
 or completed partial children. Their contracts/fixtures and final v1 release
-disposition remain open under REL-030; count is now 512 issues total.
+disposition remain open under REL-030; count is now 513 issues total.
+DOC-016/#167 now passes the bounded actual STEP Open and export-sheet controls:
+inch STEP, nondefault STL, native Save/Cancel, independent readback and exact
+authored/undo preservation. Export sheets were launched through the local API;
+DOC-035/#516 retains the unproven physical File/Browser menu activation as a
+Todo gate. See [the native-sheet receipt](validation/native-exchange-sheet.md).
 TUT-030/#442 research is independently accepted: the public connector
 dimensions remain unknown, while the user-approved nominal-fixture adaptation
 under TUT-035 passes measured 0.5 mm clearance to each half. The governing
