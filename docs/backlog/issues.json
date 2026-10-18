@@ -9490,7 +9490,7 @@
         "phase:P2",
         "priority:P1"
       ],
-      "body": "## Bounded result\nQualify Delete for selected projected/linked sketch geometry, including source-link and support ownership. Document whether the published workflow removes a local projection, breaks a link or requires an owning command; refuse stale/upstream dependencies clearly. Do not generic-strip projected JSON.\n\n## Acceptance\nResearch the affected public Delete workflow first with dated sources in ../Alloy-reference-records/knowledge. Native canvas/list and local API must use the same authoritative deletion command. Preserve unrelated authored IDs and constraints; fail atomically on unsupported ownership. Use one real-app native/API fixture with Undo/Redo, save/reopen, and hardware GPU capture. Physical hand input, other-platform runtime and exact reference styling remain separate release gates.\n\n## Split provenance\nRetained from SKT-102/#525 on 2026-10-18 after separating ordinary authored curve deletion from operation-owned group/derived deletion. Public source evidence and behavior uncertainties are in the external SKT-102 triage record.\n\n## Dependencies\n- SKT-102\n- SKT-026\n\n## Dependency correction and bounded current scope \u2014 2026-10-18\nThis Delete slice uses retained linked line/vertex and circular projection foundations accepted under SKT-066/#272 and SKT-071/#319. It does not require completion of broad SKT-026/#160, which remains Todo for independent-copy choice, relink/break-link repair, missing-source management and wider analytic projections. Current real-app scope is selected retained straight, circle and point projection records; face projection and broken-source repair remain SKT-026 or later bounded children. Public evidence and unknown live-selection cascade are in ../Alloy-reference-records/knowledge/specs/skt143-linked-projected-delete-2026-10-18.md.\n"
+      "body": "## Bounded result\nQualify Delete for selected projected/linked sketch geometry, including source-link and support ownership. Document whether the published workflow removes a local projection, breaks a link or requires an owning command; refuse stale/upstream dependencies clearly. Do not generic-strip projected JSON.\n\n## Acceptance\nResearch the affected public Delete workflow first with dated sources in ../Alloy-reference-records/knowledge. Native canvas/list and local API must use the same authoritative deletion command. Preserve unrelated authored IDs and constraints; fail atomically on unsupported ownership. Use one real-app native/API fixture with Undo/Redo, save/reopen, and hardware GPU capture. Physical hand input, other-platform runtime and exact reference styling remain separate release gates.\n\n## Split provenance\nRetained from SKT-102/#525 on 2026-10-18 after separating ordinary authored curve deletion from operation-owned group/derived deletion. Public source evidence and behavior uncertainties are in the external SKT-102 triage record.\n\n## Dependencies\n- SKT-102\n- SKT-026\n\n## Dependency correction and bounded current scope \u2014 2026-10-18\nThis Delete slice uses retained linked line/vertex and circular projection foundations accepted under SKT-066/#272 and SKT-071/#319. It does not require completion of broad SKT-026/#160, which remains Todo for independent-copy choice, relink/break-link repair, missing-source management and wider analytic projections. Current real-app scope is selected retained straight, circle and point projection records; face projection and broken-source repair remain SKT-026 or later bounded children. Public evidence and unknown live-selection cascade are in ../Alloy-reference-records/knowledge/specs/skt143-linked-projected-delete-2026-10-18.md.\n\n## Linked remaining owners\nSKT-155/#581 qualifies overlapping authored/projected curve input disambiguation. SKT-156/#582 owns multi-boundary Project Face result/group deletion. Broad creation/repair and independent copies remain SKT-026/#160; broader history/reference repair remains HIS-002. Neither new child is accepted by the current line/circle/point Delete fixture.\n"
     },
     {
       "key": "SKT-144",
@@ -9687,6 +9687,42 @@
         "priority:P2"
       ],
       "body": "## Bounded result\nWhen deleting a selected generated support-face loop Offset profile, a stale face or changed retained boundary lineage refuses atomically with a concise recovery action. The accepted SKT-145 path already refuses but forwards terse evaluator text without telling the user to cancel, reopen or reselect.\n\n## Acceptance\nKeep existing owner and lineage validation; add recovery guidance only to the Delete command error path so normal evaluation diagnostics remain unchanged. Check one stale support and one changed-boundary Delete refusal through the shared command, including stable error code, recovery message, exact active draft/history/selection and committed document preservation. Inspect the native error presentation and verify one valid Delete still succeeds. Use proportionate focused tests and real-app captures; physical input and other-platform runtime stay in release gates.\n\n## Provenance\nMinor explicit remainder from independent SKT-145/#571 review, also noted by SKT-152/#578 qualification. Do not claim it as accepted in either gate.\n\n## Dependency\n- SKT-145"
+    },
+    {
+      "key": "SKT-155",
+      "title": "Disambiguate overlapping authored and linked projected sketch curves",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P2",
+      "depends_on": [
+        "SKT-143"
+      ],
+      "labels": [
+        "kind:implementation",
+        "status:blocked",
+        "area:skt",
+        "phase:P2",
+        "priority:P2"
+      ],
+      "body": "## Bounded result\nIn Sketch Edit, overlapping authored and linked projected curves remain independently selectable by native input, with a visible stable-ID or source cue. A click must not silently delete the wrong curve. The SKT-143 fixture qualified canvas/list/context Delete for non-overlapping projected geometry but did not exercise the public overlap-selection case.\n\n## Acceptance\nResearch the documented overlapping-projection selection gesture and keep dated sources/unknowns outside the repository. Create coincident authored and linked projected straight and circular pairs. Through real native input, deliberately choose each target, inspect its stable selection/source cue, Delete only the intended local object through the shared command, and verify counterpart/source survival, one-step Undo/Redo, save/reopen and readable GPU captures. Keep exact gesture/styling parity as matched or unknown by evidence.\n\n## Dependency\n- SKT-143\n\n## Provenance\nExplicit input-disambiguation remainder from independent SKT-143/#569 review; external public evidence is in ../Alloy-reference-records/knowledge/specs/skt143-linked-projected-delete-2026-10-18.md."
+    },
+    {
+      "key": "SKT-156",
+      "title": "Define whole-owner Delete for multi-boundary face projections",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P2",
+      "depends_on": [
+        "SKT-143"
+      ],
+      "labels": [
+        "kind:implementation",
+        "status:blocked",
+        "area:skt",
+        "phase:P2",
+        "priority:P2"
+      ],
+      "body": "## Bounded result\nQualify deletion when one retained Project Face action creates multiple linked boundary records. Define whether native selection deletes a single projected edge or the owning face-projection group, preserving source/support and unrelated projections. SKT-143 only covers individually retained line/circle/point records.\n\n## Acceptance\nResearch a permitted public Project Face/Delete demonstration and mark the exact cascade unknown if not shown. Retain explicit owner identity for a multi-boundary face projection; use one real-app native/API face fixture to delete the selected result according to the chosen documented/Alloy policy. Check profile/source/support continuity, surviving boundary IDs, dependent-reference refusal, one-step Undo/Redo, save/reopen, downstream selected-profile preflight and hardware GPU captures. Do not generic-strip projection arrays.\n\n## Dependency\n- SKT-143\n\n## Provenance\nExplicit face-projection ownership remainder from independent SKT-143/#569 review; broad projection creation/repair remains SKT-026/#160."
     }
   ]
 }
