@@ -106,8 +106,8 @@ forces LF patch application and admits a CRLF-normalized result only when its
 SHA-256 equals the previously reviewed LF source; any other mismatch still
 fails. Targeted run
 [`39126716732`](https://github.com/rje/Alloy/actions/runs/39126716732)
-checks that correction. The Windows compilation and regression remain unknown
-until its artifacts are inspected.
+checked that correction; its result and the subsequent adapter failure are
+recorded below.
 
 The original matrix's macOS arm64 job completed successfully at `b663b4d`.
 Artifact `12136049704` has GitHub digest
@@ -118,8 +118,7 @@ FreeType enabled, the admitted item-view source hash, and
 `passed-offscreen-itemview-cache`. `build.json` records Alloy compilation and
 linking and `dependency-build.json` inventories OCCT/FreeType outputs. This is
 additional Mac build evidence; the artifact explicitly marks runtime/GPU and
-bundling untested. Linux, macOS Intel and the targeted Windows build were still
-running when this entry was made.
+bundling untested.
 
 The same matrix's Linux x64 job completed successfully at `b663b4d`.
 Artifact `12138153247` has GitHub digest
@@ -130,9 +129,17 @@ Fontconfig, OpenGL, XCB/GLX, D-Bus and the ATSPI bridge enabled. The offscreen
 item-view regression passed 5/5 under GCC 13.3.0 on Ubuntu 24.04. The Alloy
 binary compiled and linked; `dependency-build.json` inventories the pinned
 OCCT/FreeType outputs and application/solver libraries. The artifact explicitly
-marks bundling, loaded runtime and GPU untested. macOS Intel and corrected
-Windows remain under compilation; CI-009 stays open until those artifacts are
-inspected.
+marks bundling, loaded runtime and GPU untested.
+
+The same matrix's macOS x64 job completed successfully at `b663b4d`.
+Artifact `12139010720` has GitHub digest
+`sha256:0f7908ab0c5d3ecff21d865aa1beaa32edbb014e02dd140d2e26e4f271e79c03`.
+Its downloaded manifests record the admitted patched item-view source hash,
+mandatory Qt features, `passed-offscreen-itemview-cache`, AppleClang
+17.0.0.17000013, pinned OCCT/FreeType output inventory, and an Alloy binary
+compiled and linked for `macos-x64`. The manifest explicitly marks runtime,
+GPU and bundling untested. This establishes an Intel compile/link input only,
+not a relocatable or physical Intel application check.
 
 The corrected Windows x64 run `39126716732` reached a complete pinned Qt
 source build and passed the offscreen item-view regression (5/5) on MSVC
@@ -146,5 +153,8 @@ and MSVC requires `_USE_MATH_DEFINES` before including math headers. The
 artifact retains `17-cmake.log` and the Qt manifest; it contains no Alloy
 `build.json`, so Windows compilation/link acceptance is still open. A
 Windows-only adapter compile definition is now the bounded correction. A
-manual targeted Windows rerun is needed; do not infer a packaged runtime/GPU
-result from the successful Qt regression.
+manual targeted Windows rerun
+[`39132726346`](https://github.com/rje/Alloy/actions/runs/39132726346)
+is in progress at `be858a6`; do not infer a packaged runtime/GPU result from
+the successful Qt regression. CI-009 stays open until that Alloy build is
+inspected.
