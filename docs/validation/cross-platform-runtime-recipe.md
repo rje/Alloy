@@ -155,6 +155,49 @@ artifact retains `17-cmake.log` and the Qt manifest; it contains no Alloy
 Windows-only adapter compile definition is now the bounded correction. A
 manual targeted Windows rerun
 [`39132726346`](https://github.com/rje/Alloy/actions/runs/39132726346)
-is in progress at `be858a6`; do not infer a packaged runtime/GPU result from
-the successful Qt regression. CI-009 stays open until that Alloy build is
-inspected.
+ran at `be858a6` and was canceled at the 120-minute job limit during OCCT
+compilation. Its Qt source build and offscreen regression passed (5/5), and
+FreeType installed successfully; `14-cmake.log` ends in an interrupted OCCT
+MSBuild invocation. No Alloy configure/build or success manifest was reached.
+The retained artifact was inspected locally at
+`/tmp/alloy-ci009-windows-timeout`. This timeout supplies no evidence about
+the adapter correction or Alloy linking. CI-009 remains open.
+
+
+## Bounded Windows timeout correction (2026-10-18)
+
+The next candidate uses single-configuration Ninja for FreeType, OCCT and
+Alloy on Windows, matching the existing native Qt recipe. The workflow still
+initializes x64 MSVC/SDK through `vcvarsall`; no compiler or architecture change
+is intended. Release is selected by `CMAKE_BUILD_TYPE=Release`, and the existing
+three-job limit applies to individual Ninja compilation jobs. The pinned OCCT
+source already enables MSVC `/MP`, so prior MSBuild compilation must not be
+characterized as serial. Avoiding its project-level scheduling plus `/MP`
+oversubscription is a performance hypothesis requiring the native retry.
+
+Windows application/client artifact paths now use the build root rather than
+the Visual Studio `Release/` subdirectory. Solver library hashes and `dumpbin`
+inspection already search recursively, including the nested Ondsel output.
+OCCT's Windows install directories depend on MSVC compiler identity and bitness;
+its installed CMake package remains the discovery authority. The success
+`dependency-build.json` retains the effective generator/build type and complete
+library inventory for FreeType, OCCT and Alloy. Inspect these on the retry;
+Ninja does not itself prove successful compiler selection or linking.
+
+Only explicitly dispatched Windows jobs receive a bounded 180-minute timeout;
+tag jobs and other targets keep 120 minutes. This allows a cold source build
+more headroom while the scheduling change is assessed. Source/library pins,
+mandatory modules and native compiler baseline checks remain unchanged.
+
+The single-config and generator behavior follows the public CMake 3.31
+[Ninja documentation](https://cmake.org/cmake/help/v3.31/generator/Ninja.html)
+and [build-type documentation](https://cmake.org/cmake/help/v3.31/variable/CMAKE_BUILD_TYPE.html).
+OCCT's compiler/install and `/MP` behavior was checked in its pinned public
+[source](https://github.com/Open-Cascade-SAS/OCCT/tree/a016080bf6738d6aeae020badee4e888ad1540a5)
+(`CMakeLists.txt`, `adm/cmake/occt_macros.cmake`,
+`adm/cmake/occt_defs_flags.cmake`), retrieved 2026-10-18.
+
+Focused Python compilation, static generator/artifact/timeout contract checks,
+the four native Qt recipe tests and `git diff --check` pass locally on macOS.
+No native Windows build was run locally; elapsed-time improvement, Windows
+Alloy compile/link, packaging, loaded runtime and GPU support remain unverified.

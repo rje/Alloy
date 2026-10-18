@@ -25,7 +25,9 @@ jobs:
   build:
     name: ${{ matrix.target }}
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 120
+    # Cold source Qt + OCCT + Alloy exceeded 120 minutes on Windows.
+    # Keep the extra hour bounded to deliberate Windows qualification runs.
+    timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && matrix.target == 'windows-x64' && 180 || 120 }}
     strategy:
       fail-fast: false
       matrix:

@@ -64,7 +64,10 @@ def main():
         run('git', '-C', folder, 'checkout', '--detach', 'FETCH_HEAD')
         return folder
 
-    generator = ['-G', 'Visual Studio 17 2022', '-A', 'x64'] if sys.platform == 'win32' else ['-G', 'Ninja']
+    # Windows inherits x64 MSVC/SDK from vcvarsall, as the native Qt recipe does.
+    # Ninja schedules individual compilation jobs with one global parallel limit;
+    # the VS generator's project parallelism plus OCCT /MP is less predictable.
+    generator = ['-G', 'Ninja']
     shared = ['-DCMAKE_BUILD_TYPE=Release']
     if sys.platform == 'darwin':
         shared += [f'-DCMAKE_OSX_ARCHITECTURES={arch}']
@@ -184,14 +187,14 @@ def main():
             f'-DALLOY_EXPECTED_COMPILER_VERSION={baseline["compiler_version"]}')
         run('cmake', '--build', directory, '--config', 'Release', '--parallel', '3')
         binary = directory / ('alloy.app' if sys.platform == 'darwin' else
-                              'Release/alloy.exe' if sys.platform == 'win32' else 'alloy')
+                              'alloy.exe' if sys.platform == 'win32' else 'alloy')
         if binary.is_dir():
             shutil.copytree(binary, artifact / binary.name, dirs_exist_ok=True)
             executable = binary / 'Contents/MacOS/alloy'
         else:
             shutil.copy2(binary, artifact / binary.name)
             executable = binary
-        helper = directory / ('Release/alloy-local-client.exe' if sys.platform == 'win32' else 'alloy-local-client')
+        helper = directory / ('alloy-local-client.exe' if sys.platform == 'win32' else 'alloy-local-client')
         shutil.copy2(helper, artifact / helper.name)
         shutil.copy2(ROOT / 'tools/alloyctl.py', artifact / 'alloyctl.py')
         lib3mf_notices = directory / 'third-party-notices/lib3mf'
