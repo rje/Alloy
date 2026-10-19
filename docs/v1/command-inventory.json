@@ -297,7 +297,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Edit/reorder/delete and transient rollback with native Timeline controls exist. Feature suppression and broader history parity remain open; no broad history-complete claim.",
+      "gap": "Bounded edit/reorder/delete, transient rollback and Box/Offset Face suppression are accepted. Broader feature/history families and cumulative release parity remain open.",
       "apiIds": [
         "feature.delete",
         "feature.edit",
@@ -306,7 +306,8 @@
         "timeline.showFeature",
         "timeline.showLatest",
         "timeline.rollbackBefore",
-        "timeline.returnToLatest"
+        "timeline.returnToLatest",
+        "history.suppression"
       ],
       "issueKeys": [
         "HIS-003",
@@ -325,7 +326,8 @@
         "docs/validation/timeline-reorder.md",
         "docs/validation/timeline-overflow.md",
         "docs/validation/timeline-visual-polish.md",
-        "docs/validation/history-rollback.md"
+        "docs/validation/history-rollback.md",
+        "docs/validation/history-suppression.md"
       ],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },
@@ -360,10 +362,12 @@
       "label": "Suppress and unsuppress features",
       "category": "History",
       "scope": "proposed-v1",
-      "implementation": "missing",
-      "nativeEvidence": "unknown",
-      "gap": "No registered suppression command; dependency handling, saved state and native UI require implementation.",
-      "apiIds": [],
+      "implementation": "partial",
+      "nativeEvidence": "partial",
+      "gap": "Box and retained planar Offset Face histories pass explicit/dependent suppression, native right-click, Undo/Redo and save/reopen. Other feature/dependency families, assembly, physical input and platform runtime remain open.",
+      "apiIds": [
+        "history.suppression"
+      ],
       "issueKeys": [
         "HIS-003",
         "HIS-011"
@@ -371,7 +375,9 @@
       "sourceFiles": [
         "docs/backlog/issues.json"
       ],
-      "receipts": [],
+      "receipts": [
+        "docs/validation/history-suppression.md"
+      ],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },
     {
