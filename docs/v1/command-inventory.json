@@ -383,7 +383,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Atomic support failure preserves the valid committed document. HIS-009 accepts missing-support cached inspection; HIS-010 accepts one changed-boundary inspection; SKT-154 accepts two actionable loop Offset Delete recovery messages. Physical native input remains open. SKT-160 must explicitly reassign one ordinary planar sketch; SKT-161 must define generated Offset boundary policy. Native repair and wider supports remain open.",
+      "gap": "HIS-009/HIS-010 inspect failed support and changed-boundary edits; SKT-154 gives two actionable Delete recovery messages. SKT-160 accepts explicit ordinary root sketch reassignment to an earlier parallel face or plane as one valid history edit. Physical native input, generated Offset boundary repair and wider supports remain open under SKT-161/SKT-025.",
       "apiIds": [],
       "issueKeys": [
         "HIS-002",
@@ -406,9 +406,10 @@
         "docs/validation/enclosure-connector-clearance.md",
         "docs/validation/failed-edit-repair.md",
         "docs/validation/failed-boundary-inspection.md",
-        "docs/validation/sketch-loop-offset-recovery.md"
+        "docs/validation/sketch-loop-offset-recovery.md",
+        "docs/validation/sketch-plane-redefinition.md"
       ],
-      "planningStatus": "HIS-009/HIS-010 transient inspection and SKT-154 loop Delete guidance accepted; explicit repair and generated-boundary policy remain open"
+      "planningStatus": "HIS-009/HIS-010 inspection, SKT-154 loop Delete guidance and SKT-160 ordinary parallel support repair accepted; generated-boundary and wider repair remain open"
     },
     {
       "id": "sketch.lifecycle",
@@ -417,7 +418,7 @@
       "scope": "proposed-v1",
       "implementation": "present",
       "nativeEvidence": "partial",
-      "gap": "Atomic support failure preserves the valid committed document. HIS-009 accepts missing-support cached inspection; HIS-010 accepts one changed-boundary inspection; SKT-154 accepts two actionable loop Offset Delete recovery messages. Physical native input remains open. SKT-160 must explicitly reassign one ordinary planar sketch; SKT-161 must define generated Offset boundary policy. Native repair and wider supports remain open.",
+      "gap": "HIS-009/HIS-010 inspect failed support and changed-boundary edits; SKT-160 accepts explicit ordinary root sketch reassignment to an earlier parallel face or plane as one valid history edit. Physical native input, generated Offset boundary repair and wider supports remain open under SKT-161/SKT-025.",
       "apiIds": [
         "sketch.begin",
         "sketch.cancel",
@@ -441,9 +442,10 @@
       ],
       "receipts": [
         "docs/validation/sketches.md",
-        "docs/validation/face-supported-sketches.md"
+        "docs/validation/face-supported-sketches.md",
+        "docs/validation/sketch-plane-redefinition.md"
       ],
-      "planningStatus": "Bounded repair-session/ordinary-plane/policy children allocated; no repair implementation accepted yet"
+      "planningStatus": "Ordinary parallel support repair accepted under SKT-160; generated-owner and wider support repair remain open"
     },
     {
       "id": "sketch.interaction",

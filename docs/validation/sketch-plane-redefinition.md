@@ -1,0 +1,7 @@
+# Ordinary sketch-plane redefinition (SKT-160/#592)
+
+An ordinary root face sketch with lost support can now be repaired during the transient failed-edit session. The timeline sketch action and cached-sketch panel open **Redefine Sketch Plane**. An explicit earlier planar face, construction plane or origin plane is previewed with its reference identity, frame/normal, sketch and downstream bodies. Nothing changes in the committed document until **OK**; **Cancel** restores the cached inspection state.
+
+The bounded frame policy preserves authored local coordinates, entity IDs, dimensions and constraints while adopting a replacement with matching U/V/normal. Side, inclined, reversed and rotated frames, projections and generated-boundary owners remain open. The failed upstream edit and support replacement commit as one valid history transaction. Missing, curved, ambiguous or later supports refuse without a nearest-face fallback.
+
+The final `8929f003` candidate passed focused core, Qt 3/3, real-app API 85 calls, the existing repair regression 4/4, exact Undo/Redo/save/reopen and Apple M4 OpenGL captures. Independent Astra review found no blocker for this scoped result. Qt tests delivered actual widget hits; physical/AppKit input was not qualified while native session readiness was unknown. Windows/Linux runtime and exact public visual parity remain open. The retained [reproduction receipt and captures](../../Alloy-reference-records/validation/skt160-plane-redefinition-2026-10-19/receipt.md) distinguish these evidence types.
