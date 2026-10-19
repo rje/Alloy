@@ -34,6 +34,8 @@ class OrdinaryBracketInputControls final : public QObject {
  QJsonArray steps_;
  QJsonObject nativeReadiness(){
   QJsonObject result{{"processId",QCoreApplication::applicationPid()}};
+  if(auto* modal=QApplication::activeModalWidget())result.insert("qtModalClass",modal->metaObject()->className());
+  if(auto* focused=QApplication::focusWidget())result.insert("qtFocusObject",focused->objectName());
 #ifdef Q_OS_MACOS
   // Observation only. Do not replace native activation with Qt bookkeeping.
   auto selector=reinterpret_cast<void*(*)(const char*)>(dlsym(RTLD_DEFAULT,"sel_registerName"));
@@ -45,6 +47,7 @@ class OrdinaryBracketInputControls final : public QObject {
   auto native=send(reinterpret_cast<void*>(window_->winId()),selector("window"));
   result.insert("applicationActive",boolean(app,selector("isActive")));
   result.insert("keyWindowMatchesEditor",send(app,selector("keyWindow"))==native);
+  if(auto* modal=QApplication::activeModalWidget())result.insert("keyWindowMatchesModal",send(app,selector("keyWindow"))==send(reinterpret_cast<void*>(modal->winId()),selector("window")));
   result.insert("editorIsKeyWindow",boolean(native,selector("isKeyWindow")));
   result.insert("firstResponderPresent",send(native,selector("firstResponder"))!=nullptr);
   result.insert("windowNumber",static_cast<qint64>(integer(native,selector("windowNumber"))));
@@ -185,6 +188,10 @@ private slots:
    require(QTest::qWaitFor([&]{dialog=window.findChild<QDialog*>("mesh.export.dialog");return dialog&&dialog->isVisible()&&QApplication::activeModalWidget()==dialog;},3000),"export modal natively active");
    require(!QApplication::activePopupWidget(),"menu closed before modal input");
    require(QTest::qWaitFor([&]{auto* focus=QApplication::focusWidget();return focus&&(focus==dialog||dialog->isAncestorOf(focus));},2000),"export modal owns natural focus");
+#ifdef Q_OS_MACOS
+   require(QTest::qWaitFor([&]{return nativeReadiness().value("keyWindowMatchesModal").toBool();},2000),"export sheet is the actual AppKit key window before field input");
+#endif
+   require(QApplication::focusWidget()==dialog->findChild<QComboBox*>("mesh.export.body"),"sheet initially focuses Bodies without repair");
    auto* formats=dialog->findChild<QComboBox*>("mesh.export.format");key(Qt::Key_Tab);
    require(QApplication::focusWidget()==formats,"Tab advances naturally to Format");key(Qt::Key_Down);
    require(formats->currentData()=="ascii","native key changes export Format");key(Qt::Key_Up);
@@ -192,8 +199,41 @@ private slots:
    call("capture.screenshot",{{"path",output_+"/mesh-modal.png"}});key(Qt::Key_Escape);
    require(QTest::qWaitFor([&]{return !dialog||!dialog->isVisible();},2000),"Escape closes export modal");
    require(!QApplication::activeModalWidget()&&!QApplication::activePopupWidget(),"modal/popup fully dismissed");
+#ifdef Q_OS_MACOS
+   require(QTest::qWaitFor([&]{return nativeReadiness().value("keyWindowMatchesEditor").toBool();},2000),"Escape naturally returns AppKit key window to editor");
+#endif
    require(call("document.inspect").value("authored")==before.value("authored"),"export cancel preserves authored state");
    call("capture.screenshot",{{"path",output_+"/returned-after-modal.png"}});
+   mark("Reopen export sheet without focus repair");popup();
+   require(QTest::qWaitFor([]{return QApplication::activePopupWidget()!=nullptr;},2000),"reopen context popup active");
+   menu=qobject_cast<QMenu*>(QApplication::activePopupWidget());exportAction=menu->findChild<QAction*>("context.exportMesh");
+   require(exportAction,"reopened Save As Mesh action exists");
+   const auto reopenPoint=menu->actionGeometry(exportAction).center();require(QApplication::widgetAt(menu->mapToGlobal(reopenPoint))==menu,"reopened menu receives real action hit");
+   QTest::mouseClick(menu,Qt::LeftButton,Qt::NoModifier,reopenPoint);
+   require(QTest::qWaitFor([&]{dialog=window.findChild<QDialog*>("mesh.export.dialog");return dialog&&dialog->isVisible()&&QApplication::activeModalWidget()==dialog&&QApplication::focusWidget()==dialog->findChild<QComboBox*>("mesh.export.body");},3000),"reopened sheet naturally focuses Bodies");
+   require(!QApplication::activePopupWidget(),"reopened popup closes before sheet input");
+#ifdef Q_OS_MACOS
+   require(QTest::qWaitFor([&]{return nativeReadiness().value("keyWindowMatchesModal").toBool();},2000),"reopened sheet is the actual AppKit key window before field input");
+#endif
+   key(Qt::Key_Tab);require(QApplication::focusWidget()==dialog->findChild<QComboBox*>("mesh.export.format"),"reopened Tab reaches Format");
+   key(Qt::Key_Tab);auto* units=dialog->findChild<QComboBox*>("mesh.export.units");require(QApplication::focusWidget()==units,"Tab reaches Unit Type");
+   key(Qt::Key_Down);require(units->currentData()=="in","Down selects Inches");
+   key(Qt::Key_Up);require(units->currentData()=="mm","Up restores Millimeters");
+   QTest::keyClick(QApplication::focusWidget(),Qt::Key_Tab,Qt::ShiftModifier);QTest::qWait(80);
+   require(QApplication::focusWidget()==dialog->findChild<QComboBox*>("mesh.export.format"),"Shift Tab returns to Format");
+   mark("Reopened sheet keyboard and Cancel preserve document/history");
+   const auto beforeCancel=call("document.inspect");
+   click(dialog->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Cancel));
+   require(QTest::qWaitFor([&]{return !dialog||!dialog->isVisible();},2000),"Cancel closes reopened sheet");
+   require(!QApplication::activeModalWidget()&&!QApplication::activePopupWidget(),"reopened modal fully closes");
+#ifdef Q_OS_MACOS
+   require(QTest::qWaitFor([&]{return nativeReadiness().value("keyWindowMatchesEditor").toBool();},2000),"Cancel naturally returns AppKit key window to editor");
+#endif
+   require(call("document.inspect")==beforeCancel,"sheet Cancel preserves exact document/history");
+   popup();require(QTest::qWaitFor([]{return QApplication::activePopupWidget()!=nullptr;},2000),"next native Browser popup opens after Cancel");
+   QTest::keyClick(QApplication::activePopupWidget(),Qt::Key_Escape);
+   require(QTest::qWaitFor([]{return !QApplication::activePopupWidget();},2000),"next native Escape closes Browser popup after Cancel");
+
    }
    mark("Shared API export after native popup dismissal (modal/OS chooser separate)");
    const auto beforeExport=call("document.inspect");
@@ -201,7 +241,7 @@ private slots:
    require(call("document.inspect")==beforeExport,"shared API export preserves document and history");
    require(exported.value("triangles").toInt()>0,"shared API export writes triangles");
    call("document.save",{{"path",output_+"/bracket.alloy"}});
-   saveReceipt("qt-prefix-and-api-export-passed-modal-native-chooser-open");
+   saveReceipt(requireModal ? "qt-modal-keyboard-reopen-cancel-and-api-export-passed-os-chooser-open" : "qt-prefix-and-api-export-passed-modal-native-chooser-open");
    call("document.new",{{"discard",true}});window.close();
   }catch(const std::exception& error){saveReceipt("failed",error.what());window.executeApi("capture.screenshot",{{"path",output_+"/failure.png"}});
    window.executeApi("document.new",{{"discard",true}});window.close();QFAIL(error.what());}

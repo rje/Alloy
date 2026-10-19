@@ -7,13 +7,16 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **603 issues**: **476 implementation, 24 research,
+The current local backlog contains **604 issues**: **477 implementation, 24 research,
 3 research/design, 22 epics, and 78 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
+REL-052/#587 accepts the [native Save As Mesh sheet keyboard and return slice](../validation/mesh-export-keyboard.md);
+REL-053/#607 retains actual OS chooser Cancel/Save and independent STL readback,
+and blocks the cumulative REL-012 gate.
 FND-028/#589 accepts the [unlocked macOS native first-input prerequisite](../validation/ordinary-bracket-modal-readiness.md):
 AppKit key-window and Qt focus agree, an actual-hit click followed by C works,
-and a native window capture is inspected. REL-052/#587 retains the later
-export-dialog Tab/Format failure and system chooser workflow.
+and a native window capture is inspected. REL-052/#587 accepts the export-sheet
+keyboard/return repair; REL-053/#607 retains the OS chooser workflow.
 NAV-005/#411 accepts the [cumulative visible-navigation workflow](../validation/navigation-cumulative.md):
 the shared controls, placed-assembly-face Look At, camera invariants, save/reopen
 and GPU captures pass in a real-app API run. Physical mouse/trackpad and native
@@ -41,7 +44,7 @@ circular cap rim through linked Project and Fillet; SOL-076/#603 qualifies its
 native actual-hit selection and R1 preview. Other changed curves remain
 SOL-075/#602. GATE-120/#601 accepts a valid-solid
 deleted-edge refusal; split and merge remain source-reviewed without a runtime fixture.
-GEO-006/#309 accepts the circular-seam provenance repair with both retained brackets reopening. REL-051/#586 now accepts the native sketch→Extrude→Undo→Browser popup prefix plus separate API STL/readback; see [its receipt](../validation/ordinary-bracket-input-prefix.md). REL-012/#415 remains Todo/blocked on REL-052/#587 for Save As Mesh modal focus and OS chooser. The strict native probe now stops before user input because the private macOS test process lacks AppKit activation/key window; FND-028/#589 owns that prerequisite. External `../Alloy-reference-records/validation/rel012-ordinary-input-2026-10-18/README.md` retains both failure and accepted evidence.
+GEO-006/#309 accepts the circular-seam provenance repair with both retained brackets reopening. REL-051/#586 now accepts the native sketch→Extrude→Undo→Browser popup prefix plus separate API STL/readback; see [its receipt](../validation/ordinary-bracket-input-prefix.md). REL-012/#415 remains Todo/blocked on REL-053/#607 for the actual Save As Mesh chooser and same-fixture mesh readback. The earlier locked-console AppKit activation prerequisite is accepted under FND-028/#589; the export-sheet keyboard and native return are accepted under REL-052/#587. External `../Alloy-reference-records/validation/rel012-ordinary-input-2026-10-18/README.md` retains both failure and accepted evidence.
 SKT-115–121 and SKT-123–124/#540–546, #548–549 are accepted analytic constraint pairs and endpoint contacts; SKT-129/#554 accepts distinct-ID arc/line endpoint Tangent and SKT-022/#163 is closed for its declared v1 analytic scope. SKT-122/#547 and SKT-130–132/#555–557 retain later multi-pair Symmetry, spline constraints and branch-control research.
 SKT-125/#550 accepts per-entity sketch status and Find Under-Constrained; SKT-126/#551 accepts independent sketch visibility and hidden-target picking; SKT-127/#552 accepts contextual point relations and Delete Coincident. SKT-128/#553 accepts a bounded glyph/edit inventory, including a readable Vertical mark; SKT-133/#558 accepts point/line Fix/UnFix; SKT-134/#559 accepts Center Circle Fix/UnFix; SKT-135/#560 accepts ordinary finite Arc Fix/UnFix; SKT-139/#564 accepts Two-Point Circle Fix; SKT-140/#565 qualifies the other v1 authored circle modes. SKT-023/#164 is accepted for its declared v1 analytic scope; later geometry/ownership work remains SKT-136–138/#561–563.
 SKT-114/#538 retains crossing-line Chamfer kept-side selection after the

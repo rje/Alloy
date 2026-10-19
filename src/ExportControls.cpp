@@ -9,6 +9,7 @@
 #include <algorithm>
 
 #include <QComboBox>
+#include <QApplication>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QDoubleSpinBox>
@@ -37,8 +38,18 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
     if(auto* existing=findChild<QDialog*>("mesh.export.dialog")){existing->raise();existing->activateWindow();return QJsonObject{{"visible",true}};}
     auto* dialog=new MeshExportDialog(this);dialog->setObjectName("mesh.export.dialog");dialog->setWindowTitle("Save As Mesh");
     dialog->setAttribute(Qt::WA_DeleteOnClose);dialog->setWindowModality(Qt::WindowModal);
+    // Closing an attached macOS sheet can leave the active application without
+    // a key window. Return ownership to its editor after the modal has closed;
+    // do not steal activation if the user has switched to another application.
+    connect(dialog,&QDialog::finished,this,[this]{
+        if(QGuiApplication::applicationState()==Qt::ApplicationActive && !QApplication::activeModalWidget())activateWindow();
+    });
     auto* layout=new QVBoxLayout(dialog);auto* form=new QFormLayout;layout->addLayout(form);
     auto* bodies=new QComboBox;bodies->setObjectName("mesh.export.body");
+    // macOS gives noneditable combos TabFocus by default, which its usual
+    // text-controls-only traversal skips. These are the sheet's input fields:
+    // include them in native initial focus and Tab traversal on every platform.
+    bodies->setFocusPolicy(Qt::StrongFocus);
     QSet<QString> definitions;bool linked=false;
     for(const auto& value:document_->authored()["occurrences"].toArray()){
         const auto definition=value.toObject()["definitionId"].toString();
@@ -70,9 +81,11 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
     selected->setVisible(bodies->currentData()=="selected");layout->addWidget(selected);
     connect(bodies,&QComboBox::currentIndexChanged,dialog,[=]{selected->setVisible(bodies->currentData()=="selected");});
     auto* format=new QComboBox;format->setObjectName("mesh.export.format");
+    format->setFocusPolicy(Qt::StrongFocus);
     format->addItem("STL (Binary)","binary");format->addItem("STL (ASCII)","ascii");
     format->addItem("3MF","3mf");format->addItem("OBJ","obj");form->addRow("Format",format);
     auto* units=new QComboBox;units->setObjectName("mesh.export.units");
+    units->setFocusPolicy(Qt::StrongFocus);
     units->addItem("Millimeters","mm");units->addItem("Inches","in");form->addRow("Unit Type",units);
     auto* surface=new QDoubleSpinBox;surface->setObjectName("mesh.export.surfaceDeviation");
     surface->setDecimals(3);surface->setRange(0.001,10);surface->setValue(0.1);surface->setSuffix(" mm");form->addRow("Surface Deviation",surface);

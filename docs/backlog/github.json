@@ -2921,7 +2921,7 @@
     "REL-052": {
       "number": 587,
       "url": "https://github.com/rje/Alloy/issues/587",
-      "state": "open"
+      "state": "closed"
     },
     "CI-012": {
       "number": 588,
@@ -3016,6 +3016,11 @@
     "SOL-077": {
       "number": 606,
       "url": "https://github.com/rje/Alloy/issues/606",
+      "state": "open"
+    },
+    "REL-053": {
+      "number": 607,
+      "url": "https://github.com/rje/Alloy/issues/607",
       "state": "open"
     }
   }
