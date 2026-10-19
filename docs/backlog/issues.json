@@ -10238,21 +10238,21 @@
     },
     {
       "key": "SKT-167",
-      "title": "Retain point-to-straight-edge sketch distances",
-      "kind": "implementation",
+      "title": "Qualify point-edge Driven offer and strict native dimension input",
+      "kind": "validation",
       "phase": "P2 Parametric modeling",
       "priority": "P0",
       "depends_on": [
-        "SKT-089",
-        "SKT-164"
+        "SKT-034",
+        "SKT-089"
       ],
       "labels": [
-        "kind:implementation",
+        "kind:validation",
         "area:skt",
         "phase:P2",
         "priority:P0"
       ],
-      "body": "## Bounded result\nPlace a retained point-to-straight-edge sketch distance as a driving or driven dimension. Finish the common two-offset placement of a circle center from two perpendicular face-boundary references. This is a bounded remainder of SKT-016/#144.\n\n## Acceptance\n- In an active face sketch, Sketch Dimension/D can select a circle center and supported straight edge in that order, show a readable preview, place a unit-aware 3.9 mm driving dimension, then repeat with a perpendicular edge. If edge-first order is implemented, label it as an Alloy convenience; public evidence only establishes center-first here.\n- The two relations constrain the circle center relative to retained selectable edges without fixing independent diameter or copying coordinates. Editing a distance moves the center; supported upstream edge movement updates the result; undo/redo and exact save/reopen retain IDs/references. Offer driven measurement on a supported redundant case and refuse invalid geometry atomically.\n- UI and local API share commands/state. Verify one real sketch\u2192profile\u2192Extrude and output geometry, native actual-hit D/picks with no interstep focus repair, readable GPU annotation, authored references, save/reopen and an appropriate bounded refusal. Record the observed public tutorial's input-order discrepancy and unresolved finite-edge/side semantics as explicit Alloy policies, not claims of exact parity.\n\n## Dependencies\n- [SKT-089](https://github.com/rje/Alloy/issues/404) supplies driven measurement and conflict offer.\n- [SKT-164](https://github.com/rje/Alloy/issues/610) supplies retained sketch inference reference handling.\n\nSKT-016/#144 owns the broader point-to-edge family; this child can finish independently without closing the parent. Clean-room public research and provenance are external under `../Alloy-reference-records/knowledge/specs/skt-016-point-edge-distance-2026-10-19.md`. Curved edges, beyond-end cases, side/sign variants and broad projection topology remain later scope.\n"
+      "body": "## Bounded result\nQualify the remaining point-to-straight-edge dimension behavior after SKT-034/#205 independently accepted D \u2192 circle center \u2192 two projected straight edges \u2192 3.9 mm twice, retained solver references, Cut, upstream edits, history and reopen. Do not reimplement that accepted workflow.\n\n## Acceptance\n- Through the real application, add a redundant supported point-to-straight-edge dimension and verify the shared explicit Driven offer: accepting retains a read-only parenthesized measurement; cancelling leaves draft/history unchanged; a conflicting nonmatching value refuses. Inspect the authored dimension kind, point/edge IDs, solver DOF, and updated measurement after supported source edit. Use one focused core or API check rather than replaying the whole toy-block tutorial.\n- Under an unlocked native desktop, run the point/edge D and 3.9 mm input path with actual widget-hit assertions, natural focus/selection between steps, and a separate Escape/cancel path without interstep `setFocus`. Inspect actual GPU annotation readability. Preserve the previously accepted bounded Qt evidence; distinguish this stricter gate from physical OS input.\n- Record the dated public tutorial/help input-order discrepancy and Alloy's already documented infinite supporting-line/side policy as documented or unresolved, without claiming exact source parity.\n\n## Dependencies\n- [SKT-034](https://github.com/rje/Alloy/issues/205) is the accepted implementation and tutorial workflow.\n- [SKT-089](https://github.com/rje/Alloy/issues/404) supplies the generic new-dimension Driven offer.\n\nNative input remains blocked when `tools/native_input_preflight.py` reports a locked macOS console. The public-evidence audit is external under `../Alloy-reference-records/knowledge/specs/skt-016-point-edge-distance-2026-10-19.md`.\n"
     }
   ]
 }
