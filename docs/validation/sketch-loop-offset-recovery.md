@@ -1,0 +1,7 @@
+# Loop Offset Delete recovery guidance (SKT-154)
+
+Accepted 2026-10-18 for generated support-face loop Offset profile Delete in the two reachable failed-edit inspection sessions. A missing support retains `support_unavailable`; a changed retained boundary retains `ambiguous_inset_lineage`. Only the shared Delete response appends an action to cancel the failed edit, reopen the accepted sketch, reselect its current loop result and retry. The same text is in structured `error.recovery`, while `error.diagnostics` preserves the original exception. Evaluation and upstream failure messages stay unchanged.
+
+The [external receipt](../../../Alloy-reference-records/validation/skt154-loop-delete-recovery-2026-10-18/final/receipt.md) retains real-app API transcripts for both saved-valid fixtures, Qt controls and two inspected Apple M4 GPU captures. Focused core and Qt 4/4 passed; API lifecycles covered 55 missing-support and 41 changed-boundary calls/status polls, exact unchanged session/draft/history/selection/document state, Cancel/invalidation/save/reopen, and one successful ordinary Delete. Independent Sol review found no blocking issue.
+
+The guidance returns to the accepted model; it does not repair the failed upstream edit or remap a boundary. A different lineage failure code, the ordinary non-repair fallback wording, physical macOS input and other-platform runtime remain unqualified. Explicit plane reassignment and generated-boundary policy remain SKT-160 and SKT-161.

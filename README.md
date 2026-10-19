@@ -103,7 +103,9 @@ now removes the selected generated profile's retained owner while preserving
 its support and an independent sketch. Consumed-profile deletion refuses before
 changing the draft. [Multiple loop owners](docs/validation/sketch-multiple-loop-offset-delete.md)
 now coexist in one supported sketch, with exact sibling preservation and
-history/reopen checks.
+history/reopen checks. [Failed-edit Delete recovery](docs/validation/sketch-loop-offset-recovery.md)
+now gives actionable guidance for missing support and changed retained boundary
+without changing the selected draft or committed model.
 [Planar-inset loop Delete](docs/validation/sketch-planar-inset-delete.md) now
 also passes on a retained 18-edge enclosure support through the real app,
 native viewport input, exact history/reopen and GPU captures. The [multiple-owner planar-inset variant](docs/validation/sketch-multiple-planar-inset-delete.md)

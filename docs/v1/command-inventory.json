@@ -383,7 +383,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Atomic support failure preserves the valid committed document. HIS-009 accepts missing-support cached inspection; HIS-010 accepts one changed-boundary inspection; SKT-154 still must complete both actionable Delete recovery messages. Physical native input remains open. SKT-160 must explicitly reassign one ordinary planar sketch; SKT-161 must define generated Offset boundary policy. Native repair and wider supports remain open.",
+      "gap": "Atomic support failure preserves the valid committed document. HIS-009 accepts missing-support cached inspection; HIS-010 accepts one changed-boundary inspection; SKT-154 accepts two actionable loop Offset Delete recovery messages. Physical native input remains open. SKT-160 must explicitly reassign one ordinary planar sketch; SKT-161 must define generated Offset boundary policy. Native repair and wider supports remain open.",
       "apiIds": [],
       "issueKeys": [
         "HIS-002",
@@ -393,6 +393,7 @@
         "REL-050",
         "HIS-009",
         "HIS-010",
+        "SKT-154",
         "SKT-160",
         "SKT-161"
       ],
@@ -404,9 +405,10 @@
         "docs/validation/actionable-failures-packaged.md",
         "docs/validation/enclosure-connector-clearance.md",
         "docs/validation/failed-edit-repair.md",
-        "docs/validation/failed-boundary-inspection.md"
+        "docs/validation/failed-boundary-inspection.md",
+        "docs/validation/sketch-loop-offset-recovery.md"
       ],
-      "planningStatus": "HIS-009 and HIS-010 transient inspection slices accepted; actionable recovery text, explicit repair and generated-boundary policy remain open"
+      "planningStatus": "HIS-009/HIS-010 transient inspection and SKT-154 loop Delete guidance accepted; explicit repair and generated-boundary policy remain open"
     },
     {
       "id": "sketch.lifecycle",
@@ -415,7 +417,7 @@
       "scope": "proposed-v1",
       "implementation": "present",
       "nativeEvidence": "partial",
-      "gap": "Atomic support failure preserves the valid committed document. HIS-009 accepts missing-support cached inspection; HIS-010 accepts one changed-boundary inspection; SKT-154 still must complete both actionable Delete recovery messages. Physical native input remains open. SKT-160 must explicitly reassign one ordinary planar sketch; SKT-161 must define generated Offset boundary policy. Native repair and wider supports remain open.",
+      "gap": "Atomic support failure preserves the valid committed document. HIS-009 accepts missing-support cached inspection; HIS-010 accepts one changed-boundary inspection; SKT-154 accepts two actionable loop Offset Delete recovery messages. Physical native input remains open. SKT-160 must explicitly reassign one ordinary planar sketch; SKT-161 must define generated Offset boundary policy. Native repair and wider supports remain open.",
       "apiIds": [
         "sketch.begin",
         "sketch.cancel",
@@ -3020,7 +3022,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Authored analytic/curve, constructor-group, mirror/offset-owner and selected projection Delete subsets are accepted with exact IDs. Stale-support recovery remains SKT-154; general support repair and model hierarchy selection remain separate.",
+      "gap": "Authored analytic/curve, constructor-group, mirror/offset-owner and selected projection Delete subsets are accepted with exact IDs. Two qualified stale-support/boundary recovery messages are accepted under SKT-154; general support repair and model hierarchy selection remain separate.",
       "apiIds": [
         "sketch.deleteSelection"
       ],
@@ -3053,7 +3055,8 @@
         "docs/validation/sketch-geometry-delete.md",
         "docs/validation/sketch-constructor-group-delete.md",
         "docs/validation/sketch-face-projection-delete.md",
-        "docs/validation/sketch-multiple-planar-inset-delete.md"
+        "docs/validation/sketch-multiple-planar-inset-delete.md",
+        "docs/validation/sketch-loop-offset-recovery.md"
       ],
       "planningStatus": "Accepted bounded Delete owners through SKT-158; stale-support recovery and wider ownership remain open"
     },
