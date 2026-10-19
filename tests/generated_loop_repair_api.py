@@ -21,6 +21,15 @@ with application(app,output) as (call,ledger):
    call('sketch.redefinePlanePreview',{'replacement':replacement},error=code);assert session()==choosing and inspect()==base
   preview=call('sketch.redefinePlanePreview',{'replacement':choice});assert preview['previewed'] and preview['confirmedDistanceMm']==-1 and len(preview['boundaryEdgeIds'])==4 and len(set(preview['boundaryEdgeIds']))==4
   newowner=preview['recreatedOwner'];assert newowner['id']!=old['id'] and newowner['outerLoopId']!=old['outerLoopId'];assert inspect()==base
+  for replacement,code in [({'support':support},'offset_confirmation_required'),({'support':support,'distanceMm':1},'invalid_offset_distance'),({'support':support,'distanceMm':-1000},'inset_disconnected')]:
+   previous=session();expectedInvalid=copy.deepcopy(previous);state=expectedInvalid['planeRedefinition']
+   for key in ('replacement','referenceLabel','frame','geometry','documentDraft','recreatedOwner','boundaryEdgeIds','confirmedDistanceMm'):state.pop(key,None)
+   state.update(previewed=False,status='confirmationRequired')
+   call('sketch.redefinePlanePreview',{'replacement':replacement},error=code);invalid=session();assert invalid==expectedInvalid and inspect()==base
+   gpu=call('app.state')['viewport']['gpu'];assert not gpu['bodyStageKey'] and gpu['sketchProfiles'][0]['profileId']==oldp['profileId'] and gpu['sketchProfiles'][0]['frame']==oldp['frame']
+   call('sketch.redefinePlaneCommit',error='replacement_required');assert session()==invalid and inspect()==base
+   call('capture.screenshot',{'path':str(output/'invalidated.png')})
+   preview=call('sketch.redefinePlanePreview',{'replacement':choice});assert preview['previewed'] and inspect()==base
   call('view.orientation',{'name':'isometric'});call('view.fit');call('capture.screenshot',{'path':str(output/'preview.png')})
   call('sketch.redefinePlaneCancel');assert session()==cached and inspect()==base
   call('sketch.redefinePlaneBegin',{'sketchId':sid});preview=call('sketch.redefinePlanePreview',{'replacement':choice});call('sketch.redefinePlaneCommit');after=inspect();assert session()=={} and call('history.failedEditInspect')=={}

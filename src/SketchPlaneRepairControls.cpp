@@ -52,7 +52,7 @@ QJsonObject AlloyWindow::beginSketchPlaneRepair(const QString& sketchId) {
     auto* instruction=new QLabel(recreate ? "Recreate Offset on a distinct earlier parallel face. Select its exact boundary and confirm signed distance. Generated identities are replaced; downstream consumers must be repaired separately." : "Choose an earlier parallel face or plane. Sketch coordinates stay relative to its origin. The failed upstream edit and all dependent features are previewed together.");instruction->setWordWrap(true);layout->addWidget(instruction);
     auto* list=new QListWidget;list->setObjectName("sketch.redefinePlane.choices");list->setMinimumHeight(65);list->setMaximumHeight(160);
     for(const auto& value:choices){const auto row=value.toObject();auto* item=new QListWidgetItem(row.value("label").toString(),list);item->setData(Qt::UserRole,row.value("replacement").toObject());item->setToolTip(QString::fromUtf8(QJsonDocument(row.value("replacement").toObject()).toJson()));}
-    layout->addWidget(list);planeRepairInfo_=new QLabel("Select a replacement. Nothing is committed.");planeRepairInfo_->setObjectName("sketch.redefinePlane.frame");planeRepairInfo_->setWordWrap(true);
+    layout->addWidget(list);planeRepairInfo_=new QLabel("Select a replacement. Nothing is committed.");planeRepairInfo_->setObjectName("sketch.redefinePlane.frame");planeRepairInfo_->setWordWrap(true);planeRepairInfo_->setAlignment(Qt::AlignLeft|Qt::AlignTop);
     auto* frameArea=new QScrollArea;frameArea->setObjectName("sketch.redefinePlane.frameScroll");frameArea->setWidgetResizable(true);frameArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);frameArea->setFrameShape(QFrame::NoFrame);frameArea->setMinimumHeight(100);frameArea->setMaximumHeight(260);frameArea->setWidget(planeRepairInfo_);layout->addWidget(frameArea);
     planeRepairError_=new QLabel;planeRepairError_->setObjectName("sketch.redefinePlane.error");planeRepairError_->setWordWrap(true);planeRepairError_->setStyleSheet("color:#984800;");layout->addWidget(planeRepairError_);
     QDoubleSpinBox* distance=nullptr;
@@ -75,10 +75,21 @@ QJsonObject AlloyWindow::beginSketchPlaneRepair(const QString& sketchId) {
 }
 QJsonObject AlloyWindow::previewSketchPlaneRepair(const QJsonObject& replacement) {
     if(planeRepairSession_.isEmpty() || failedEditRepair_.isEmpty())return fail("invalid_session","Redefine Sketch Plane is not active");
+    const bool recreate=session_.value("planeRedefinition").toObject().value("mode")=="recreateSingleInsetDistinctFace";
+    // Every generated preview request replaces the previous confirmation, even
+    // when validation subsequently refuses. Never leave an older candidate
+    // available to Commit after a failed API request.
+    if(recreate && planeRepairPreview_.ok) {
+        planeRepairPreview_={};planeRepairOk_->setEnabled(false);
+        auto state=session_.value("planeRedefinition").toObject();
+        for(const auto& key:{"replacement","referenceLabel","frame","geometry","documentDraft","recreatedOwner","boundaryEdgeIds","confirmedDistanceMm"})state.remove(key);
+        state["previewed"]=false;state["status"]="confirmationRequired";session_["planeRedefinition"]=state;
+        view_->clearBodyStage();view_->selectSupportFace({},{});view_->setSketchPlane("face",planeRepairSession_.value("resolvedFrame").toObject());view_->restoreCameraState(planeRepairCamera_);displayedSketchDraft_={};
+        planeRepairInfo_->setText("CACHED ACCEPTED SKETCH — confirm signed distance to evaluate the selected replacement.");planeRepairInfo_->setToolTip({});planeRepairInfo_->setMinimumHeight(0);refresh();
+    }
     auto refuse=[this](const QString& code,const QString& message){if(planeRepairError_)planeRepairError_->setText(message);return fail(code,message);};
     const auto sketchId=planeRepairSession_.value("draftSketch").toObject().value("id").toString();
     try {
-        const bool recreate=session_.value("planeRedefinition").toObject().value("mode")=="recreateSingleInsetDistinctFace";
         QSet<QString> oldGeneratedIds;
         if(recreate)for(const auto& sketch:document_->sketches())if(sketch.featureId==sketchId)for(const auto& profile:sketch.profiles){oldGeneratedIds.insert(profile.profileId);for(const auto& edge:profile.boundaryEdges){oldGeneratedIds.insert(edge.sourceEntityId);oldGeneratedIds.insert(edge.startContact);oldGeneratedIds.insert(edge.endContact);}}
         const auto failed=failedEditRepair_.value("candidateAuthored").toObject();const auto frame=planeRepairSession_.value("resolvedFrame").toObject();
