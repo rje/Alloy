@@ -72,7 +72,7 @@
       "rendering.native-metal-vulkan-rhi-shortlist"
     ],
     "externalKnowledgeLocation": "../Alloy-reference-records/knowledge",
-    "evidenceCaveat": "Existing receipts are source/fixture-pinned and not rerun here. Broad parent closures, tutorial final silhouettes, screenshots and API availability are never promoted to v1 readiness. TUT-018 prior completion is overridden by current user rejection/reopen direction.",
+    "evidenceCaveat": "Existing receipts are source/fixture-pinned and not rerun here. Broad parent closures, tutorial silhouettes, screenshots and API availability are never promoted to v1 readiness. Corrected TUT-018/TUT-034 iron and TUT-016 adapted enclosure slices are accepted within their recorded limits; physical fit, native input and package/platform qualification remain separate.",
     "issueStateCaveat": "issueKeys are scope owners, not a current-live status claim. Local github.json is a dated mirror; root must reconcile live burndown and split broad owners.",
     "runtimeCrossCheck": {
       "date": "2026-10-17",
@@ -96,9 +96,9 @@
       "later": 9
     },
     "byImplementation": {
-      "present": 25,
-      "partial": 69,
-      "missing": 56
+      "present": 27,
+      "partial": 77,
+      "missing": 46
     }
   },
   "tools": [
@@ -469,7 +469,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Dispatcher and shared gestures exist. Physical focus, snap precedence, per-entity freedom and broader inference remain bounded.",
+      "gap": "Shared pointer/snapping and retained finite line-intersection inference have accepted slices. Physical focus, broader inference families and remaining numeric/conflict flows remain open.",
       "apiIds": [
         "sketch.movePoint",
         "sketch.placePoint",
@@ -486,7 +486,8 @@
         "SKT-063",
         "SKT-077",
         "SKT-084",
-        "SKT-085"
+        "SKT-085",
+        "SKT-164"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -497,7 +498,8 @@
         "docs/validation/coincident-snap-clusters.md",
         "docs/validation/slot-drag-preview.md",
         "docs/validation/sketch-pointer-axis-inference.md",
-        "docs/validation/sketch-pointer-circle-tangent.md"
+        "docs/validation/sketch-pointer-circle-tangent.md",
+        "docs/validation/sketch-line-intersection.md"
       ],
       "options": [
         "select",
@@ -534,7 +536,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Native Line is selected through sketch.tool; typed length/angle and inference are bounded. Other line modes/options remain unqualified.",
+      "gap": "Native Line and typed length/angle have bounded accepted slices, including retained finite line-intersection inference. Other line modes/options and physical input remain unqualified.",
       "apiIds": [
         "sketch.line",
         "sketch.lineAngleLock",
@@ -550,7 +552,8 @@
         "SKT-021",
         "SKT-040",
         "SKT-070",
-        "SKT-084"
+        "SKT-084",
+        "SKT-164"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -559,7 +562,8 @@
       "receipts": [
         "docs/validation/typed-line-lock.md",
         "docs/validation/typed-line-angle.md",
-        "docs/validation/sketch-pointer-axis-inference.md"
+        "docs/validation/sketch-pointer-axis-inference.md",
+        "docs/validation/sketch-line-intersection.md"
       ],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },
@@ -931,7 +935,7 @@
       "scope": "proposed-v1",
       "implementation": "present",
       "nativeEvidence": "partial",
-      "gap": "Retained line construction/centerline states exist; broader entity conversion and styling coverage need review.",
+      "gap": "Retained construction/centerline states and point-to-edge dimension have accepted bounded slices. Broader construction variants and physical workflow qualification remain open.",
       "apiIds": [
         "sketch.centerline",
         "sketch.centerlineToggle",
@@ -940,7 +944,8 @@
       ],
       "issueKeys": [
         "SKT-016",
-        "SKT-008"
+        "SKT-008",
+        "SKT-034"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -948,7 +953,8 @@
       ],
       "receipts": [
         "docs/validation/sketch-construction.md",
-        "docs/validation/centerline-diameter.md"
+        "docs/validation/centerline-diameter.md",
+        "docs/validation/point-edge-dimensions.md"
       ],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },
@@ -1011,7 +1017,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Ten registered measurement kinds, native placement and formula subset exist; full dimension compatibility and selection routes remain bounded.",
+      "gap": "Supported driving/driven placements, expressions and retained point-edge two-offset geometry have accepted slices. Direct toggle and point-edge Driven offer have core/API/GPU candidates pending native gates; relation-add recovery and wider dimension compatibility remain open.",
       "apiIds": [
         "sketch.dimension",
         "sketch.dimensionAccept",
@@ -1029,7 +1035,11 @@
         "SKT-052",
         "SKT-089",
         "SKT-091",
-        "PAR-007"
+        "PAR-007",
+        "SKT-034",
+        "SKT-165",
+        "SKT-166",
+        "SKT-167"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -1040,7 +1050,9 @@
         "docs/validation/parallel-line-distance.md",
         "docs/validation/sketch-dimension-expression.md",
         "docs/validation/sketch-driven-offer.md",
-        "docs/validation/sketch-origin-dimension.md"
+        "docs/validation/sketch-origin-dimension.md",
+        "docs/validation/sketch-dimension-driving.md",
+        "docs/validation/point-edge-driven-offer.md"
       ],
       "options": [
         "linear",
@@ -1327,7 +1339,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Three primitive families exist; Sphere Cut/Repeat are bounded. Cone, Torus, Pipe and Coil have separate missing rows.",
+      "gap": "Box, Cylinder and Sphere have bounded accepted slices; Sphere Cut/Repeat remain variant-specific. Cone and Torus have separate accepted New Body slices; Pipe and Coil remain open.",
       "apiIds": [
         "primitive.box",
         "primitive.cylinder",
@@ -1339,7 +1351,9 @@
       ],
       "issueKeys": [
         "DOC-007",
-        "SOL-014"
+        "SOL-014",
+        "SOL-062",
+        "SOL-077"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -1348,7 +1362,8 @@
       "receipts": [
         "docs/validation/primitives.md",
         "docs/validation/sphere-independent.md",
-        "docs/validation/face-sphere-controls.md"
+        "docs/validation/face-sphere-controls.md",
+        "docs/validation/cone-torus.md"
       ],
       "options": [
         "Box",
@@ -1380,10 +1395,10 @@
         "SOL-017",
         "SOL-043",
         "SOL-044",
-        "SOL-046",
         "SOL-056",
         "SOL-057",
-        "PAR-008"
+        "PAR-008",
+        "SOL-047"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -1531,19 +1546,21 @@
     },
     {
       "id": "solid.hole",
-      "label": "Countersink Hole from sketch Point",
+      "label": "Hole from sketch Point: Simple, Countersink and Counterbore",
       "category": "Solid create",
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Current native/API Hole is Countersink, From Sketch, All. Simple/counterbore, drilled/tapped/threaded and broader placement/extents are missing.",
+      "gap": "Simple, Countersink and Counterbore from a retained sketch Point with explicit target have bounded accepted slices. Direct face placement, multi-point placement, drilled/tapped/internal-thread modes and broader extent options remain open.",
       "apiIds": [
         "solid.hole",
         "solid.holeDialog"
       ],
       "issueKeys": [
         "SOL-007",
-        "SOL-035"
+        "SOL-035",
+        "SOL-078",
+        "SOL-079"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -1551,11 +1568,16 @@
       ],
       "receipts": [
         "docs/validation/countersink-hole-backend.md",
-        "docs/validation/countersink-hole-controls.md"
+        "docs/validation/countersink-hole-controls.md",
+        "docs/validation/simple-hole.md",
+        "docs/validation/counterbore-hole.md"
       ],
       "options": [
+        "Simple",
         "Countersink",
+        "Counterbore",
         "From Sketch Point",
+        "Distance",
         "All"
       ],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
@@ -1731,8 +1753,8 @@
       ],
       "issueKeys": [
         "SOL-013",
-        "SOL-047",
-        "SOL-052"
+        "SOL-052",
+        "SOL-045"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -1785,7 +1807,6 @@
         "solid.featureMirrorDialog"
       ],
       "issueKeys": [
-        "SOL-048",
         "SOL-050",
         "SOL-051",
         "SOL-053",
@@ -2204,7 +2225,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "The supported retained face/point Tangent Plane constructor and dependent geometry are accepted; ordinary native input on the same handle is GEO-024, blocked until the private macOS session can activate. Broader face/point combinations remain later.",
+      "gap": "Supported retained face/point Tangent Plane constructor and dependent geometry are accepted. GEO-024 owns remaining ordinary native input on the retained handle; broader combinations remain later.",
       "apiIds": [
         "construction.tangentPlane"
       ],
@@ -3374,17 +3395,23 @@
       "label": "Simple/Counterbore Hole, depth and tapped options",
       "category": "Solid create",
       "scope": "proposed-v1",
-      "implementation": "missing",
-      "nativeEvidence": "unknown",
-      "gap": "Only through Countersink from a sketch Point is registered.",
+      "implementation": "partial",
+      "nativeEvidence": "partial",
+      "gap": "Simple and Counterbore have accepted retained sketch-point slices; drilled/tapped/internal-thread and broader placement variants remain open.",
       "apiIds": [],
       "issueKeys": [
-        "SOL-007"
+        "SOL-007",
+        "SOL-035",
+        "SOL-078",
+        "SOL-079"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
       ],
-      "receipts": [],
+      "receipts": [
+        "docs/validation/simple-hole.md",
+        "docs/validation/counterbore-hole.md"
+      ],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },
     {
@@ -3456,7 +3483,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "New Body +Z numeric Cone/Torus accepted through shared API/GPU; native input awaits SOL-077/FND-028. Plane picking, manipulators and additional operation modes remain unqualified.",
+      "gap": "Native and shared-command Cone/Torus New Body creation and editing have accepted bounded slices. Plane picking, manipulators, other operation modes, physical input and packaged-platform runtime remain open.",
       "apiIds": [
         "solid.cone",
         "solid.torus",
@@ -3474,7 +3501,7 @@
       "receipts": [
         "docs/validation/cone-torus.md"
       ],
-      "planningStatus": "Bounded New Body geometry accepted; native input and broader reference options remain Todo"
+      "planningStatus": "Bounded New Body geometry and native Qt controls accepted; wider reference/operation options remain Todo"
     },
     {
       "id": "solid.rib-web",
@@ -4146,7 +4173,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Bounded panels polished; no complete visual audit or exact-match claim. User rejects current full iron result; prior tutorial closures cannot close this release gate.",
+      "gap": "Corrected iron and bounded panel/timeline polish have accepted receipts. A cumulative matched-reference visual audit, physical input and all-platform packaged presentation remain open.",
       "apiIds": [],
       "issueKeys": [
         "REL-013",
@@ -4155,7 +4182,8 @@
         "REL-023",
         "REL-024",
         "REL-025",
-        "FND-025"
+        "FND-025",
+        "TUT-034"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -4163,7 +4191,8 @@
       "receipts": [
         "docs/validation/modeling-panel-readability-audit.md",
         "docs/validation/responsive-controls.md",
-        "docs/validation/timeline-visual-polish.md"
+        "docs/validation/timeline-visual-polish.md",
+        "docs/validation/surface-iron-complete.md"
       ],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },
@@ -4203,7 +4232,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Tutorial receipts are fixture-specific. Enclosure fit remains unresolved; iron TUT-018 is rejected/reopened by user. Need representative independent native workflows beyond curated tutorial geometry.",
+      "gap": "Corrected iron and adapted enclosure tutorials have bounded accepted real-model evidence, with documented fit/source limits. Representative independent native packaged create/edit/reopen/print workflows and all-platform output qualification remain open.",
       "apiIds": [],
       "issueKeys": [
         "GATE-050",
@@ -4211,7 +4240,8 @@
         "TUT-017",
         "TUT-018",
         "TUT-029",
-        "TUT-030"
+        "TUT-030",
+        "TUT-034"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -4219,7 +4249,8 @@
       "receipts": [
         "docs/validation/enclosure-reference-clearance.md",
         "docs/validation/shoehorn-complete.md",
-        "docs/validation/surface-iron-complete.md"
+        "docs/validation/surface-iron-complete.md",
+        "docs/validation/enclosure-cumulative-gate.md"
       ],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },
@@ -17278,5 +17309,7 @@
         }
       }
     }
-  ]
+  ],
+  "reconciliationDate": "2026-10-19",
+  "reconciliationNote": "Later accepted bounded receipts and issue ownership amended; command IDs remain the dated generated snapshot."
 }

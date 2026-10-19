@@ -4,15 +4,17 @@ Private review site: https://alloy-v1-review.rjevans1.chatgpt.site
 
 The user reviewed this as a reasonable working direction on 2026-10-17. REL-030 still tracks reconciliation of every inventory row with a finishable implementation owner and the final release gate; this is not a claim that the listed gaps are complete. The long-term full noncloud product contract remains intact.
 
+The 2026-10-19 all-row audit found and corrected a release dependency contradiction: required Core 3MF **export** now enters GATE-040 through XCH-011 without making later 3MF import under XCH-005 a transitive prerequisite. Exact accepted import subsets, native exchange, all-platform packages and STL/STEP/3MF readback still need execution. REL-054/#615 is the stable-v1 exit after REL-049's post-packaging intrinsic-cost audit; earlier preview packages remain separate. The [private review site](https://alloy-v1-review.rjevans1.chatgpt.site) now serves the synchronized planning data; source/data checks and private deployment succeeded, while browser visual inspection remains open.
+
 The first ownership pass linked 20 previously broad-only proposed tool areas to
 bounded Todo issues [#496–#515](../backlog/github.md). This establishes pullable
 owners, not feature completion or a final v1 scope decision. Existing partial
 rows still require real-workflow evidence and explicit release-gate disposition.
 The [ownership audit](ownership-audit.md) added six missing narrow owners
 [#518–#523](../backlog/github.md) and identified broad parent issues that must be
-split before implementation. Thirteen partial rows have accepted subsets but
-still need an explicit v1-versus-later option decision under REL-030.
-Their [working minimum-v1 disposition](partial-row-disposition.md) now names
+split before implementation. Sixty-three broad partial rows now have a proposed
+v1-versus-later option boundary under REL-030, though finishable owners and
+release evidence remain open. Their [working disposition](partial-row-disposition.md) names
 the proposed variants; ordinary Combine name/error recovery is accepted as
 SOL-071/#566. REL-030 still owns final scope and release-gate reconciliation.
 The user explicitly included 3MF export and modeled printable threads in the
@@ -28,6 +30,7 @@ now has independently checked STEP/STL output. The
 also passes the [body Browser export path](../validation/native-browser-mesh.md).
 
 - [Inventory reconciliation](inventory-reconciliation.md): all 150 rows, remaining broad owners, stale evidence and cumulative release acceptance.
+- [Release execution ledger](release-execution-ledger.md): row/subset owners and open native, geometry, save/reopen, export, GPU, package and three-platform evidence slots.
 - [Command inventory](command-inventory.json): 150 capability rows and 397 IDs in its dated original runtime snapshot, with newer bounded capability amendments and explicit gaps. The added `document.export3mf` command was validated separately in the real app.
 - [Inventory notes](inventory-notes.md): definitions and verification limits.
 - [Backlog map](backlog-map.json) and [workstreams](backlog-notes.md): dated 484-issue reconciled snapshot, not a live board. It includes corrected TUT-018/TUT-034 acceptance, bounded TUT-035 clearance acceptance and the earlier REL-033–041 responsiveness state. REL-037 has a newer [final Open receipt](../validation/open-final-presentation.md).
@@ -35,4 +38,4 @@ also passes the [body Browser export path](../validation/native-browser-mesh.md)
 
 Sequence: the [cumulative adapted enclosure gate](../validation/enclosure-cumulative-gate.md) is accepted → reconcile each v1 gap into a bounded owner → creation/revision reliability → native interaction polish → native renderer and packaged platform qualification. Close each active issue with its stated evidence before pulling another; split only explicit remaining requirements into linked Todo work.
 
-Site source is external at ../Alloy-reference-records/planning/v1-review-site; hosting identity is retained in its .openai/hosting.json. Site is owner-private. JavaScript syntax, static serving and data mappings checked; no browser surface was available for interaction QA. The hosting-generated screenshot was inspected: initial page, counts, typography and layout render correctly. Deployment succeeded 2026-10-17.
+Site source is external at ../Alloy-reference-records/planning/v1-review-site; hosting identity is retained in its .openai/hosting.json. The site is owner-private. Source/data and local render/filter checks passed, and private deployment succeeded 2026-10-19. Browser visual QA for this revision was unavailable and remains open; an older hosting screenshot does not verify it.

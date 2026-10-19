@@ -59,7 +59,7 @@ evidence. No broad option parity or runtime acceptance is implied.
 | `solid.sweep` | Editable New Body Sweep using a supported circular profile and line/arc path with perpendicular full-path behavior and retained path/profile identity. | Arbitrary profiles, guide rails, twist/taper, path-distance extents and broader path combinations. |
 | `solid.loft` | Editable New Body Loft through at least two ordered closed circular sections, with Free ends, no rails and explicit invalid-order refusal. | General noncircular profiles, continuity controls, guide rails/centerlines, and broader section combinations. |
 | `solid.hole` | A simple editable cylindrical Hole from a supported sketch point/face with an explicit target and depth or through-all extent; retain the accepted Countersink subset. | Counterbore has accepted bounded sketch-point evidence under `solid.hole-variants`; broader placement and internal/tapped variants remain separately owned. Modeled external Thread remains required. |
-| `solid.fillet` | Editable constant-radius Fillet on supported selected solid edges, including a supported tangent chain, with preview/Cancel and atomic refusal when invalid. | Variable-radius, chordal, setback, advanced modes, general topology and broader edge/support cases. |
+| `solid.fillet` | Editable constant-radius Fillet on supported selected solid edges, including a supported tangent chain, with preview/Cancel and atomic refusal when invalid. The separate proposed-v1 `solid.advanced-fillet` row still requires one specifically chosen advanced mode. | Other variable-radius, chordal, setback and advanced modes, general topology and broader edge/support cases. Do not treat the open `solid.advanced-fillet` choice as deferred by this row. |
 | `solid.chamfer` | Editable Equal Distance Chamfer on supported retained solid edges, with preview/Cancel, edit and atomic invalid-distance refusal. | Two Distance and Distance And Angle remain required v1 work under `solid.advanced-chamfer`; tangent-chain variants and broader generated-edge naming remain separately owned. |
 | `solid.shell` | Editable constant inward Shell on supported solids, with either one selected planar opening face or the accepted closed-shell cases; impossible thickness must refuse atomically. | Outward/both-side modes, rounded options and arbitrary stock/topology. |
 | `solid.move` | Editable Free Move for one body using retained translation/rotation values or manipulator gestures, with one history feature and Cancel/undo. | Multi-body and broader pivot/mode behavior. Body Copy and geometry Align are separate inventory rows but currently share the open SOL-008 owner. |
@@ -69,7 +69,7 @@ evidence. No broad option parity or runtime acceptance is implied.
 
 The closed receipts cited in the reconciliation table support bounded ingredients:
 they do not prove that the proposed minimum is complete or accepted. In
-particular, solid Hole still lacks a simple-hole owner; Loft evidence accepts
+particular, Simple Hole and Counterbore now have bounded accepted retained sketch-point slices under SOL-078/#608 and SOL-079/#609; broader Hole placement and tapped variants remain open. Loft evidence accepts
 the bounded circular workflow but not general profiles/rails/continuity; Revolve
 controls are accepted only for the recorded Qt/API fixture, without physical OS
 input or full tutorial acceptance; and feature/body transformations remain
@@ -189,7 +189,7 @@ issues or accepted scope reductions.
 
 | Candidate child title | Existing parent/dependency | Finishable acceptance boundary |
 | --- | --- | --- |
-| Counterbore Hole with retained placement (accepted SOL-079/#609 slice; wider SOL-007 open) | SOL-007/#52; simple Hole SOL-078/#608; Countersink SOL-035/#247 | Add/edit one counterbore and one countersink on supported plate points, verify cut dimensions/volume, source edit behavior, refusal, undo and reopen. |
+| Counterbore Hole with retained placement (accepted SOL-079/#609 slice; wider SOL-007 open) | SOL-007/#52; simple Hole SOL-078/#608; Countersink SOL-035/#247 | Reuse accepted point/target/recess source-edit and checked-solid receipts; qualify only additional required placement or tapped variants through new bounded children. |
 | Neutral-plane Draft | SOL-013/#59 | Draft one supported side face at a declared angle around a retained neutral plane; verify face direction, dimensions, edit, invalid-angle refusal and history/reopen. |
 | Uniform body Scale | SOL-013/#59 | Scale one retained/copy-created body about a declared origin/reference; verify factor, bounds, identity, edit and undo/reopen. |
 | Planar cap and nonplanar Patch split | SRF-003/#62; prerequisite SRF-002/#61 | Deliver separately testable planar-loop cap and bounded four-edge nonplanar patch; check boundary deviation/continuity and atomic refusal for disconnected loops. |
