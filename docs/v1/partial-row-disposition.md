@@ -41,6 +41,40 @@ must still exercise the shared UI/API authority, actual geometry, edit, undo,
 save/reopen and native input for the required subset. These proposals do not
 close the open owners or cumulative release gates.
 
+## Next 15 broad partial proposed-v1 rows
+
+Scope proposal added 2026-10-19 for the next inventory tranche. These smallest
+useful modeling results support an editable shape-creation workflow; existing
+receipts establish only the named subsets linked in the reconciliation table.
+Each proposed minimum still needs its open owner and cumulative release
+evidence. No broad option parity or runtime acceptance is implied.
+
+| Inventory row | Proposed minimum for v1 | Later or separately owned remainder |
+| --- | --- | --- |
+| `sketch.offset` | Retained signed offsets for supported closed line/arc loops and supported open chains, with selectable resulting profiles and atomic refusal on collapse or ambiguous source identity. | General mixed curves/chains, self-intersections, arbitrary corners, and full option parity. |
+| `sketch.trim` | Retained Trim for supported analytic line/circle/arc intersections used to create profiles; preserve safe entity/constraint identity and report removed constraints. | Splines and other curve families, multi-interval gestures, and broader constraint-preservation behavior. |
+| `sketch.extend` | Extend a straight authored line to its nearest supported unambiguous straight-line intersection, with preview, cancel, retained endpoint identity and atomic refusal on ties/unsupported cases. | Curved targets, ambiguous intersections, and broader curve families. |
+| `solid.extrude` | Editable one-sided Distance extrusion for New Body, Join and Cut on supported closed profiles; retain the accepted planar To Object, Cut All and offset-start variants. | Symmetric/Two Sides, taper, thin wall, Intersect and broader extent/support combinations. |
+| `solid.revolve` | Editable New Body Full or Partial Revolve around a supported retained sketch axis, with an ordered closed profile and explicit refusal for invalid/crossing axes. | Join/Cut/Intersect, thin variants, broader axes/profiles and wider Boolean operation editing. |
+| `solid.sweep` | Editable New Body Sweep using a supported circular profile and line/arc path with perpendicular full-path behavior and retained path/profile identity. | Arbitrary profiles, guide rails, twist/taper, path-distance extents and broader path combinations. |
+| `solid.loft` | Editable New Body Loft through at least two ordered closed circular sections, with Free ends, no rails and explicit invalid-order refusal. | General noncircular profiles, continuity controls, guide rails/centerlines, and broader section combinations. |
+| `solid.hole` | A simple editable cylindrical Hole from a supported sketch point/face with an explicit target and depth or through-all extent; retain the accepted Countersink subset. | Counterbore and broader placement/extent choices. Internal/tapped variants require their own explicit scope; modeled external Thread remains separately required. |
+| `solid.fillet` | Editable constant-radius Fillet on supported selected solid edges, including a supported tangent chain, with preview/Cancel and atomic refusal when invalid. | Variable-radius, chordal, setback, advanced modes, general topology and broader edge/support cases. |
+| `solid.chamfer` | Editable Equal Distance Chamfer on supported retained solid edges, with preview/Cancel, edit and atomic invalid-distance refusal. | Two Distance, Distance And Angle, tangent-chain variants and broader generated-edge naming. |
+| `solid.shell` | Editable constant inward Shell on supported solids, with either one selected planar opening face or the accepted closed-shell cases; impossible thickness must refuse atomically. | Outward/both-side modes, rounded options and arbitrary stock/topology. |
+| `solid.move` | Editable Free Move for one body using retained translation/rotation values or manipulator gestures, with one history feature and Cancel/undo. | Multi-body and broader pivot/mode behavior. Body Copy and geometry Align are separate inventory rows but currently share the open SOL-008 owner. |
+| `solid.split` | Split one supported solid by a retained plane into two valid independently selectable solids, preserving owner and stable result identities. | Face/surface/curve splitting and broader split-tool choices. |
+| `solid.mirror-body` | Reflect one source body across a supported planar face or datum plane into one distinct retained body; do not implicitly Join. | Multi-body/group modes, other object types and broader plane/option coverage. |
+| `solid.mirror-feature` | Mirror one retained Cut or one supported ordered feature group across a supported origin plane, preserving source-stage evaluation, target identity and downstream references. | Arbitrary feature sequences, all plane types, general topology and universal downstream naming. |
+
+The closed receipts cited in the reconciliation table support bounded ingredients:
+they do not prove that the proposed minimum is complete or accepted. In
+particular, solid Hole still lacks a simple-hole owner; Loft evidence accepts
+the bounded circular workflow but not general profiles/rails/continuity; Revolve
+controls are accepted only for the recorded Qt/API fixture, without physical OS
+input or full tutorial acceptance; and feature/body transformations remain
+limited to their documented fixtures. Those uncertainties remain release work.
+
 | Inventory row | Proposed v1 subset | Wider family after v1 or separately owned |
 | --- | --- | --- |
 | `sketch.arc` | Center Point, Three-Point and accepted line hold-drag tangent continuation | Other tangent modes and construction variants |
