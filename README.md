@@ -237,8 +237,9 @@ found a small connector collision in both halves. The user-approved
 [clearance adaptation](docs/validation/enclosure-connector-clearance.md)
 now measures 0.5 mm to that unchanged nominal connector from each half, with
 zero positive overlap across all 24 reference/half pairs and checked separate
-exports. Source dimension parity, physical fit and the full enclosure tutorial
-remain open.
+exports. The [cumulative adapted tutorial](docs/validation/enclosure-cumulative-gate.md)
+now runs from a blank document through those stages and the final fit cut.
+Source dimension parity and physical fit remain open.
 
 [Straight-line Extend](docs/validation/sketch-line-extend.md) now previews and
 closes sketch gaps while preserving endpoint identity and constraints. Its
@@ -329,8 +330,9 @@ rounded card opening. Save/reopen and Case-only STEP/STL checks pass. The
 adapted nominal board is not a physical-fit certification. The [split-halves and snap checkpoint](docs/validation/enclosure-snaps-workflow.md)
 now adds mirrored catches, reordered rounding, separate closed printing meshes
 and a full creation recording. [Retained section support](docs/validation/section-split-support.md) now follows
-the Split halves through edits. The alignment rim and native naming remain
-separate follow-ups.
+the Split halves through edits. The [native naming gate](docs/validation/body-rename.md)
+and final alignment rim are now separately checked and joined by the cumulative
+enclosure recording.
 
 The [patterned ornament tutorial](docs/validation/ornament-tutorial-acceptance.md)
 now has independently accepted creation footage, editable source and width-edit
@@ -343,8 +345,9 @@ independently accepted: constrained dovetail sketches, retained projections,
 clearance Offset, To Object extrusion, named parameter resizing, thumb relief,
 and a limited Slider opening through the front. It has a full creation movie,
 a labelled close-up replay, editable assembly and separate checked printing
-files. The enclosure, surface shoehorn, surface iron and piston assembly remain
-in the [dependency-ordered delivery queue](docs/backlog/README.md).
+files. The enclosure, surface shoehorn and corrected surface iron now have
+accepted bounded tutorials; piston assembly and broader release work remain in
+the [dependency-ordered delivery queue](docs/backlog/README.md).
 
 Alloy is a standalone, open source, modifiable parametric CAD application.
 The long-term goal is complete functional coverage of professional CAD workflows,
