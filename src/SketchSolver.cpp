@@ -876,11 +876,11 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 value=2*(d["driving"].toBool() ? side*first : std::abs(first));
             } else if(kind=="parallelLineDistance") {
                 const auto& first=line(reference(d,"entityIds",0));const auto& second=line(reference(d,"entityIds",1));
-                const auto near=pointLineDistance(second.p1,first),far=pointLineDistance(second.p2,first);
-                require(std::abs(near-far)<=lengthTolerance,"Parallel distance lost line orientation; retain Parallel/Horizontal/Vertical constraints");
-                require(std::abs(near)>=minimumLength,"Parallel distance requires separated lines");
+                const auto firstDistance=pointLineDistance(second.p1,first),secondDistance=pointLineDistance(second.p2,first);
+                require(std::abs(firstDistance-secondDistance)<=lengthTolerance,"Parallel distance lost line orientation; retain Parallel/Horizontal/Vertical constraints");
+                require(std::abs(firstDistance)>=minimumLength,"Parallel distance requires separated lines");
                 const auto side=d["side"].toInt();require(side==1 || side==-1,"Parallel distance side is invalid");
-                value=d["driving"].toBool() ? side*near : std::abs(near);
+                value=d["driving"].toBool() ? side*firstDistance : std::abs(firstDistance);
             } else if(kind=="pointLineDistance"){const auto signedValue=pointLineDistance(point(reference(d,"pointIds",0)),line(d["entityId"].toString()));value=d["driving"].toBool() ? d["side"].toInt()*signedValue : std::abs(signedValue);}
             else value=separation(kind,point(reference(d,"pointIds",0)),point(reference(d,"pointIds",1)));
             if(d["driving"].toBool())check(value-number(d,angular ? "valueDeg" : "valueMm"),angular ? 1e-6 : lengthTolerance);
