@@ -1,6 +1,6 @@
 # Polygon solid Extrude taper
 
-SOL-081/#619 bounded candidate, 2026-10-19. [Command contract](../research/commands/extrude-taper.md).
+SOL-081/#619 accepted bounded Mac slice, 2026-10-19. [Command contract](../research/commands/extrude-taper.md).
 Retained `taperAngleDeg` uses negative inward/positive outward degrees, default
 zero, finite domain strictly between −90° and +90°. Nonzero supports one straight
 polygon without holes, positive Distance, One Side, Profile Plane and New Body.
@@ -49,7 +49,10 @@ The initial API probe exposed a missing numeric schema range and stopped before
 nonzero taper; explicit −90..90 schema bounds now accompany the shared strict
 endpoint validation. This was corrected before the passing final evidence.
 
-Independent compatibility review is required before acceptance. The public-source evidence is external in
+Independent Astra review found no geometry, persistence or atomicity blocker.
+It found a clipped generic panel hint; the shortened signed-taper hint was
+rebuilt, rerun and visually inspected in the final native capture before
+acceptance. The public-source evidence is external in
 `knowledge/specs/sol081-taper-extrude-2026-10-19.md`; no matched screenshot exists,
 so precise layout/pixel parity is unknown.
 
