@@ -146,6 +146,8 @@ public:
     static std::optional<SolveResult> drivenAlternative(const QJsonObject& draft,
         const QJsonObject& arguments,const SolveResult& failed,
         const QJsonObject& projectionContext = {},const QSet<QString>& userLengthNames = {});
+    static SolveResult setDimensionDriving(const QJsonObject& draft,const QString& dimensionId,
+        bool driving,const QJsonObject& projectionContext = {});
     static SolveResult updateDimension(const QJsonObject& draft, const QJsonObject& arguments,
         const QJsonObject& projectionContext = {}, const QSet<QString>& userLengthNames = {});
     // Re-evaluate retained local formulas by stable dimension IDs for draft,

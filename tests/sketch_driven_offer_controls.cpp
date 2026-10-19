@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: MIT
 #include "AlloyWindow.h"
 #include "AlloyTheme.h"
+#include "ReferenceView.h"
+#include <QMenu>
+#include <QProcess>
+#include <QContextMenuEvent>
 #include <QApplication>
 #include <QDir>
 #include <QFile>
@@ -23,6 +27,42 @@ class SketchDrivenOfferControls final:public QObject {
     static QJsonObject draft(const AlloyWindow& window){return session(window).value("draftSketch").toObject();}
     static void save(const QString& path,const QJsonObject& value){QFile file(path);QVERIFY(file.open(QIODevice::WriteOnly));file.write(QJsonDocument(value).toJson(QJsonDocument::Indented));}
 private slots:
+    void directToggle(){
+        const auto output=qEnvironmentVariable("ALLOY_DRIVEN_OFFER_EVIDENCE");QVERIFY(!output.isEmpty());QVERIFY(QDir().mkpath(output));
+        AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1450,900);window.show();QVERIFY(QTest::qWaitForWindowExposed(&window));
+        // Initial harness activation, before any demonstrated input.
+#ifdef Q_OS_MACOS
+        QProcess activate;activate.start("osascript",{"-e",QString("tell application \"System Events\" to set frontmost of first application process whose unix id is %1 to true").arg(QCoreApplication::applicationPid())});QVERIFY(activate.waitForFinished(5000));QCOMPARE(activate.exitCode(),0);
+#endif
+        window.raise();window.activateWindow();window.windowHandle()->requestActivate();QTRY_VERIFY(window.isActiveWindow());
+        ReferenceView* view=nullptr;for(auto* widget:window.findChildren<QWidget*>())if(auto* candidate=dynamic_cast<ReferenceView*>(widget))view=candidate;QVERIFY(view);
+        call(window,"sketch.begin",{{"plane","XY"}});call(window,"sketch.rectangle",{{"x1",0},{"y1",0},{"x2",40},{"y2",25},{"units","mm"}});
+        const auto edge=draft(window).value("parameters").toObject().value("entities").toArray().first().toObject();
+        call(window,"sketch.dimension",{{"kind","horizontal"},{"entityId",edge.value("id")},{"value",40},{"units","mm"},{"annotation",QJsonObject{{"uMm",20},{"vMm",-8}}}});
+        call(window,"sketch.tool",{{"tool","select"}});call(window,"view.orientation",{{"name","top"}});call(window,"view.home");
+        const auto before=draft(window);const auto id=before.value("parameters").toObject().value("dimensions").toArray().first().toObject().value("id");
+        auto annotation=[&](){for(const auto& entry:view->annotations())if(entry.toObject().value("dimensionId")==id)return entry.toObject();return QJsonObject{};};
+        auto toggle=[&](const QString& text){
+            const auto label=annotation().value("label").toObject();const QPoint at(qRound(label.value("x").toDouble()),qRound(label.value("y").toDouble()));
+            QCOMPARE(QApplication::widgetAt(view->mapToGlobal(at)),static_cast<QWidget*>(view));
+            QContextMenuEvent event(QContextMenuEvent::Mouse,at,view->mapToGlobal(at));QApplication::sendEvent(view,&event);
+            QTRY_VERIFY(QApplication::activePopupWidget()!=nullptr);
+            auto* menu=qobject_cast<QMenu*>(QApplication::activePopupWidget());QVERIFY(menu);
+            QCOMPARE(menu->objectName(),QString("context.sketchDimension"));QVERIFY(menu->isVisible());
+            auto* action=menu->actions().first();QCOMPARE(action->text(),text);
+            const auto hit=menu->actionGeometry(action).center();QCOMPARE(QApplication::widgetAt(menu->mapToGlobal(hit)),static_cast<QWidget*>(menu));
+            QTest::mouseClick(menu,Qt::LeftButton,Qt::NoModifier,hit);QTRY_VERIFY(QApplication::activePopupWidget()==nullptr);
+        };
+        toggle("Toggle Driven");const auto driven=draft(window);QVERIFY(driven!=before);
+        QVERIFY(annotation().value("label").toObject().value("text").toString().startsWith("("));
+        call(window,"capture.screenshot",{{"path",output+"/direct-driven.png"}});save(output+"/direct-driven-state.json",window.state());
+        call(window,"history.undo");QCOMPARE(draft(window),before);call(window,"history.redo");QCOMPARE(draft(window),driven);
+        // No focus or selection repair between the reciprocal native menu steps.
+        toggle("Toggle Driving");QCOMPARE(draft(window),before);
+        call(window,"sketch.dimensionDriving",{{"dimensionId",id},{"driving",false}});
+        call(window,"sketch.dimensionEdit",{{"dimensionId",id}});auto* value=window.findChild<QLineEdit*>("sketch.inlineValue");QVERIFY(value&&value->isReadOnly());
+        call(window,"sketch.dimensionCancel");call(window,"sketch.finish");call(window,"document.save",{{"path",output+"/direct-native.alloy"}});window.close();
+    }
     void explicitDrivenChoice(){
         const auto output=qEnvironmentVariable("ALLOY_DRIVEN_OFFER_EVIDENCE");QVERIFY(!output.isEmpty());QVERIFY(QDir().mkpath(output));
         AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1450,900);window.show();QVERIFY(QTest::qWaitForWindowExposed(&window));

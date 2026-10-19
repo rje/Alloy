@@ -4016,6 +4016,22 @@ void ReferenceView::contextMenuEvent(QContextMenuEvent* e) {
     lastContextMenu_=QJsonObject{{"reason",static_cast<int>(e->reason())},{"sketchActive",sketchActive},
         {"selectTool",selectTool},{"selectedEntities",selectedEntities},
         {"x",e->pos().x()},{"y",e->pos().y()}};
+    if(sketchActive && selectTool) {
+        const auto picked=pickAnnotation(e->pos().x(),e->pos().y());
+        const auto id=picked.value("dimensionId").toString();
+        for(const auto& entry:decorationFeature_.value("parameters").toObject().value("dimensions").toArray()) {
+            const auto dimension=entry.toObject();if(id.isEmpty() || dimension.value("id")!=id)continue;
+            dispatch("sketch.annotationSelect",{{"dimensionId",id}});
+            auto* menu=new QMenu(this);menu->setObjectName("context.sketchDimension");menu->setAttribute(Qt::WA_DeleteOnClose);
+            const bool driving=dimension.value("driving").toBool();
+            auto* toggle=menu->addAction(driving ? "Toggle Driven" : "Toggle Driving");toggle->setObjectName("sketch.dimension.toggleDriving");
+            toggle->setToolTip("Driven conversion removes the expression or user parameter binding; converting back uses the current measurement.");
+            connect(toggle,&QAction::triggered,this,[this,id,driving]{dispatch("sketch.dimensionDriving",{{"dimensionId",id},{"driving",!driving}});});
+            lastContextMenu_["dimensionId"]=id;lastContextMenu_["phase"]="open";++contextMenuShownCount_;
+            connect(menu,&QMenu::aboutToHide,this,[this]{lastContextMenu_["phase"]="closed";});
+            menu->popup(e->globalPos());e->accept();return;
+        }
+    }
     if(sketchActive && selectTool && selectedEntities==1) {
         const QString selected=decorationSelection_.value("entityIds").toArray().at(0).toString();
         for(const auto& value:decorationFeature_["parameters"].toObject()["entities"].toArray()) {

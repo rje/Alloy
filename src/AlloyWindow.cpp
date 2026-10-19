@@ -5230,6 +5230,16 @@ void AlloyWindow::registerCommands() {
         if(!picked.isEmpty()){auto selection=session_.value("selection").toObject();selection["dimensionId"]=picked.value("dimensionId");session_["selection"]=selection;}
         return picked;
     });
+    add("sketch.dimensionDriving","Toggle dimension driving state","Retain an existing dimension and its references. Driven conversion removes its expression or user binding; conversion back uses the current measurement. Dependent expressions and redundant drivers refuse atomically.",
+        {{"dimensionId",dimensionId},{"driving",parameter("boolean","True drives geometry; false measures it.")},{"session",optionalSession}},[this](const auto& a){
+            if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+            if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
+            if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","Restart this sketch");
+            if(session_.value("tool")!="select" || session_.contains("pendingDimension") || session_.contains("pendingDrivenOffer"))return failure("pending_input_active","Return to Select and finish or cancel current dimension input");
+            const auto result=publishSketchSolve(SketchGeometry::setDimensionDriving(session_.value("draftSketch").toObject(),a.value("dimensionId").toString(),a.value("driving").toBool(),session_.value("projectionContext").toObject()));
+            if(!result.contains("ok") || result.value("ok").toBool())cancelDimension();
+            return result;
+        });
     add("sketch.dimensionEdit","Edit canvas dimension","Open a driving value editor or read-only driven measurement.",{{"dimensionId",dimensionId},{"session",optionalSession}},[this](const auto& a){
         if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");return editDimension(a["dimensionId"].toString());
     });

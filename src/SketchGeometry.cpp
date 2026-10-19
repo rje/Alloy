@@ -420,7 +420,7 @@ QJsonObject SketchGeometry::resolvedDimensionFeature(const QJsonObject& feature)
         if(byId.contains(id))reject("Duplicate sketch dimension ID");
         byId[id]=row;
         if(name.isEmpty())continue;
-        if(!localLengthDimension(row) || names.contains(name))reject("Duplicate or invalid local dimension name");
+        if((row.value("kind")=="angle" || row.value("kind")=="arcSweep" || row.value("kind")=="overallSlotAngle") || names.contains(name))reject("Duplicate or invalid local dimension name");
         names.insert(name);
     }
     QMap<QString,double> resolved;QSet<QString> visiting;
@@ -2704,7 +2704,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             if(named){
                 static const QRegularExpression localName(QStringLiteral(R"(^d([1-9]\d*)$)"));
                 const auto match=localName.match(dimension["name"].toString());
-                if(!dimension["name"].isString() || !match.hasMatch() || !localLengthDimension(dimension) ||
+                if(!dimension["name"].isString() || !match.hasMatch() || kind=="angle" || kind=="arcSweep" || kind=="overallSlotAngle" ||
                    localDimensionNames.contains(dimension["name"].toString()))return "Invalid or duplicate local dimension name";
                 localDimensionNames.insert(dimension["name"].toString());
                 largestLocalName=std::max(largestLocalName,match.captured(1).toInt());
@@ -3962,6 +3962,40 @@ SketchGeometry::SolveResult SketchGeometry::updateCircleOffset(const QJsonObject
         const auto result=solveDraft(candidate,projectionContext);
         return result.ok ? result : SolveResult{false,draft,result.diagnostics,result.error};
     } catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
+}
+
+SketchGeometry::SolveResult SketchGeometry::setDimensionDriving(const QJsonObject& draft,const QString& id,
+    bool driving,const QJsonObject& projectionContext) {
+    try {
+        validateDraft(draft);
+        auto parameters=draft.value("parameters").toObject();auto dimensions=parameters.value("dimensions").toArray();
+        int index=-1;for(int i=0;i<dimensions.size();++i)if(dimensions[i].toObject().value("id")==id){index=i;break;}
+        if(index<0)reject("Dimension no longer exists");
+        auto dimension=dimensions[index].toObject();
+        if(dimension.value("driving").toBool()==driving)return solveDraft(draft,projectionContext);
+        if(!driving)for(const auto& entry:dimensions)
+            if(entry.toObject().value("referenceIds").toArray().contains(id))
+                reject("Another dimension expression uses this driver; replace that expression before Toggle Driven");
+        const auto baseline=solveDraft(draft,projectionContext);
+        if(!baseline.ok)return {false,draft,baseline.diagnostics,baseline.error};
+        const bool angular=dimension.value("kind")=="angle" || dimension.value("kind")=="arcSweep" || dimension.value("kind")=="overallSlotAngle";
+        const auto key=angular ? "valueDeg" : "valueMm";
+        dimension["driving"]=driving;
+        if(driving){
+            bool measured=false;
+            for(const auto& value:baseline.diagnostics.value("dimensionValues").toArray())
+                if(value.toObject().value("id")==id && value.toObject().contains(key)){
+                    dimension[key]=value.toObject().value(key);measured=true;break;}
+            if(!measured)reject("Current dimension measurement is unavailable");
+        } else {
+            dimension.remove("valueMm");dimension.remove("valueDeg");dimension.remove("parameterId");
+            dimension.remove("expression");dimension.remove("expressionUnits");dimension.remove("referenceIds");
+        }
+        dimensions[index]=dimension;parameters["dimensions"]=dimensions;
+        auto candidate=draft;candidate["parameters"]=parameters;
+        const auto solved=solveDraft(candidate,projectionContext);
+        return solved.ok ? solved : SolveResult{false,draft,solved.diagnostics,solved.error};
+    }catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
 }
 
 SketchGeometry::SolveResult SketchGeometry::updateDimension(const QJsonObject& draft, const QJsonObject& arguments,
