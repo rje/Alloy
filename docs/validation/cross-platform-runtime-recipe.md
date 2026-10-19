@@ -228,3 +228,11 @@ local macOS Release build and focused closed-blend Qt test pass after the
 rename. A new manual Windows-only run must still establish MSVC compilation,
 linking and effective manifests. Packaging, loaded runtime and GPU remain
 separate gates.
+
+Manual Windows run `39195359696` at `c376d5f` was canceled early after a
+second private `near`/`far` pair was found in `SketchSolver.cpp`; it has no
+qualification result. Those locals were renamed without changing the
+calculation at `089bd55`, and local Mac Release Alloy compiled. Windows-only
+[run 39195713105](https://github.com/rje/Alloy/actions/runs/39195713105) is
+the pending native compiler/link gate at that exact commit. No other platform
+matrix was dispatched for this correction.
