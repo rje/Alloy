@@ -2,6 +2,13 @@
 
 Audit date: 2026-10-18. Owner: REL-030/#469. This is a local document/ownership audit, not a new runtime or compatibility acceptance. No GitHub changes, build, editor launch, recording, publication or release promotion formed part of this pass.
 
+2026-10-19 planning update: all **63 rows currently marked `S`** have a
+proposed first-v1 minimum and explicit wider remainder across four tranches in
+[the disposition](partial-row-disposition.md). These boundaries are proposals,
+not approval of deferred work or evidence that the minimum is implemented.
+Finishable issue splits, live-owner checks, cumulative release fixtures and the
+web review remain REL-030 work.
+
 The inventory contains **150 total rows, 134 proposed-v1**, one experimental assembly row, six infrastructure rows and nine later-roadmap rows. All 150 appear below. Proposed direction is accepted for planning; individual implementation and release gates remain open. Required first-v1 3MF export and modeled printable threads have bounded accepted local Mac slices. This does not require silently expanding the external-thread slice into every thread standard/internal mode or silently dropping their long-term requirements.
 
 Inputs: [inventory](command-inventory.json), [partial disposition](partial-row-disposition.md), [prior ownership audit](ownership-audit.md), [backlog map](backlog-map.json), [backlog manifest](../backlog/issues.json), [GitHub mirror](../backlog/github.json), README and the current continuation context. Existing issue bodies and current receipts were compared to the inventory claims; no proprietary reference app was inspected. This pass finds missing ownership, so affected implementations still need the required bounded public-workflow research before coding.
