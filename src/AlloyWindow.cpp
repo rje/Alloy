@@ -2581,7 +2581,7 @@ void AlloyWindow::registerCommands() {
         });
         add("primitive."+type,title,"Open a shared primitive dimension dialog.",{},[this,id](const auto&){return beginSession(id,{});});
     }
-    auto extrusionDistance=parameter("number","Signed one-side distance in display units along the profile normal; zero is invalid.");
+    auto extrusionDistance=parameter("number","Distance in display units: signed for One Side, positive for Symmetric or the +normal Two Sides reach; zero is invalid.");
     extrusionDistance["minimum"]=-100000;extrusionDistance["maximum"]=100000;
     auto extrusionStart=parameter("string","Start at the original profile plane or its signed normal offset.");
     extrusionStart["enum"]=QJsonArray{"profilePlane","offset"};
@@ -2594,7 +2594,12 @@ void AlloyWindow::registerCommands() {
     extrudeOperation["enum"]=QJsonArray{"newBody","join","cut","intersect"};
     auto extrusionExtent=parameter("string","Distance, retained planar To Object, or target-bounded Cut All extent.");
     extrusionExtent["enum"]=QJsonArray{"distance","toObject","all"};
-    QJsonObject extrudeSchema{{"extent",optional(extrusionExtent)},
+    auto extrusionDirection=parameter("string","One Side (default), symmetric, or independent positive/negative-normal reaches.");
+    extrusionDirection["enum"]=QJsonArray{"oneSide","symmetric","twoSides"};
+    auto extrusionMeasurement=parameter("string","Symmetric distance interpretation; default Half Length.");
+    extrusionMeasurement["enum"]=QJsonArray{"halfLength","wholeLength"};
+    QJsonObject extrudeSchema{{"direction",optional(extrusionDirection)},{"measurement",optional(extrusionMeasurement)},
+        {"negativeDistance",optional(length)},{"extent",optional(extrusionExtent)},
         {"flip",optional(parameter("boolean","All extent only: cut opposite the profile normal."))},
         {"endSupport",optional(parameter("object","Retained producerFeatureId/bodyId/faceId of the end face."))},
         {"endOffset",optional(extrusionStartOffset)},
@@ -2607,7 +2612,7 @@ void AlloyWindow::registerCommands() {
         {"startOffsetParameter",optional(parameter("string","Direct name of a user length for a positive start offset."))},
         {"units",optional(units)},{"name",optional(parameter("string","Extrusion feature name."))},{"featureId",optional(featureId)},
         {"operation",optional(extrudeOperation)},{"targetBodyIds",optional(parameter("array","Ordered retained participant body UUIDs for Join; one for Cut/Intersect."))}};
-    add("solid.extrude","Create or edit extrusion","Commit a one-side distance New Body, Join, Cut or Intersect extrusion of accepted profiles.",extrudeSchema,[this](const auto& a){
+    add("solid.extrude","Create or edit extrusion","Commit accepted profiles as One Side extrusion, or Symmetric/Two Sides Distance New Body.",extrudeSchema,[this](const auto& a){
         auto inputs=a;
         if((a.value("extent")=="toObject" || a.value("extent")=="all") && (a.contains("distance") || a.contains("distanceParameter") || a.contains("distanceExpression")))return failure("invalid_arguments","Retained extent derives its distance from the target");
         if(a.contains("endOffset") && a.contains("endOffsetParameter"))return failure("invalid_arguments","Choose numeric end offset or direct length name");
@@ -2628,6 +2633,9 @@ void AlloyWindow::registerCommands() {
             for(const auto& value:document_->authored()["features"].toArray())if(value.toObject()["id"]==inputs["featureId"]){existing=value.toObject();break;}
             if(existing["type"]!="extrude")return failure("stale_entity","Extrusion feature does not exist","featureId");
             const auto parameters=existing["parameters"].toObject();
+            if(!a.contains("direction") && parameters.contains("direction"))inputs["direction"]=parameters.value("direction");
+            if(inputs.value("direction")=="symmetric" && !a.contains("measurement"))inputs["measurement"]=parameters.value("measurement").toString("halfLength");
+            if(inputs.value("direction")=="twoSides" && !a.contains("negativeDistance"))inputs["negativeDistance"]=parameters.value("negativeDistanceMm").toDouble()/(inputs.value("units").toString(document_->authored()["displayUnits"].toString())=="in" ? 25.4 : 1);
             const auto savedOperation=parameters.value("operation").toString("newBody");
             if(inputs.contains("operation") && inputs["operation"]!=savedOperation)
                 return failure("invalid_arguments","Changing an existing extrusion operation is unavailable","operation");
@@ -2672,6 +2680,7 @@ void AlloyWindow::registerCommands() {
         {{"distanceMm",dragDistance},{"x",dragPixel},{"y",dragPixel},{"phase",optional(dragPhase)}},[this](const auto& a){
             if(session_.value("command")!="solid.extrude")return failure("no_active_extrusion","Open Extrude or Press Pull first");
             if(session_.value("inputs").toObject().value("extent")=="toObject" || session_.value("inputs").toObject().value("extent")=="all")return failure("retained_extent","The selected extent derives its reach from the target");
+            if(session_.value("inputs").toObject().value("direction").toString("oneSide")!="oneSide")return failure("unsupported_drag","Use the labeled distance fields for Symmetric or Two Sides");
             const auto units=session_.value("inputs").toObject()["units"].toString();
             const double distanceMm=a["distanceMm"].toDouble();
             if(!std::isfinite(distanceMm))return failure("invalid_arguments","Arrow distance must be finite","distanceMm");
@@ -6028,6 +6037,10 @@ void AlloyWindow::registerCommands() {
         auto inputs = session_.value("inputs").toObject();
         const auto updates = a["inputs"].toObject();
         if(session_.value("command")=="solid.extrude") {
+            if(updates.contains("direction")) {
+                if(updates.value("direction")!="symmetric")inputs.remove("measurement");
+                if(updates.value("direction")!="twoSides")inputs.remove("negativeDistance");
+            }
             if(updates.contains("profileIds") || updates.contains("profileId") || updates.contains("profileSelection")) {
                 inputs.remove("profileId");inputs.remove("profileIds");inputs.remove("profileSelection");
             }
@@ -8165,6 +8178,13 @@ QString AlloyWindow::validateExtrudeInputs(const QJsonObject& inputs) const {
     schema["profileSelection"]=QJsonObject{{"type","object"},{"required",false}};
     Command command=*findCommand("solid.extrude");command.parameters=schema;
     const auto error=validateArguments(command,inputs);if(!error.isEmpty())return error;
+    const auto direction=inputs.value("direction").toString("oneSide");
+    if(direction!="oneSide") {
+        if(inputs.value("operation").toString("newBody")!="newBody" || inputs.value("extent").toString("distance")!="distance" || inputs.value("start").toString("profilePlane")!="profilePlane")return "Symmetric/Two Sides require New Body, Distance and Profile Plane";
+        if(direction=="twoSides" && (!inputs.contains("negativeDistance") || inputs.value("negativeDistance").toDouble()<=0))return "Enter a positive negative-normal reach";
+        if(direction=="symmetric" && inputs.contains("negativeDistance"))return "Symmetric cannot carry a second-side input";
+        if(direction=="twoSides" && inputs.contains("measurement"))return "Two Sides cannot carry symmetric measurement";
+    } else if(inputs.contains("measurement") || inputs.contains("negativeDistance"))return "One Side cannot carry additional direction inputs";
     if(inputs.value("extent")=="toObject") {
         if(inputs.value("operation").toString("newBody")!="newBody" && inputs.value("operation")!="cut")return "To Object currently supports New Body or Cut";
         if(inputs.contains("endOffsetParameter") && lengthParameter(inputs.value("endOffsetParameter").toString()).isEmpty())return "User length name is unavailable";
@@ -8206,7 +8226,7 @@ QJsonArray AlloyWindow::discoverExtrudeTargets(const QJsonObject& inputs) const 
     const auto sketchId=inputs.value("sketchId").toString();
     const auto ids=inputs.contains("profileIds") ? inputs["profileIds"].toArray() : QJsonArray{inputs.value("profileId")};
     const auto extentParameters=extrudeExtentParameters(inputs);
-    const double startOffset=inputs.value("start")=="offset" ? CadDocument::millimeters(inputs.value("startOffset").toDouble(),inputs.value("units").toString()) : 0;
+    const double startOffset=GeometryKernel::extrusionStart(extentParameters);
     if(sketchId.isEmpty() || ids.isEmpty())return {};
     const auto editId=inputs.value("featureId").toString();
     const auto history=editId.isEmpty() ? document_->evaluation() : document_->evaluationBefore(editId);
@@ -8237,6 +8257,10 @@ QJsonArray AlloyWindow::discoverExtrudeTargets(const QJsonObject& inputs) const 
 }
 QJsonObject AlloyWindow::extrudeExtentParameters(const QJsonObject& inputs) const {
     QJsonObject arguments;
+    const auto direction=inputs.value("direction").toString("oneSide");
+    arguments["direction"]=direction;
+    if(direction=="symmetric")arguments["measurement"]=inputs.value("measurement").toString("halfLength");
+    if(direction=="twoSides")arguments["negativeDistanceMm"]=CadDocument::millimeters(inputs.value("negativeDistance").toDouble(),inputs.value("units").toString(document_->authored()["displayUnits"].toString()));
     if(inputs.value("extent")=="all") {arguments["extent"]="all";arguments["flip"]=inputs.value("flip").toBool();}
     else if(inputs.value("extent")=="toObject") {
         arguments["extent"]="toObject";arguments["endSupport"]=inputs.value("endSupport");
@@ -8342,6 +8366,10 @@ QJsonObject AlloyWindow::beginExtrude(const QJsonObject& overrides) {
         QJsonObject saved;for(const auto& entry:document_->authored()["features"].toArray())if(entry.toObject()["id"]==id){saved=entry.toObject();break;}
         if(saved["type"]!="extrude")return failure("stale_entity","Extrusion feature does not exist","featureId");
         const auto savedParameters=saved["parameters"].toObject();const auto savedOperation=savedParameters.value("operation").toString("newBody");
+        if(!overrides.contains("direction") && savedParameters.contains("direction"))inputs["direction"]=savedParameters.value("direction");
+        if(inputs.value("direction")=="symmetric" && !overrides.contains("measurement"))inputs["measurement"]=savedParameters.value("measurement").toString("halfLength");
+        if(inputs.value("direction")=="twoSides" && !overrides.contains("negativeDistance"))inputs["negativeDistance"]=savedParameters.value("negativeDistanceMm").toDouble()/(units=="in" ? 25.4 : 1);
+
         if(overrides.contains("operation") && inputs["operation"]!=savedOperation)return failure("invalid_arguments","Changing an existing extrusion operation is unavailable","operation");
         inputs["operation"]=savedOperation;
         if(savedParameters.contains("distanceExpression") && (!overrides.contains("distanceExpression") || overrides.value("distanceExpression")==savedParameters.value("distanceExpression"))
@@ -8444,9 +8472,9 @@ QJsonObject AlloyWindow::previewExtrude() {
     try {auto extent=extrudeExtentParameters(inputs);extent["operation"]=inputs.value("operation");extent["targetBodyIds"]=inputs.value("targetBodyIds");distance=GeometryKernel::extrusionDistance(extent,profiles.front(),history);}
     catch(const std::exception& error){return reject(failure("invalid_extent",QString::fromUtf8(error.what())));}
     session_["resolvedDistanceMm"]=distance;
-    const auto startOffset=inputs.value("start")=="offset" ? CadDocument::millimeters(inputs.value("startOffset").toDouble(),inputs["units"].toString()) : 0;
+    const auto startOffset=GeometryKernel::extrusionStart(extrudeExtentParameters(inputs));
     auto rejectWithHandle=[this,&profiles,&profileIds,&inputs,distance,startOffset](QJsonObject error){
-        if(inputs.value("extent")=="toObject" || inputs.value("extent")=="all"){view_->clearPreview();return error;}
+        if(inputs.value("extent")=="toObject" || inputs.value("extent")=="all" || inputs.value("direction").toString("oneSide")!="oneSide"){view_->clearPreview();return error;}
         view_->showExtrudeHandle(profiles.front(),profileIds,inputs["units"].toString(),inputs.value("operation").toString("newBody"),distance,startOffset);
         view_->selectProfiles(inputs["sketchId"].toString(),profileIds);
         session_["previewHandle"]=true;
@@ -8506,7 +8534,7 @@ QJsonObject AlloyWindow::previewExtrude() {
     }catch(const std::exception& error){return rejectWithHandle(failure("evaluation_failed",QString::fromUtf8(error.what())));}
     view_->selectProfiles(inputs["sketchId"].toString(),profileIds);
     if(inputs.contains("profileSelection"))session_["resolvedProfileIds"]=profileIds;
-    if(inputs.value("extent")=="toObject" || inputs.value("extent")=="all")view_->clearExtrusionCue();
+    if(inputs.value("extent")=="toObject" || inputs.value("extent")=="all" || inputs.value("direction").toString("oneSide")!="oneSide")view_->clearExtrusionCue();
     session_["previewed"]=true;session_["geometryEvaluated"]=true;session_["geometry"]=body->summary;
     session_["featureId"]=featureId;session_["bodyId"]=body->bodyId;session_["documentDraft"]=evaluated.authored;
     return session_;
@@ -8595,7 +8623,18 @@ void AlloyWindow::showExtrude() {
         return row["valueMm"].toDouble()/(session_.value("inputs").toObject().value("units").toString()=="in" ? 25.4 : 1);};
     namedOffset->setObjectName("extrude.startOffset");namedOffset->setRange(-100000,100000);namedOffset->setDecimals(6);namedOffset->setKeyboardTracking(false);
     extrudeStartOffsetLabel_=new QLabel("Offset");form->addRow(extrudeStartOffsetLabel_,namedOffset);
-    form->addRow("Direction",new QLabel("One Side"));
+    auto* direction=new QComboBox;direction->setObjectName("extrude.direction");
+    direction->addItem("One Side","oneSide");direction->addItem("Two Sides","twoSides");direction->addItem("Symmetric","symmetric");form->addRow("Direction",direction);
+    auto* measurement=new QComboBox;measurement->setObjectName("extrude.measurement");
+    measurement->addItem("Half Length","halfLength");measurement->addItem("Whole Length","wholeLength");
+    auto* measurementLabel=new QLabel("Measurement");measurementLabel->setObjectName("extrude.measurementLabel");form->addRow(measurementLabel,measurement);
+    connect(direction,qOverload<int>(&QComboBox::currentIndexChanged),this,[this,direction](int i){
+        QJsonObject updates{{"direction",direction->itemData(i).toString()}};
+        if(direction->itemData(i)=="symmetric")updates["measurement"]="halfLength";
+        if(direction->itemData(i)=="twoSides")updates["negativeDistance"]=10;
+        updateExtrude(updates);
+    });
+    connect(measurement,qOverload<int>(&QComboBox::currentIndexChanged),this,[this,measurement](int i){updateExtrude({{"measurement",measurement->itemData(i).toString()}});});
     extrudeExtent_=new QComboBox;extrudeExtent_->setObjectName("extrude.extent");extrudeExtent_->addItem("Distance","distance");extrudeExtent_->addItem("To Object","toObject");extrudeExtent_->addItem("All","all");form->addRow("Extent Type",extrudeExtent_);
     extrudeFlip_=new QCheckBox("Flip");extrudeFlip_->setObjectName("extrude.flip");form->addRow("",extrudeFlip_);
     auto* extend=new QLabel("Extend: To Selected Face");extend->setObjectName("extrude.extend");form->addRow(extend);
@@ -8632,6 +8671,9 @@ void AlloyWindow::showExtrude() {
     extrudeDistance_->setObjectName("extrude.distance");extrudeDistance_->setRange(-100000,100000);
     extrudeDistance_->setDecimals(6);extrudeDistance_->setKeyboardTracking(false);extrudeDistance_->setValue(session_.value("inputs").toObject()["distance"].toDouble());
     extrudeDistanceLabel_=new QLabel("Distance ("+session_.value("inputs").toObject().value("units").toString()+")");form->addRow(extrudeDistanceLabel_,extrudeDistance_);
+    auto* negative=new QDoubleSpinBox;negative->setObjectName("extrude.negativeDistance");negative->setRange(-100000,100000);negative->setDecimals(6);negative->setKeyboardTracking(false);
+    auto* negativeLabel=new QLabel;negativeLabel->setObjectName("extrude.negativeDistanceLabel");form->addRow(negativeLabel,negative);
+    connect(negative,qOverload<double>(&QDoubleSpinBox::valueChanged),this,[this](double value){updateExtrude({{"negativeDistance",value}});});
     extrudeOperation_=new QComboBox;extrudeOperation_->setObjectName("extrude.operation");
     extrudeOperation_->addItem("New Body","newBody");extrudeOperation_->addItem("Join","join");extrudeOperation_->addItem("Cut","cut");extrudeOperation_->addItem("Intersect","intersect");form->addRow("Operation",extrudeOperation_);
     extrudeTarget_=new QComboBox;extrudeTarget_->setObjectName("extrude.targetBody");
@@ -8757,16 +8799,29 @@ void AlloyWindow::refreshExtrudeControls() {
         while(extrudeProfile_->count()>rows.size())extrudeProfile_->removeItem(extrudeProfile_->count()-1);
         extrudeProfile_->setCurrentIndex(selected);
     }
+    const auto mode=inputs.value("direction").toString("oneSide");const bool oneSide=mode=="oneSide",symmetric=mode=="symmetric",twoSides=mode=="twoSides";
+    auto* direction=extrudePanel_->findChild<QComboBox*>("extrude.direction");
+    {const QSignalBlocker block(direction);direction->setCurrentIndex(direction->findData(mode));}
+    direction->setEnabled(inputs.value("operation").toString("newBody")=="newBody" && inputs.value("extent").toString("distance")=="distance" && inputs.value("start").toString("profilePlane")=="profilePlane");
+    auto* measurement=extrudePanel_->findChild<QComboBox*>("extrude.measurement");
+    measurement->setVisible(symmetric);extrudePanel_->findChild<QLabel*>("extrude.measurementLabel")->setVisible(symmetric);
+    {const QSignalBlocker block(measurement);measurement->setCurrentIndex(measurement->findData(inputs.value("measurement").toString("halfLength")));}
+    auto* negative=extrudePanel_->findChild<QDoubleSpinBox*>("extrude.negativeDistance");negative->setVisible(twoSides);
+    auto* negativeLabel=extrudePanel_->findChild<QLabel*>("extrude.negativeDistanceLabel");negativeLabel->setVisible(twoSides);negativeLabel->setText("− Normal ("+inputs.value("units").toString()+")");
+    {const QSignalBlocker block(negative);negative->setValue(inputs.value("negativeDistance").toDouble());}
+    extrudeStart_->setEnabled(oneSide);extrudeExtent_->setEnabled(oneSide);
     const bool toObject=inputs.value("extent")=="toObject",all=inputs.value("extent")=="all";
     extrudePanel_->findChild<QLabel*>("extrude.hint")->setText(all ? "Cut one selected body through all material in the chosen direction. Flip changes direction."
         : toObject
         ? "Select an end face. Positive offset leaves clearance; negative offset extends past it."
+        : symmetric ? (inputs.value("measurement")=="wholeLength" ? "Whole Length is the total distance, split equally across the profile plane." : "Half Length is the distance on each side of the profile plane.")
+        : twoSides ? "Positive lengths measured from the profile plane along each side of its normal. New Body only."
         : "Click regions to collect them. Cmd/Ctrl-click toggles a region. Drag the arrow or enter a signed distance.");
     {const QSignalBlocker block(extrudeExtent_);extrudeExtent_->setCurrentIndex(all ? 2 : toObject ? 1 : 0);}
     {const QSignalBlocker block(extrudeFlip_);extrudeFlip_->setChecked(inputs.value("flip").toBool());}
     extrudeFlip_->setVisible(all);
     extrudeDistance_->setVisible(!toObject && !all);extrudeDistanceLabel_->setVisible(!toObject && !all);
-    extrudeDistanceLabel_->setText("Distance ("+inputs.value("units").toString()+")");
+    extrudeDistanceLabel_->setText((twoSides ? "+ Normal (" : "Distance (")+inputs.value("units").toString()+")");
     extrudeEndObject_->setVisible(toObject);extrudeEndObjectLabel_->setVisible(toObject);extrudeEndOffset_->setVisible(toObject);extrudeEndOffsetLabel_->setVisible(toObject);
     extrudePanel_->findChild<QLabel*>("extrude.extend")->setVisible(toObject);
     extrudeEndOffsetLabel_->setText("Offset ("+inputs.value("units").toString()+")");
@@ -8788,7 +8843,7 @@ void AlloyWindow::refreshExtrudeControls() {
         }}
     {const QSignalBlocker block(extrudeOperation_);
         extrudeOperation_->setCurrentIndex(extrudeOperation_->findData(inputs.value("operation").toString("newBody")));
-        extrudeOperation_->setEnabled(inputs.value("featureId").toString().isEmpty());
+        extrudeOperation_->setEnabled(oneSide && inputs.value("featureId").toString().isEmpty());
     }
     const bool cut=(inputs.value("operation")=="cut" || inputs.value("operation")=="join" || inputs.value("operation")=="intersect");extrudeTargetLabel_->setText(inputs.value("operation")=="cut" ? "Objects to Cut" : "Target Body");extrudeTargetLabel_->setVisible(cut);extrudeTarget_->setVisible(cut);
     if(cut) {

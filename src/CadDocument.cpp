@@ -1667,7 +1667,7 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
     auto reject = [](const QString& message) {throw std::invalid_argument(message.toStdString());};
     const auto initial = validate(authored);
     if (!initial.isEmpty()) reject(initial);
-    const QSet<QString> allowed{"ownerId","sketchId","profileId","profileIds","profileSelection","distanceMm","distanceParameterId","distanceExpression","distanceReferenceIds","distanceExpressionUnits","start","startOffsetMm","startOffsetParameterId","extent","flip","endSupport","endOffsetMm","endOffsetParameterId","name","featureId","newFeatureId","newBodyId","operation","targetBodyIds"};
+    const QSet<QString> allowed{"ownerId","sketchId","profileId","profileIds","profileSelection","direction","measurement","negativeDistanceMm","distanceMm","distanceParameterId","distanceExpression","distanceReferenceIds","distanceExpressionUnits","start","startOffsetMm","startOffsetParameterId","extent","flip","endSupport","endOffsetMm","endOffsetParameterId","name","featureId","newFeatureId","newBodyId","operation","targetBodyIds"};
     for (auto it = arguments.begin(); it != arguments.end(); ++it)
         if (!allowed.contains(it.key())) reject("Unknown extrusion argument: "+it.key());
     const bool edit = arguments.contains("featureId"), newFeature = arguments.contains("newFeatureId"), newBody = arguments.contains("newBodyId");
@@ -1726,6 +1726,15 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
             profileParameters["distanceExpressionUnits"]=arguments.value("distanceExpressionUnits");
         }
     }
+    const auto direction=arguments.value("direction").toString(previousParameters.value("direction").toString("oneSide"));
+    if(direction!="oneSide") {
+        profileParameters["direction"]=direction;
+        if(direction=="symmetric")profileParameters["measurement"]=arguments.value("measurement").toString(previousParameters.value("measurement").toString("halfLength"));
+        if(direction=="twoSides")profileParameters["negativeDistanceMm"]=arguments.contains("negativeDistanceMm") ? arguments.value("negativeDistanceMm") : previousParameters.value("negativeDistanceMm");
+    }
+    if(direction=="oneSide" && (arguments.contains("measurement") || arguments.contains("negativeDistanceMm")))reject("One Side cannot carry symmetric or second-side inputs");
+    if(direction=="symmetric" && arguments.contains("negativeDistanceMm"))reject("Symmetric cannot carry a second-side input");
+    if(direction=="twoSides" && arguments.contains("measurement"))reject("Two Sides cannot carry a symmetric measurement");
     const auto start=arguments.value("start").toString(arguments.contains("startOffsetMm") || arguments.contains("startOffsetParameterId") ? "offset" : previousParameters.value("start").toString("profilePlane"));
     if(start!="profilePlane" && start!="offset")reject("Extrusion start must be Profile Plane or Offset");
     if(start=="profilePlane" && (arguments.contains("startOffsetMm") || arguments.contains("startOffsetParameterId")))reject("Profile Plane start cannot carry an offset");
@@ -2926,8 +2935,18 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             } else if(all) {
                 if(p.value("operation")!="cut" || !p.value("flip").isBool() || p.contains("distanceMm") || p.contains("distanceParameterId") || p.contains("distanceExpression") || p.contains("endSupport") || p.contains("endOffsetMm") || p.contains("endOffsetParameterId"))return "All extent requires Cut, a Flip flag and a derived reach";
             } else if(p.contains("endSupport") || p.contains("endOffsetMm") || p.contains("endOffsetParameterId") || p.contains("flip"))return "Distance extent cannot carry retained extent inputs";
-            if (p.size()!=(cut ? 5 : 3)+(toObject ? 2 : 0)+(all ? 1 : 0)+int(p.contains("endOffsetParameterId"))+int(p.contains("distanceParameterId"))+(p.contains("distanceExpression") ? 3 : 0)+int(p.contains("start"))+int(p.contains("startOffsetMm"))+int(p.contains("startOffsetParameterId")) || !p["sketchId"].isString() || !validId(p["sketchId"].toString())
+            if (p.size()!=(cut ? 5 : 3)+(toObject ? 2 : 0)+(all ? 1 : 0)+int(p.contains("endOffsetParameterId"))+int(p.contains("distanceParameterId"))+(p.contains("distanceExpression") ? 3 : 0)+int(p.contains("direction"))+int(p.contains("measurement"))+int(p.contains("negativeDistanceMm"))+int(p.contains("start"))+int(p.contains("startOffsetMm"))+int(p.contains("startOffsetParameterId")) || !p["sketchId"].isString() || !validId(p["sketchId"].toString())
                 || int(p.contains("profileId"))+int(p.contains("profileIds"))+int(p.contains("profileSelection"))!=1) return "Extrusion requires one exclusive profile selection";
+            const auto direction=p.value("direction").toString("oneSide");
+            if(direction!="oneSide" && direction!="symmetric" && direction!="twoSides")return "Unsupported extrusion direction";
+            if(direction!="oneSide") {
+                if(cut || toObject || all || p.contains("start") || p.contains("startOffsetMm") || p.contains("startOffsetParameterId"))return "Symmetric/Two Sides require New Body, Distance and Profile Plane";
+                if(!p.value("distanceMm").isDouble() || p.value("distanceMm").toDouble()<0.001)return "Each extrusion reach must be positive";
+                if(direction=="symmetric" && (p.value("measurement")!="halfLength" && p.value("measurement")!="wholeLength"))return "Symmetric requires Half Length or Whole Length";
+                if(direction=="twoSides" && (!p.value("negativeDistanceMm").isDouble() || !std::isfinite(p.value("negativeDistanceMm").toDouble()) || p.value("negativeDistanceMm").toDouble()<0.001 || p.value("negativeDistanceMm").toDouble()>100000))return "Negative-normal reach must be positive 0.001..100000 mm";
+                if((direction=="symmetric" && p.contains("negativeDistanceMm")) || (direction=="twoSides" && p.contains("measurement")))return "Extrusion direction inputs are exclusive";
+                if(GeometryKernel::extrusionSpan(p)>100000)return "Total extrusion span exceeds 100000 mm";
+            } else if(p.contains("measurement") || p.contains("negativeDistanceMm"))return "One Side cannot carry additional direction inputs";
             if(p.contains("distanceParameterId") && !validId(p["distanceParameterId"].toString()))return "Extrusion length binding requires a stable parameter ID";
             if(p.contains("distanceExpression")) {
                 if(p.contains("distanceParameterId") || !p.value("distanceExpression").isString() || p.value("distanceExpression").toString().trimmed().isEmpty()

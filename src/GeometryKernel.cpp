@@ -717,6 +717,17 @@ EvaluatedProfile GeometryKernel::unionProfiles(const std::vector<EvaluatedProfil
     return {id,first.sketchId,first.plane,united,summary,lineage};
 }
 
+double GeometryKernel::extrusionStart(const QJsonObject& p) {
+    if(p.value("direction")=="symmetric")return -extrusionSpan(p)/2;
+    if(p.value("direction")=="twoSides")return -p.value("negativeDistanceMm").toDouble();
+    return p.value("startOffsetMm").toDouble();
+}
+double GeometryKernel::extrusionSpan(const QJsonObject& p) {
+    const double d=p.value("distanceMm").toDouble();
+    if(p.value("direction")=="symmetric")return p.value("measurement")=="wholeLength" ? d : 2*d;
+    if(p.value("direction")=="twoSides")return d+p.value("negativeDistanceMm").toDouble();
+    return d;
+}
 double GeometryKernel::extrusionDistance(const QJsonObject& p,const EvaluatedProfile& profile,const EvaluatedDocument& prior) {
     if(p.value("extent")=="all") {
         const auto targets=p.value("targetBodyIds").toArray();
@@ -743,7 +754,7 @@ double GeometryKernel::extrusionDistance(const QJsonObject& p,const EvaluatedPro
         if(std::abs(distance)>100000)reject("All extent exceeds the supported extrusion length");
         return distance;
     }
-    if(p.value("extent")!="toObject")return p.value("distanceMm").toDouble();
+    if(p.value("extent")!="toObject")return extrusionSpan(p);
     const auto target=resolveSketchSupport(prior,p.value("endSupport").toObject());
     const auto frame=profile.summary.value("frame").toObject();
     const auto n=frame.value("normal").toArray(),origin=frame.value("origin").toArray();
@@ -1401,7 +1412,7 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                         if(targets.size()!=1)reject("unsupported_extrude_targets","Extrude modifier requires one retained target body");
                         auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==targets[0].toString();});
                         if(target==evaluated.bodies.end()) {context["code"]="body_unavailable";context["message"]="The exact extrusion target must be an active body earlier in feature history";throw EvaluationError(context);}
-                        const double distance=extrusionDistance(parameters,selected.front(),evaluated),start=parameters.value("startOffsetMm").toDouble();std::vector<TopoDS_Shape> tools;std::vector<EvaluatedSupportFace> joinCaps;double area=0;QStringList sourceEntities;
+                        const double distance=extrusionDistance(parameters,selected.front(),evaluated),start=extrusionStart(parameters);std::vector<TopoDS_Shape> tools;std::vector<EvaluatedSupportFace> joinCaps;double area=0;QStringList sourceEntities;
                         const bool circularCut=parameters["operation"]=="cut" && selected.size()==1
                             && selected.front().boundaryEdges.size()==1 && selected.front().boundaryEdges.front().type=="circle";
                         const bool linearCut=parameters["operation"]=="cut" && selected.size()==1
@@ -1467,7 +1478,7 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                         target->summary=cutSummary;
                         evaluated.featureOrder.push_back(id);continue;
                     }
-                    const auto united=unionProfiles(selected);const double distance=extrusionDistance(parameters,selected.front(),evaluated),start=parameters.value("startOffsetMm").toDouble();
+                    const auto united=unionProfiles(selected);const double distance=extrusionDistance(parameters,selected.front(),evaluated),start=extrusionStart(parameters);
                     EvaluatedSupportFace cap;
                     shape=extrusion(united,distance,&cap,&solidEdges,id,&supportFaces,start);summary=summarize(shape);
                     summary["solidEdges"]=SolidFillet::descriptors(solidEdges);

@@ -115,6 +115,8 @@ public:
     static std::vector<EvaluatedProfile> closedRectOffsetUnionCells(const EvaluatedSketch& sketch,
         const QJsonObject& sketchFeature, const QJsonArray& groupIds);
     static double extrusionDistance(const QJsonObject& parameters, const EvaluatedProfile& profile, const EvaluatedDocument& prior);
+    static double extrusionStart(const QJsonObject& parameters);
+    static double extrusionSpan(const QJsonObject& parameters);
     static TopoDS_Shape extrusion(const EvaluatedProfile& profile, double distanceMm, EvaluatedSupportFace* endCap = nullptr, std::vector<EvaluatedSolidEdge>* edges = nullptr, const QString& generatorFeatureId = {}, std::vector<EvaluatedSupportFace>* planarFaces = nullptr, double startOffsetMm = 0, TopoDS_Face* baseFace = nullptr);
     static TopoDS_Shape booleanOperation(const QString& operation, const TopoDS_Shape& target,
         const std::vector<TopoDS_Shape>& tools, std::vector<EvaluatedSupportFace>* retainedFaces = nullptr, std::vector<EvaluatedSolidEdge>* retainedEdges = nullptr,

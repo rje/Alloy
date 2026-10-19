@@ -1122,3 +1122,16 @@ Suppression remains distinct from `feature.visibility` and ordinary Browser
 visibility. One-step Undo/Redo and save/reopen preserve authored flags, feature
 order, inputs, identities and dormant body names/organization. Transient rollback
 remains read-only. See [the bounded receipt](validation/history-suppression.md).
+
+### Symmetric and Two Sides solid Extrude
+
+`solid.extrude` and its dialog/session accept `direction: "symmetric"` with
+`measurement: "halfLength"` (default) or `"wholeLength"`, and `direction:
+"twoSides"` with positive `distance` (+normal) and `negativeDistance` (−normal).
+These modes require New Body, Distance and Profile Plane. Half Length reaches
+`distance` on each side; Whole Length splits it equally. Inputs use `units`
+(`mm`/`in`); authored fields are `distanceMm` and `negativeDistanceMm`.
+The shared evaluator normalizes them to one shifted prism and preserves the
+positive-cap support ID. Existing One Side defaults and signed offsets remain.
+Use numeric fields; `solid.extrudeDrag` explicitly refuses the new modes.
+See [bounded workflow](research/commands/extrude-symmetric-two-sides.md).
