@@ -24,32 +24,34 @@ void closeEvent(QCloseEvent* event) override {if(onClose)onClose();QDockWidget::
 QString vectorText(const QJsonValue& v){QStringList parts;for(const auto& n:v.toArray())parts.append(QString::number(n.toDouble(),'g',7));return "["+parts.join(", ")+"]";}
 }
 void AlloyWindow::registerSketchPlaneRepairCommands() {
-    commands_.push_back({"sketch.redefinePlaneBegin","Redefine Sketch Plane","Choose an earlier parallel reference for an ordinary sketch, or explicitly recreate one planar inset on a distinct root face.",{{"sketchId",parameter("string","Affected ordinary sketch UUID.")}},true,[this](const auto& a){return beginSketchPlaneRepair(a.value("sketchId").toString());}});
-    commands_.push_back({"sketch.redefinePlanePreview","Preview Sketch Plane","Ordinary replacement is one of {support}, {planeId}, or {plane}. Generated distinct-face recreation requires {support, distanceMm} with confirmed signed distance; evaluates the full candidate.",{{"replacement",parameter("object","Exact earlier planar reference.")}},true,[this](const auto& a){return previewSketchPlaneRepair(a.value("replacement").toObject());}});
+    commands_.push_back({"sketch.redefinePlaneBegin","Redefine Sketch Plane","Choose an earlier parallel reference for an ordinary sketch, or explicitly recreate one planar inset on a distinct root face or complete changed boundary of the same face.",{{"sketchId",parameter("string","Affected ordinary sketch UUID.")}},true,[this](const auto& a){return beginSketchPlaneRepair(a.value("sketchId").toString());}});
+    commands_.push_back({"sketch.redefinePlanePreview","Preview Sketch Plane","Ordinary replacement is one of {support}, {planeId}, or {plane}. Generated recreation requires {support, distanceMm} with confirmed signed distance; evaluates the full candidate.",{{"replacement",parameter("object","Exact earlier planar reference.")}},true,[this](const auto& a){return previewSketchPlaneRepair(a.value("replacement").toObject());}});
     commands_.push_back({"sketch.redefinePlaneCancel","Cancel Redefine Sketch Plane","Return to the exact cached failed-edit inspection state without changing the document.",{},true,[this](const auto&){return cancelSketchPlaneRepair();}});
     commands_.push_back({"sketch.redefinePlaneCommit","Accept Redefine Sketch Plane","Commit the failed upstream edit and explicit support replacement as one validated undoable edit.",{},true,[this](const auto&){return commitSketchPlaneRepair();}});
 }
 QJsonObject AlloyWindow::beginSketchPlaneRepair(const QString& sketchId) {
-    if(failedEditRepair_.isEmpty() || !failedEditPrefix_ || failedEditRepair_.value("diagnostics").toObject().value("code")!="support_unavailable"
+    const bool sameFace=failedEditRepair_.value("diagnostics").toObject().value("code")=="offset_lineage_unavailable";
+    if(failedEditRepair_.isEmpty() || !failedEditPrefix_ || (!sameFace && failedEditRepair_.value("diagnostics").toObject().value("code")!="support_unavailable")
         || !failedEditRepair_.value("impactedSketchIds").toArray().contains(sketchId))return fail("repair_unavailable","Open failed-edit inspection for this sketch first");
     if(!planeRepairSession_.isEmpty())return fail("session_busy","Redefine Sketch Plane is already active");
     const auto sketch=session_.value("draftSketch").toObject();
     if(sketch.value("id").toString()!=sketchId)return fail("repair_unavailable","Open the cached inspection for the requested sketch first");
     const bool recreate=SketchPlaneRepair::singleInset(sketch);
-    if((!SketchPlaneRepair::ordinary(sketch) && !recreate) || sketch.value("ownerId")!=document_->authored().value("documentId"))return fail("unsupported_sketch_repair","Choose an ordinary root sketch without linked or generated geometry");
+    if((!SketchPlaneRepair::ordinary(sketch) && !recreate) || (sameFace && !recreate) || sketch.value("ownerId")!=document_->authored().value("documentId"))return fail("unsupported_sketch_repair","Choose an ordinary root sketch without linked or generated geometry");
     planeRepairSession_=session_;planeRepairCamera_=view_->cameraState();planeRepairPreview_={};
     QJsonArray choices;
     if(!recreate)for(const auto& plane:QStringList{"XY","XZ","YZ"})choices.append(QJsonObject{{"label",plane+" Origin Plane"},{"replacement",QJsonObject{{"plane",plane}}}});
     if(!recreate)for(const auto& plane:failedEditPrefix_->constructionPlanes)choices.append(QJsonObject{{"label",plane.name+" · Construction Plane"},{"replacement",QJsonObject{{"planeId",plane.featureId}}}});
     for(const auto& body:failedEditPrefix_->bodies)for(const auto& face:body.supportFaces)
-        if(!face.face.IsNull() && BRepAdaptor_Surface(face.face).GetType()==GeomAbs_Plane)
+        if(!face.face.IsNull() && BRepAdaptor_Surface(face.face).GetType()==GeomAbs_Plane
+            && (!sameFace || sketch.value("parameters").toObject().value("support").toObject()==QJsonObject{{"bodyId",face.bodyId},{"producerFeatureId",face.producerFeatureId},{"faceId",face.faceId}}))
             choices.append(QJsonObject{{"label",body.name+" · "+face.role+" · "+face.faceId.left(8)},
                 {"replacement",QJsonObject{{"support",QJsonObject{{"bodyId",face.bodyId},{"producerFeatureId",face.producerFeatureId},{"faceId",face.faceId}}}}}});
-    session_["planeRedefinition"]=QJsonObject{{"status","choosing"},{"mode",recreate ? "recreateSingleInsetDistinctFace" : "ordinaryPlane"},{"framePolicy","preserveLocalCoordinatesParallelAxes"},{"choices",choices},{"previewed",false}};
+    session_["planeRedefinition"]=QJsonObject{{"status","choosing"},{"mode",recreate ? (sameFace ? "recreateSingleInsetSameFace" : "recreateSingleInsetDistinctFace") : "ordinaryPlane"},{"framePolicy","preserveLocalCoordinatesParallelAxes"},{"choices",choices},{"previewed",false}};
     if(failedEditDock_)failedEditDock_->hide();if(planeRepairDock_)delete planeRepairDock_;
     auto* dock=new PlaneRepairDock("Redefine Sketch Plane",canvasWindow_);planeRepairDock_=dock;dock->setObjectName("sketch.redefinePlane.dock");
     auto* panel=new QWidget;panel->setMinimumWidth(300);panel->setMaximumWidth(370);dock->setWidget(panel);auto* layout=new QVBoxLayout(panel);
-    auto* instruction=new QLabel(recreate ? "Recreate Offset on a distinct earlier parallel face. Select its exact boundary and confirm signed distance. Generated identities are replaced; downstream consumers must be repaired separately." : "Choose an earlier parallel face or plane. Sketch coordinates stay relative to its origin. The failed upstream edit and all dependent features are previewed together.");instruction->setWordWrap(true);layout->addWidget(instruction);
+    auto* instruction=new QLabel(sameFace ? "Recreate Offset on the exact surviving face and its changed complete boundary. Confirm signed distance; generated identities will be replaced." : recreate ? "Recreate Offset on a distinct earlier parallel face. Select its exact boundary and confirm signed distance. Generated identities are replaced; downstream consumers must be repaired separately." : "Choose an earlier parallel face or plane. Sketch coordinates stay relative to its origin. The failed upstream edit and all dependent features are previewed together.");instruction->setWordWrap(true);layout->addWidget(instruction);
     auto* list=new QListWidget;list->setObjectName("sketch.redefinePlane.choices");list->setMinimumHeight(65);list->setMaximumHeight(160);
     for(const auto& value:choices){const auto row=value.toObject();auto* item=new QListWidgetItem(row.value("label").toString(),list);item->setData(Qt::UserRole,row.value("replacement").toObject());item->setToolTip(QString::fromUtf8(QJsonDocument(row.value("replacement").toObject()).toJson()));}
     layout->addWidget(list);planeRepairInfo_=new QLabel("Select a replacement. Nothing is committed.");planeRepairInfo_->setObjectName("sketch.redefinePlane.frame");planeRepairInfo_->setWordWrap(true);planeRepairInfo_->setAlignment(Qt::AlignLeft|Qt::AlignTop);
@@ -75,7 +77,9 @@ QJsonObject AlloyWindow::beginSketchPlaneRepair(const QString& sketchId) {
 }
 QJsonObject AlloyWindow::previewSketchPlaneRepair(const QJsonObject& replacement) {
     if(planeRepairSession_.isEmpty() || failedEditRepair_.isEmpty())return fail("invalid_session","Redefine Sketch Plane is not active");
-    const bool recreate=session_.value("planeRedefinition").toObject().value("mode")=="recreateSingleInsetDistinctFace";
+    const auto mode=session_.value("planeRedefinition").toObject().value("mode").toString();
+    const bool sameFace=mode=="recreateSingleInsetSameFace";
+    const bool recreate=sameFace || mode=="recreateSingleInsetDistinctFace";
     // Every generated preview request replaces the previous confirmation, even
     // when validation subsequently refuses. Never leave an older candidate
     // available to Commit after a failed API request.
@@ -93,7 +97,7 @@ QJsonObject AlloyWindow::previewSketchPlaneRepair(const QJsonObject& replacement
         QSet<QString> oldGeneratedIds;
         if(recreate)for(const auto& sketch:document_->sketches())if(sketch.featureId==sketchId)for(const auto& profile:sketch.profiles){oldGeneratedIds.insert(profile.profileId);for(const auto& edge:profile.boundaryEdges){oldGeneratedIds.insert(edge.sourceEntityId);oldGeneratedIds.insert(edge.startContact);oldGeneratedIds.insert(edge.endContact);}}
         const auto failed=failedEditRepair_.value("candidateAuthored").toObject();const auto frame=planeRepairSession_.value("resolvedFrame").toObject();
-        const auto choice=recreate ? SketchPlaneRepair::recreateInset(failed,*failedEditPrefix_,sketchId,replacement,frame,oldGeneratedIds) : SketchPlaneRepair::candidate(failed,*failedEditPrefix_,sketchId,replacement,frame);
+        const auto choice=recreate ? SketchPlaneRepair::recreateInset(failed,*failedEditPrefix_,sketchId,replacement,frame,oldGeneratedIds,sameFace) : SketchPlaneRepair::candidate(failed,*failedEditPrefix_,sketchId,replacement,frame);
         auto evaluated=CadDocument::evaluateCandidate(choice.authored);if(!evaluated.ok)return refuse(evaluated.diagnostics.value("code").toString("evaluation_failed"),evaluated.error);
         QJsonArray geometry;for(const auto& body:evaluated.evaluation->bodies)geometry.append(QJsonObject{{"bodyId",body.bodyId},{"featureId",body.featureId},{"geometry",body.summary}});
         auto state=session_.value("planeRedefinition").toObject();state["status"]="preview";state["previewed"]=true;state["generation"]=state.value("generation").toInt()+1;state["replacement"]=replacement;for(const auto& row:state.value("choices").toArray())if(row.toObject().value("replacement").toObject()==(recreate ? QJsonObject{{"support",replacement.value("support")}} : replacement))state["referenceLabel"]=row.toObject().value("label");state["frame"]=choice.frame;state["geometry"]=geometry;state["documentDraft"]=choice.authored;

@@ -1029,7 +1029,9 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                     try {evaluated.sketches.push_back(RoundedLoopOffset::evaluate(feature,support,resolvedFrame));}
                     catch(const EvaluationError& error) {
                         auto diagnostic=error.diagnostics();
-                        if(diagnostic.value("code")=="ambiguous_inset_lineage") {
+                        if(diagnostic.value("code")=="ambiguous_inset_lineage"
+                            || (diagnostic.value("code")=="offset_lineage_unavailable" && parameters.value("loopOffsets").toArray().size()==1
+                                && parameters.value("loopOffsets").toArray().first().toObject().value("kind")=="planarInsetV1")) {
                             // The loop evaluator owns the error; this boundary owns
                             // the authoritative sketch and already-resolved support.
                             diagnostic["featureId"]=id;diagnostic["featureType"]=type;

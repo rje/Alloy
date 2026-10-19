@@ -33,10 +33,11 @@ bool AlloyWindow::canInspectFailedEdit(const QJsonObject& diagnostics) const {
     const auto parameters=sketch.value("parameters").toObject();
     if(sketch.isEmpty() || parameters.value("plane")!="face")return false;
     if(diagnostics.value("code")=="support_unavailable")return true;
-    if(diagnostics.value("code")!="ambiguous_inset_lineage" || !parameters.contains("loopOffsets")
+    if((diagnostics.value("code")!="ambiguous_inset_lineage" && diagnostics.value("code")!="offset_lineage_unavailable") || !parameters.contains("loopOffsets")
         || !RoundedLoopOffset::validate(parameters).isEmpty())return false;
     for(const auto& row:parameters.value("loopOffsets").toArray())
         if(row.toObject().value("kind")!="planarInsetV1")return false;
+    if(diagnostics.value("code")=="offset_lineage_unavailable" && !SketchPlaneRepair::singleInset(sketch))return false;
     const auto support=parameters.value("support").toObject();
     for(const auto& key:{"bodyId","producerFeatureId","faceId"})
         if(diagnostics.value(key)!=support.value(key))return false;
@@ -53,6 +54,15 @@ bool AlloyWindow::retainFailedEditRepair(const QString& command,const QJsonObjec
     if(diagnostics.value("code")=="ambiguous_inset_lineage"
         && (command!="solid.combine" || arguments.value("featureId").toString().isEmpty()
             || SketchGeometry::findFeature(candidate,sketchId)!=sketch))return false;
+    const bool sameBoundaryRepair=diagnostics.value("code")=="offset_lineage_unavailable";
+    if(sameBoundaryRepair) {
+        if(command!="feature.edit" || arguments.value("featureId").toString().isEmpty())return false;
+        int owners=0;for(const auto& row:candidate.value("features").toArray())owners+=row.toObject().value("parameters").toObject().value("loopOffsets").toArray().size();if(owners!=1)return false;
+        const auto source=SketchGeometry::findFeature(candidate,arguments.value("featureId").toString());
+        if(command!="feature.edit" || source.value("type")!="sketch" || source.value("ownerId")!=document_->authored().value("documentId")
+            || sketch.value("ownerId")!=source.value("ownerId") || source.value("id")==sketchId
+            || SketchGeometry::findFeature(candidate,sketchId)!=sketch)return false;
+    }
     auto prefix=candidate;QJsonArray preceding;bool found=false;
     for(const auto& row:candidate.value("features").toArray()) {
         if(row.toObject().value("id")==sketchId){found=true;break;}preceding.append(row);
@@ -61,6 +71,17 @@ bool AlloyWindow::retainFailedEditRepair(const QString& command,const QJsonObjec
     prefix["features"]=preceding;prefix.remove("objectOwners");prefix.remove("bodyNames");
     const auto evaluated=CadDocument::evaluateCandidate(prefix);
     if(!evaluated.ok)return false;
+    QJsonObject changedBoundary;
+    if(sameBoundaryRepair) {
+        bool sourceEarlier=false;for(const auto& row:preceding)if(row.toObject().value("id")==arguments.value("featureId"))sourceEarlier=true;
+        if(!sourceEarlier)return false;
+        try {
+            const auto support=GeometryKernel::resolveSketchSupport(*evaluated.evaluation,sketch.value("parameters").toObject().value("support").toObject());
+            const auto key=RoundedLoopOffset::insetLoopId(support);
+            if(key==sketch.value("parameters").toObject().value("loopOffsets").toArray().first().toObject().value("outerLoopId"))return false;
+            changedBoundary={{"support",sketch.value("parameters").toObject().value("support")},{"outerLoopId",key},{"complete",true},{"edges",GeometryKernel::supportEdgeDescriptors(support)}};
+        }catch(const GeometryKernel::EvaluationError&){return false;}
+    }
     const auto accepted=document_->evaluationBefore(sketchId);
     const auto context=GeometryKernel::projectionContext(accepted,sketch);
     const auto solved=SketchGeometry::solveDraft(sketch,context);
@@ -85,6 +106,7 @@ bool AlloyWindow::retainFailedEditRepair(const QString& command,const QJsonObjec
         {"diagnostics",diagnostics},{"impactedSketchIds",QJsonArray{sketchId}},{"cachedProfileIds",cachedProfiles},{"cachedOwnerIds",owners},
         {"presentation","last_accepted_sketch_cache"},{"candidateGeometryEvaluated",false},
         {"validPrefix",QJsonObject{{"authored",evaluated.authored},{"featureIds",featureIds},{"bodies",bodies}}}};
+    if(sameBoundaryRepair){auto prefixState=failedEditRepair_.value("validPrefix").toObject();prefixState["changedInsetBoundary"]=changedBoundary;failedEditRepair_["validPrefix"]=prefixState;}
     // Share the ordinary sketch selection/inspection commands, with an explicit
     // read-only mode. The failed prefix is used only by exact-support Delete.
     session_={{"id",sessionId},{"command","sketch.edit"},{"status","active"},{"mode","failedEditRepair"},
@@ -156,8 +178,8 @@ void AlloyWindow::showFailedEditRepair() {
     auto* remove=new QPushButton("Delete Selected Cached Profile");remove->setObjectName("failedEditRepair.delete");layout->addWidget(remove);remove->setVisible(!ordinary);
     failedEditActionError_=label({});failedEditActionError_->setObjectName("failedEditRepair.actionError");failedEditActionError_->setStyleSheet("color:#984800;");
     connect(remove,&QPushButton::clicked,this,[this]{const auto response=execute("sketch.deleteSelection");failedEditActionError_->setText(response.value("error").toObject().value("message").toString());failedEditActionError_->setMinimumHeight(failedEditActionError_->heightForWidth(failedEditActionError_->width()));});
-    if((ordinary || (SketchPlaneRepair::singleInset(affected) && diagnostic.value("code")=="support_unavailable")) && affected.value("ownerId")==document_->authored().value("documentId")) {
-        auto* redefine=new QPushButton(ordinary ? "Redefine Sketch Plane" : "Recreate Offset on Replacement Face");redefine->setObjectName("failedEditRepair.redefinePlane");layout->addWidget(redefine);
+    if((ordinary || (SketchPlaneRepair::singleInset(affected) && (diagnostic.value("code")=="support_unavailable" || diagnostic.value("code")=="offset_lineage_unavailable"))) && affected.value("ownerId")==document_->authored().value("documentId")) {
+        auto* redefine=new QPushButton(ordinary ? "Redefine Sketch Plane" : diagnostic.value("code")=="offset_lineage_unavailable" ? "Recreate Offset on Current Boundary" : "Recreate Offset on Replacement Face");redefine->setObjectName("failedEditRepair.redefinePlane");layout->addWidget(redefine);
         connect(redefine,&QPushButton::clicked,this,[this,sketchId]{execute("sketch.redefinePlaneBegin",{{"sketchId",sketchId}});});
     }
     auto* cancel=new QPushButton("Cancel Failed Edit");cancel->setObjectName("failedEditRepair.cancel");layout->addWidget(cancel);

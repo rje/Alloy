@@ -5331,7 +5331,7 @@ void AlloyWindow::registerCommands() {
             candidate["features"]=features;
             if(session_.isEmpty() && candidate!=document_->authored()
                 && isSketch)
-                return queueSketchEvaluation("feature.edit",a.value("featureId").toString(),candidate);
+                return queueSketchEvaluation("feature.edit",a.value("featureId").toString(),candidate,a);
             const auto error=document_->commit(candidate,"Edit feature");
             if(error.isEmpty())return document_->state();
             auto result=failure("evaluation_failed",error,"parameters");
@@ -7314,7 +7314,7 @@ void AlloyWindow::refresh() {
             connect(button,&QToolButton::clicked,this,[this,id]{if(session_.value("command")=="solid.rectangularPattern")execute("selection.featureSet",{{"featureId",id}});else if(session_.value("command")=="solid.featureMirror")execute("selection.featureMirrorSet",{{"featureId",id}});else execute("feature.editDialog",{{"featureId",id}});});
             auto* menu=new QMenu(button);menu->addAction("Delete",this,[this,id]{execute("feature.delete",{{"featureId",id}});});
             if(type=="sketch") {auto* redefine=menu->addAction("Redefine Sketch Plane",this,[this,id]{execute("sketch.redefinePlaneBegin",{{"sketchId",id}});});
-                redefine->setObjectName("timeline.redefineSketchPlane."+id);connect(menu,&QMenu::aboutToShow,this,[this,redefine,id]{const auto sketch=session_.value("draftSketch").toObject();redefine->setEnabled(!failedEditRepair_.isEmpty() && failedEditRepair_.value("diagnostics").toObject().value("code")=="support_unavailable" && sketch.value("id")==id && (SketchPlaneRepair::ordinary(sketch) || SketchPlaneRepair::singleInset(sketch)) && sketch.value("ownerId")==document_->authored().value("documentId"));});}
+                redefine->setObjectName("timeline.redefineSketchPlane."+id);connect(menu,&QMenu::aboutToShow,this,[this,redefine,id]{const auto sketch=session_.value("draftSketch").toObject();redefine->setEnabled(!failedEditRepair_.isEmpty() && (failedEditRepair_.value("diagnostics").toObject().value("code")=="support_unavailable" || failedEditRepair_.value("diagnostics").toObject().value("code")=="offset_lineage_unavailable") && sketch.value("id")==id && (SketchPlaneRepair::ordinary(sketch) || SketchPlaneRepair::singleInset(sketch)) && sketch.value("ownerId")==document_->authored().value("documentId"));});}
             button->setMenu(menu);button->setPopupMode(QToolButton::MenuButtonPopup);timelineLayout_->addWidget(button);
         }
         timelineLayout_->addStretch();timelineLayout_->activate();

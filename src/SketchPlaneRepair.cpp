@@ -68,7 +68,7 @@ bool SketchPlaneRepair::singleInset(const QJsonObject& feature) {
     p.remove("loopOffsets");plain["parameters"]=p;return ordinary(plain);
 }
 SketchPlaneRepair::Candidate SketchPlaneRepair::recreateInset(const QJsonObject& failed,const EvaluatedDocument& prefix,
-    const QString& sketchId,const QJsonObject& replacement,const QJsonObject& acceptedFrame,const QSet<QString>& oldGeneratedIds) {
+    const QString& sketchId,const QJsonObject& replacement,const QJsonObject& acceptedFrame,const QSet<QString>& oldGeneratedIds,bool sameFace) {
     const auto original=SketchGeometry::findFeature(failed,sketchId);
     if(!singleInset(original))fail("unsupported_sketch_repair","Recreation requires exactly one planar inset owner without linked geometry");
     int owners=0;for(const auto& f:failed.value("features").toArray())owners+=f.toObject().value("parameters").toObject().value("loopOffsets").toArray().size();
@@ -79,7 +79,8 @@ SketchPlaneRepair::Candidate SketchPlaneRepair::recreateInset(const QJsonObject&
         fail("invalid_offset_distance","Planar inset recreation requires a finite negative signed distance");
     const auto parameters=original.value("parameters").toObject();const auto oldOwner=parameters.value("loopOffsets").toArray().first().toObject();
     const auto support=replacement.value("support").toObject();
-    if(support==parameters.value("support").toObject())fail("distinct_support_required","Select a distinct replacement face; same-face boundary repair is separate");
+    if(sameFace && support!=parameters.value("support").toObject())fail("same_support_required","Select the exact surviving support face for this boundary recreation");
+    if(!sameFace && support==parameters.value("support").toObject())fail("distinct_support_required","Select a distinct replacement face; same-face boundary repair is separate");
     // Generated profile and edge references contain owner-derived UUIDs. Reject
     // consumers of this sketch's generated outputs before removing its owner.
     const auto acceptedProfile=QUuid::createUuidV5(QUuid(oldOwner.value("id").toString()),"alloy-inset-interior/1").toString(QUuid::WithoutBraces);

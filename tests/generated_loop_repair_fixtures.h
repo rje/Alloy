@@ -4,6 +4,13 @@
 #include "RoundedLoopOffset.h"
 namespace GeneratedLoopRepairFixtures {
 inline QJsonObject replaceRow(QJsonObject authored,const QJsonObject& feature) {auto rows=authored.value("features").toArray();for(int i=0;i<rows.size();++i)if(rows.at(i).toObject().value("id")==feature.value("id"))rows[i]=feature;authored["features"]=rows;return authored;}
+inline QJsonObject sourcePointEdit(const QJsonObject& authored) {
+    auto source=authored.value("features").toArray().first().toObject();
+    auto bytes=QJsonDocument(source.value("parameters").toObject()).toJson(QJsonDocument::Compact);
+    for(const auto& point:source.value("parameters").toObject().value("points").toArray())bytes.replace(point.toObject().value("id").toString().toUtf8(),CadDocument::newId().toUtf8());
+    const auto parameters=QJsonDocument::fromJson(bytes).object();source["parameters"]=parameters;
+    return {{"candidate",replaceRow(authored,source)},{"arguments",QJsonObject{{"featureId",source.value("id")},{"parameters",parameters}}}};
+}
 inline QJsonObject create(const QString& folder) {
  using namespace MultiFaceFixtures;
  auto ids=MultiFaceFixtures::create(folder).value("failure").toObject();CadDocument doc;check(doc.open(folder+"/support-failure.alloy").isEmpty(),"open source");

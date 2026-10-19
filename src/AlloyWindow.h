@@ -358,7 +358,7 @@ private:
     QJsonObject beginDocumentOpen(const QString& path);
     QJsonObject cancelDocumentOpen();
     void completeDocumentOpen(const std::shared_ptr<GeometryEvaluation>& task);
-    QJsonObject queueSketchEvaluation(const QString& command,const QString& sketchId,const QJsonObject& candidate={});
+    QJsonObject queueSketchEvaluation(const QString& command,const QString& sketchId,const QJsonObject& candidate={},const QJsonObject& arguments={});
     QJsonObject cancelSketchEvaluation();
     void completeSketchEvaluation(const std::shared_ptr<GeometryEvaluation>& task);
     EvaluatedDocument sketchHistoryStage(const QString& featureId) const;

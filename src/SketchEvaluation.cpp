@@ -57,7 +57,7 @@ EvaluatedDocument AlloyWindow::sketchHistoryStage(const QString& featureId) cons
     return document_->evaluationBefore(featureId);
 }
 
-QJsonObject AlloyWindow::queueSketchEvaluation(const QString& command,const QString& sketchId,const QJsonObject& candidate) {
+QJsonObject AlloyWindow::queueSketchEvaluation(const QString& command,const QString& sketchId,const QJsonObject& candidate,const QJsonObject& arguments) {
     // A new modeling request ends prior completed Open/commit status lifetimes.
     // The serial-worker gate prevents invalidating a still-pending caller here.
     documentOpenOperation_={};geometryEvaluationTerminal_={};meshExportOperation_={};
@@ -65,7 +65,7 @@ QJsonObject AlloyWindow::queueSketchEvaluation(const QString& command,const QStr
     task->document=document_;task->documentId=document_->authored().value("documentId").toString();
     task->tabId=activeTabId_;task->revision=document_->revision();task->base=document_->authored();task->retainedSession=session_;
     task->sessionId=CadDocument::newId();task->generation=++geometryEvaluationGeneration_;
-    task->featureId=sketchId;task->candidate=candidate;task->needsSource=command=="sketch.edit";
+    task->featureId=sketchId;task->candidate=candidate;task->inputs=arguments;task->needsSource=command=="sketch.edit";
     sketchEvaluationOperation_={{"id",task->sessionId},{"command",command},{"evaluationPhase",task->phase},
         {"evaluationStatus","pending"},{"previewGeneration",static_cast<qint64>(task->generation)},
         {"cancellation","Discard result; running kernel evaluation continues"},
@@ -131,7 +131,15 @@ void AlloyWindow::completeSketchEvaluation(const std::shared_ptr<GeometryEvaluat
             for(auto it=operation.begin();it!=operation.end();++it)sketchEvaluationOperation_[it.key()]=it.value();
             sketchEvaluationOperation_["evaluationStatus"]="completed";
         }
-    }else if(!task->full.ok)reject("evaluation_failed",task->full.error,task->full.diagnostics);
+    }else if(!task->full.ok){
+        reject("evaluation_failed",task->full.error,task->full.diagnostics);
+        // Only the narrowly classified complete same-face inset boundary failure
+        // enters repair here. Keep all other async sketch edits atomic/read-only.
+        if(task->command=="feature.edit" && task->retainedSession.isEmpty()
+            && task->full.diagnostics.value("code")=="offset_lineage_unavailable"
+            && retainFailedEditRepair(task->command,task->inputs,task->candidate,task->full.diagnostics))
+            sketchEvaluationOperation_["repairSessionId"]=session_.value("id");
+    }
     else {
         const auto error=document_->commitSketchEvaluation(task->full,task->candidate,task->base,task->revision,task->command=="feature.edit" ? "Edit feature" : "Edit sketch");
         if(!error.isEmpty())reject("evaluation_failed",error);
