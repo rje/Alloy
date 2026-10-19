@@ -7,6 +7,7 @@
 #include <TopoDS_Compound.hxx>
 #include <QCoreApplication>
 #include <QTemporaryDir>
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <numbers>
@@ -49,6 +50,55 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try {
     append(doc,box);const auto& floor=doc.bodies().back();const EvaluatedSupportFace* top=nullptr;
     for(const auto& face:floor.supportFaces)if(face.role=="box.z1")top=&face;
     need(top,"case floor top support");
+    {
+        QTemporaryDir fixtureCopy;need(fixtureCopy.isValid(),"port fixture temp");
+        const auto fixturePath=fixtureCopy.filePath("board-and-case.alloy");need(doc.save(fixturePath).isEmpty(),"save port baseline");
+        CadDocument ports;need(ports.open(fixturePath).isEmpty(),"open imported board and sibling Case");
+        const auto wall=std::find_if(floor.supportFaces.begin(),floor.supportFaces.end(),[](const auto& face){return face.role=="box.y1";});
+        need(wall!=floor.supportFaces.end(),"Case front support");
+        const auto planeId=CadDocument::newId();
+        append(ports,{{"id",planeId},{"ownerId",owner},{"type","constructionPlane"},{"name","Port plane"},{"visible",true},
+            {"parameters",QJsonObject{{"source",QJsonObject{{"support",ref(*wall)}}},{"offsetMm",0}}}});
+        auto projected=SketchGeometry::newConstructionPlaneFeature(owner,planeId,"Three imported faces");
+        QJsonArray groups;
+        for(const auto& name:{"SIDE-ETH-001","SIDE-USB-A-001","SIDE-USB-B-001"}) {
+            const auto connector=std::find_if(ports.bodies().begin(),ports.bodies().end(),[&](const auto& body){return body.name==name;});
+            need(connector!=ports.bodies().end(),"imported connector exists");
+            const auto face=std::find_if(connector->supportFaces.begin(),connector->supportFaces.end(),[](const auto& face){
+                const auto frame=face.frame;return std::abs(frame["origin"].toArray()[1].toDouble()-45.5)<1e-6
+                    && frame["normal"].toArray()[1].toDouble()>.99 && face.boundaryEdges.size()==4;
+            });
+            need(face!=connector->supportFaces.end(),"current rectangular connector face");
+            QJsonArray ids;
+            for(const auto& edge:face->boundaryEdges) {
+                projected=SketchGeometry::linkedProjectionCandidate(ports.evaluation(),projected,{{"bodyId",connector->bodyId},{"edgeId",edge.edgeId}});
+                ids.append(projected["parameters"].toObject()["projections"].toArray().last().toObject()["id"]);
+            }
+            groups.append(QJsonObject{{"id",CadDocument::newId()},{"source",ref(*face)},{"projectionIds",ids}});
+        }
+        auto parameters=projected["parameters"].toObject();parameters["faceProjectionGroups"]=groups;projected["parameters"]=parameters;
+        auto candidate=ports.authored();auto features=candidate["features"].toArray();features.append(projected);candidate["features"]=features;
+        // A group cannot use the foreign source body with a producer from the target owner.
+        auto invalid=candidate;auto badFeatures=features;auto bad=projected;auto badParameters=parameters;auto badGroups=groups;
+        auto badGroup=badGroups[0].toObject(),badSource=badGroup["source"].toObject();badSource["producerFeatureId"]=box["id"];
+        badGroup["source"]=badSource;badGroups[0]=badGroup;badParameters["faceProjectionGroups"]=badGroups;bad["parameters"]=badParameters;
+        badFeatures[badFeatures.size()-1]=bad;invalid["features"]=badFeatures;
+        const auto before=ports.authored();
+        const auto refused=ports.commit(invalid,"invalid group producer");
+        need(!refused.isEmpty() && ports.lastEvaluationError()["code"]=="cross_component_dependency"
+            && ports.authored()==before,"foreign face group with mismatched producer refuses atomically");
+        commit(ports,candidate,"three imported face groups");
+        need(ports.sketches().back().profiles.size()==3,"twelve imported face edges form three port profiles");
+        const auto committed=ports.authored();
+        need(committed["features"].toArray().last().toObject()["parameters"].toObject()["faceProjectionGroups"].toArray()==groups,
+            "authored imported face groups retained exactly");
+        ports.history().undo();need(ports.authored()==before,"grouped Project undo");ports.history().redo();
+        need(ports.authored()==committed,"grouped Project redo");
+        QTemporaryDir saved;need(saved.isValid(),"port temp");const auto path=saved.filePath("ports.alloy");
+        need(ports.save(path).isEmpty(),"save imported face groups");CadDocument reopened;
+        need(reopened.open(path).isEmpty() && reopened.authored()==committed && reopened.sketches().back().profiles.size()==3,
+            "reopen exact imported face groups and profiles");
+    }
     auto sketch=SketchGeometry::newSupportedFeature(owner,ref(*top),"Mounting Circles",GeometryKernel::supportEdgeDescriptors(*top));
     {
         auto simulation=doc.evaluation();EvaluatedBody arcBody;

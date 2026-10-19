@@ -329,7 +329,8 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
                 if(!permitted(support))return {{"featureId",f["id"]},{"code","cross_component_dependency"},{"message","Sketch support requires an earlier identity sibling body"}};
                 guarded.remove("support");
             }
-            for(const auto& key:{"projections","pointProjections","circleProjections"}) {
+            // Face-action provenance follows the same ownership boundary as its linked edges.
+            for(const auto& key:{"projections","pointProjections","circleProjections","faceProjectionGroups"}) {
                 bool valid=true;
                 for(const auto& item:guarded[key].toArray())valid &= permitted(item.toObject()["source"].toObject());
                 if(!valid)return {{"featureId",f["id"]},{"code","cross_component_dependency"},{"message","Linked Project requires an identity sibling source body"}};
