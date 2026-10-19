@@ -2952,6 +2952,11 @@
       "number": 593,
       "url": "https://github.com/rje/Alloy/issues/593",
       "state": "open"
+    },
+    "HIS-010": {
+      "number": 594,
+      "url": "https://github.com/rje/Alloy/issues/594",
+      "state": "open"
     }
   }
 }

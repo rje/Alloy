@@ -383,7 +383,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Atomic support failure preserves the valid committed document. HIS-009 accepts a transient cached-sketch inspection and exact-support Delete refusal, with physical native input still open. SKT-160 must explicitly reassign one ordinary planar sketch; SKT-161 must define generated Offset boundary policy. Native repair and wider supports remain open.",
+      "gap": "Atomic support failure preserves the valid committed document. HIS-009 accepts missing-support cached inspection; HIS-010 must extend it to one changed-boundary failure before SKT-154 can complete both Delete recovery messages. Physical native input remains open. SKT-160 must explicitly reassign one ordinary planar sketch; SKT-161 must define generated Offset boundary policy. Native repair and wider supports remain open.",
       "apiIds": [],
       "issueKeys": [
         "HIS-002",
@@ -392,6 +392,7 @@
         "REL-015",
         "REL-050",
         "HIS-009",
+        "HIS-010",
         "SKT-160",
         "SKT-161"
       ],
@@ -404,7 +405,7 @@
         "docs/validation/enclosure-connector-clearance.md",
         "docs/validation/failed-edit-repair.md"
       ],
-      "planningStatus": "HIS-009 transient inspection accepted; explicit repair and generated-boundary policy remain open"
+      "planningStatus": "HIS-009 missing-support inspection accepted; HIS-010 changed-boundary inspection, explicit repair and generated-boundary policy remain open"
     },
     {
       "id": "sketch.lifecycle",
@@ -413,7 +414,7 @@
       "scope": "proposed-v1",
       "implementation": "present",
       "nativeEvidence": "partial",
-      "gap": "Atomic support failure preserves the valid committed document. HIS-009 accepts a transient cached-sketch inspection and exact-support Delete refusal, with physical native input still open. SKT-160 must explicitly reassign one ordinary planar sketch; SKT-161 must define generated Offset boundary policy. Native repair and wider supports remain open.",
+      "gap": "Atomic support failure preserves the valid committed document. HIS-009 accepts missing-support cached inspection; HIS-010 must extend it to one changed-boundary failure before SKT-154 can complete both Delete recovery messages. Physical native input remains open. SKT-160 must explicitly reassign one ordinary planar sketch; SKT-161 must define generated Offset boundary policy. Native repair and wider supports remain open.",
       "apiIds": [
         "sketch.begin",
         "sketch.cancel",
@@ -427,6 +428,7 @@
         "SKT-025",
         "SKT-028",
         "HIS-009",
+        "HIS-010",
         "SKT-160",
         "SKT-161"
       ],
