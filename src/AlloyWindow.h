@@ -838,6 +838,12 @@ private:
     QLabel* browserNote_ = nullptr;
     QString selectedBody_;
     QString selectedOccurrence_;
+    void registerMeasureCommands();
+    void refreshMeasure();
+    QJsonObject pickMeasure(double x,double y);
+    QPointer<QDialog> measureDialog_;
+    const CadDocument* measureDocument_ = nullptr;
+    QJsonArray measureSources_;
     QPointer<QDialog> bodyPropertiesDialog_;
     const CadDocument* bodyPropertiesDocument_ = nullptr;
     QString bodyPropertiesBodyId_,bodyPropertiesOccurrenceId_;

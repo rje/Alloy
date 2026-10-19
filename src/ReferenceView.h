@@ -112,6 +112,7 @@ public:
     void showSketchDraft(const EvaluatedSketch& sketch);
     void clearSketchDraft();
     QJsonObject pickFinishedPoint(double x,double y) const;
+    QJsonObject pickMeasureSketchEdge(double x,double y) const;
     void selectFinishedPoint(const QJsonObject& reference);
     QJsonObject finishedPointSelection() const { return selectedFinishedPoint_; }
     void selectProfile(const QString& sketchId, const QString& profileId);

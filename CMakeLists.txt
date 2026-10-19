@@ -30,6 +30,7 @@ target_include_directories(alloy_sketch_solver PUBLIC src)
 target_link_libraries(alloy_sketch_solver PUBLIC Qt6::Core PRIVATE alloy_planegcs)
 
 add_library(alloy_kernel STATIC
+    src/Measure.cpp src/Measure.h
     src/SolidFaceOffset.cpp src/SolidFaceOffset.h
     src/SolidThreadGeometry.cpp src/SolidThreadGeometry.h
     src/ReferenceCanvas.cpp src/ReferenceCanvas.h
@@ -48,6 +49,7 @@ qt_add_resources(alloy_kernel "alloy_text_font" PREFIX "/alloy/fonts" BASE "thir
 target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_VERSION}")
 
 add_library(alloy_application STATIC
+    src/MeasureControls.cpp
     src/AlloyTheme.cpp src/AlloyTheme.h
     src/ThreeTangentCircleControls.cpp
     src/TwoTangentCircleControls.cpp
@@ -209,6 +211,9 @@ if(BUILD_TESTING)
     add_executable(display_units_controls_test tests/display_units_controls.cpp)
     target_link_libraries(display_units_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME display_units_controls COMMAND display_units_controls_test)
+    add_executable(measure_controls_test tests/measure_controls.cpp)
+    target_link_libraries(measure_controls_test PRIVATE alloy_application Qt6::Test)
+    add_test(NAME measure_controls COMMAND measure_controls_test)
     add_executable(body_properties_controls_test tests/body_properties_controls.cpp)
     target_link_libraries(body_properties_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME body_properties_controls COMMAND body_properties_controls_test)

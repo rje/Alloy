@@ -1954,6 +1954,7 @@ void AlloyWindow::registerCommands() {
     registerCanvasCommands();
     registerBoundaryFillCommands();
     registerSectionCommands();
+    registerMeasureCommands();
     registerComponentCopyCommands();
     registerSliderCommands();
     registerRevoluteCommands();
@@ -5743,6 +5744,7 @@ void AlloyWindow::registerCommands() {
         });
     add("selection.pick","Pick body or region","Pick actual OCCT geometry at viewport-local coordinates; Shift adds sketch regions.",{{"x",point},{"y",point},{"additive",optional(parameter("boolean","Add a picked region in the current same-sketch selection."))},
         {"toggle",optional(parameter("boolean","Toggle a picked region in the current same-sketch selection."))}},[this](const auto& a){
+        if(measureDialog_)return pickMeasure(a["x"].toDouble(),a["y"].toDouble());
         if(session_.isEmpty() && selectionPriority_=="edge"){
             const auto hit=view_->pickSolidEdge(a["x"].toDouble(),a["y"].toDouble(),presentationBodies());
             return hit.isEmpty() ? failure("edge_unavailable","No visible retained edge is at this point")
@@ -6779,9 +6781,7 @@ void AlloyWindow::registerCommands() {
             QApplication::quit();
         });return QJsonObject{{"quitting",true}};
     });
-    for (const auto& pair : QList<QPair<QString, QString>>{{"inspect.measure", "Measure"}}) {
-        commands_.push_back({pair.first, pair.second, "Not implemented in the UI shell.", {}, false, {}});
-    }
+
 }
 
 QJsonArray AlloyWindow::commands() const {
@@ -7201,6 +7201,7 @@ void AlloyWindow::refresh() {
     const auto effectiveConvention=storedConvention.isEmpty() ? QJsonObject{{"defaultUp","Z"},
         {"right",QJsonArray{1,0,0}},{"back",QJsonArray{0,1,0}},{"up",QJsonArray{0,0,1}}} : storedConvention;
     if(view_->viewConvention()!=effectiveConvention)view_->setViewConvention(storedConvention);
+    refreshMeasure();
     refreshBodyPropertiesDialog();
     if(upAxisNode_)upAxisNode_->setText(0,"Up: "+effectiveConvention.value("defaultUp").toString("Z"));
     refreshPositionTab();
