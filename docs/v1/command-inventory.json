@@ -297,7 +297,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Edit/reorder/delete and a transient read-only rollback core exist. Native rollback controls and feature suppression remain open; no broad history-complete claim.",
+      "gap": "Edit/reorder/delete and transient rollback with native Timeline controls exist. Feature suppression and broader history parity remain open; no broad history-complete claim.",
       "apiIds": [
         "feature.delete",
         "feature.edit",
@@ -380,8 +380,8 @@
       "category": "History",
       "scope": "proposed-v1",
       "implementation": "partial",
-      "nativeEvidence": "unknown",
-      "gap": "Transient read-only prefix evaluation and return are accepted through core and real-app API; actual-hit Timeline controls remain HIS-013, while assembly and broader authoring stay HIS-003.",
+      "nativeEvidence": "partial",
+      "gap": "Transient prefix evaluation, actual-hit Timeline menu/Move to End, save/reopen and authored integrity pass bounded Mac evidence. Assembly history, physical device input, other-platform runtime and exact visual parity remain open.",
       "apiIds": [
         "timeline.rollbackBefore",
         "timeline.returnToLatest"
