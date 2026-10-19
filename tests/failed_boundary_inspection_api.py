@@ -27,7 +27,11 @@ with application(a.app,out) as (call,ledger):
     assert call('document.inspect')==base
     call('sketch.selectionSet',{'profileIds':[profile]});selected=call('app.state')['activeSession']
     call('sketch.deleteSelection',error='ambiguous_inset_lineage');refusal=ledger[-1]['response']
-    assert refusal['error']['message']==diagnostic['message']
+    recovery='Cancel Failed Edit, reopen the sketch, then reselect its current loop Offset result and retry Delete.'
+    assert refusal['error']['recovery']==recovery
+    assert refusal['error']['message']==diagnostic['message']+'\n'+recovery
+    assert refusal['error']['diagnostics']=={'code':'ambiguous_inset_lineage','message':diagnostic['message']}
+    assert 'recovery' not in diagnostic and repair['diagnostics']==edit_failure['error']['diagnostics']
     assert call('app.state')['activeSession']==selected and call('document.inspect')==base
     call('command.commit',{'session':repair['id']},error='repair_read_only')
     assert call('app.state')['activeSession']==selected and call('document.inspect')==base

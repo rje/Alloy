@@ -5216,8 +5216,15 @@ void AlloyWindow::registerCommands() {
                     session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}},{"profileIds",QJsonArray{}}};
                     return result;
                 } catch(const GeometryKernel::EvaluationError& error) {
-                    const auto diagnostics=error.diagnostics();
-                    return failure(diagnostics.value("code").toString("offset_unavailable"),QString::fromUtf8(error.what()));
+                    const auto diagnostics=error.diagnostics();const auto code=diagnostics.value("code").toString("offset_unavailable");
+                    const auto message=QString::fromUtf8(error.what());auto response=failure(code,message);
+                    if(code=="support_unavailable" || code=="ambiguous_inset_lineage") {
+                        const auto cancel=failedEditRepair_.isEmpty() ? QStringLiteral("Cancel sketch editing") : QStringLiteral("Cancel Failed Edit");
+                        const auto recovery=cancel+", reopen the sketch, then reselect its current loop Offset result and retry Delete.";
+                        auto details=response.value("error").toObject();details["message"]=message+"\n"+recovery;
+                        details["recovery"]=recovery;details["diagnostics"]=diagnostics;response["error"]=details;
+                    }
+                    return response;
                 }
             }
             if(!failedEditRepair_.isEmpty())return failure("repair_read_only","Select a cached generated loop profile to inspect its exact support");

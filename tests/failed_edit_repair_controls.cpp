@@ -57,7 +57,13 @@ private slots:
         QVERIFY(!w.findChild<QLabel*>("failedEditRepair.actionError")->text().isEmpty());
         QCOMPARE(w.state().value("activeSession").toObject(),selected);QCOMPARE(inspect(w),base);
         const auto refusal=w.execute("sketch.deleteSelection");QVERIFY(!refusal.value("ok").toBool());
-        QCOMPARE(refusal.value("error").toObject().value("code").toString(),QString("support_unavailable"));
+        const auto deleteError=refusal.value("error").toObject();
+        QCOMPARE(deleteError.value("code").toString(),QString("support_unavailable"));
+        const auto recovery=QString("Cancel Failed Edit, reopen the sketch, then reselect its current loop Offset result and retry Delete.");
+        QCOMPARE(deleteError.value("recovery").toString(),recovery);
+        QCOMPARE(deleteError.value("diagnostics").toObject().value("message"),repair.value("diagnostics").toObject().value("message"));
+        QCOMPARE(deleteError.value("message").toString(),repair.value("diagnostics").toObject().value("message").toString()+"\n"+recovery);
+        QCOMPARE(w.findChild<QLabel*>("failedEditRepair.actionError")->text(),deleteError.value("message").toString());
         QCOMPARE(w.state().value("activeSession").toObject(),selected);
         QTest::qWait(20);call(w,"capture.screenshot",{{"path",folder+"/cached-selected.png"}});
         auto* cancel=w.findChild<QPushButton*>("failedEditRepair.cancel");QVERIFY(cancel && cancel->isVisible());
@@ -74,7 +80,7 @@ private slots:
         QVERIFY(!w.execute("command.cancel",{{"session",oldId}}).value("ok").toBool());
         QCOMPARE(inspect(w).value("authored"),base.value("authored"));
         const auto gpu=w.state().value("viewport").toObject().value("gpu").toObject();QVERIFY(gpu.value("hardwareAccelerated").toBool());
-        QFile receipt(folder+"/qt-receipt.json");QVERIFY(receipt.open(QIODevice::WriteOnly));receipt.write(QJsonDocument(QJsonObject{{"status","pass"},{"input","Qt-delivered only; locked console; physical input unqualified"},{"gpu",gpu},{"refusal",refusal},{"repair",repair}}).toJson(QJsonDocument::Indented));
+        QFile receipt(folder+"/qt-receipt.json");QVERIFY(receipt.open(QIODevice::WriteOnly));receipt.write(QJsonDocument(QJsonObject{{"status","pass"},{"input","Qt-delivered only; physical input unqualified"},{"gpu",gpu},{"refusal",refusal},{"repair",repair}}).toJson(QJsonDocument::Indented));
     }
     void changedBoundaryInspection() {
         QTemporaryDir scratch;const auto root=qEnvironmentVariable("ALLOY_FAILED_EDIT_EVIDENCE",scratch.path());const auto folder=root+"/boundary";QDir().mkpath(folder);
@@ -98,9 +104,13 @@ private slots:
         QTest::mouseClick(profiles->viewport(),Qt::LeftButton,Qt::NoModifier,hit);
         const auto selected=w.state().value("activeSession").toObject();QCOMPARE(selected.value("selection").toObject().value("profileIds").toArray(),QJsonArray{profile});
         auto* remove=w.findChild<QPushButton*>("failedEditRepair.delete");QVERIFY(remove && remove->isVisible());QTest::mouseClick(remove,Qt::LeftButton);
-        QCOMPARE(w.findChild<QLabel*>("failedEditRepair.actionError")->text(),diagnostic.value("message").toString());
-        const auto refusal=w.execute("sketch.deleteSelection");QCOMPARE(refusal.value("error").toObject().value("code").toString(),QString("ambiguous_inset_lineage"));
-        QCOMPARE(refusal.value("error").toObject().value("message"),diagnostic.value("message"));
+        const auto recovery=QString("Cancel Failed Edit, reopen the sketch, then reselect its current loop Offset result and retry Delete.");
+        QCOMPARE(w.findChild<QLabel*>("failedEditRepair.actionError")->text(),diagnostic.value("message").toString()+"\n"+recovery);
+        const auto refusal=w.execute("sketch.deleteSelection");const auto deleteError=refusal.value("error").toObject();
+        QCOMPARE(deleteError.value("code").toString(),QString("ambiguous_inset_lineage"));
+        QCOMPARE(deleteError.value("recovery").toString(),recovery);
+        QCOMPARE(deleteError.value("message").toString(),diagnostic.value("message").toString()+"\n"+recovery);
+        QCOMPARE(deleteError.value("diagnostics").toObject(),QJsonObject({{"code","ambiguous_inset_lineage"},{"message",diagnostic.value("message")}}));
         QCOMPARE(w.state().value("activeSession").toObject(),selected);QCOMPARE(inspect(w),base);
         QTest::qWait(20);call(w,"capture.screenshot",{{"path",folder+"/cached-boundary-refusal.png"}});
         auto* cancel=w.findChild<QPushButton*>("failedEditRepair.cancel");QVERIFY(cancel && cancel->isVisible());QTest::mouseClick(cancel,Qt::LeftButton);

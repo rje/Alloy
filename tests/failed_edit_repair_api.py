@@ -27,6 +27,12 @@ with application(a.app,out) as (call,ledger):
         call('sketch.selectionSet',{'profileIds':[profile]})
         selected=call('app.state')['activeSession'];assert selected['cachedGeometry'] and selected['mode']=='failedEditRepair'
         call('sketch.deleteSelection',error='support_unavailable')
+        delete_error=ledger[-1]['response']['error']
+        recovery='Cancel Failed Edit, reopen the sketch, then reselect its current loop Offset result and retry Delete.'
+        assert delete_error['recovery']==recovery
+        assert delete_error['message']==repair['diagnostics']['message']+'\n'+recovery
+        assert delete_error['diagnostics']['code']=='support_unavailable' and delete_error['diagnostics']['message']==repair['diagnostics']['message']
+        assert 'recovery' not in repair['diagnostics']
         assert call('app.state')['activeSession']==selected and call('document.inspect')==base
         call('sketch.finish',error='repair_read_only');call('command.commit',{'session':repair['id']},error='repair_read_only')
         assert call('app.state')['activeSession']==selected and call('document.inspect')==base
@@ -46,6 +52,6 @@ with application(a.app,out) as (call,ledger):
     call('document.open',{'path':str(out/'accepted-only.alloy')});reopened=call('document.inspect');assert reopened['authored']==base['authored']
     assert reopened['evaluation']['bodies']==base['evaluation']['bodies'] and call('history.failedEditInspect')=={}
     gpu=call('app.state')['viewport']['gpu'];assert gpu['hardwareAccelerated']
-    (out/'receipt.json').write_text(json.dumps({'status':'pass','appSha256':hashlib.sha256(Path(a.app).read_bytes()).hexdigest(),'input':'Local API; physical native input blocked by locked console','sessions':sessions,'base':base,'gpu':gpu},indent=2)+'\n')
+    (out/'receipt.json').write_text(json.dumps({'status':'pass','appSha256':hashlib.sha256(Path(a.app).read_bytes()).hexdigest(),'input':'Local API; physical native input unqualified','sessions':sessions,'base':base,'gpu':gpu},indent=2)+'\n')
     (out/'transcript.json').write_text(json.dumps(ledger,indent=2)+'\n')
 print('PASS: split/delete failed sessions, exact cache/refusal/cancel, revision invalidation, accepted-only save/reopen')
