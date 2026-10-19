@@ -182,6 +182,7 @@ private:
     QString validateArguments(const Command& command, const QJsonObject& args, QString* field = nullptr) const;
     QJsonObject beginSession(const QString& command, const QJsonObject& inputs);
     QJsonObject finishSession(const QString& id, bool commit);
+    bool canInspectFailedEdit(const QJsonObject& diagnostics) const;
     bool retainFailedEditRepair(const QString& command,const QJsonObject& arguments,
         const QJsonObject& candidate,const QJsonObject& diagnostics);
     QJsonObject closeFailedEditRepair(const QString& status,bool restoreSelection);

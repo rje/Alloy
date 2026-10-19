@@ -26,4 +26,18 @@ inline QJsonObject create(const QString& folder) {
     QFile file(folder+"/fixtures.json");MultiFaceFixtures::check(file.open(QIODevice::WriteOnly),"loop fixture metadata");
     file.write(QJsonDocument(metadata).toJson(QJsonDocument::Indented));return metadata;
 }
+inline QJsonObject createBoundary(const QString& folder) {
+    const auto metadata=create(folder);const auto ids=metadata.value("failure").toObject();CadDocument doc;
+    MultiFaceFixtures::check(doc.open(folder+"/support-failure.alloy").isEmpty(),"boundary fixture open");
+    auto authored=doc.authored();auto features=authored.value("features").toArray();
+    for(int i=0;i<features.size();++i) {
+        auto feature=features.at(i).toObject();
+        if(feature.value("bodyId")==ids.value("splitBodyId")) {
+            auto p=feature.value("parameters").toObject();p["xMm"]=49;feature["parameters"]=p;features[i]=feature;
+        }
+    }
+    authored["features"]=features;MultiFaceFixtures::commit(doc,authored);
+    MultiFaceFixtures::check(doc.save(folder+"/boundary-failure.alloy").isEmpty(),"boundary fixture save");return metadata;
+}
+
 }

@@ -76,6 +76,44 @@ private slots:
         const auto gpu=w.state().value("viewport").toObject().value("gpu").toObject();QVERIFY(gpu.value("hardwareAccelerated").toBool());
         QFile receipt(folder+"/qt-receipt.json");QVERIFY(receipt.open(QIODevice::WriteOnly));receipt.write(QJsonDocument(QJsonObject{{"status","pass"},{"input","Qt-delivered only; locked console; physical input unqualified"},{"gpu",gpu},{"refusal",refusal},{"repair",repair}}).toJson(QJsonDocument::Indented));
     }
+    void changedBoundaryInspection() {
+        QTemporaryDir scratch;const auto root=qEnvironmentVariable("ALLOY_FAILED_EDIT_EVIDENCE",scratch.path());const auto folder=root+"/boundary";QDir().mkpath(folder);
+        const auto metadata=FailedEditRepairFixtures::createBoundary(folder+"/fixtures");const auto ids=metadata.value("failure").toObject();
+        AlloyTheme::apply(*qApp);AlloyWindow w;w.resize(1360,860);w.show();QVERIFY(QTest::qWaitForWindowExposed(&w));
+        call(w,"document.open",{{"path",folder+"/fixtures/boundary-failure.alloy"}});call(w,"selection.set",{{"bodyId",ids.value("targetBodyId")}});
+        const auto base=inspect(w);const auto selection=w.state().value("selection");const auto camera=w.state().value("viewport").toObject().value("navigation");
+        const auto profile=base.value("evaluation").toObject().value("sketches").toArray().last().toObject().value("profiles").toArray().first().toObject().value("profileId");
+        QJsonObject args{{"featureId",ids.value("combineFeatureId")},{"targetBodyId",ids.value("targetBodyId")},
+            {"toolBodyIds",QJsonArray{ids.value("splitBodyId")}},{"operation","cut"},{"keepTools",true}};
+        call(w,"solid.combineDialog",args);const auto preview=w.state().value("activeSession").toObject().value("previewError").toObject();
+        QCOMPARE(preview.value("diagnostics").toObject().value("code").toString(),QString("ambiguous_inset_lineage"));
+        auto* begin=w.findChild<QPushButton*>("combine.inspectFailedEdit");QVERIFY(begin && begin->isVisible());QTest::mouseClick(begin,Qt::LeftButton);
+        const auto repair=call(w,"history.failedEditInspect");const auto diagnostic=repair.value("diagnostics").toObject();
+        QCOMPARE(diagnostic.value("featureId"),ids.value("sketchId"));QCOMPARE(diagnostic.value("featureType").toString(),QString("sketch"));
+        for(const auto& key:{"bodyId","producerFeatureId","faceId"})QCOMPARE(diagnostic.value(key),ids.value("support").toObject().value(key));
+        QCOMPARE(inspect(w),base);auto* banner=w.findChild<QLabel*>("failedEditRepair.banner");QVERIFY(banner && banner->isVisible());
+        QVERIFY(w.findChild<QLabel*>("failedEditRepair.diagnostic")->text().contains("complete retained edges"));
+        auto* profiles=w.findChild<QListWidget*>("failedEditRepair.profiles");QVERIFY(profiles && profiles->count()==1);
+        const auto hit=profiles->visualItemRect(profiles->item(0)).center();QCOMPARE(QApplication::widgetAt(profiles->viewport()->mapToGlobal(hit)),profiles->viewport());
+        QTest::mouseClick(profiles->viewport(),Qt::LeftButton,Qt::NoModifier,hit);
+        const auto selected=w.state().value("activeSession").toObject();QCOMPARE(selected.value("selection").toObject().value("profileIds").toArray(),QJsonArray{profile});
+        auto* remove=w.findChild<QPushButton*>("failedEditRepair.delete");QVERIFY(remove && remove->isVisible());QTest::mouseClick(remove,Qt::LeftButton);
+        QCOMPARE(w.findChild<QLabel*>("failedEditRepair.actionError")->text(),diagnostic.value("message").toString());
+        const auto refusal=w.execute("sketch.deleteSelection");QCOMPARE(refusal.value("error").toObject().value("code").toString(),QString("ambiguous_inset_lineage"));
+        QCOMPARE(refusal.value("error").toObject().value("message"),diagnostic.value("message"));
+        QCOMPARE(w.state().value("activeSession").toObject(),selected);QCOMPARE(inspect(w),base);
+        QTest::qWait(20);call(w,"capture.screenshot",{{"path",folder+"/cached-boundary-refusal.png"}});
+        auto* cancel=w.findChild<QPushButton*>("failedEditRepair.cancel");QVERIFY(cancel && cancel->isVisible());QTest::mouseClick(cancel,Qt::LeftButton);
+        QCOMPARE(inspect(w),base);QCOMPARE(w.state().value("selection"),selection);QCOMPARE(w.state().value("viewport").toObject().value("navigation"),camera);
+        QVERIFY(call(w,"history.failedEditInspect").isEmpty());
+        // The ordinary accepted sketch retains its existing valid Delete path.
+        call(w,"sketch.edit",{{"sketchId",ids.value("sketchId")}});call(w,"sketch.selectionSet",{{"profileIds",QJsonArray{profile}}});call(w,"sketch.deleteSelection");
+        QVERIFY(!w.state().value("activeSession").toObject().value("draftSketch").toObject().value("parameters").toObject().contains("loopOffsets"));
+        call(w,"sketch.cancel");QCOMPARE(inspect(w),base);
+        const auto gpu=w.state().value("viewport").toObject().value("gpu").toObject();QVERIFY(gpu.value("hardwareAccelerated").toBool());
+        QFile receipt(folder+"/qt-receipt.json");QVERIFY(receipt.open(QIODevice::WriteOnly));
+        receipt.write(QJsonDocument(QJsonObject{{"status","pass"},{"input","Qt-delivered only; physical input unqualified"},{"repair",repair},{"refusal",refusal},{"gpu",gpu}}).toJson(QJsonDocument::Indented));
+    }
 };
 QTEST_MAIN(FailedEditRepairTest)
 #include "failed_edit_repair_controls.moc"

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include "AlloyWindow.h"
 #include "ReferenceView.h"
+#include "RoundedLoopOffset.h"
 #include <QCloseEvent>
 #include <QDockWidget>
 #include <QJsonDocument>
@@ -25,15 +26,32 @@ QJsonObject AlloyWindow::failedEditSelection() const {
         {"profileId",selectedProfile_},{"profileIds",selectedProfileIds_},{"point",view_->finishedPointSelection()}};
 }
 
+bool AlloyWindow::canInspectFailedEdit(const QJsonObject& diagnostics) const {
+    if(diagnostics.value("featureType")!="sketch")return false;
+    const auto sketch=SketchGeometry::findFeature(document_->authored(),diagnostics.value("featureId").toString());
+    const auto parameters=sketch.value("parameters").toObject();
+    if(sketch.isEmpty() || parameters.value("plane")!="face")return false;
+    if(diagnostics.value("code")=="support_unavailable")return true;
+    if(diagnostics.value("code")!="ambiguous_inset_lineage" || !parameters.contains("loopOffsets")
+        || !RoundedLoopOffset::validate(parameters).isEmpty())return false;
+    for(const auto& row:parameters.value("loopOffsets").toArray())
+        if(row.toObject().value("kind")!="planarInsetV1")return false;
+    const auto support=parameters.value("support").toObject();
+    for(const auto& key:{"bodyId","producerFeatureId","faceId"})
+        if(diagnostics.value(key)!=support.value(key))return false;
+    return true;
+}
+
 bool AlloyWindow::retainFailedEditRepair(const QString& command,const QJsonObject& arguments,
     const QJsonObject& candidate,const QJsonObject& diagnostics) {
-    // Only a failed existing face-sketch support has a meaningful accepted cache.
-    // This is Alloy inspection policy, not acceptance of an invalid document.
-    if(diagnostics.value("code")!="support_unavailable" || diagnostics.value("featureType")!="sketch"
-        || candidate==document_->authored() || !failedEditRepair_.isEmpty())return false;
+    // Only an existing exact support or contextualized planar-inset boundary
+    // failure has a meaningful accepted cache. No invalid document is accepted.
+    if(!canInspectFailedEdit(diagnostics) || candidate==document_->authored() || !failedEditRepair_.isEmpty())return false;
     const auto sketchId=diagnostics.value("featureId").toString();
     const auto sketch=SketchGeometry::findFeature(document_->authored(),sketchId);
-    if(sketch.isEmpty() || sketch.value("parameters").toObject().value("plane")!="face")return false;
+    if(diagnostics.value("code")=="ambiguous_inset_lineage"
+        && (command!="solid.combine" || arguments.value("featureId").toString().isEmpty()
+            || SketchGeometry::findFeature(candidate,sketchId)!=sketch))return false;
     auto prefix=candidate;QJsonArray preceding;bool found=false;
     for(const auto& row:candidate.value("features").toArray()) {
         if(row.toObject().value("id")==sketchId){found=true;break;}preceding.append(row);

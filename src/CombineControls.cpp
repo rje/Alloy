@@ -286,7 +286,7 @@ void AlloyWindow::refreshCombineControls() {
     combinePickTools_->setText(QString("Select Tool Bodies (%1)").arg(tools.size()));
     combineError_->setText(session_.value("previewError").toObject().value("message").toString());
     if(auto* inspect=combinePanel_->findChild<QPushButton*>("combine.inspectFailedEdit"))
-        inspect->setVisible(session_.value("previewError").toObject().value("diagnostics").toObject().value("code")=="support_unavailable"
+        inspect->setVisible(canInspectFailedEdit(session_.value("previewError").toObject().value("diagnostics").toObject())
             && session_.value("baseDocumentRevision").toInteger()==static_cast<qint64>(document_->revision()));
     const bool current = session_.value("baseDocumentRevision").toInteger() == static_cast<qint64>(document_->revision());
     combineOk_->setEnabled(session_.value("previewed").toBool() && current);

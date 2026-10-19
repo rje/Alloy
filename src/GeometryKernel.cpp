@@ -1024,10 +1024,21 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                     for(const auto& plane:evaluated.constructionPlanes)if(plane.featureId==parameters["planeId"].toString())resolvedFrame=plane.frame;
                     if(resolvedFrame.isEmpty())throw EvaluationError({{"code","plane_unavailable"},{"message","Sketch construction plane is unavailable"},{"featureId",id}});
                 }
-                if(parameters.contains("loopOffsets"))
-                    evaluated.sketches.push_back(RoundedLoopOffset::evaluate(feature,
-                        resolveSketchSupport(evaluated,parameters["support"].toObject()),resolvedFrame));
-                else evaluated.sketches.push_back(SketchGeometry::evaluateFeature(feature,resolvedFrame,projectionContext(evaluated,feature)));
+                if(parameters.contains("loopOffsets")) {
+                    const auto support=resolveSketchSupport(evaluated,parameters.value("support").toObject());
+                    try {evaluated.sketches.push_back(RoundedLoopOffset::evaluate(feature,support,resolvedFrame));}
+                    catch(const EvaluationError& error) {
+                        auto diagnostic=error.diagnostics();
+                        if(diagnostic.value("code")=="ambiguous_inset_lineage") {
+                            // The loop evaluator owns the error; this boundary owns
+                            // the authoritative sketch and already-resolved support.
+                            diagnostic["featureId"]=id;diagnostic["featureType"]=type;
+                            diagnostic["bodyId"]=support.bodyId;diagnostic["producerFeatureId"]=support.producerFeatureId;
+                            diagnostic["faceId"]=support.faceId;throw EvaluationError(diagnostic);
+                        }
+                        throw;
+                    }
+                } else evaluated.sketches.push_back(SketchGeometry::evaluateFeature(feature,resolvedFrame,projectionContext(evaluated,feature)));
             } else if (type == "stepImport" || type == "stepAssemblyImport") {
                 const auto failStep=[&](const QString& code,const QString& message) {
                     auto details=context;details["code"]=code;details["message"]=message;

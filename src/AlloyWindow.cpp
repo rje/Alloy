@@ -5198,8 +5198,10 @@ void AlloyWindow::registerCommands() {
                     const auto editId=session_.value("inputs").toObject().value("sketchId").toString();
                     const auto history=failedEditPrefix_ ? *failedEditPrefix_ : editId.isEmpty() ? document_->evaluation() : sketchHistoryStage(editId);
                     const auto support=GeometryKernel::resolveSketchSupport(history,draft.value("parameters").toObject().value("support").toObject());
-                    if(!failedEditRepair_.isEmpty())return failure("repair_read_only","Cached sketch inspection cannot change the document");
                     const auto candidate=RoundedLoopOffset::deleteProfile(draft,support,profileIds);
+                    // Validate against the failed prefix, but never publish a
+                    // deletion from cached inspection even if validation succeeds.
+                    if(!failedEditRepair_.isEmpty())return failure("repair_read_only","Cached sketch inspection cannot change the document");
                     auto solved=SketchGeometry::solveDraft(candidate,session_.value("projectionContext").toObject());
                     if(!solved.ok)return failure("sketch_solve_failed",solved.error);
                     solved.diagnostics["removedProfileIds"]=profileIds;
