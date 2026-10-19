@@ -54,13 +54,13 @@ evidence. No broad option parity or runtime acceptance is implied.
 | `sketch.offset` | Retained signed offsets for supported closed line/arc loops and supported open chains, with selectable resulting profiles and atomic refusal on collapse or ambiguous source identity. | General mixed curves/chains, self-intersections, arbitrary corners, and full option parity. |
 | `sketch.trim` | Retained Trim for supported analytic line/circle/arc intersections used to create profiles; preserve safe entity/constraint identity and report removed constraints. | Splines and other curve families, multi-interval gestures, and broader constraint-preservation behavior. |
 | `sketch.extend` | Extend a straight authored line to its nearest supported unambiguous straight-line intersection, with preview, cancel, retained endpoint identity and atomic refusal on ties/unsupported cases. | Curved targets, ambiguous intersections, and broader curve families. |
-| `solid.extrude` | Editable one-sided Distance extrusion for New Body, Join and Cut on supported closed profiles; retain the accepted planar To Object, Cut All and offset-start variants. | Symmetric/Two Sides, taper, thin wall, Intersect and broader extent/support combinations. |
+| `solid.extrude` | Editable one-sided Distance extrusion for New Body, Join and Cut on supported closed profiles; retain the accepted planar To Object, Cut All and offset-start variants. | Symmetric/Two Sides, taper and thin wall remain required v1 work under `solid.advanced-extrude`; Intersect and broader combinations retain separate ownership. |
 | `solid.revolve` | Editable New Body Full or Partial Revolve around a supported retained sketch axis, with an ordered closed profile and explicit refusal for invalid/crossing axes. | Join/Cut/Intersect, thin variants, broader axes/profiles and wider Boolean operation editing. |
 | `solid.sweep` | Editable New Body Sweep using a supported circular profile and line/arc path with perpendicular full-path behavior and retained path/profile identity. | Arbitrary profiles, guide rails, twist/taper, path-distance extents and broader path combinations. |
 | `solid.loft` | Editable New Body Loft through at least two ordered closed circular sections, with Free ends, no rails and explicit invalid-order refusal. | General noncircular profiles, continuity controls, guide rails/centerlines, and broader section combinations. |
-| `solid.hole` | A simple editable cylindrical Hole from a supported sketch point/face with an explicit target and depth or through-all extent; retain the accepted Countersink subset. | Counterbore and broader placement/extent choices. Internal/tapped variants require their own explicit scope; modeled external Thread remains separately required. |
+| `solid.hole` | A simple editable cylindrical Hole from a supported sketch point/face with an explicit target and depth or through-all extent; retain the accepted Countersink subset. | Counterbore remains required v1 work under `solid.hole-variants`; broader placement and internal/tapped variants remain separately owned. Modeled external Thread remains required. |
 | `solid.fillet` | Editable constant-radius Fillet on supported selected solid edges, including a supported tangent chain, with preview/Cancel and atomic refusal when invalid. | Variable-radius, chordal, setback, advanced modes, general topology and broader edge/support cases. |
-| `solid.chamfer` | Editable Equal Distance Chamfer on supported retained solid edges, with preview/Cancel, edit and atomic invalid-distance refusal. | Two Distance, Distance And Angle, tangent-chain variants and broader generated-edge naming. |
+| `solid.chamfer` | Editable Equal Distance Chamfer on supported retained solid edges, with preview/Cancel, edit and atomic invalid-distance refusal. | Two Distance and Distance And Angle remain required v1 work under `solid.advanced-chamfer`; tangent-chain variants and broader generated-edge naming remain separately owned. |
 | `solid.shell` | Editable constant inward Shell on supported solids, with either one selected planar opening face or the accepted closed-shell cases; impossible thickness must refuse atomically. | Outward/both-side modes, rounded options and arbitrary stock/topology. |
 | `solid.move` | Editable Free Move for one body using retained translation/rotation values or manipulator gestures, with one history feature and Cancel/undo. | Multi-body and broader pivot/mode behavior. Body Copy and geometry Align are separate inventory rows but currently share the open SOL-008 owner. |
 | `solid.split` | Split one supported solid by a retained plane into two valid independently selectable solids, preserving owner and stable result identities. | Face/surface/curve splitting and broader split-tool choices. |
@@ -144,6 +144,57 @@ qualification must also cover actual native interaction, geometry, edit,
 undo/reopen/export and packaged runtime on each supported platform. A proposed
 subset is not a release promise until REL-030 and the cumulative gates accept it.
 The first-v1 3MF requirement means Core **export**; import and optional
-extensions remain with XCH-005 on the noncloud roadmap. Modeled external Thread
-is required in the first-v1 printable workflow; internal/tapped Hole variants
-remain separately owned and are not implied by that slice.
+extensions remain separately tracked under XCH-005; common-format import remains
+required v1 work. Modeled external Thread is required in the first-v1 printable
+workflow; internal/tapped Hole variants remain separately owned and are not
+implied by that slice.
+
+## Final 18 partial proposed-v1 S rows after the first 45
+
+Scope proposal added 2026-10-19 for the remaining S rows in the 150-row
+inventory. These minimums keep each required capability visible in v1 while
+bounding a finishable first result. Broader modes remain roadmap work, not
+accepted deferrals; issue receipts support only their named fixtures. This
+section does not claim implementation or runtime acceptance.
+
+| Inventory row | Proposed minimum for v1 | Later or separately owned remainder |
+| --- | --- | --- |
+| `solid.advanced-extrude` | Editable symmetric/two-sided distance and offset-start extrusion; supported taper, To Object/All extent, and thin-wall extrusion each have explicit units/targets, preview, edit and atomic refusal on invalid geometry. | Broader target classes and option combinations, with physical-input and package qualification kept in release gates. SOL-010 remains the owner until its option slices are finishable. |
+| `solid.hole-variants` | Editable Counterbore and accepted Countersink choices on supported points/faces, with explicit diameter, recess/depth, cut target and through extent; preserve placement through source edits and save/reopen. | Broader placement sets and internal/tapped Hole/thread variants; modeled external Thread remains separately required. |
+| `solid.draft` | Apply an editable angle Draft to one supported solid face about a retained neutral plane, with explicit pull direction, preview and atomic refusal when the result is invalid. | Multi-face/group draft, alternate neutral references and broader topology. |
+| `solid.scale` | Uniformly scale one retained body about an explicit origin or selected reference, with editable factor/origin, distinct identity when copying first, and undo/reopen. | Nonuniform/multi-body scaling and broader reference/pivot modes. |
+| `solid.align` | Align one source body to one target planar face with explicit frame and flip choice, preview/Cancel and retained transform; refuse ambiguous or unsupported references. | Edge/axis/multi-reference alignment and generalized assembly placement. |
+| `solid.body-copy` | Create an independently identified retained body copy with a distinct placement and editable downstream features; source and copy remain independently selectable and changes do not alias. | Cross-document copy, linked/unique component semantics and broader dependency transfer. |
+| `solid.face-offset` | Offset one supported retained planar face by a signed distance, including the accepted straight-edge and full circular-cap-rim continuation cases; preserve stable references for supported downstream features and refuse unsupported lineage. | Other rebuilt curves, multi-face/tangent cases and broader topology naming, including the explicit SOL-075 remainder. |
+| `solid.advanced-chamfer` | Provide editable Two Distance and Distance And Angle chamfers on supported selected edges, with preview, clear invalid-distance refusal and retained downstream references. | Broader tangent chains, generated-edge naming and difficult topology cases. |
+| `surface.revolve` | Revolve one supported open sketch section through a retained axis into an editable surface, with angle/direction edit and area/bounds inspection; do not fabricate a closed solid. | Broader section/axis sets, multiple profiles, joins and surface-operation combinations. |
+| `surface.sweep` | Sweep one supported open section along one retained line/arc path as an editable G0 sheet, reporting unsupported path or end conditions instead of silently changing them. | Rails, multiple sections, G1/G2 continuity and broader path/section combinations. |
+| `surface.patch` | Create both a planar cap from one closed planar loop and one bounded nonplanar four-edge fill with declared boundary continuity; reject disconnected/underdefined loops. | Larger boundary networks, additional continuity classes and broader multi-face repair. The two result types remain separately finishable under SRF-003. |
+| `surface.offset-ruled` | Create an editable signed offset of one supported face and a ruled sheet between two supported retained edges, with explicit normal/angle direction and atomic fold/invalid-input refusal. | Broader surface families, multi-edge construction and self-intersection recovery. |
+| `surface.extend-untrim` | Extend one supported sheet boundary to a declared distance or retained target, and restore one supported trimmed face to its prior boundary as Untrim; preserve source/history on failure. | Multi-edge and generalized intersection-driven extension, complex trim histories and broad recovery variants. |
+| `surface.inspect` | Display evaluated face normals and a simple zebra/curvature view; report sampled positional and tangent continuity with method/units and do not infer continuity from appearance alone. | Curvature combs, broader sampling controls and G2/advanced analysis. |
+| `construction.more-planes` | Create one editable angled datum plane about a retained line/edge and source plane, with angle/side controls and update or explicit refusal after source edits. | Other point/edge-derived plane combinations and broader interactive manipulation. |
+| `construction.axes-points` | Create retained axes from two supported points or a supported edge, and construction points from a retained vertex or supported curve location, with stable references and edit/refusal behavior. | Other axis/point constructors, inferred references and broader derived-geometry classes. |
+| `print.refinement` | Offer coarse/fine/custom export tessellation with actual triangle-count preview, plus one-file/per-body structure and safe filename-collision handling; failed/cancelled batches preserve prior files. | Advanced presets, broader batch naming and platform-specific chooser qualification. This does not reduce required STL/STEP/Core 3MF export. |
+| `history.general-expressions` | Evaluate named-parameter arithmetic with explicit units and dependency order in supported sketch dimensions and feature distances; detect cycles/unit mismatch, retain last valid results on failure and verify recompute/undo/save-reopen. | Broader functions, unit domains, arbitrary field bindings and incremental-evaluation optimization. The user-facing named-parameter table remains coupled to PAR-001. |
+
+The v1 printable-part contract remains explicit: STL, STEP and Core 3MF export;
+common-format import; modeled external Thread; and macOS, Windows and Linux
+package/runtime release qualification are required work. None is moved into a
+later remainder by this tranche.
+
+Up to five proposed highest-priority bounded children are listed below. These
+are candidate issue scopes under the named existing owners, not newly created
+issues or accepted scope reductions.
+
+| Candidate child title | Existing parent/dependency | Finishable acceptance boundary |
+| --- | --- | --- |
+| Counterbore Hole with retained placement | SOL-007/#52; simple Hole prerequisite SOL-078/#608; Countersink receipt SOL-035/#247 | Add/edit one counterbore and one countersink on supported plate points, verify cut dimensions/volume, source edit behavior, refusal, undo and reopen. |
+| Neutral-plane Draft | SOL-013/#59 | Draft one supported side face at a declared angle around a retained neutral plane; verify face direction, dimensions, edit, invalid-angle refusal and history/reopen. |
+| Uniform body Scale | SOL-013/#59 | Scale one retained/copy-created body about a declared origin/reference; verify factor, bounds, identity, edit and undo/reopen. |
+| Planar cap and nonplanar Patch split | SRF-003/#62; prerequisite SRF-002/#61 | Deliver separately testable planar-loop cap and bounded four-edge nonplanar patch; check boundary deviation/continuity and atomic refusal for disconnected loops. |
+| Export refinement and batch structure | PRT-002/#76; required export gates GATE-050/#86 and REL-018/#421 | Compare coarse/fine/custom tessellation and actual triangle counts; export selected bodies as one/per-body files and test collisions/cancellation without losing prior outputs. |
+
+All row links in the reconciliation ledger point to this proposal. Open issues
+remain open, mapped closed issues remain bounded evidence, and package/native
+acceptance remains with the cumulative release gates.
