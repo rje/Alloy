@@ -3454,19 +3454,27 @@
       "label": "Cone and Torus primitives",
       "category": "Solid create",
       "scope": "proposed-v1",
-      "implementation": "missing",
-      "nativeEvidence": "unknown",
-      "gap": "No Cone or Torus primitive registration.",
-      "apiIds": [],
+      "implementation": "partial",
+      "nativeEvidence": "partial",
+      "gap": "New Body +Z numeric Cone/Torus accepted through shared API/GPU; native input awaits SOL-077/FND-028. Plane picking, manipulators and additional operation modes remain unqualified.",
+      "apiIds": [
+        "solid.cone",
+        "solid.torus",
+        "primitive.cone",
+        "primitive.torus"
+      ],
       "issueKeys": [
         "ADV-005",
-        "SOL-062"
+        "SOL-062",
+        "SOL-077"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
       ],
-      "receipts": [],
-      "planningStatus": "Scope review: needs bounded v1 issue"
+      "receipts": [
+        "docs/validation/cone-torus.md"
+      ],
+      "planningStatus": "Bounded New Body geometry accepted; native input and broader reference options remain Todo"
     },
     {
       "id": "solid.rib-web",
@@ -3586,7 +3594,11 @@
       "implementation": "partial",
       "nativeEvidence": "accepted-bounded-macos",
       "gap": "One retained planar face with signed in-canvas dragging and qualified straight and full circular cap-rim references is accepted. Other rebuilt curves, multi-face, tangent chain and source-feature modification remain broader scope.",
-      "apiIds": ["solid.faceOffset", "solid.faceOffsetDialog", "solid.faceOffsetDrag"],
+      "apiIds": [
+        "solid.faceOffset",
+        "solid.faceOffsetDialog",
+        "solid.faceOffsetDrag"
+      ],
       "issueKeys": [
         "ADV-001",
         "SOL-016",
@@ -3600,7 +3612,9 @@
       "sourceFiles": [
         "docs/backlog/issues.json"
       ],
-      "receipts": ["docs/validation/face-offset.md"],
+      "receipts": [
+        "docs/validation/face-offset.md"
+      ],
       "planningStatus": "SOL-067 accepts one retained planar face; SOL-072 accepts drag; SOL-073 accepts straight edges; SOL-074 accepts full circular cap rims; SOL-076 accepts native circular pointer input; SOL-075 retains other curves"
     },
     {

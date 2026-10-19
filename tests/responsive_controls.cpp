@@ -23,6 +23,7 @@
 #include <QTest>
 #include <QTimer>
 #include <QToolButton>
+#include <algorithm>
 #include <cmath>
 
 class ResponsiveControls final : public QObject {
@@ -94,6 +95,60 @@ private slots:
         QCOMPARE(window.state().value("activeSession").toObject().value("command"),QJsonValue("solid.box"));
         call(window,"capture.screenshot",{{"path",out+"/minimum-box-dock.png"}});
         call(window,"command.cancel",{{"session",window.state().value("activeSession").toObject().value("id")}});
+        window.close();
+    }
+    void coneTorusPrimitivePanels() {
+        const auto out=qEnvironmentVariable("ALLOY_CONE_TORUS_EVIDENCE");QVERIFY(!out.isEmpty());QVERIFY(QDir().mkpath(out));
+        AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1360,850);window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        window.activateWindow(); // Initial harness activation only.
+        for(int i=0;i<20 && !window.isActiveWindow();++i)QTest::qWait(50);
+        if(!window.isActiveWindow())QSKIP("Private macOS window is inactive; native input remains SOL-077/FND-028");
+        auto click=[](QWidget* widget) {
+            QVERIFY(widget && widget->isVisible());
+            const auto point=widget->rect().center();
+            auto* target=QApplication::widgetAt(widget->mapToGlobal(point));QVERIFY(target);
+            QVERIFY(target==widget || widget->isAncestorOf(target));
+            QTest::mouseClick(target,Qt::LeftButton,Qt::NoModifier,target->mapFromGlobal(widget->mapToGlobal(point)));
+        };
+        auto type=[&](QDoubleSpinBox* spin,const char* text) {
+            QVERIFY(spin);auto* editor=spin->findChild<QLineEdit*>();QVERIFY(editor);click(editor);
+            QTRY_VERIFY(editor->hasFocus());
+            QTest::keySequence(editor,QKeySequence(QKeySequence::SelectAll));QTest::keyClicks(editor,text);
+            QTest::keyClick(editor,Qt::Key_Return);
+        };
+        auto session=[&]{return window.state().value("activeSession").toObject();};
+        const auto before=call(window,"document.inspect");
+        choose(window.findChild<QToolButton*>("solid.menu.create"),"solid.action.primitive.cone");
+        QTRY_COMPARE(session().value("command").toString(),QString("solid.cone"));
+        auto* dock=window.findChild<QDockWidget*>("primitiveDock");QVERIFY(dock);
+        QCOMPARE(dock->windowTitle(),QString("Cone"));
+        auto* top=dock->findChild<QDoubleSpinBox*>("primitive.topDiameter");QVERIFY(top);QCOMPARE(top->minimum(),0.0);
+        type(top,"6");QTRY_VERIFY(session().value("previewed").toBool());
+        QCOMPARE(session().value("inputs").toObject().value("topDiameter").toDouble(),6.0);
+        call(window,"capture.dialog",{{"path",out+"/native-cone-panel.png"}});
+        auto* buttons=dock->findChild<QDialogButtonBox*>();QVERIFY(buttons);click(buttons->button(QDialogButtonBox::Cancel));
+        QTRY_VERIFY(session().isEmpty());QCOMPARE(call(window,"document.inspect"),before);
+        choose(window.findChild<QToolButton*>("solid.menu.create"),"solid.action.primitive.torus");
+        QTRY_COMPARE(session().value("command").toString(),QString("solid.torus"));
+        dock=window.findChild<QDockWidget*>("primitiveDock");QVERIFY(dock);
+        QStringList labels;for(auto* label:dock->findChildren<QLabel*>())labels.append(label->text());
+        QVERIFY(labels.contains("Major radius"));QVERIFY(labels.contains("Minor radius"));
+        QVERIFY(std::any_of(labels.begin(),labels.end(),[](const QString& label){return label.startsWith("Alloy sizing:");}));
+        auto* minor=dock->findChild<QDoubleSpinBox*>("primitive.minorRadius");type(minor,"3");
+        QTRY_VERIFY(session().value("previewed").toBool());
+        QCOMPARE(session().value("inputs").toObject().value("minorRadius").toDouble(),3.0);
+        call(window,"capture.dialog",{{"path",out+"/native-torus-panel.png"}});
+        buttons=dock->findChild<QDialogButtonBox*>();QVERIFY(buttons);click(buttons->button(QDialogButtonBox::Ok));
+        QTRY_VERIFY(session().isEmpty());const auto created=call(window,"document.inspect");
+        QCOMPARE(created.value("features").toInt(),1);QCOMPARE(created.value("undo").toObject().value("count").toInt(),1);
+        const auto feature=created.value("authored").toObject().value("features").toArray().first().toObject();
+        QCOMPARE(feature.value("parameters").toObject().value("minorRadiusMm").toDouble(),3.0);
+        call(window,"feature.editDialog",{{"featureId",feature.value("id")}});
+        dock=window.findChild<QDockWidget*>("primitiveDock");QVERIFY(dock);minor=dock->findChild<QDoubleSpinBox*>("primitive.minorRadius");
+        type(minor,"2");QTRY_VERIFY(session().value("previewed").toBool());
+        buttons=dock->findChild<QDialogButtonBox*>();click(buttons->button(QDialogButtonBox::Cancel));
+        QTRY_VERIFY(session().isEmpty());QCOMPARE(call(window,"document.inspect"),created);
         window.close();
     }
     void primitiveDockActionsStayReachable() {

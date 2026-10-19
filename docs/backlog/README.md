@@ -7,14 +7,18 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **602 issues**: **476 implementation, 24 research,
-3 research/design, 22 epics, and 77 validation gates**. Counts describe decomposition, not coverage.
+The current local backlog contains **603 issues**: **476 implementation, 24 research,
+3 research/design, 22 epics, and 78 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 TUT-016/#299 accepts the [cumulative adapted enclosure tutorial](../validation/enclosure-cumulative-gate.md):
 fresh blank-document creation, exact saved-model rim continuation, two checked
 printable halves, nominal connector clearance and independent Astra review.
 Exact creator-board fit, physical snaps and native gesture parity remain open
 product quality concerns rather than evidence claimed by this gate.
+SOL-062/#507 accepts [Cone and Torus New Body primitives](../validation/cone-torus.md)
+through real-app API/GPU, retained editing and independent STL checks.
+SOL-077/#606 retains native input after the FND-028 private-window activation
+prerequisite.
 DOC-034/#496 accepts the [active design-unit workflow](../validation/display-units.md)
 through sketch, Extrude and independently read mesh bounds. DOC-038/#597 accepts
 [selected-solid Properties](../validation/body-properties.md) with active-unit

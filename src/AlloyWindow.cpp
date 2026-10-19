@@ -543,7 +543,7 @@ AlloyWindow::AlloyWindow() {
         }
         groups->addLayout(box);groups->addWidget(divider());
     };
-    group("CREATE", {{"primitive.box", "▣"}, {"primitive.cylinder", "◉"}, {"solid.sphereDialog", "●"}, {"solid.threadDialog", "≋"}, {"sketch.create", "▧"}, {"solid.extrudeDialog", "▣"}, {"solid.revolveDialog", "◉"}, {"solid.sweepDialog", "◒"}, {"solid.loftDialog", "◒"}, {"solid.thickenDialog", "▤"}, {"solid.mirrorDialog", "◧"}, {"solid.featureMirrorDialog", "◧"}, {"solid.circularPatternDialog", "◌"}});
+    group("CREATE", {{"primitive.box", "▣"}, {"primitive.cylinder", "◉"}, {"primitive.cone", "△"}, {"primitive.torus", "◎"}, {"solid.sphereDialog", "●"}, {"solid.threadDialog", "≋"}, {"sketch.create", "▧"}, {"solid.extrudeDialog", "▣"}, {"solid.revolveDialog", "◉"}, {"solid.sweepDialog", "◒"}, {"solid.loftDialog", "◒"}, {"solid.thickenDialog", "▤"}, {"solid.mirrorDialog", "◧"}, {"solid.featureMirrorDialog", "◧"}, {"solid.circularPatternDialog", "◌"}});
     group("MODIFY", {{"solid.pressPullDialog", "⇧"}, {"solid.combineDialog", "▣"}, {"solid.filletDialog", "◩"}, {"solid.chamferDialog", "◪"}, {"solid.shellDialog", "▱"}, {"solid.faceOffsetDialog", "↗"}, {"solid.splitBodyDialog", "◫"}, {"solid.moveDialog", "✥"}});
     group("ASSEMBLE", {{"joint.asBuiltDialog","◉"},{"joint.sliderDialog", "⇆"},{"position.revert","↶"}});
     group("CONSTRUCT", {{"construction.plane", "▰"}, {"construction.pathPlane", "⟂"}, {"construction.tangentPlane", "▱"}, {"construction.midplane", "◫"}});
@@ -1070,7 +1070,7 @@ AlloyWindow::AlloyWindow() {
         });
     });
     browserLayout->addWidget(tree_, 1);
-    auto* browserNote = new QLabel("Create a sketch, box or cylinder.\nDouble-click a Browser or Timeline\nfeature to edit it."); browserNote_=browserNote;
+    auto* browserNote = new QLabel("Create a sketch or solid.\nDouble-click a Browser or Timeline\nfeature to edit it."); browserNote_=browserNote;
     browserNote->setStyleSheet("color: #89939b; font-size: 11px; border: 0; padding: 8px 4px;");
     browserLayout->addWidget(browserNote);
     body->addWidget(browser_);
@@ -2550,22 +2550,25 @@ void AlloyWindow::registerCommands() {
     length["minimum"]=0.000001; length["maximum"]=100000;
     auto position=optional(parameter("number","Placement in the selected display units; default zero."));
     position["minimum"]=-100000; position["maximum"]=100000;
-    auto name=optional(parameter("string","Body/feature name; defaults to Box or Cylinder."));
+    auto name=optional(parameter("string","Body/feature name; defaults to the primitive name."));
     auto featureId=parameter("string","Stable authored feature UUID.");
-    for(const QString& type:{"box","cylinder"}) {
+    for(const QString& type:{"box","cylinder","cone","torus"}) {
+        const auto title=type.first(1).toUpper()+type.sliced(1);
         QJsonObject schema{{"height",length},{"x",position},{"y",position},{"z",position},
             {"units",optional(units)},{"name",name},{"featureId",optional(featureId)}};
         if(type=="box") {for(const auto& field:QStringList{"width","depth","height"}){
             schema[field]=optional(length);schema[field+"Parameter"]=optional(parameter("string","Direct name of a user length."));
-        }} else schema["radius"]=length;
+        }} else if(type=="cylinder")schema["radius"]=length;
+        else if(type=="cone") {schema["baseDiameter"]=length;auto top=length;top["minimum"]=0;schema["topDiameter"]=top;}
+        else {schema.remove("height");schema["majorRadius"]=length;schema["minorRadius"]=length;}
         const auto id="solid."+type;
-        add(id,type=="box" ? "Box" : "Cylinder","Create or edit a real primitive as a New Body.",schema,[this,id](const auto& a){
+        add(id,title,"Create or edit a real primitive as a New Body.",schema,[this,id](const auto& a){
             const auto candidate=primitiveCandidate(id,a);
             const auto error=document_->commit(candidate,a.value("featureId").toString().isEmpty() ? "Create "+id.sliced(6) : "Edit "+id.sliced(6));
             if(!error.isEmpty()) return failure("evaluation_failed",error);
             view_->fit(document_->bodies(),document_->sketches()); return document_->state();
         });
-        add("primitive."+type,type=="box" ? "Box" : "Cylinder","Open a shared primitive dimension dialog.",{},[this,id](const auto&){return beginSession(id,{});});
+        add("primitive."+type,title,"Open a shared primitive dimension dialog.",{},[this,id](const auto&){return beginSession(id,{});});
     }
     auto extrusionDistance=parameter("number","Signed one-side distance in display units along the profile normal; zero is invalid.");
     extrusionDistance["minimum"]=-100000;extrusionDistance["maximum"]=100000;
@@ -5976,7 +5979,7 @@ void AlloyWindow::registerCommands() {
         return failure("stale_entity","Body instance does not exist");
     });
     auto sessionTarget = parameter("string", "Implemented session target; modeling targets follow alongside their features.");
-    sessionTarget["enum"] = QJsonArray{"canvas.set","document.units", "commands.search","solid.box","solid.cylinder","solid.extrude","solid.combine","solid.move","solid.fillet","solid.chamfer","solid.sphere","solid.thread","solid.shell","solid.faceOffset","solid.loft","solid.revolve","solid.sweep","solid.rectangularPattern","solid.circularPattern","solid.mirror","inspect.section","joint.slider","joint.revolute","joint.cylindrical","sketch.create","construction.midplane","construction.pathPlane","construction.tangentPlane","solid.splitBody"};
+    sessionTarget["enum"] = QJsonArray{"canvas.set","document.units", "commands.search","solid.box","solid.cylinder","solid.cone","solid.torus","solid.extrude","solid.combine","solid.move","solid.fillet","solid.chamfer","solid.sphere","solid.thread","solid.shell","solid.faceOffset","solid.loft","solid.revolve","solid.sweep","solid.rectangularPattern","solid.circularPattern","solid.mirror","inspect.section","joint.slider","joint.revolute","joint.cylindrical","sketch.create","construction.midplane","construction.pathPlane","construction.tangentPlane","solid.splitBody"};
     add("command.begin", "Begin command session", "Begin a real editable dialog with disposable inputs.",
         {{"command", sessionTarget}, {"inputs", parameter("object", "Initial input overrides.")}},
         [this](const auto& a) { return beginSession(a["command"].toString(), a["inputs"].toObject()); });
@@ -7506,7 +7509,7 @@ void AlloyWindow::refresh() {
             const auto feature=entry.toObject();if(feature["ownerId"].toString()!=document_->activeOwnerId())continue;const auto id=feature["id"].toString(),name=feature["name"].toString();
             const auto type=feature["type"].toString();
             static const QMap<QString,QPair<QString,QString>> presentation{
-                {"sketch",{"sketch.create","Sketch"}},{"box",{"primitive.box","Box"}},{"cylinder",{"primitive.cylinder","Cylinder"}},
+                {"sketch",{"sketch.create","Sketch"}},{"box",{"primitive.box","Box"}},{"cylinder",{"primitive.cylinder","Cylinder"}},{"cone",{"primitive.cone","Cone"}},{"torus",{"primitive.torus","Torus"}},
                 {"extrude",{"solid.extrudeDialog","Extrude"}},{"sphere",{"solid.sphereDialog","Sphere"}},{"fillet",{"solid.filletDialog","Fillet"}},
                 {"sweep",{"solid.sweepDialog","Sweep"}},{"revolve",{"solid.revolveDialog","Revolve"}},{"chamfer",{"solid.chamferDialog","Chamfer"}},
                 {"thread",{"solid.threadDialog","Thread"}},{"faceOffset",{"solid.faceOffsetDialog","Offset Face"}},{"shell",{"solid.shellDialog","Shell"}},{"loft",{"solid.loftDialog","Loft"}},{"thicken",{"solid.thickenDialog","Thicken"}},
@@ -8766,8 +8769,11 @@ QJsonObject AlloyWindow::beginSession(const QString& command, const QJsonObject&
         : QJsonObject{{"units", document_->authored()["displayUnits"]}};
     if(command.startsWith("solid.")) {
         const auto units=document_->authored()["displayUnits"].toString();const double scale=units=="in" ? 25.4 : 1;
-        values={{"height",10/scale},{"x",0},{"y",0},{"z",0},{"units",units},{"name",command=="solid.box" ? "Box" : "Cylinder"}};
-        if(command=="solid.box"){values["width"]=20/scale;values["depth"]=30/scale;} else values["radius"]=5/scale;
+        values={{"height",10/scale},{"x",0},{"y",0},{"z",0},{"units",units},{"name",command.sliced(6).first(1).toUpper()+command.sliced(7)}};
+        if(command=="solid.box"){values["width"]=20/scale;values["depth"]=30/scale;}
+        else if(command=="solid.cone"){values["baseDiameter"]=20/scale;values["topDiameter"]=0;values["height"]=24/scale;}
+        else if(command=="solid.torus"){values.remove("height");values["majorRadius"]=14/scale;values["minorRadius"]=4/scale;}
+        else values["radius"]=5/scale;
     }
     for (auto it = inputs.begin(); it != inputs.end(); ++it) values[it.key()] = it.value();
     if(command=="solid.box")for(const auto& field:QStringList{"width","depth","height"})if(values.contains(field+"Parameter")){
@@ -9489,7 +9495,9 @@ QJsonObject AlloyWindow::primitiveCandidate(const QString& command,const QJsonOb
         {"type",type},{"visible",true}};
     const auto units=inputs.value("units").toString(candidate["displayUnits"].toString());
     QJsonObject parameters;
-    const QStringList dimensions=type=="box" ? QStringList{"width","depth","height"} : QStringList{"radius","height"};
+    const QStringList dimensions=type=="box" ? QStringList{"width","depth","height"}
+        : type=="cone" ? QStringList{"baseDiameter","topDiameter","height"}
+        : type=="torus" ? QStringList{"majorRadius","minorRadius"} : QStringList{"radius","height"};
     for(const auto& name:dimensions){
         const auto binding=name+"Parameter";
         if(type=="box" && inputs.contains(binding)){
@@ -9500,7 +9508,7 @@ QJsonObject AlloyWindow::primitiveCandidate(const QString& command,const QJsonOb
         }else parameters[name+"Mm"]=CadDocument::millimeters(inputs.value(name).toDouble(),units);
     }
     for(const auto& name:{"x","y","z"})parameters[QString(name)+"Mm"]=CadDocument::millimeters(inputs.value(name).toDouble(),units);
-    feature["parameters"]=parameters;feature["name"]=inputs.value("name").toString(type=="box" ? "Box" : "Cylinder");
+    feature["parameters"]=parameters;feature["name"]=inputs.value("name").toString(type.first(1).toUpper()+type.sliced(1));
     if(index>=0)features[index]=feature;else features.append(feature);
     candidate["features"]=features;
     const auto error=CadDocument::validate(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());
@@ -9523,24 +9531,31 @@ void AlloyWindow::showPrimitive() {
     primitivePanel_->setObjectName("primitivePanel");primitivePanel_->setFixedWidth(312);
     primitivePanel_->setStyleSheet("#primitivePanel { background: #f7f8f9; border-left: 1px solid #cdd3d8; }");
     const auto command=session_.value("command").toString();const auto inputs=session_.value("inputs").toObject();
-    auto* dock=new CommandDock(command=="solid.box" ? "Box" : "Cylinder",canvasWindow_);
+    const auto title=command.sliced(6).first(1).toUpper()+command.sliced(7);
+    auto* dock=new CommandDock(title,canvasWindow_);
     primitiveDock_=dock;dock->setObjectName("primitiveDock");
     dock->setAllowedAreas(Qt::LeftDockWidgetArea|Qt::RightDockWidgetArea);dock->setWidget(primitivePanel_);
     dock->onClose=[this]{if(session_.value("command").toString().startsWith("solid."))execute("command.cancel",{{"session",session_.value("id")}});};
-    primitivePanel_->setWindowTitle(command=="solid.box" ? "Box" : "Cylinder");
+    primitivePanel_->setWindowTitle(title);
     auto* layout=new QVBoxLayout(primitivePanel_);layout->setContentsMargins(0,0,0,9);layout->setSpacing(8);
     auto* scroll=new QScrollArea(primitivePanel_);scroll->setObjectName("primitive.formScroll");scroll->setWidgetResizable(true);
     scroll->setFrameShape(QFrame::NoFrame);scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     auto* contents=new QWidget;contents->setObjectName("primitive.formContents");contents->setStyleSheet("QWidget[objectName=\"primitive.formContents\"] { background: #f7f8f9; color: #323c44; }");
     auto* form=new QFormLayout(contents);form->setRowWrapPolicy(QFormLayout::WrapLongRows);
     auto* plane=new QLabel(inputs.value("featureId").toString().isEmpty() ? "XY plane · New Body" : "XY plane · Edit Body",contents);form->addRow(plane);
+    if(command=="solid.torus") {
+        auto* help=new QLabel("Alloy sizing: major radius reaches the tube center; minor radius sizes the tube.",contents);
+        help->setWordWrap(true);help->setStyleSheet("color: #53616b;");form->addRow(help);
+    }
     primitiveName_=new QLineEdit(inputs["name"].toString(),contents);primitiveName_->setObjectName("primitive.name");form->addRow("Name",primitiveName_);
     const QStringList fields=command=="solid.box" ? QStringList{"width","depth","height","x","y","z"}
+        : command=="solid.cone" ? QStringList{"baseDiameter","topDiameter","height","x","y","z"}
+        : command=="solid.torus" ? QStringList{"majorRadius","minorRadius","x","y","z"}
         : QStringList{"radius","height","x","y","z"};
     for(const auto& field:fields) {
         const bool named=command=="solid.box" && (field=="width" || field=="depth" || field=="height");
         auto* input=named ? static_cast<QDoubleSpinBox*>(new LengthDistanceSpinBox(contents)) : new QDoubleSpinBox(contents);
-        input->setKeyboardTracking(false);input->setDecimals(6);input->setRange(field.size()==1 ? -100000 : 0.000001,100000);
+        input->setKeyboardTracking(false);input->setDecimals(6);input->setRange(field.size()==1 ? -100000 : field=="topDiameter" ? 0 : 0.000001,100000);
         input->setSuffix(" "+inputs["units"].toString());input->setValue(inputs[field].toDouble());input->setObjectName("primitive."+field);
         if(named){auto* fieldInput=static_cast<LengthDistanceSpinBox*>(input);
             fieldInput->namedValue=[this,inputs](const QString& name)->std::optional<double>{const auto row=lengthParameter(name);if(row.isEmpty())return {};return row["valueMm"].toDouble()/(inputs["units"]=="in" ? 25.4 : 1);};
@@ -9557,7 +9572,8 @@ void AlloyWindow::showPrimitive() {
                 else if(fieldInput->literalEdited())updatePrimitive({{field,fieldInput->value()}});
             });
         }
-        primitiveInputs_[field]=input;form->addRow(field.first(1).toUpper()+field.sliced(1),input);
+        const QMap<QString,QString> labels{{"baseDiameter","Base diameter"},{"topDiameter","Top diameter"},{"majorRadius","Major radius"},{"minorRadius","Minor radius"}};
+        primitiveInputs_[field]=input;form->addRow(labels.value(field,field.first(1).toUpper()+field.sliced(1)),input);
         connect(input,qOverload<double>(&QDoubleSpinBox::valueChanged),this,[this,field,input](double value){
             if(auto* named=dynamic_cast<LengthDistanceSpinBox*>(input);named && !named->enteredIdentifier().isEmpty())return;
             updatePrimitive({{field,value}});

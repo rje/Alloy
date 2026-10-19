@@ -8648,7 +8648,7 @@
       "labels": [
         "area:sol"
       ],
-      "body": "## Bounded result\nAdd cone and torus primitive solids. This proposed printable-part v1 gap is a child of `ADV-005`; remaining modes stay on the parent roadmap.\n\n## Reference and scope\nBefore coding, record public command inputs, selection rules, defaults, preview, commit/cancel, history/edit behavior and visual examples in `../Alloy-reference-records/knowledge`, with dated provenance. Define a supported option subset and retain other noncloud modes on the parent.\n\n## Acceptance\n- Create cone and torus with native/API controls; edit defining dimensions and verify geometry/history/STL.\n- Native UI and local control use the same retained authored command. Check a meaningful upstream edit, one transactional refusal, Undo/Redo and save/reopen.\n- Inspect actual GPU presentation and native controls. For a printable solid, independently read back STL. Keep geometry, input and export evidence distinct.\n\n## Ownership\nInventory row `solid.cone-torus`; parent `ADV-005`. Todo until its public command contract and real-object fixture are accepted. Its closure does not complete the whole capability family or release gate.\n"
+      "body": "## Bounded result\nAdd cone and torus primitive solids. This proposed printable-part v1 gap is a child of `ADV-005`; remaining modes stay on the parent roadmap.\n\n## Reference and scope\nBefore coding, record public command inputs, selection rules, defaults, preview, commit/cancel, history/edit behavior and visual examples in `../Alloy-reference-records/knowledge`, with dated provenance. Define a supported option subset and retain other noncloud modes on the parent.\n\n## Acceptance\n- Create cone and torus with native/API controls; edit defining dimensions and verify geometry/history/STL.\n- Native UI and local control use the same retained authored command. Check a meaningful upstream edit, one transactional refusal, Undo/Redo and save/reopen.\n- Inspect actual GPU presentation and native controls. For a printable solid, independently read back STL. Keep geometry, input and export evidence distinct.\n\n## Ownership\nInventory row `solid.cone-torus`; parent `ADV-005`. Todo until its public command contract and real-object fixture are accepted. Its closure does not complete the whole capability family or release gate.\n\n## Accepted bounded slice \u2014 2026-10-19\nShared/API Cone and Torus New Body, retained edits, GPU controls, downstream Move, history/reopen and independent STL readback passed; see docs/validation/cone-torus.md. The Qt native route stopped before first input because the private window remained inactive. Native Create/edit controls are explicitly split to SOL-077/#606 after FND-028/#589; broader plane pick/manipulator/operation modes remain ADV-005.\n"
     },
     {
       "key": "SOL-063",
@@ -10107,6 +10107,21 @@
         "area:xch"
       ],
       "body": "<!-- alloy-backlog:XCH-013 -->\n**Backlog key:** `XCH-013` \u00b7 **Phase:** `P3 Shape/import/print breadth` \u00b7 **Priority:** `P3` \u00b7 **Kind:** `implementation`\n\n## Bounded result\nComplete publicly documented Save As Mesh OBJ options beyond XCH-010/#522's material-free closed-solid, one-file mm/in subset, without regressing printable output.\n\n## Acceptance\n- Research and implement centimeter, meter and foot unit choices and One Body Per File structure with an explicit multi-file publication/cancellation policy. Verify independent readback, naming/collision behavior, selected body/component scope and unchanged authored state.\n- Track surface/mesh bodies, material/color/texture semantics and exact reference defaults as separate bounded children if public evidence or architecture requires splitting; preserve these requirements rather than silently claiming parity from triangle-only solids.\n- Keep documented versus inferred behavior and native versus API evidence separate.\n\n## Dependency\nXCH-010/#522. Public source and unknowns: external `../Alloy-reference-records/knowledge/specs/xch010-obj-output-2026-10-19.md`.\n"
+    },
+    {
+      "key": "SOL-077",
+      "title": "Qualify native cone and torus create/edit controls",
+      "kind": "validation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P2",
+      "depends_on": [
+        "SOL-062",
+        "FND-028"
+      ],
+      "labels": [
+        "area:sol"
+      ],
+      "body": "<!-- alloy-backlog:SOL-077 -->\n**Backlog key:** `SOL-077` \u00b7 **Phase:** `P3 Shape/import/print breadth` \u00b7 **Priority:** `P2` \u00b7 **Kind:** `validation`\n\n## Bounded native-input remainder\nSOL-062/#507 accepts shared-command cone and torus New Body geometry, retained editing, API lifecycle, actual GPU presentation and independent STL output. Its focused Qt native test twice stopped before the first click because the private macOS window was not active (`tests/responsive_controls.cpp::coneTorusPrimitivePanels`, external `validation/cone-torus-2026-10-19/native-qt.log`). This task owns that unverified input slice without reopening accepted geometry.\n\n## Acceptance\n- After FND-028 provides a reliably active private test window, deliver real hits on Create > Cone and Torus, numeric fields, Preview, OK, Cancel and Timeline edit; assert produced focus/selection without repair between steps.\n- Verify both paths invoke the same `solid.cone`/`solid.torus` authored commands and evaluated shapes as the local control API, with one Undo/Redo and save/reopen on the native-authored document.\n- Inspect actual GPU frame and readable panel state at normal and high-DPI scale; compare only supported public visual evidence. Preserve the current explicit Alloy radius meaning and record remaining plane-pick/manipulator/operation-mode gaps separately.\n- Keep the user-owned application untouched and close the private editor afterward. No paid CI dispatch is needed for this Mac input gate.\n\n## Dependencies\n- SOL-062/#507 accepted implementation and FND-028/#589 active-window prerequisite.\n"
     }
   ]
 }

@@ -48,6 +48,8 @@
 #include <BRepGProp.hxx>
 #include <BRepPrimAPI_MakeBox.hxx>
 #include <BRepPrimAPI_MakeCylinder.hxx>
+#include <BRepPrimAPI_MakeCone.hxx>
+#include <BRepPrimAPI_MakeTorus.hxx>
 #include <BRepPrimAPI_MakePrism.hxx>
 #include <BRep_Tool.hxx>
 #include <GeomAPI_ProjectPointOnSurf.hxx>
@@ -168,7 +170,17 @@ TopoDS_Shape GeometryKernel::primitive(const QString& type, const QJsonObject& p
     TopoDS_Shape shape;
     if (type=="box") shape=BRepPrimAPI_MakeBox(origin,length(p,"widthMm"),length(p,"depthMm"),length(p,"heightMm")).Shape();
     else if (type=="cylinder") shape=BRepPrimAPI_MakeCylinder(gp_Ax2(origin,gp::DZ()),length(p,"radiusMm"),length(p,"heightMm")).Shape();
-    else throw std::invalid_argument("Unsupported primitive type");
+    else if (type=="cone") {
+        const double base=length(p,"baseDiameterMm")/2,top=length(p,"topDiameterMm",true)/2;
+        if(top<0)throw std::invalid_argument("Top diameter must be nonnegative");
+        const double height=length(p,"heightMm");
+        if(base==top)shape=BRepPrimAPI_MakeCylinder(gp_Ax2(origin,gp::DZ()),base,height).Shape();
+        else shape=BRepPrimAPI_MakeCone(gp_Ax2(origin,gp::DZ()),base,top,height).Shape();
+    } else if (type=="torus") {
+        const double major=length(p,"majorRadiusMm"),minor=length(p,"minorRadiusMm");
+        if(major<=minor)throw std::invalid_argument("Major radius must exceed minor radius");
+        shape=BRepPrimAPI_MakeTorus(gp_Ax2(origin,gp::DZ()),major,minor).Shape();
+    } else throw std::invalid_argument("Unsupported primitive type");
     if (shape.IsNull() || !BRepCheck_Analyzer(shape).IsValid() || count(shape,TopAbs_SOLID)!=1)
         throw std::runtime_error("Kernel did not produce a valid solid");
     return shape;

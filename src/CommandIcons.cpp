@@ -59,6 +59,18 @@ public:
             pen(edge); painter->drawLine(QPointF(6,8),QPointF(6,24));
             painter->drawLine(QPointF(26,8),QPointF(26,24));
             painter->setBrush(blue); painter->drawEllipse(QRectF(6,4,20,8));
+        } else if (command_ == "primitive.cone") {
+            pen(edge); painter->setBrush(side); painter->drawEllipse(QRectF(4,21,24,8));
+            QPainterPath flank; flank.moveTo(4,25); flank.lineTo(14,5); flank.lineTo(18,5);
+            flank.lineTo(28,25); flank.quadTo(16,31,4,25);
+            painter->setBrush(pale); pen(edge); painter->drawPath(flank);
+            painter->setBrush(blue); painter->drawEllipse(QRectF(14,4,4,3));
+        } else if (command_ == "primitive.torus") {
+            QPainterPath ring; ring.setFillRule(Qt::OddEvenFill);
+            ring.addEllipse(QRectF(3,7,26,19)); ring.addEllipse(QRectF(10,12,12,8));
+            pen(edge); painter->setBrush(blue); painter->drawPath(ring);
+            painter->setBrush(Qt::NoBrush); pen(side,1.1);
+            painter->drawArc(QRectF(4,10,24,17),195*16,150*16);
         } else if (command_ == "solid.sphereDialog") {
             pen(edge); painter->setBrush(blue); painter->drawEllipse(QRectF(4,4,24,24));
             painter->setBrush(Qt::NoBrush); painter->drawEllipse(QRectF(11,4,10,24));

@@ -2844,7 +2844,7 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             }
             continue;
         }
-        if (type != "box" && type != "cylinder" && type != "extrude") return "Unsupported feature type";
+        if (type != "box" && type != "cylinder" && type != "cone" && type != "torus" && type != "extrude") return "Unsupported feature type";
         const bool cut=type=="extrude" && (p["operation"]=="cut" || p["operation"]=="join" || p["operation"]=="intersect");
         if(cut) {
             if(feature.contains("bodyId"))return "Extrude Join/Cut/Intersect modifies a target and cannot own a new body ID";
@@ -2916,16 +2916,19 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             continue;
         }
         const QStringList dimensions = type == "box" ? QStringList{"widthMm", "depthMm", "heightMm"}
+                                                     : type == "cone" ? QStringList{"baseDiameterMm", "topDiameterMm", "heightMm"}
+                                                     : type == "torus" ? QStringList{"majorRadiusMm", "minorRadiusMm"}
                                                      : QStringList{"radiusMm", "heightMm"};
         for (const auto& field : dimensions) {
             if (!p[field].isDouble() || !std::isfinite(p[field].toDouble())
-                || p[field].toDouble() < 0.001 || p[field].toDouble() > 100000)
+                || p[field].toDouble() < (type=="cone" && field=="topDiameterMm" ? 0 : 0.001) || p[field].toDouble() > 100000)
                 return "Dimension out of supported range (0.001..100000 mm): " + field;
         }
         for (const auto& field : {"xMm", "yMm", "zMm"}) {
             if (!p[field].isDouble() || !std::isfinite(p[field].toDouble()) || std::abs(p[field].toDouble()) > 100000)
                 return "Placement out of supported range: " + QString(field);
         }
+        if(type=="torus" && p["majorRadiusMm"].toDouble()<=p["minorRadiusMm"].toDouble())return "Major radius must exceed minor radius";
         int bindings=0;
         if(type=="box")for(const auto& field:QStringList{"width","depth","height"})if(p.contains(field+"ParameterId")) {
             if(!validId(p[field+"ParameterId"].toString()))return "Box dimension binding requires a stable parameter ID";

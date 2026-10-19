@@ -1249,6 +1249,16 @@ history/reopen and GPU clipping pass. A bisected side face refuses ambiguity.
 See [the receipt](validation/section-split-support.md). Historical movie still
 shows the old unavailable section; new separate capture records the fix.
 
+## Cone and torus primitive slice (2026-10-19)
+
+SOL-062/#507 adds retained circular Cone/Frustum and ring Torus New Bodies to
+the shared primitive API and panels. A 60-call actual-app replay passes edit,
+downstream Move, refusal, Undo/Redo, reopen, GPU captures and independent STL
+readback; see [the receipt](validation/cone-torus.md). The native Qt input
+probe stopped before first input because its private macOS window was inactive;
+SOL-077/#606 retains that gate after FND-028. Public Torus diameter semantics
+and a matching dedicated Cone command remain unproven in the source evidence.
+
 ## Cumulative enclosure tutorial gate (2026-10-19)
 
 TUT-016/#299 has fresh from-blank real-app creation footage through the saved
