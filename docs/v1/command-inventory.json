@@ -145,10 +145,12 @@
       "scope": "proposed-v1",
       "implementation": "present",
       "nativeEvidence": "partial",
-      "gap": "Active mm/in sketch dimensions and feature distances preserve canonical geometry; selected-solid Properties readout remains DOC-038, with physical native and other-platform qualification separate.",
+      "gap": "Active mm/in sketch dimensions, feature distances and selected-solid Properties preserve canonical geometry; physical native and other-platform qualification remain separate.",
       "apiIds": [
         "document.settings",
-        "document.units"
+        "document.units",
+        "body.properties",
+        "body.propertiesDialog"
       ],
       "issueKeys": [
         "DOC-002",
@@ -161,13 +163,14 @@
       ],
       "receipts": [
         "docs/validation/authored-document.md",
-        "docs/validation/display-units.md"
+        "docs/validation/display-units.md",
+        "docs/validation/body-properties.md"
       ],
       "options": [
         "mm",
         "in"
       ],
-      "planningStatus": "DOC-034 accepted for active-unit sketch, feature and mesh workflow; DOC-038 owns selected-solid Properties"
+      "planningStatus": "DOC-034 accepted for active-unit sketch, feature and mesh workflow; DOC-038 accepted for selected-solid Properties"
     },
     {
       "id": "document.recovery",

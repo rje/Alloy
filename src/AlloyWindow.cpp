@@ -246,6 +246,44 @@ QJsonObject failure(const QString& code, const QString& message, const QString& 
     return {{"ok", false}, {"completion", "failed"},
         {"error", error}};
 }
+QJsonObject committedSolidProperties(const CadDocument& document,const std::vector<EvaluatedBody>& presentation,
+                                    const QString& bodyId,const QString& occurrenceId) {
+    if(bodyId.isEmpty())return failure("body_required","Select one committed solid body","bodyId");
+    const auto& bodies=document.bodies();
+    const auto found=std::find_if(bodies.begin(),bodies.end(),[&](const auto& body){return body.bodyId==bodyId;});
+    if(found==bodies.end() || !found->visible)return failure("stale_body","Selected body is no longer visible or available","bodyId");
+    const EvaluatedBody* placed=nullptr;int matches=0;
+    for(const auto& candidate:presentation)if(candidate.visible && candidate.bodyId==bodyId
+        && (occurrenceId.isEmpty() || candidate.occurrenceId==occurrenceId)){
+        placed=&candidate;++matches;
+    }
+    if(matches==0)return failure(occurrenceId.isEmpty() ? "stale_body" : "stale_instance",
+        "Selected body occurrence is no longer available",occurrenceId.isEmpty() ? "bodyId" : "occurrenceId");
+    if(matches>1)return failure("ambiguous_instance","Specify occurrenceId to inspect one body instance","occurrenceId");
+    const auto summary=placed->summary;
+    if(summary.value("type")!="solid" || summary.value("topology").toObject().value("solids").toInt()!=1)
+        return failure("solid_required","Properties currently require one committed solid body","bodyId");
+    const auto authored=document.authored();
+    const auto owner=found->ownerId;
+    QString componentName;
+    for(const auto& value:authored.value("components").toArray())if(value.toObject().value("id")==owner){componentName=value.toObject().value("name").toString();break;}
+    const auto bounds=summary.value("boundsMm").toObject();
+    const auto size=bounds.value("size").toArray();
+    if(size.size()!=3 || !summary.value("areaMm2").isDouble() || !summary.value("volumeMm3").isDouble())
+        return failure("geometry_unavailable","Selected solid has no complete physical measurements","bodyId");
+    const auto unit=authored.value("displayUnits").toString("mm");
+    const double scale=unit=="in" ? 25.4 : 1.0;
+    QJsonArray displaySize;for(const auto& extent:size)displaySize.append(extent.toDouble()/scale);
+    QJsonObject result{{"bodyId",bodyId},{"bodyName",found->name},{"componentId",owner},
+        {"componentName",componentName.isEmpty() ? (owner==authored.value("documentId") ? QString("Root") : QString("Unknown component")) : componentName},
+        {"featureId",found->featureId},{"canonical",QJsonObject{{"boundsMm",bounds},
+            {"areaMm2",summary.value("areaMm2")},{"volumeMm3",summary.value("volumeMm3")}}},
+        {"display",QJsonObject{{"lengthUnit",unit},{"areaUnit",unit+"²"},{"volumeUnit",unit+"³"},
+            {"size",displaySize},{"area",summary.value("areaMm2").toDouble()/(scale*scale)},
+            {"volume",summary.value("volumeMm3").toDouble()/(scale*scale*scale)}}}};
+    if(!placed->occurrenceId.isEmpty())result["occurrenceId"]=placed->occurrenceId;
+    return result;
+}
 QString occurrenceForBody(const QJsonObject& authored,const std::vector<EvaluatedBody>& bodies,const QString& bodyId){
     QString owner;for(const auto& body:bodies)if(body.bodyId==bodyId){if(!body.occurrenceId.isEmpty())return body.occurrenceId;owner=body.ownerId;break;}
     for(const auto& value:authored.value("occurrences").toArray())if(value.toObject()["definitionId"]==owner)return value.toObject()["id"].toString();
@@ -886,12 +924,24 @@ AlloyWindow::AlloyWindow() {
             }return;
         }
         if(item->parent() && item->parent()->data(0,Qt::UserRole+4)=="instanceBodies"){
-            execute("selection.set",{{"bodyId",item->data(0,Qt::UserRole+1).toString()},{"occurrenceId",item->data(0,Qt::UserRole+8).toString()}});
-            QMenu menu(this);auto* info=menu.addAction("Linked instance — edit the source definition");info->setEnabled(false);
-            menu.exec(tree_->viewport()->mapToGlobal(point));return;
+            const auto bodyId=item->data(0,Qt::UserRole+1).toString();
+            const auto occurrenceId=item->data(0,Qt::UserRole+8).toString();
+            execute("selection.set",{{"bodyId",bodyId},{"occurrenceId",occurrenceId}});
+            auto* menu=new QMenu(this);menu->setObjectName("context.browserInstanceBody");
+            menu->setAttribute(Qt::WA_DeleteOnClose);
+            auto* properties=menu->addAction("Properties");properties->setObjectName("context.bodyProperties");
+            properties->setEnabled(session_.isEmpty());
+            auto* info=menu->addAction("Linked instance — edit the source definition");info->setEnabled(false);
+            connect(menu,&QMenu::triggered,this,[this,bodyId,occurrenceId,properties](QAction* action){
+                if(action==properties)QTimer::singleShot(0,this,[this,bodyId,occurrenceId]{
+                    execute("body.propertiesDialog",{{"bodyId",bodyId},{"occurrenceId",occurrenceId}});
+                });
+            });
+            menu->popup(tree_->viewport()->mapToGlobal(point));return;
         }
         if(!item->parent() || item->parent()->data(0,Qt::UserRole+4)!="bodies")return;
         const auto bodyId=item->data(0,Qt::UserRole+1).toString();
+        const auto occurrenceId=item->data(0,Qt::UserRole+8).toString();
         auto* menu=new QMenu(this);menu->setObjectName("context.browserBody");menu->setAttribute(Qt::WA_DeleteOnClose);
         auto* move=menu->addAction("Move/Copy");move->setObjectName("context.moveBody");move->setEnabled(session_.isEmpty());
         auto* convert=menu->addAction("Create Components from Bodies");convert->setObjectName("context.createComponentsFromBodies");convert->setEnabled(session_.isEmpty());
@@ -901,18 +951,24 @@ AlloyWindow::AlloyWindow() {
         remove->setEnabled(session_.isEmpty() && std::any_of(document_->bodies().begin(),document_->bodies().end(),
             [&](const auto& body){return body.bodyId==bodyId && body.occurrenceId.isEmpty() && body.summary["type"]=="surface";}));
         auto* mesh=menu->addAction("Save As Mesh…");mesh->setObjectName("context.exportMesh");mesh->setEnabled(session_.isEmpty());
+        auto* properties=menu->addAction("Properties");properties->setObjectName("context.bodyProperties");
+        properties->setEnabled(session_.isEmpty());
         QJsonArray actions;for(const auto* action:menu->actions())actions.append(QJsonObject{{"id",action->objectName()},{"text",action->text()},{"enabled",action->isEnabled()}});
         QJsonObject context{{"origin","browser"},{"bodyId",bodyId},{"phase","open"},{"actions",actions}};view_->recordContextMenu(context,true);
         QJsonArray ids;for(auto* selected:tree_->selectedItems())if(selected->parent() && selected->parent()->data(0,Qt::UserRole+4)=="bodies")ids.append(selected->data(0,Qt::UserRole+1).toString());if(ids.isEmpty())ids.append(bodyId);
-        connect(menu,&QMenu::triggered,this,[this,menu,context,bodyId,ids](QAction* action)mutable{
+        connect(menu,&QMenu::triggered,this,[this,menu,context,bodyId,occurrenceId,ids](QAction* action)mutable{
             menu->setProperty("selected",true);context["phase"]="closed";context["result"]=action->objectName();view_->recordContextMenu(context);
-            const auto command=action->objectName();QTimer::singleShot(0,this,[this,command,bodyId,ids]{
+            const auto command=action->objectName();QTimer::singleShot(0,this,[this,command,bodyId,occurrenceId,ids]{
                 if(command=="context.moveBody")execute("solid.moveDialog",{{"targetBodyId",bodyId}});
                 else if(command=="context.createComponentsFromBodies")execute("component.createFromBodiesDialog",{{"bodyIds",ids}});
                 else if(command=="context.renameBody")execute("body.renameDialog",{{"bodyId",bodyId}});
                 else if(command=="context.reparentBody")execute("component.reparentDialog",{{"bodyId",bodyId}});
                 else if(command=="context.removeBody")execute("body.remove",{{"bodyId",bodyId}});
                 else if(command=="context.exportMesh")execute("document.exportMeshDialog",{{"bodyId",bodyId}});
+                else if(command=="context.bodyProperties"){
+                    const auto selected=execute("selection.set",{{"bodyId",bodyId},{"occurrenceId",occurrenceId}});
+                    if(selected.value("ok").toBool())execute("body.propertiesDialog",{{"bodyId",bodyId},{"occurrenceId",occurrenceId}});
+                }
             });
         });
         connect(menu,&QMenu::aboutToHide,this,[this,menu,context]()mutable{
@@ -5447,6 +5503,52 @@ void AlloyWindow::registerCommands() {
     add("geometry.inspect","Inspect geometry","Current evaluated body summaries from OCCT, keyed to authored identities.",{},[this](const auto&){
         return document_->state()["evaluation"].toObject();
     });
+    const auto propertiesBodyId=optional(parameter("string","Committed solid body UUID; defaults to the current body selection."));
+    const auto propertiesOccurrenceId=optional(parameter("string","Exact occurrence UUID when inspecting a linked body instance."));
+    add("body.properties","Body Properties","Read one committed solid's canonical and active-unit measurements without changing the design.",
+        {{"bodyId",propertiesBodyId},{"occurrenceId",propertiesOccurrenceId}},[this](const auto& a){
+            const auto id=a.value("bodyId").toString(selectedBody_);
+            const auto occurrence=a.value("occurrenceId").toString(a.contains("bodyId") ? QString{} : selectedOccurrence_);
+            return committedSolidProperties(*document_,presentationBodies(),id,occurrence);
+        });
+    add("body.propertiesDialog","Properties","Show the selected committed solid's live native Properties readout.",
+        {{"bodyId",propertiesBodyId},{"occurrenceId",propertiesOccurrenceId}},[this](const auto& a){
+            const auto inspected=execute("body.properties",a);
+            if(!inspected.value("ok").toBool())return inspected;
+            const auto details=inspected.value("result").toObject();
+            if(bodyPropertiesDialog_)bodyPropertiesDialog_->close();
+            auto* dialog=new QDialog(this);dialog->setObjectName("body.properties.dialog");
+            dialog->setWindowTitle("Properties");dialog->setAttribute(Qt::WA_DeleteOnClose);
+            dialog->setMinimumWidth(330);
+            auto* layout=new QVBoxLayout(dialog);
+            auto* identityForm=new QFormLayout;layout->addLayout(identityForm);
+            const auto row=[&](QFormLayout* form,const QString& title,const QString& name){
+                auto* label=new QLabel(dialog);label->setObjectName(name);label->setTextInteractionFlags(Qt::TextSelectableByMouse);
+                form->addRow(title,label);return label;
+            };
+            row(identityForm,"Body","body.properties.body");
+            row(identityForm,"Component","body.properties.component");
+            row(identityForm,"Occurrence","body.properties.occurrence");
+            auto* physical=new QLabel("Physical",dialog);physical->setObjectName("body.properties.physical");
+            layout->addWidget(physical);
+            auto* physicalForm=new QFormLayout;layout->addLayout(physicalForm);
+            row(physicalForm,"Area","body.properties.area");row(physicalForm,"Volume","body.properties.volume");
+            auto* bounds=new QLabel("Bounding Box",dialog);bounds->setObjectName("body.properties.bounds");
+            layout->addWidget(bounds);
+            auto* boundsForm=new QFormLayout;layout->addLayout(boundsForm);
+            row(boundsForm,"Length","body.properties.length");
+            row(boundsForm,"Width","body.properties.width");
+            row(boundsForm,"Height","body.properties.height");
+            auto* status=new QLabel(dialog);status->setObjectName("body.properties.status");status->setWordWrap(true);layout->addWidget(status);
+            auto* buttons=new QDialogButtonBox(QDialogButtonBox::Close,dialog);layout->addWidget(buttons);
+            connect(buttons,&QDialogButtonBox::rejected,dialog,&QDialog::close);
+            bodyPropertiesDialog_=dialog;bodyPropertiesDocument_=document_;
+            bodyPropertiesBodyId_=details.value("bodyId").toString();
+            bodyPropertiesOccurrenceId_=details.value("occurrenceId").toString();
+            refreshBodyPropertiesDialog();dialog->show();
+            return QJsonObject{{"bodyId",bodyPropertiesBodyId_},{"dialog",dialog->objectName()},
+                {"display",details.value("display")}};
+        });
     auto priorityMode=parameter("string","Unfiltered or one ordinary viewport selection priority.");
     priorityMode["enum"]=QJsonArray{"auto","body","face","edge"};
     add("selection.priority","Selection Priority","Filter ordinary viewport picks to one solid kind; choosing the active mode again restores Auto.",
@@ -6955,6 +7057,41 @@ QJsonObject AlloyWindow::state() const {
             {"x",viewPosition.x()},{"y",viewPosition.y()},{"width", view_->width()},{"height", view_->height()}}}};
 }
 
+void AlloyWindow::refreshBodyPropertiesDialog() {
+    if(!bodyPropertiesDialog_)return;
+    if(bodyPropertiesDocument_!=document_){bodyPropertiesDialog_->close();return;}
+    const auto result=committedSolidProperties(*document_,presentationBodies(),
+        bodyPropertiesBodyId_,bodyPropertiesOccurrenceId_);
+    const auto* dialog=bodyPropertiesDialog_.data();
+    const auto set=[dialog](const char* name,const QString& value){
+        if(auto* label=dialog->findChild<QLabel*>(name))label->setText(value);
+    };
+    if(result.value("ok")==false){
+        set("body.properties.status",result.value("error").toObject().value("message").toString());
+        for(const auto* name:{"body.properties.area","body.properties.volume","body.properties.length",
+            "body.properties.width","body.properties.height"})set(name,"—");
+        return;
+    }
+    set("body.properties.status",{});
+    set("body.properties.body",result.value("bodyName").toString());
+    set("body.properties.component",result.value("componentName").toString());
+    set("body.properties.occurrence",result.value("occurrenceId").toString("—"));
+    const auto display=result.value("display").toObject();
+    const auto number=[](double value){
+        auto valueText=QString::number(value,'f',4);
+        while(valueText.contains('.') && valueText.endsWith('0'))valueText.chop(1);
+        if(valueText.endsWith('.'))valueText.chop(1);
+        return valueText;
+    };
+    set("body.properties.area",number(display.value("area").toDouble())+" "+display.value("areaUnit").toString());
+    set("body.properties.volume",number(display.value("volume").toDouble())+" "+display.value("volumeUnit").toString());
+    const auto size=display.value("size").toArray();
+    const auto unit=display.value("lengthUnit").toString();
+    for(int i=0;i<3 && i<size.size();++i)
+        set(i==0 ? "body.properties.length" : i==1 ? "body.properties.width" : "body.properties.height",
+            number(size[i].toDouble())+" "+unit);
+}
+
 void AlloyWindow::refresh() {
     if(!failedEditRepair_.isEmpty() && (failedEditDocument_!=document_
         || failedEditRepair_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision())))
@@ -6964,6 +7101,7 @@ void AlloyWindow::refresh() {
     const auto effectiveConvention=storedConvention.isEmpty() ? QJsonObject{{"defaultUp","Z"},
         {"right",QJsonArray{1,0,0}},{"back",QJsonArray{0,1,0}},{"up",QJsonArray{0,0,1}}} : storedConvention;
     if(view_->viewConvention()!=effectiveConvention)view_->setViewConvention(storedConvention);
+    refreshBodyPropertiesDialog();
     if(upAxisNode_)upAxisNode_->setText(0,"Up: "+effectiveConvention.value("defaultUp").toString("Z"));
     refreshPositionTab();
     refreshLengthParameters();

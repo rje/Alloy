@@ -174,6 +174,7 @@ private:
     QTreeWidgetItem* analysesNode_ = nullptr;
     QImage captureImage(QImage* viewport = nullptr);
     void refresh();
+    void refreshBodyPropertiesDialog();
     void showSearch();
     QJsonObject showMeshExport(const QString& bodyId,const QJsonArray& bodyIds={},bool allVisible=false);
     QJsonObject showStepExport(const QString& bodyId);
@@ -829,6 +830,9 @@ private:
     QLabel* browserNote_ = nullptr;
     QString selectedBody_;
     QString selectedOccurrence_;
+    QPointer<QDialog> bodyPropertiesDialog_;
+    const CadDocument* bodyPropertiesDocument_ = nullptr;
+    QString bodyPropertiesBodyId_,bodyPropertiesOccurrenceId_;
     QJsonObject selectedFace_;
     QJsonObject selectedEdge_;
     QString selectionPriority_ = "auto";

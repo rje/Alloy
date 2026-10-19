@@ -1,0 +1,7 @@
+# Selected-solid Properties (DOC-038/#597)
+
+The Browser body-row context menu now opens a read-only Properties view for the exact committed solid. The shared `body.properties` command reports stable body, component and occurrence identity, canonical OCCT bounding box/area/volume, and the corresponding values in the active design units. Multiple instances of one body require an occurrence ID. The dialog refreshes after a unit change or upstream edit and shows a stale result if its inspected occurrence disappears.
+
+The [dated public workflow contract](../../../Alloy-reference-records/knowledge/specs/doc038-solid-properties-2026-10-19.md) supports the Browser Properties route and Area, Volume and Bounding Box fields. Exact layout and rounding remain unknown. The [external receipt](../../../Alloy-reference-records/validation/doc038-body-properties-2026-10-19/receipt.md) links a 38-call real-app replay, saved solid, Apple M4 GPU capture and Qt native-dialog captures. The API replay checks an asymmetric box against independent area/volume formulas, mm↔in conversion, a source parameter edit, Undo/Redo, save/reopen, instance ambiguity and stale-instance refusal. The Qt test hits Browser actions for a root body and copied instance, sees live unit/edit refresh and stale feedback, and clicks Close. No model/history change is caused by inspection.
+
+Density, mass, materials and component/assembly rollups remain separate. Physical OS input, other-platform runtime and exact visual parity are unqualified.

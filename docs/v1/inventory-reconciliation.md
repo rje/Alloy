@@ -68,7 +68,7 @@ Issue suffixes reflect only `github.json`: `o` open, `c` closed, `?` missing. Th
 | # | Inventory row | Scope / disposition | Mapped keys (mirror state) | Action / acceptance remainder |
 | --- | --- | --- | --- | --- |
 | 001 | `document.lifecycle` | proposed-v1 / S | DOC-004(c), DOC-013(c), DOC-015(c), REL-002(o) | REL-002: split migration and interrupted-save remainder; local file slice accepted. |
-| 002 | `document.units` | proposed-v1 / O | DOC-002(c), DOC-034(c), DOC-038(o) | DOC-034 accepts Browser mm/in, sketch/feature display and unchanged printable geometry. DOC-038 retains selected-solid Properties in active units. Physical and packaged runtime remain separate. |
+| 002 | `document.units` | proposed-v1 / O | DOC-002(c), DOC-034(c), DOC-038(c) | DOC-034 accepts Browser mm/in, sketch/feature display and unchanged printable geometry. DOC-038 accepts selected-solid Properties in active units. Physical and packaged runtime remain separate. |
 | 003 | `document.recovery` | proposed-v1 / S | REL-014(c), REL-002(o) | REL-014 committed recovery accepted; split REL-002 migration/large-save remainder. |
 | 004 | `parameter.user` | proposed-v1 / S | PAR-001(o), PAR-003(c), PAR-006(c) | PAR-001 still bundles expression language, units, rename and dependency behavior; fix a minimum contract first. |
 | 005 | `parameter.model` | proposed-v1 / O | PAR-002(c), PAR-004(c), PAR-005(c), PAR-007(c), PAR-008(c), PAR-009(o), PAR-001(o) | PAR-009 bounds angle/length bindings; PAR-001 wider expression language remains a scope decision. |

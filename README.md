@@ -9,7 +9,9 @@ now have a retained native/control workflow and independently checked printable
 STL; broader thread modes and print fit remain open.
 [Active mm/in design units](docs/validation/display-units.md) now carry through
 sketch dimensions, feature editing and mesh-size verification from a Browser
-change control. Selected-solid Properties remain [DOC-038](https://github.com/rje/Alloy/issues/597).
+change control. [Selected-solid Properties](docs/validation/body-properties.md)
+now show active-unit area, volume and bounding dimensions through the Browser
+and shared inspection command.
 [Regular sketch polygons](docs/validation/sketch-regular-polygons.md) now have
 three retained creation modes, editable size/count, and a verified extrusion
 and STL path. [Canvas size annotations](docs/validation/sketch-polygon-annotations.md)
