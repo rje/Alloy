@@ -383,7 +383,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "HIS-009/HIS-010 inspect failed support and changed-boundary edits; SKT-154 gives two actionable Delete recovery messages. SKT-160 accepts explicit ordinary root sketch reassignment to an earlier parallel face or plane as one valid history edit. Physical native input, generated Offset boundary repair and wider supports remain open under SKT-161/SKT-025.",
+      "gap": "HIS-009/HIS-010 inspect failed support and changed-boundary edits; SKT-154 gives two actionable Delete recovery messages. SKT-160 accepts explicit ordinary root sketch reassignment to an earlier parallel face or plane as one valid history edit. SKT-161 defines generated-loop identity policy; SKT-162/163 own two unimplemented valid recreation routes. Physical native input and wider supports remain open.",
       "apiIds": [],
       "issueKeys": [
         "HIS-002",
@@ -395,7 +395,9 @@
         "HIS-010",
         "SKT-154",
         "SKT-160",
-        "SKT-161"
+        "SKT-161",
+        "SKT-162",
+        "SKT-163"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -407,9 +409,10 @@
         "docs/validation/failed-edit-repair.md",
         "docs/validation/failed-boundary-inspection.md",
         "docs/validation/sketch-loop-offset-recovery.md",
-        "docs/validation/sketch-plane-redefinition.md"
+        "docs/validation/sketch-plane-redefinition.md",
+        "docs/validation/generated-loop-repair-policy.md"
       ],
-      "planningStatus": "HIS-009/HIS-010 inspection, SKT-154 loop Delete guidance and SKT-160 ordinary parallel support repair accepted; generated-boundary and wider repair remain open"
+      "planningStatus": "HIS-009/HIS-010 inspection, SKT-154 Delete guidance, SKT-160 ordinary repair and SKT-161 generated identity policy accepted; generated recreation and wider repair open"
     },
     {
       "id": "sketch.lifecycle",
@@ -418,7 +421,7 @@
       "scope": "proposed-v1",
       "implementation": "present",
       "nativeEvidence": "partial",
-      "gap": "HIS-009/HIS-010 inspect failed support and changed-boundary edits; SKT-160 accepts explicit ordinary root sketch reassignment to an earlier parallel face or plane as one valid history edit. Physical native input, generated Offset boundary repair and wider supports remain open under SKT-161/SKT-025.",
+      "gap": "HIS-009/HIS-010 inspect failed support and changed-boundary edits; SKT-160 accepts explicit ordinary root sketch reassignment to an earlier parallel face or plane. SKT-161 defines generated-loop identity policy; SKT-162/163 own unimplemented recreation. Physical native input and wider supports remain open.",
       "apiIds": [
         "sketch.begin",
         "sketch.cancel",
@@ -434,7 +437,9 @@
         "HIS-009",
         "HIS-010",
         "SKT-160",
-        "SKT-161"
+        "SKT-161",
+        "SKT-162",
+        "SKT-163"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -443,9 +448,10 @@
       "receipts": [
         "docs/validation/sketches.md",
         "docs/validation/face-supported-sketches.md",
-        "docs/validation/sketch-plane-redefinition.md"
+        "docs/validation/sketch-plane-redefinition.md",
+        "docs/validation/generated-loop-repair-policy.md"
       ],
-      "planningStatus": "Ordinary parallel support repair accepted under SKT-160; generated-owner and wider support repair remain open"
+      "planningStatus": "Ordinary parallel support repair and generated-owner identity policy accepted; SKT-162/163 and wider supports remain open"
     },
     {
       "id": "sketch.interaction",
@@ -1134,7 +1140,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Several specialized retained forms exist. General mixed-loop offsets, self-intersections, arbitrary chains and broad option parity remain incomplete. Generated loop support-boundary reassignment policy remains SKT-161.",
+      "gap": "Several specialized retained forms exist. General mixed-loop offsets, self-intersections, arbitrary chains and broad option parity remain incomplete. SKT-161 defines generated-loop support-boundary identity; SKT-162/163 must implement explicit recreation on valid changed boundaries.",
       "apiIds": [
         "sketch.circleOffset",
         "sketch.circleOffsetUpdate",
@@ -1158,7 +1164,9 @@
         "SKT-067",
         "SKT-073",
         "SKT-076",
-        "SKT-161"
+        "SKT-161",
+        "SKT-162",
+        "SKT-163"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -1170,7 +1178,8 @@
         "docs/validation/fit-spline-offset.md",
         "docs/validation/open-chain-offset.md",
         "docs/validation/closed-rectangle-offset.md",
-        "docs/validation/trimmed-seam-inset.md"
+        "docs/validation/trimmed-seam-inset.md",
+        "docs/validation/generated-loop-repair-policy.md"
       ],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },

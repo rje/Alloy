@@ -2946,17 +2946,27 @@
     "SKT-160": {
       "number": 592,
       "url": "https://github.com/rje/Alloy/issues/592",
-      "state": "open"
+      "state": "closed"
     },
     "SKT-161": {
       "number": 593,
       "url": "https://github.com/rje/Alloy/issues/593",
-      "state": "open"
+      "state": "closed"
     },
     "HIS-010": {
       "number": 594,
       "url": "https://github.com/rje/Alloy/issues/594",
       "state": "closed"
+    },
+    "SKT-162": {
+      "number": 595,
+      "url": "https://github.com/rje/Alloy/issues/595",
+      "state": "open"
+    },
+    "SKT-163": {
+      "number": 596,
+      "url": "https://github.com/rje/Alloy/issues/596",
+      "state": "open"
     }
   }
 }
