@@ -2,6 +2,8 @@
 
 Current direction: [printable-part v1 plan](https://alloy-v1-review.rjevans1.chatgpt.site) and [versioned inventory](docs/v1/README.md). The user reviewed the design as a reasonable working direction; individual gaps still require bounded completion and verification. The corrected iron and the [cumulative adapted enclosure tutorial](docs/validation/enclosure-cumulative-gate.md) are accepted, with their documented limits.
 
+[Polygon solid Extrude taper](docs/validation/extrude-taper.md) has a bounded signed-angle New Body candidate: convex/concave preview/edit, positive-cap downstream recompute, native angle/Cancel/OK and checked STL pass. Independent review remains pending.
+
 [Symmetric and Two Sides solid Extrude](docs/validation/extrude-symmetric-two-sides.md) has a bounded New Body candidate with retained Half/Whole Length and independent ±normal reaches, exact core/API geometry, history/reopen and independently checked STL. Native controls and independent review are recorded separately in its receipt.
 
 [Failed native Save integrity](docs/validation/failed-save.md) now has a deterministic core and real-app API fixture: a refused replacement preserves the prior file and editable dirty model, and retry/reopen/Undo/Redo pass. Physical chooser and other-platform runtime remain separate.

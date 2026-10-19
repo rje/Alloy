@@ -1556,7 +1556,11 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                     }
                     const auto united=unionProfiles(selected);const double distance=extrusionDistance(parameters,selected.front(),evaluated),start=extrusionStart(parameters);
                     EvaluatedSupportFace cap;
-                    shape=extrusion(united,distance,&cap,&solidEdges,id,&supportFaces,start);summary=summarize(shape);
+                    const double taper=parameters.value("taperAngleDeg").toDouble();
+                    // Draft history qualifies only the far cap; do not reuse prism side/edge lineage.
+                    shape=taper!=0 ? taperedExtrusion(united,distance,taper,&cap)
+                        : extrusion(united,distance,&cap,&solidEdges,id,&supportFaces,start);summary=summarize(shape);
+                    summary["taperAngleDeg"]=taper;
                     summary["solidEdges"]=SolidFillet::descriptors(solidEdges);
                     if(!cap.face.IsNull()) {
                         cap.producerFeatureId=id;cap.bodyId=feature["bodyId"].toString();
@@ -1570,7 +1574,7 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                     if(aggregate)summary["sourceProfileSelection"]=parameters["profileSelection"];
                     else if(plural)summary["sourceProfileIds"]=profileIds;else summary["sourceProfileId"]=parameters["profileId"];
                     summary["sourceEntityIds"]=united.summary["sourceEntityIds"];summary["sourceAreaMm2"]=united.summary["areaMm2"];
-                    summary["analyticVolumeMm3"]=united.summary["areaMm2"].toDouble()*std::abs(distance);
+                    if(taper==0)summary["analyticVolumeMm3"]=united.summary["areaMm2"].toDouble()*std::abs(distance);
                 } else {
                     shape=primitive(type,parameters);summary=summarize(shape);
                     if(type=="box") {

@@ -1667,7 +1667,7 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
     auto reject = [](const QString& message) {throw std::invalid_argument(message.toStdString());};
     const auto initial = validate(authored);
     if (!initial.isEmpty()) reject(initial);
-    const QSet<QString> allowed{"ownerId","sketchId","profileId","profileIds","profileSelection","direction","measurement","negativeDistanceMm","distanceMm","distanceParameterId","distanceExpression","distanceReferenceIds","distanceExpressionUnits","start","startOffsetMm","startOffsetParameterId","extent","flip","endSupport","endOffsetMm","endOffsetParameterId","name","featureId","newFeatureId","newBodyId","operation","targetBodyIds"};
+    const QSet<QString> allowed{"ownerId","sketchId","profileId","profileIds","profileSelection","direction","measurement","negativeDistanceMm","taperAngleDeg","distanceMm","distanceParameterId","distanceExpression","distanceReferenceIds","distanceExpressionUnits","start","startOffsetMm","startOffsetParameterId","extent","flip","endSupport","endOffsetMm","endOffsetParameterId","name","featureId","newFeatureId","newBodyId","operation","targetBodyIds"};
     for (auto it = arguments.begin(); it != arguments.end(); ++it)
         if (!allowed.contains(it.key())) reject("Unknown extrusion argument: "+it.key());
     const bool edit = arguments.contains("featureId"), newFeature = arguments.contains("newFeatureId"), newBody = arguments.contains("newBodyId");
@@ -1767,6 +1767,8 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
             if(!id.isString() || !validId(id.toString()) || ids.contains(id.toString()))reject("Profile IDs must be distinct UUIDs");ids.append(id.toString());}
         ids.sort();QJsonArray references;for(const auto& id:ids)references.append(id);profileParameters["profileIds"]=references;
     } else profileParameters["profileId"]=arguments["profileId"];
+    if(arguments.contains("taperAngleDeg") || previousParameters.contains("taperAngleDeg"))
+        profileParameters["taperAngleDeg"]=arguments.contains("taperAngleDeg") ? arguments.value("taperAngleDeg") : previousParameters.value("taperAngleDeg");
     feature["parameters"] = profileParameters;
     if (index >= 0) features[index] = feature; else features.append(feature);
     candidate["features"] = features;
@@ -2935,10 +2937,12 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             } else if(all) {
                 if(p.value("operation")!="cut" || !p.value("flip").isBool() || p.contains("distanceMm") || p.contains("distanceParameterId") || p.contains("distanceExpression") || p.contains("endSupport") || p.contains("endOffsetMm") || p.contains("endOffsetParameterId"))return "All extent requires Cut, a Flip flag and a derived reach";
             } else if(p.contains("endSupport") || p.contains("endOffsetMm") || p.contains("endOffsetParameterId") || p.contains("flip"))return "Distance extent cannot carry retained extent inputs";
-            if (p.size()!=(cut ? 5 : 3)+(toObject ? 2 : 0)+(all ? 1 : 0)+int(p.contains("endOffsetParameterId"))+int(p.contains("distanceParameterId"))+(p.contains("distanceExpression") ? 3 : 0)+int(p.contains("direction"))+int(p.contains("measurement"))+int(p.contains("negativeDistanceMm"))+int(p.contains("start"))+int(p.contains("startOffsetMm"))+int(p.contains("startOffsetParameterId")) || !p["sketchId"].isString() || !validId(p["sketchId"].toString())
+            if (p.size()!=(cut ? 5 : 3)+(toObject ? 2 : 0)+(all ? 1 : 0)+int(p.contains("endOffsetParameterId"))+int(p.contains("distanceParameterId"))+(p.contains("distanceExpression") ? 3 : 0)+int(p.contains("direction"))+int(p.contains("measurement"))+int(p.contains("negativeDistanceMm"))+int(p.contains("taperAngleDeg"))+int(p.contains("start"))+int(p.contains("startOffsetMm"))+int(p.contains("startOffsetParameterId")) || !p["sketchId"].isString() || !validId(p["sketchId"].toString())
                 || int(p.contains("profileId"))+int(p.contains("profileIds"))+int(p.contains("profileSelection"))!=1) return "Extrusion requires one exclusive profile selection";
             const auto direction=p.value("direction").toString("oneSide");
             if(direction!="oneSide" && direction!="symmetric" && direction!="twoSides")return "Unsupported extrusion direction";
+            if(p.contains("taperAngleDeg") && (!p.value("taperAngleDeg").isDouble() || !std::isfinite(p.value("taperAngleDeg").toDouble()) || std::abs(p.value("taperAngleDeg").toDouble())>=90))return "Taper Angle must be finite and strictly between -90 and 90 degrees";
+            if(p.value("taperAngleDeg").toDouble()!=0 && (cut || toObject || all || direction!="oneSide" || p.contains("start") || !p.contains("profileId") || p.value("distanceMm").toDouble()<=0))return "Nonzero taper requires one polygon, positive Distance, One Side, Profile Plane and New Body";
             if(direction!="oneSide") {
                 if(cut || toObject || all || p.contains("start") || p.contains("startOffsetMm") || p.contains("startOffsetParameterId"))return "Symmetric/Two Sides require New Body, Distance and Profile Plane";
                 if(!p.value("distanceMm").isDouble() || p.value("distanceMm").toDouble()<0.001)return "Each extrusion reach must be positive";

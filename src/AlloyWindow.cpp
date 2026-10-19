@@ -2598,7 +2598,9 @@ void AlloyWindow::registerCommands() {
     extrusionDirection["enum"]=QJsonArray{"oneSide","symmetric","twoSides"};
     auto extrusionMeasurement=parameter("string","Symmetric distance interpretation; default Half Length.");
     extrusionMeasurement["enum"]=QJsonArray{"halfLength","wholeLength"};
-    QJsonObject extrudeSchema{{"direction",optional(extrusionDirection)},{"measurement",optional(extrusionMeasurement)},
+    auto taperAngle=parameter("number","Signed degrees: negative inward, positive outward, default zero. Nonzero requires one straight polygon, positive Distance, One Side, Profile Plane, New Body; kernel may refuse collapse.");
+    taperAngle["minimum"]=-90;taperAngle["maximum"]=90;
+    QJsonObject extrudeSchema{{"taperAngleDeg",optional(taperAngle)},{"direction",optional(extrusionDirection)},{"measurement",optional(extrusionMeasurement)},
         {"negativeDistance",optional(length)},{"extent",optional(extrusionExtent)},
         {"flip",optional(parameter("boolean","All extent only: cut opposite the profile normal."))},
         {"endSupport",optional(parameter("object","Retained producerFeatureId/bodyId/faceId of the end face."))},
@@ -2633,6 +2635,7 @@ void AlloyWindow::registerCommands() {
             for(const auto& value:document_->authored()["features"].toArray())if(value.toObject()["id"]==inputs["featureId"]){existing=value.toObject();break;}
             if(existing["type"]!="extrude")return failure("stale_entity","Extrusion feature does not exist","featureId");
             const auto parameters=existing["parameters"].toObject();
+            if(!a.contains("taperAngleDeg") && parameters.contains("taperAngleDeg"))inputs["taperAngleDeg"]=parameters.value("taperAngleDeg");
             if(!a.contains("direction") && parameters.contains("direction"))inputs["direction"]=parameters.value("direction");
             if(inputs.value("direction")=="symmetric" && !a.contains("measurement"))inputs["measurement"]=parameters.value("measurement").toString("halfLength");
             if(inputs.value("direction")=="twoSides" && !a.contains("negativeDistance"))inputs["negativeDistance"]=parameters.value("negativeDistanceMm").toDouble()/(inputs.value("units").toString(document_->authored()["displayUnits"].toString())=="in" ? 25.4 : 1);
@@ -8179,6 +8182,9 @@ QString AlloyWindow::validateExtrudeInputs(const QJsonObject& inputs) const {
     Command command=*findCommand("solid.extrude");command.parameters=schema;
     const auto error=validateArguments(command,inputs);if(!error.isEmpty())return error;
     const auto direction=inputs.value("direction").toString("oneSide");
+    const double taper=inputs.value("taperAngleDeg").toDouble();
+    if(!std::isfinite(taper) || std::abs(taper)>=90)return "Taper Angle must be finite and strictly between -90 and 90 degrees";
+    if(taper!=0 && (direction!="oneSide" || inputs.value("operation").toString("newBody")!="newBody" || inputs.value("start").toString("profilePlane")!="profilePlane" || inputs.value("extent").toString("distance")!="distance" || inputs.value("distance").toDouble()<=0 || !inputs.contains("profileId")))return "Nonzero taper requires one polygon, positive Distance, One Side, Profile Plane and New Body";
     if(direction!="oneSide") {
         if(inputs.value("operation").toString("newBody")!="newBody" || inputs.value("extent").toString("distance")!="distance" || inputs.value("start").toString("profilePlane")!="profilePlane")return "Symmetric/Two Sides require New Body, Distance and Profile Plane";
         if(direction=="twoSides" && (!inputs.contains("negativeDistance") || inputs.value("negativeDistance").toDouble()<=0))return "Enter a positive negative-normal reach";
@@ -8257,6 +8263,7 @@ QJsonArray AlloyWindow::discoverExtrudeTargets(const QJsonObject& inputs) const 
 }
 QJsonObject AlloyWindow::extrudeExtentParameters(const QJsonObject& inputs) const {
     QJsonObject arguments;
+    if(inputs.contains("taperAngleDeg"))arguments["taperAngleDeg"]=inputs.value("taperAngleDeg");
     const auto direction=inputs.value("direction").toString("oneSide");
     arguments["direction"]=direction;
     if(direction=="symmetric")arguments["measurement"]=inputs.value("measurement").toString("halfLength");
@@ -8365,7 +8372,9 @@ QJsonObject AlloyWindow::beginExtrude(const QJsonObject& overrides) {
     if(!id.isEmpty()) {
         QJsonObject saved;for(const auto& entry:document_->authored()["features"].toArray())if(entry.toObject()["id"]==id){saved=entry.toObject();break;}
         if(saved["type"]!="extrude")return failure("stale_entity","Extrusion feature does not exist","featureId");
-        const auto savedParameters=saved["parameters"].toObject();const auto savedOperation=savedParameters.value("operation").toString("newBody");
+        const auto savedParameters=saved["parameters"].toObject();
+        if(!overrides.contains("taperAngleDeg") && savedParameters.contains("taperAngleDeg"))inputs["taperAngleDeg"]=savedParameters.value("taperAngleDeg");
+        const auto savedOperation=savedParameters.value("operation").toString("newBody");
         if(!overrides.contains("direction") && savedParameters.contains("direction"))inputs["direction"]=savedParameters.value("direction");
         if(inputs.value("direction")=="symmetric" && !overrides.contains("measurement"))inputs["measurement"]=savedParameters.value("measurement").toString("halfLength");
         if(inputs.value("direction")=="twoSides" && !overrides.contains("negativeDistance"))inputs["negativeDistance"]=savedParameters.value("negativeDistanceMm").toDouble()/(units=="in" ? 25.4 : 1);
@@ -8674,6 +8683,11 @@ void AlloyWindow::showExtrude() {
     auto* negative=new QDoubleSpinBox;negative->setObjectName("extrude.negativeDistance");negative->setRange(-100000,100000);negative->setDecimals(6);negative->setKeyboardTracking(false);
     auto* negativeLabel=new QLabel;negativeLabel->setObjectName("extrude.negativeDistanceLabel");form->addRow(negativeLabel,negative);
     connect(negative,qOverload<double>(&QDoubleSpinBox::valueChanged),this,[this](double value){updateExtrude({{"negativeDistance",value}});});
+    auto* taper=new QDoubleSpinBox;taper->setObjectName("extrude.taperAngleDeg");
+    taper->setRange(-90,90);taper->setDecimals(6);taper->setSuffix("°");taper->setKeyboardTracking(false);
+    taper->setToolTip("Negative narrows the far end; positive widens it. Strictly between −90° and +90°; collapsing geometry is refused.");
+    form->addRow("Taper Angle",taper);
+    connect(taper,qOverload<double>(&QDoubleSpinBox::valueChanged),this,[this](double value){updateExtrude({{"taperAngleDeg",value}});});
     extrudeOperation_=new QComboBox;extrudeOperation_->setObjectName("extrude.operation");
     extrudeOperation_->addItem("New Body","newBody");extrudeOperation_->addItem("Join","join");extrudeOperation_->addItem("Cut","cut");extrudeOperation_->addItem("Intersect","intersect");form->addRow("Operation",extrudeOperation_);
     extrudeTarget_=new QComboBox;extrudeTarget_->setObjectName("extrude.targetBody");
@@ -8810,12 +8824,16 @@ void AlloyWindow::refreshExtrudeControls() {
     auto* negativeLabel=extrudePanel_->findChild<QLabel*>("extrude.negativeDistanceLabel");negativeLabel->setVisible(twoSides);negativeLabel->setText("− Normal ("+inputs.value("units").toString()+")");
     {const QSignalBlocker block(negative);negative->setValue(inputs.value("negativeDistance").toDouble());}
     extrudeStart_->setEnabled(oneSide);extrudeExtent_->setEnabled(oneSide);
+    auto* taper=extrudePanel_->findChild<QDoubleSpinBox*>("extrude.taperAngleDeg");
+    {const QSignalBlocker block(taper);taper->setValue(inputs.value("taperAngleDeg").toDouble());}
+    taper->setEnabled(oneSide && inputs.value("operation").toString("newBody")=="newBody" && inputs.value("start").toString("profilePlane")=="profilePlane" && inputs.value("extent").toString("distance")=="distance");
     const bool toObject=inputs.value("extent")=="toObject",all=inputs.value("extent")=="all";
     extrudePanel_->findChild<QLabel*>("extrude.hint")->setText(all ? "Cut one selected body through all material in the chosen direction. Flip changes direction."
         : toObject
         ? "Select an end face. Positive offset leaves clearance; negative offset extends past it."
         : symmetric ? (inputs.value("measurement")=="wholeLength" ? "Whole Length is the total distance, split equally across the profile plane." : "Half Length is the distance on each side of the profile plane.")
         : twoSides ? "Positive lengths measured from the profile plane along each side of its normal. New Body only."
+        : inputs.value("taperAngleDeg").toDouble()!=0 ? "Taper: − inward, + outward. Enter a positive distance."
         : "Click regions to collect them. Cmd/Ctrl-click toggles a region. Drag the arrow or enter a signed distance.");
     {const QSignalBlocker block(extrudeExtent_);extrudeExtent_->setCurrentIndex(all ? 2 : toObject ? 1 : 0);}
     {const QSignalBlocker block(extrudeFlip_);extrudeFlip_->setChecked(inputs.value("flip").toBool());}
