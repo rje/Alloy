@@ -51,6 +51,7 @@
 #include <BRepPrimAPI_MakeCone.hxx>
 #include <BRepPrimAPI_MakeTorus.hxx>
 #include <BRepPrimAPI_MakePrism.hxx>
+#include <BRepOffsetAPI_DraftAngle.hxx>
 #include <BRep_Tool.hxx>
 #include <GeomAPI_ProjectPointOnSurf.hxx>
 #include <BRepClass_FaceClassifier.hxx>
@@ -865,6 +866,81 @@ TopoDS_Shape GeometryKernel::extrusion(const EvaluatedProfile& sourceProfile, do
         || expected <= 0 || std::abs(summary["volumeMm3"].toDouble()-expected) > std::max(1e-6,expected*1e-9))
         throw std::runtime_error("Extrusion volume does not match profile area times distance");
     return shape;
+}
+TopoDS_Shape GeometryKernel::taperedExtrusion(const EvaluatedProfile& profile, double distanceMm,
+    double angleDeg, EvaluatedSupportFace* endCap) {
+    if(!std::isfinite(angleDeg) || std::abs(angleDeg)>=90 || !std::isfinite(distanceMm) || distanceMm<=0)
+        reject("invalid_extrude_taper","Taper requires a positive distance and a finite angle strictly between -90 and 90 degrees");
+    if(angleDeg==0)return extrusion(profile,distanceMm,endCap);
+    if(profile.face.IsNull() || count(profile.face,TopAbs_WIRE)!=1)
+        reject("unsupported_extrude_taper","Taper requires one closed polygon without holes");
+    for(TopExp_Explorer e(profile.face,TopAbs_EDGE);e.More();e.Next())
+        if(BRepAdaptor_Curve(TopoDS::Edge(e.Current())).GetType()!=GeomAbs_Line)
+            reject("unsupported_extrude_taper","Taper currently requires straight polygon edges");
+    EvaluatedSupportFace cap;
+    // The disposable prism owns its topology: draft cannot mutate retained input geometry.
+    const auto prism=extrusion(profile,distanceMm,&cap);
+    const auto frame=profile.summary.value("frame").toObject();
+    const auto origin=frame.value("origin").toArray(),normal=frame.value("normal").toArray();
+    if(origin.size()!=3 || normal.size()!=3)reject("invalid_extrude_taper","Taper requires a resolved profile frame");
+    const gp_Dir direction(normal[0].toDouble(),normal[1].toDouble(),normal[2].toDouble());
+    const gp_Pln neutral(gp_Pnt(origin[0].toDouble(),origin[1].toDouble(),origin[2].toDouble()),direction);
+    try {
+        BRepOffsetAPI_DraftAngle draft(prism);
+        for(TopExp_Explorer f(prism,TopAbs_FACE);f.More();f.Next()) {
+            const auto face=TopoDS::Face(f.Current());
+            const BRepAdaptor_Surface surface(face);
+            if(surface.GetType()!=GeomAbs_Plane)reject("unsupported_extrude_taper","Taper requires planar polygon side faces");
+            if(std::abs(surface.Plane().Axis().Direction().Dot(direction))>1e-8)continue;
+            // OCCT positive removes material on the positive side of the neutral plane.
+            draft.Add(face,direction,-angleDeg*std::numbers::pi/180,neutral);
+            if(!draft.AddDone())reject("extrude_taper_failed","OCCT refused a tapered side face");
+        }
+        draft.Build();
+        if(!draft.IsDone())reject("extrude_taper_failed","OCCT could not build the tapered solid");
+        const auto shape=draft.Shape();
+        if(shape.IsNull() || !BRepCheck_Analyzer(shape).IsValid() || count(shape,TopAbs_SOLID)!=1
+            || count(shape,TopAbs_FACE)!=count(prism,TopAbs_FACE))
+            reject("extrude_taper_failed","Taper collapsed or changed the polygon topology");
+        const auto summary=summarize(shape);
+        if(!summary.value("closed").toBool() || summary.value("volumeMm3").toDouble()<=0)
+            reject("extrude_taper_failed","Taper did not produce a closed positive-volume solid");
+        const auto modifiedCap=draft.ModifiedShape(cap.face);
+        TopTools_IndexedMapOfShape faces;TopExp::MapShapes(shape,TopAbs_FACE,faces);
+        if(modifiedCap.IsNull() || modifiedCap.ShapeType()!=TopAbs_FACE || !faces.Contains(modifiedCap))
+            reject("extrude_taper_failed","Taper lost its retained far cap");
+        cap.face=TopoDS::Face(modifiedCap);
+        const BRepAdaptor_Surface capSurface(cap.face);
+        const auto capOrigin=cap.frame.value("origin").toArray();
+        if(capSurface.GetType()!=GeomAbs_Plane || capSurface.Plane().Distance(gp_Pnt(capOrigin[0].toDouble(),capOrigin[1].toDouble(),capOrigin[2].toDouble()))>1e-6
+            || std::abs(capSurface.Plane().Axis().Direction().Dot(direction))<1-1e-9)
+            reject("extrude_taper_failed","Taper moved its retained far plane");
+        TopTools_IndexedMapOfShape capEdges;TopExp::MapShapes(cap.face,TopAbs_EDGE,capEdges);
+        for(auto& edge:cap.boundaryEdges) {
+            const auto mapped=draft.ModifiedShape(edge.edge);
+            if(mapped.IsNull() || mapped.ShapeType()!=TopAbs_EDGE || !capEdges.Contains(mapped))
+                reject("extrude_taper_failed","Taper lost a retained far-cap boundary");
+            // Map the actual vertices too; never infer contact identity from new coordinates.
+            TopoDS_Vertex a,b;TopExp::Vertices(edge.edge,a,b,true);
+            const auto oldStart=edge.provenance.value("startMm").toArray();
+            const gp_Pnt start(oldStart[0].toDouble(),oldStart[1].toDouble(),oldStart[2].toDouble());
+            const bool reverse=BRep_Tool::Pnt(b).Distance(start)<BRep_Tool::Pnt(a).Distance(start);
+            const auto mappedA=draft.ModifiedShape(a),mappedB=draft.ModifiedShape(b);
+            if(mappedA.IsNull() || mappedB.IsNull() || mappedA.ShapeType()!=TopAbs_VERTEX || mappedB.ShapeType()!=TopAbs_VERTEX)
+                reject("extrude_taper_failed","Taper lost a retained far-cap endpoint");
+            edge.edge=TopoDS::Edge(mapped);a=TopoDS::Vertex(mappedA);b=TopoDS::Vertex(mappedB);
+            TopTools_IndexedMapOfShape vertices;TopExp::MapShapes(edge.edge,TopAbs_VERTEX,vertices);
+            if(!vertices.Contains(a) || !vertices.Contains(b))reject("extrude_taper_failed","Taper endpoint is not on its retained edge");
+            if(reverse)std::swap(a,b);
+            const auto pa=BRep_Tool::Pnt(a),pb=BRep_Tool::Pnt(b);
+            edge.provenance["startMm"]=QJsonArray{pa.X(),pa.Y(),pa.Z()};
+            edge.provenance["endMm"]=QJsonArray{pb.X(),pb.Y(),pb.Z()};
+        }
+        if(endCap)*endCap=std::move(cap);
+        return shape;
+    } catch(const Standard_Failure&) {
+        reject("extrude_taper_failed","OCCT could not construct the requested taper");
+    }
 }
 gp_Trsf GeometryKernel::moveTransform(const QJsonObject& parameters) {
     gp_Trsf result;const gp_Vec pivot(parameters["pivotXMm"].toDouble(),parameters["pivotYMm"].toDouble(),parameters["pivotZMm"].toDouble());result.SetTranslation(pivot);

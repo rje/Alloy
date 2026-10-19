@@ -118,6 +118,8 @@ public:
     static double extrusionStart(const QJsonObject& parameters);
     static double extrusionSpan(const QJsonObject& parameters);
     static TopoDS_Shape extrusion(const EvaluatedProfile& profile, double distanceMm, EvaluatedSupportFace* endCap = nullptr, std::vector<EvaluatedSolidEdge>* edges = nullptr, const QString& generatorFeatureId = {}, std::vector<EvaluatedSupportFace>* planarFaces = nullptr, double startOffsetMm = 0, TopoDS_Face* baseFace = nullptr);
+    // Bounded one-sided, positive-distance polygon taper. Negative narrows the far cap.
+    static TopoDS_Shape taperedExtrusion(const EvaluatedProfile& profile, double distanceMm, double angleDeg, EvaluatedSupportFace* endCap = nullptr);
     static TopoDS_Shape booleanOperation(const QString& operation, const TopoDS_Shape& target,
         const std::vector<TopoDS_Shape>& tools, std::vector<EvaluatedSupportFace>* retainedFaces = nullptr, std::vector<EvaluatedSolidEdge>* retainedEdges = nullptr,
         const std::vector<EvaluatedSolidEdge>* cutToolEdges = nullptr, const QString& cutFeatureId = {},
