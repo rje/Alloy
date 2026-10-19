@@ -3037,6 +3037,11 @@
       "number": 610,
       "url": "https://github.com/rje/Alloy/issues/610",
       "state": "closed"
+    },
+    "SKT-165": {
+      "number": 611,
+      "url": "https://github.com/rje/Alloy/issues/611",
+      "state": "open"
     }
   }
 }
