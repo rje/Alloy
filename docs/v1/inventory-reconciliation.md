@@ -171,7 +171,7 @@ Issue suffixes reflect only `github.json`: `o` open, `c` closed, `?` missing. Th
 | 102 | `solid.thread` | proposed-v1 / E | ADV-005(o), SOL-059(c) | SOL-059 accepted modeled external M6/M8/M10; live-verified mirror now closed. Internal modes, broad standards and physical fit unaccepted, not required by bounded external promise. |
 | 103 | `solid.coil` | proposed-v1 / O | ADV-005(o), SOL-060(o) | Existing bounded owner; finalize declared subset and real-workflow evidence before release. |
 | 104 | `solid.pipe` | proposed-v1 / O | ADV-005(o), SOL-061(o) | Existing bounded owner; finalize declared subset and real-workflow evidence before release. |
-| 105 | `solid.cone-torus` | proposed-v1 / O | ADV-005(o), SOL-062(c), SOL-077(o) | New Body Cone/Torus geometry, edit, GPU and STL accepted; native create/edit input waits on FND-028, with plane/manipulator/operation parity still broader. |
+| 105 | `solid.cone-torus` | proposed-v1 / O | ADV-005(o), SOL-062(c), SOL-077(c) | New Body Cone/Torus geometry, edit, GPU, STL and native Qt Create/Edit controls accepted at DPR 1/2; physical/package input and plane/manipulator/operation parity remain broader. |
 | 106 | `solid.rib-web` | proposed-v1 / O | ADV-006(o), SOL-066(o) | Existing bounded owner; finalize declared subset and real-workflow evidence before release. |
 | 107 | `solid.emboss` | proposed-v1 / O | ADV-005(o), SOL-063(o) | Existing bounded owner; finalize declared subset and real-workflow evidence before release. |
 | 108 | `solid.draft` | proposed-v1 / S | SOL-013(o) | SOL-013: separate neutral-plane Draft child. |

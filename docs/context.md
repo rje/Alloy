@@ -1265,9 +1265,11 @@ physical/native input, while GATE-005 retains packaged multi-OS GPU/runtime.
 SOL-062/#507 adds retained circular Cone/Frustum and ring Torus New Bodies to
 the shared primitive API and panels. A 60-call actual-app replay passes edit,
 downstream Move, refusal, Undo/Redo, reopen, GPU captures and independent STL
-readback; see [the receipt](validation/cone-torus.md). The native Qt input
-probe stopped before first input because its private macOS window was inactive;
-SOL-077/#606 retains that gate after FND-028. Public Torus diameter semantics
+readback; see [the receipt](validation/cone-torus.md). The earlier native Qt probe stopped before first input in a locked macOS
+session. SOL-077/#606 now accepts actual-hit Create, numeric, Preview, Cancel,
+OK and Timeline edit with exact Undo/Redo/reopen at DPR 1 and 2, readable panel
+borders and Apple M4 GPU captures after FND-028 unlocked-window readiness;
+independent Sol review found no blocker. Physical/packaged input remains open. Public Torus diameter semantics
 and a matching dedicated Cone command remain unproven in the source evidence.
 
 ## Cumulative enclosure tutorial gate (2026-10-19)

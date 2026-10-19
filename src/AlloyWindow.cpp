@@ -9551,7 +9551,8 @@ void AlloyWindow::showPrimitive() {
         auto* help=new QLabel("Alloy sizing: major radius reaches the tube center; minor radius sizes the tube.",contents);
         help->setWordWrap(true);help->setStyleSheet("color: #53616b;");form->addRow(help);
     }
-    primitiveName_=new QLineEdit(inputs["name"].toString(),contents);primitiveName_->setObjectName("primitive.name");form->addRow("Name",primitiveName_);
+    primitiveName_=new QLineEdit(inputs["name"].toString(),contents);primitiveName_->setObjectName("primitive.name");
+    primitiveName_->setSizePolicy(QSizePolicy::Ignored,QSizePolicy::Fixed);form->addRow("Name",primitiveName_);
     const QStringList fields=command=="solid.box" ? QStringList{"width","depth","height","x","y","z"}
         : command=="solid.cone" ? QStringList{"baseDiameter","topDiameter","height","x","y","z"}
         : command=="solid.torus" ? QStringList{"majorRadius","minorRadius","x","y","z"}
@@ -9559,6 +9560,9 @@ void AlloyWindow::showPrimitive() {
     for(const auto& field:fields) {
         const bool named=command=="solid.box" && (field=="width" || field=="depth" || field=="height");
         auto* input=named ? static_cast<QDoubleSpinBox*>(new LengthDistanceSpinBox(contents)) : new QDoubleSpinBox(contents);
+        // A spinbox's full-range size hint can exceed this narrow command form.
+        // Let the form allocate its available width rather than clipping the field.
+        input->setSizePolicy(QSizePolicy::Ignored,QSizePolicy::Fixed);
         input->setKeyboardTracking(false);input->setDecimals(6);input->setRange(field.size()==1 ? -100000 : field=="topDiameter" ? 0 : 0.000001,100000);
         input->setSuffix(" "+inputs["units"].toString());input->setValue(inputs[field].toDouble());input->setObjectName("primitive."+field);
         if(named){auto* fieldInput=static_cast<LengthDistanceSpinBox*>(input);

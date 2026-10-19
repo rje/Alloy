@@ -4,8 +4,9 @@ Current direction: [printable-part v1 plan](https://alloy-v1-review.rjevans1.cha
 
 [Bounded OBJ export](docs/validation/obj-export.md) now writes selected committed solids as deterministic material-free groups with mm/in coordinates and independent Blender readback. Native chooser input and broader options remain Todo.
 [Cone and torus New Body primitives](docs/validation/cone-torus.md) now have
-editable numeric dimensions, retained history and checked STL output. Native
-pointer/keyboard qualification is tracked separately.
+editable numeric dimensions, retained history, checked STL output and
+independently reviewed native Qt controls at 1× and 2× scale. Physical input
+and packaged-platform qualification remain separate.
 [Core 3MF export](docs/validation/3mf-export.md) now saves separate placed
 millimeter solids through Save As Mesh, with independent readback and a separate
 slicer check. [Modeled external threads](docs/validation/modeled-external-thread.md)

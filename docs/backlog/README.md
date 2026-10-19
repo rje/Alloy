@@ -29,8 +29,9 @@ Exact creator-board fit, physical snaps and native gesture parity remain open
 product quality concerns rather than evidence claimed by this gate.
 SOL-062/#507 accepts [Cone and Torus New Body primitives](../validation/cone-torus.md)
 through real-app API/GPU, retained editing and independent STL checks.
-SOL-077/#606 retains native input after the FND-028 private-window activation
-prerequisite.
+SOL-077/#606 accepts native Qt actual-hit Create/Edit controls and readable
+1×/2× panels after the FND-028 window prerequisite; physical/platform input
+remains separate.
 DOC-034/#496 accepts the [active design-unit workflow](../validation/display-units.md)
 through sketch, Extrude and independently read mesh bounds. DOC-038/#597 accepts
 [selected-solid Properties](../validation/body-properties.md) with active-unit
