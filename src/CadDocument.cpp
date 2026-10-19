@@ -1135,14 +1135,14 @@ QString CadDocument::newId() { return QUuid::createUuid().toString(QUuid::Withou
 CadDocument::CadDocument() { reset(); }
 std::vector<EvaluatedBody> CadDocument::worldBodies(std::optional<double> transientPositionMm) const {
     const auto joints=authored_.value("joints").toArray();
-    if(joints.isEmpty())return LocalOccurrences::worldBodies(authored_,*evaluation_);
+    if(joints.isEmpty())return LocalOccurrences::worldBodies(authored_,evaluation());
     if(AssemblyGraph::isJointGraph(authored_))
         return AssemblyRevolute::worldBodies(authored_,*evaluation_,transientPositionMm);
     return AssemblySlider::worldBodies(authored_,*evaluation_,transientPositionMm);
 }
 QJsonObject CadDocument::assemblyState(std::optional<double> transientPositionMm) const {
     const auto joints=authored_.value("joints").toArray();
-    if(joints.isEmpty())return LocalOccurrences::inspect(authored_,*evaluation_);
+    if(joints.isEmpty())return LocalOccurrences::inspect(authored_,evaluation());
     if(AssemblyGraph::isJointGraph(authored_))
         return AssemblyRevolute::inspect(authored_,*evaluation_,transientPositionMm);
     return AssemblySlider::inspect(authored_,*evaluation_,transientPositionMm);
@@ -1158,6 +1158,7 @@ void CadDocument::reset() {
     history_.setClean();
 }
 void CadDocument::apply(const QJsonObject& value, std::shared_ptr<const EvaluatedDocument> evaluation, const QString& transaction) {
+    returnToLatest();
     authored_ = value;
     if(!hasOwner(authored_,activeOwnerId_))activeOwnerId_=authored_["documentId"].toString();
     evaluation_=std::move(evaluation); lastTransaction_ = transaction; ++revision_;
@@ -1532,6 +1533,27 @@ CadDocument::CandidateEvaluation CadDocument::evaluateCandidateFromPrefix(const 
         result.diagnostics = {{"code","evaluation_failed"},{"message",result.error}};
     }
     return result;
+}
+QString CadDocument::rollbackBefore(const QString& featureId) {
+    // Assembly poses read top-level constraints and Pin metadata independently
+    // of feature evaluation. Refuse rather than leak future constraints into a prefix.
+    if(!authored_.value("joints").toArray().isEmpty())return "Assembly history rollback is not yet supported";
+    for(const auto& value:authored_.value("features").toArray())
+        if(value.toObject().value("type")=="assemblyPin")return "Pinned assembly history rollback is not yet supported";
+    try {
+        auto evaluated=std::make_shared<const EvaluatedDocument>(evaluationBefore(featureId));
+        rollbackEvaluation_=std::move(evaluated);rollbackBeforeFeatureId_=featureId;
+    } catch(const Standard_Failure& error) {return QString::fromUtf8(error.GetMessageString());}
+      catch(const std::exception& error) {return QString::fromUtf8(error.what());}
+    return {};
+}
+void CadDocument::returnToLatest() {rollbackEvaluation_.reset();rollbackBeforeFeatureId_.clear();}
+QJsonObject CadDocument::rollbackState() const {
+    return {{"active",isRolledBack()},{"beforeFeatureId",rollbackBeforeFeatureId_},
+        {"evaluatedFeatureCount",static_cast<int>(evaluation().featureOrder.size())},
+        {"authoredFeatureCount",authored_.value("features").toArray().size()},
+        {"readOnly",isRolledBack()},{"undoPolicy","transient; document Undo/Redo returns to latest"},
+        {"savePolicy","save complete authored history; reopen at latest"}};
 }
 EvaluatedDocument CadDocument::evaluationBefore(const QString& featureId) const {
     auto prefix=authored_;QJsonArray features;bool found=false;
@@ -2961,6 +2983,7 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
 }
 QString CadDocument::label() const {return path_.isEmpty() ? "Untitled" : QFileInfo(path_).completeBaseName();}
 QJsonObject CadDocument::state() const {
+    const auto* evaluation_=&evaluation();
     QJsonArray order;
     for (const auto& id : evaluation_->featureOrder) order.append(id);
     QJsonArray evaluated;
@@ -2986,7 +3009,7 @@ QJsonObject CadDocument::state() const {
         {"features", authored_["features"].toArray().size()}, {"bodies",static_cast<int>(evaluation_->bodies.size())}, {"sketches", static_cast<int>(evaluation_->sketches.size())},
         {"evaluation",QJsonObject{{"status","current"},{"recompute",evaluation_->recompute},{"featureOrder",order},{"joinBodyResults",evaluation_->joinBodyResults},
             {"documentRevision",static_cast<qint64>(revision_)},{"bodies",evaluated},{"sketches",evaluatedSketches},{"constructionPlanes",evaluatedPlanes}}},
-        {"editableHistory", true}, {"authored", authored_},
+        {"rollback",rollbackState()}, {"editableHistory", !isRolledBack()}, {"authored", authored_},
         {"undo", QJsonObject{{"canUndo", history_.canUndo()}, {"canRedo", history_.canRedo()},
             {"count", history_.count()}, {"index", history_.index()},
             {"undoText", history_.undoText()}, {"redoText", history_.redoText()}}}};

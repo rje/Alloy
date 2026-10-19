@@ -54,10 +54,10 @@ public:
     bool isDirty() const { return recoveredDirty_ || !history_.isClean(); }
     QString path() const { return path_; }
     QString label() const;
-    const std::vector<EvaluatedBody>& bodies() const { return evaluation_->bodies; }
+    const std::vector<EvaluatedBody>& bodies() const { return evaluation().bodies; }
     std::vector<EvaluatedBody> worldBodies(std::optional<double> transientPositionMm = {}) const;
     QJsonObject assemblyState(std::optional<double> transientPositionMm = {}) const;
-    const std::vector<EvaluatedSketch>& sketches() const { return evaluation_->sketches; }
+    const std::vector<EvaluatedSketch>& sketches() const { return evaluation().sketches; }
     QString commitCanvases(const QJsonArray& canvases,const QString& label);
     QString commitNamedViews(const QJsonArray& views,const QString& label);
     QString commitHomeCamera(std::optional<QJsonObject> camera,const QString& label);
@@ -85,7 +85,12 @@ public:
     // Canonical args: sketchId, profileId, distanceMm, optional name; either an
     // existing featureId edit or a reserved newFeatureId/newBodyId New Body pair.
     // Cut adds operation=cut and exactly one targetBodyIds entry; it owns no body.
-    const EvaluatedDocument& evaluation() const { return *evaluation_; }
+    const EvaluatedDocument& evaluation() const { return rollbackEvaluation_ ? *rollbackEvaluation_ : *evaluation_; }
+    // Read-only transient prefix inspection; never authored, serialized or undoable.
+    QString rollbackBefore(const QString& featureId);
+    void returnToLatest();
+    bool isRolledBack() const { return bool(rollbackEvaluation_); }
+    QJsonObject rollbackState() const;
     EvaluatedDocument evaluationBefore(const QString& featureId) const;
     // Reads and embeds one bounded local STEP source. The caller commits the
     // returned candidate through the ordinary validated document transaction.
@@ -134,6 +139,8 @@ private:
         const EvaluatedDocument* prefix, int firstFeature);
     static QString validateStructure(const QJsonObject& candidate, QJsonObject* errorContext = nullptr);
     void apply(const QJsonObject& value, std::shared_ptr<const EvaluatedDocument> evaluation, const QString& transaction = {});
+    std::shared_ptr<const EvaluatedDocument> rollbackEvaluation_;
+    QString rollbackBeforeFeatureId_;
     QJsonObject authored_;
     QUndoStack history_;
     quint64 revision_ = 0;

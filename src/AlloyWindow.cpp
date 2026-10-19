@@ -1209,6 +1209,9 @@ AlloyWindow::AlloyWindow() {
     auto* latest=new QPushButton("Show latest");latest->setObjectName("timeline.showLatest");latest->setFixedWidth(88);
     latest->setToolTip("Scroll to the latest feature; document history is unchanged.");
     connect(latest,&QPushButton::clicked,this,[this]{execute("timeline.showLatest");});timelineRow->addWidget(latest);
+    auto* restoreLatest=new QPushButton("Move to End");restoreLatest->setObjectName("timeline.returnToLatest");
+    restoreLatest->setToolTip("Restore evaluation of the complete authored history.");
+    connect(restoreLatest,&QPushButton::clicked,this,[this]{execute("timeline.returnToLatest");});timelineRow->addWidget(restoreLatest);
     layout->addWidget(timeline_);
     status_ = new QLabel;status_->setObjectName("application.status");status_->setAccessibleName("Application status");statusBar()->addWidget(status_,1);
     auto* gpuNotice=new QLabel("GPU UNQUALIFIED",this);gpuNotice->setObjectName("application.gpu.warning");
@@ -1655,11 +1658,11 @@ QJsonObject AlloyWindow::timelineState() const {
     for(int index=0;index<timelineLayout_->count();++index)if(auto* button=qobject_cast<QToolButton*>(timelineLayout_->itemAt(index)->widget())) {
         const QRect local(button->mapTo(viewport,QPoint{}),button->size());const auto point=button->mapTo(this,QPoint{});
         features.append(QJsonObject{{"featureId",button->property("featureId").toString()},{"type",button->property("featureType").toString()},
-            {"name",button->property("featureName").toString()},{"tooltip",button->toolTip()},{"accessibleName",button->accessibleName()},
+            {"evaluated",button->property("evaluated").toBool()},{"name",button->property("featureName").toString()},{"tooltip",button->toolTip()},{"accessibleName",button->accessibleName()},
             {"width",button->width()},{"height",button->height()},{"fullyVisible",viewport->rect().contains(local)},
             {"bounds",QJsonObject{{"x",point.x()},{"y",point.y()},{"width",button->width()},{"height",button->height()}}}});
     }
-    return {{"tileWidth",44},{"scrollPosition",timelineScroll_->horizontalScrollBar()->value()},
+    return {{"rollback",document_->rollbackState()},{"tileWidth",44},{"scrollPosition",timelineScroll_->horizontalScrollBar()->value()},
         {"scrollMaximum",timelineScroll_->horizontalScrollBar()->maximum()},{"viewportWidth",viewport->width()},
         {"features",features},{"dragging",timelineDragging_},{"insertionAfterFeatureId",timelineDragAnchorId_},
         {"insertionMarkerVisible",timelineDropMarker_ && timelineDropMarker_->isVisible()}};
@@ -2540,11 +2543,13 @@ void AlloyWindow::registerCommands() {
     add("history.undo","Undo","Undo an accepted sketch edit in an active sketch, otherwise one committed document edit.",{},[this](const auto&){
         if(session_.contains("pendingDrivenOffer"))return failure("pending_dimension_offer","Choose Add Driven or Cancel before Undo");
         if(session_.value("command")=="sketch.edit")return traverseSketchHistory(-1);
+        if(document_->isRolledBack()){document_->returnToLatest();displayedDocumentRevision_=std::numeric_limits<quint64>::max();}
         document_->history().undo();return document_->state();
     });
     add("history.redo","Redo","Redo an accepted sketch edit in an active sketch, otherwise one committed document edit.",{},[this](const auto&){
         if(session_.contains("pendingDrivenOffer"))return failure("pending_dimension_offer","Choose Add Driven or Cancel before Redo");
         if(session_.value("command")=="sketch.edit")return traverseSketchHistory(1);
+        if(document_->isRolledBack()){document_->returnToLatest();displayedDocumentRevision_=std::numeric_limits<quint64>::max();}
         document_->history().redo();return document_->state();
     });
     auto length=parameter("number","Length in the selected display units; converted to canonical millimeters.");
@@ -6352,6 +6357,20 @@ void AlloyWindow::registerCommands() {
         });
     const QJsonObject visible{{"visible", parameter("boolean", "Whether this region is visible.")}};
     add("layout.browser", "Show / hide Browser", "Control the left Browser region.", visible, [this](const auto& a) { browserVisible_ = a.value("visible").toBool(); return QJsonObject{}; });
+    add("timeline.rollbackBefore","Roll history before feature","Inspect an evaluated prefix without changing authored history. Modeling is read-only until Move to End.",
+        {{"featureId",parameter("string","First inactive authored feature UUID.")}},[this](const auto& a){
+            if(!session_.isEmpty() || !pendingReference_.isEmpty() || !failedEditRepair_.isEmpty())return failure("command_active","Complete or cancel the active command before rollback");
+            const auto error=document_->rollbackBefore(a.value("featureId").toString());
+            if(!error.isEmpty())return failure("rollback_unavailable",error);
+            selectedBody_.clear();selectedSketch_.clear();selectedOccurrence_.clear();selectedFace_={};selectedEdge_={};selectedPlane_.clear();
+            view_->selectSupportFace({},{});view_->clearSolidEdgeHighlights();view_->selectConstructionPlane({});
+            displayedDocumentRevision_=std::numeric_limits<quint64>::max();return document_->rollbackState();
+        });
+    add("timeline.returnToLatest","Move to End","Restore the latest authored evaluation without an undo entry.",{},[this](const auto&){
+        document_->returnToLatest();displayedDocumentRevision_=std::numeric_limits<quint64>::max();
+        if(!timelineFeatures_.isEmpty())showTimelineFeature(timelineFeatures_.last().toObject()["id"].toString());
+        return document_->rollbackState();
+    });
     add("timeline.showLatest","Show latest feature","Scroll the Timeline to its latest visible feature without changing history.",{},[this](const auto&){
         if(!timelineFeatures_.isEmpty())showTimelineFeature(timelineFeatures_.last().toObject()["id"].toString());return timelineState();
     });
@@ -6814,6 +6833,18 @@ QString AlloyWindow::geometryWorkLabel(const QString& id,const QJsonObject& args
 }
 
 QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
+    if(document_->isRolledBack()) {
+        const bool viewEdit=QStringList{"view.conventionUp","view.conventionSet","view.conventionReset","view.namedCreate",
+            "view.namedRename","view.namedDelete","view.homeSet","view.homeReset"}.contains(id);
+        const bool readOnly=id=="app.state" || id=="app.identity" || id=="commands.list" || id=="command.status"
+            || id=="document.inspect" || id=="document.tabs" || id=="app.quit" || id=="window.resize"
+            || id=="document.pendingDecision" || id=="document.answerDecision" || id=="command.cancel"
+            || id.startsWith("capture.") || id.startsWith("layout.") || id.startsWith("timeline.")
+            || (id.startsWith("view.") && !viewEdit);
+        const bool documentAction=QStringList{"history.undo","history.redo","document.save","document.saveDialog","document.saveAsDialog","document.openDialog","document.open","document.new","document.tabNew","document.tabClose","document.tabActivate"}.contains(id);
+        if(!readOnly && !documentAction)return failure("history_rollback_read_only","Move to End before editing the model");
+    }
+
     if(!failedEditRepair_.isEmpty()) {
         if(failedEditDocument_!=document_ || failedEditRepair_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))
             closeFailedEditRepair("invalidated",false);
@@ -7003,7 +7034,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     if(document_->revision()!=priorDocumentRevision && (transientSliderPosition_.has_value() || !jointGraphStage_.isEmpty() || (sliderTimer_ && sliderTimer_->isActive()))){
         transientSliderPosition_.reset();jointGraphStage_={};if(sliderTimer_)sliderTimer_->stop();displayedDocumentRevision_=std::numeric_limits<quint64>::max();
     }
-    const bool changesState = id == "window.resize" || id.startsWith("layout.") || id.startsWith("view.") || (id == "commands.search" || id == "commands.close");
+    const bool changesState = id == "timeline.rollbackBefore" || id == "timeline.returnToLatest" || id == "window.resize" || id.startsWith("layout.") || id.startsWith("view.") || (id == "commands.search" || id == "commands.close");
     if (changesState) ++revision_;
     if(traceGraphSolves)phaseTimer.restart();
     refresh();
@@ -7560,7 +7591,15 @@ void AlloyWindow::refresh() {
             button->installEventFilter(this);
 
             connect(button,&QToolButton::clicked,this,[this,id]{if(session_.value("command")=="solid.rectangularPattern")execute("selection.featureSet",{{"featureId",id}});else if(session_.value("command")=="solid.featureMirror")execute("selection.featureMirrorSet",{{"featureId",id}});else execute("feature.editDialog",{{"featureId",id}});});
-            auto* menu=new QMenu(button);menu->addAction("Delete",this,[this,id]{execute("feature.delete",{{"featureId",id}});});
+            const bool inactive=document_->isRolledBack() && std::find(document_->evaluation().featureOrder.begin(),document_->evaluation().featureOrder.end(),id)==document_->evaluation().featureOrder.end();
+            button->setProperty("evaluated",!inactive);
+            if(inactive)button->setStyleSheet(button->styleSheet()+"QToolButton { background: #eceff1; color: #7b858c; border-color: #c9cfd3; } ");
+            if(document_->rollbackState().value("beforeFeatureId")==id)button->setStyleSheet(button->styleSheet()+"QToolButton { border-left: 3px solid #1478a8; }");
+            button->setToolTip(document_->isRolledBack() ? fullName+(inactive ? "\nAfter evaluation marker (inactive)." : "\nEvaluated prefix.")+"\nMove to End before editing." : button->toolTip());
+            auto* menu=new QMenu(button);
+            menu->addAction("Roll History Marker Here",this,[this,id]{execute("timeline.rollbackBefore",{{"featureId",id}});});
+            menu->addAction("Move to End",this,[this]{execute("timeline.returnToLatest");});
+            menu->addSeparator();menu->addAction("Delete",this,[this,id]{execute("feature.delete",{{"featureId",id}});});
             if(type=="sketch") {auto* redefine=menu->addAction("Redefine Sketch Plane",this,[this,id]{execute("sketch.redefinePlaneBegin",{{"sketchId",id}});});
                 redefine->setObjectName("timeline.redefineSketchPlane."+id);connect(menu,&QMenu::aboutToShow,this,[this,redefine,id]{const auto sketch=session_.value("draftSketch").toObject();redefine->setEnabled(!failedEditRepair_.isEmpty() && (failedEditRepair_.value("diagnostics").toObject().value("code")=="support_unavailable" || failedEditRepair_.value("diagnostics").toObject().value("code")=="offset_lineage_unavailable") && sketch.value("id")==id && (SketchPlaneRepair::ordinary(sketch) || SketchPlaneRepair::singleInset(sketch)) && sketch.value("ownerId")==document_->authored().value("documentId"));});}
             button->setMenu(menu);button->setPopupMode(QToolButton::MenuButtonPopup);timelineLayout_->addWidget(button);
