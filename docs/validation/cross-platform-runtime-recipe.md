@@ -201,3 +201,30 @@ Focused Python compilation, static generator/artifact/timeout contract checks,
 the four native Qt recipe tests and `git diff --check` pass locally on macOS.
 No native Windows build was run locally; elapsed-time improvement, Windows
 Alloy compile/link, packaging, loaded runtime and GPU support remain unverified.
+
+## Windows Ninja retry and compile correction (2026-10-18)
+
+The Windows-only manual [run 39142087387](https://github.com/rje/Alloy/actions/runs/39142087387)
+at `aa635f65de852e76bb32eec16422edb3eca6d508` ran its native build step
+for about 155 minutes and exited with a compile failure, below its 180-minute
+limit. Pinned Qt 6.11.2 compiled with the admitted item-view patch and required
+features; the offscreen regression passed 5/5. FreeType installed, OCCT
+completed all 5529 Ninja actions and installed, the Ondsel adapter DLL linked,
+and `alloy-local-client.exe` linked. Alloy's kernel stopped at Ninja action
+835/934: MSVC C2062/C2143/C2447/C2059 at the two `near` helper declarations
+in `src/ClosedBlendShell.cpp`. No Alloy application link or `build.json` was
+produced. Artifact `12146257040` has GitHub digest
+`sha256:dd500f14b99e286a8f55c3519f81bfe328723c2d79f29697f8f502e4b5e62923`;
+the downloaded logs/manifests are retained outside the repository at
+`../Alloy-reference-records/validation/ci009-windows-native-aa635f6-2026-10-18/`.
+
+Microsoft's public `minwindef.h` defines `near` as an empty macro; that
+preprocessing effect explains the declaration errors. The exact native
+preprocessed translation unit was not retained, so this include-chain cause
+is an inference from the compiler output and public header. The bounded fix
+renames private `near` helpers/calls in the affected application source files;
+geometry calculations and dependency recipes are unchanged. The accepted
+local macOS Release build and focused closed-blend Qt test pass after the
+rename. A new manual Windows-only run must still establish MSVC compilation,
+linking and effective manifests. Packaging, loaded runtime and GPU remain
+separate gates.

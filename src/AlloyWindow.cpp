@@ -4284,12 +4284,12 @@ void AlloyWindow::registerCommands() {
                     {line["u1Mm"].toDouble(),line["v1Mm"].toDouble()},
                     {line["u2Mm"].toDouble(),line["v2Mm"].toDouble()}};}
                 if(!projected.contains(sourceId))return failure("unsupported_offset_source","Select a retained projected line in this sketch");
-                const auto near=[](const QPointF& a,const QPointF& b){return std::hypot(a.x()-b.x(),a.y()-b.y())<1e-6;};
+                const auto sketchPointNear=[](const QPointF& a,const QPointF& b){return std::hypot(a.x()-b.x(),a.y()-b.y())<1e-6;};
                 QSet<QString> closed{sourceId};bool grown=true;
                 while(grown && closed.size()<=4){grown=false;
                     for(const auto& id:closed.values())for(const auto& p:{projected[id].first,projected[id].second})
                         for(auto it=projected.begin();it!=projected.end();++it)
-                            if(!closed.contains(it.key()) && (near(p,it.value().first)||near(p,it.value().second))) {
+                            if(!closed.contains(it.key()) && (sketchPointNear(p,it.value().first)||sketchPointNear(p,it.value().second))) {
                                 closed.insert(it.key());grown=true;
                             }
                 }
@@ -4311,7 +4311,7 @@ void AlloyWindow::registerCommands() {
                 while(changed){changed=false;
                     for(const auto& id:chosen.values())for(const auto& p:{projected[id].first,projected[id].second}){
                         QStringList incident;for(auto it=projected.begin();it!=projected.end();++it)
-                            if(near(p,it.value().first)||near(p,it.value().second))incident.append(it.key());
+                            if(sketchPointNear(p,it.value().first)||sketchPointNear(p,it.value().second))incident.append(it.key());
                         if(incident.size()!=2)continue;
                         for(const auto& neighbor:incident)if(!chosen.contains(neighbor) &&
                             topShoulder(id)==topShoulder(neighbor)){chosen.insert(neighbor);changed=true;}
@@ -10084,7 +10084,7 @@ QJsonObject AlloyWindow::previewOpenChainOffset(const QJsonObject& inputs){
         for(const auto& value:expanded["entities"].toArray()){
             const auto e=value.toObject();if(e["type"]!="line")continue;
             lines[e["id"].toString()]={points[e["startPointId"].toString()],points[e["endPointId"].toString()]};}
-        const auto near=[](const QPointF& a,const QPointF& b){return std::hypot(a.x()-b.x(),a.y()-b.y())<1e-6;};
+        const auto sketchPointNear=[](const QPointF& a,const QPointF& b){return std::hypot(a.x()-b.x(),a.y()-b.y())<1e-6;};
         // API order is authoritative. Native selection is unordered; resolve its
         // two free ends deterministically without walking an unselected branch.
         if(!inputs.contains("sourceEntityIds") && existing.isEmpty()){
@@ -10092,7 +10092,7 @@ QJsonObject AlloyWindow::previewOpenChainOffset(const QJsonObject& inputs){
             for(const auto& value:sources){const auto id=value.toString();if(!lines.contains(id))continue;
                 for(const auto& p:{lines[id].first,lines[id].second}){
                     int degree=0;for(const auto& other:sources){const auto endpoints=lines.value(other.toString());
-                        degree+=near(p,endpoints.first)+near(p,endpoints.second);}
+                        degree+=sketchPointNear(p,endpoints.first)+sketchPointNear(p,endpoints.second);}
                     if(degree==1)free.append({id,p});
                 }}
             if(free.size()!=2)throw std::invalid_argument("Offset selection must be one unbranched open chain");
@@ -10100,9 +10100,9 @@ QJsonObject AlloyWindow::previewOpenChainOffset(const QJsonObject& inputs){
             QJsonArray ordered;QSet<QString> used;QPointF at=free.front().p;
             for(int i=0;i<5;++i){QString next;QPointF nextPoint;
                 for(const auto& value:sources){const auto id=value.toString();if(used.contains(id)||!lines.contains(id))continue;
-                    const auto ends=lines[id];if(near(at,ends.first)||near(at,ends.second)){
+                    const auto ends=lines[id];if(sketchPointNear(at,ends.first)||sketchPointNear(at,ends.second)){
                         if(!next.isEmpty())throw std::invalid_argument("Offset selection branches");
-                        next=id;nextPoint=near(at,ends.first)?ends.second:ends.first;}}
+                        next=id;nextPoint=sketchPointNear(at,ends.first)?ends.second:ends.first;}}
                 if(next.isEmpty())throw std::invalid_argument("Offset selection is disconnected");
                 used.insert(next);ordered.append(next);at=nextPoint;}
             sources=ordered;pending["sourceEntityIds"]=sources;
@@ -10110,11 +10110,11 @@ QJsonObject AlloyWindow::previewOpenChainOffset(const QJsonObject& inputs){
         if(topId.isEmpty()){
             const auto a=lines.value(sources[0].toString()),b=lines.value(sources[1].toString());
             const auto c=lines.value(sources[3].toString()),d=lines.value(sources[4].toString());
-            const auto left=near(a.first,b.first)||near(a.first,b.second)?a.first:a.second;
-            const auto right=near(d.first,c.first)||near(d.first,c.second)?d.first:d.second;
+            const auto left=sketchPointNear(a.first,b.first)||sketchPointNear(a.first,b.second)?a.first:a.second;
+            const auto right=sketchPointNear(d.first,c.first)||sketchPointNear(d.first,c.second)?d.first:d.second;
             for(auto it=lines.begin();it!=lines.end();++it){if(sources.contains(it.key()))continue;
-                if((near(it.value().first,left)&&near(it.value().second,right)) ||
-                   (near(it.value().first,right)&&near(it.value().second,left))){
+                if((sketchPointNear(it.value().first,left)&&sketchPointNear(it.value().second,right)) ||
+                   (sketchPointNear(it.value().first,right)&&sketchPointNear(it.value().second,left))){
                     if(!topId.isEmpty())throw std::invalid_argument("Original top line is ambiguous");topId=it.key();}}
             pending["topEntityId"]=topId;
         }

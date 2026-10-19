@@ -21,7 +21,7 @@ QPointF location(const QJsonObject& point){return {point["uMm"].toDouble(),point
 double cross(QPointF a,QPointF b){return a.x()*b.y()-a.y()*b.x();}
 double dot(QPointF a,QPointF b){return a.x()*b.x()+a.y()*b.y();}
 double length(QPointF a){return std::hypot(a.x(),a.y());}
-bool near(QPointF a,QPointF b){return length(a-b)<tolerance;}
+bool chainNear(QPointF a,QPointF b){return length(a-b)<tolerance;}
 struct Segment {QString id;QPointF a,b;};
 QPointF intersection(const Segment& a,const Segment& b){
     const auto av=a.b-a.a,bv=b.b-b.a;
@@ -112,12 +112,12 @@ QJsonObject derive(const QJsonObject& p){
     std::array<Segment,5> source;
     for(int i=0;i<5;++i)source[i]=segment(sourceIds[i].toString(),lines,points);
     // The retained order fixes signed side; connectivity fixes each direction.
-    require(!near(source[0].a,source[0].b),"Offset source line collapsed");
-    if(near(source[0].a,source[1].a) || near(source[0].a,source[1].b))std::swap(source[0].a,source[0].b);
-    else require(near(source[0].b,source[1].a)||near(source[0].b,source[1].b),"Offset source chain is disconnected");
+    require(!chainNear(source[0].a,source[0].b),"Offset source line collapsed");
+    if(chainNear(source[0].a,source[1].a) || chainNear(source[0].a,source[1].b))std::swap(source[0].a,source[0].b);
+    else require(chainNear(source[0].b,source[1].a)||chainNear(source[0].b,source[1].b),"Offset source chain is disconnected");
     for(int i=1;i<5;++i){
-        if(near(source[i].b,source[i-1].b))std::swap(source[i].a,source[i].b);
-        require(near(source[i].a,source[i-1].b) && !near(source[i].b,source[i].a),
+        if(chainNear(source[i].b,source[i-1].b))std::swap(source[i].a,source[i].b);
+        require(chainNear(source[i].a,source[i-1].b) && !chainNear(source[i].b,source[i].a),
                 "Offset source chain is branched or disconnected");
     }
     require(std::abs(source[0].a.y()-source[0].b.y())<tolerance &&

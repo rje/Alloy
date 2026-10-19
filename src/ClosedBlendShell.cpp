@@ -42,8 +42,8 @@ gp_Pnt point(const QJsonArray& p){return {p[0].toDouble(),p[1].toDouble(),p[2].t
 QString uid(const QString& featureId,const QByteArray& role){
     return QUuid::createUuidV5(QUuid(featureId),role).toString(QUuid::WithoutBraces);
 }
-bool near(double a,double b,double e){return std::abs(a-b)<=e;}
-bool near(const gp_Pnt& a,const gp_Pnt& b,double e){return a.Distance(b)<=e;}
+bool shellNear(double a,double b,double e){return std::abs(a-b)<=e;}
+bool shellNear(const gp_Pnt& a,const gp_Pnt& b,double e){return a.Distance(b)<=e;}
 bool parallel(const gp_Dir& a,const gp_Dir& b){return std::abs(a.Dot(b))>1-1e-8;}
 std::optional<BoxBlend> ancestry(const EvaluatedBody& body,const QJsonObject& shell,const QJsonArray& features,int index,
     const EvaluatedDocument& evaluated){
@@ -113,9 +113,9 @@ std::optional<BoxBlend> ancestry(const EvaluatedBody& body,const QJsonObject& sh
         QSet<int> cornersSeen;
         for(int i=1;i<=vertices.Extent();++i){
             const auto p=BRep_Tool::Pnt(TopoDS::Vertex(vertices(i)));
-            if(!near(p.Z(),z,tiny))return {};
-            const int sx=near(p.X(),x,tiny)?0:near(p.X(),x1,tiny)?1:-1;
-            const int sy=near(p.Y(),y,tiny)?0:near(p.Y(),y1,tiny)?1:-1;
+            if(!shellNear(p.Z(),z,tiny))return {};
+            const int sx=shellNear(p.X(),x,tiny)?0:shellNear(p.X(),x1,tiny)?1:-1;
+            const int sy=shellNear(p.Y(),y,tiny)?0:shellNear(p.Y(),y1,tiny)?1:-1;
             if(sx<0 || sy<0 || cornersSeen.contains(sx*2+sy))return {};
             cornersSeen.insert(sx*2+sy);
         }
@@ -124,8 +124,8 @@ std::optional<BoxBlend> ancestry(const EvaluatedBody& body,const QJsonObject& sh
             const BRepAdaptor_Curve c(TopoDS::Edge(edges(i)));
             if(c.GetType()!=GeomAbs_Line)return {};
             const auto a=c.Value(c.FirstParameter()),b=c.Value(c.LastParameter());
-            if(!near(a.Z(),z,tiny)||!near(b.Z(),z,tiny)
-                || (near(a.X(),b.X(),tiny)==near(a.Y(),b.Y(),tiny)))return {};
+            if(!shellNear(a.Z(),z,tiny)||!shellNear(b.Z(),z,tiny)
+                || (shellNear(a.X(),b.X(),tiny)==shellNear(a.Y(),b.Y(),tiny)))return {};
         }
         // The exact prism-edge source roles are retained through Fillet even
         // when the resulting edge itself is consumed by a blend.
@@ -178,7 +178,7 @@ TopoDS_Shape roundedCore(const BoxBlend& b,const QString& featureId){
         const auto edge=TopoDS::Edge(edges(i));BRepAdaptor_Curve curve(edge);
         if(curve.GetType()!=GeomAbs_Line)continue;
         const auto a=curve.Value(curve.FirstParameter()),c=curve.Value(curve.LastParameter());
-        if(near(a.X(),c.X(),b.eps) && near(a.Y(),c.Y(),b.eps) && near(std::abs(a.Z()-c.Z()),b.h-2*b.r,b.eps)){
+        if(shellNear(a.X(),c.X(),b.eps) && shellNear(a.Y(),c.Y(),b.eps) && shellNear(std::abs(a.Z()-c.Z()),b.h-2*b.r,b.eps)){
             fillet.Add(b.R-b.r,edge);++vertical;
         }
     }
@@ -234,12 +234,12 @@ std::optional<QString> roleOf(const TopoDS_Face& face,const std::vector<Role>& e
                 && plane.Distance(role.center)<=eps;
         }else if(role.kind==1 && kind==GeomAbs_Cylinder){
             const auto cylinder=s.Cylinder();good=parallel(cylinder.Axis().Direction(),role.axis)
-                && near(cylinder.Radius(),role.major,eps)
+                && shellNear(cylinder.Radius(),role.major,eps)
                 && lineDistance(role.center,role.axis,cylinder.Location())<=eps;
         }else if(role.kind==2 && kind==GeomAbs_Torus){
             const auto torus=s.Torus();good=parallel(torus.Axis().Direction(),role.axis)
-                && near(torus.MajorRadius(),role.major,eps) && near(torus.MinorRadius(),role.minor,eps)
-                && near(torus.Location(),role.center,eps);
+                && shellNear(torus.MajorRadius(),role.major,eps) && shellNear(torus.MinorRadius(),role.minor,eps)
+                && shellNear(torus.Location(),role.center,eps);
         }
         if(good){if(!match.isEmpty())return {};match=role.key;}
     }
@@ -309,12 +309,12 @@ std::optional<CurveSpan> span(const TopoDS_Edge& edge,const BoxBlend& b){
     return out;
 }
 bool sameSpan(const CurveSpan& a,const CurveSpan& c,double eps){
-    if(a.kind!=c.kind || !near(a.start,c.start,eps) && !near(a.start,c.end,eps)
-        || !near(a.end,c.end,eps) && !near(a.end,c.start,eps))return false;
+    if(a.kind!=c.kind || !shellNear(a.start,c.start,eps) && !shellNear(a.start,c.end,eps)
+        || !shellNear(a.end,c.end,eps) && !shellNear(a.end,c.start,eps))return false;
     if(a.kind==0)return true;
-    return near(a.center,c.center,eps)&&parallel(a.axis,c.axis)
-        && near(a.radius,c.radius,eps)&&near(a.sweep,c.sweep,1e-7)
-        && near(a.middle,c.middle,eps);
+    return shellNear(a.center,c.center,eps)&&parallel(a.axis,c.axis)
+        && shellNear(a.radius,c.radius,eps)&&shellNear(a.sweep,c.sweep,1e-7)
+        && shellNear(a.middle,c.middle,eps);
 }
 struct CatalogFace {TopoDS_Face face;std::vector<CurveSpan> edges;
     std::vector<QSet<QString>> adjacentRoles;gp_Dir normal=gp::DZ();};
@@ -343,7 +343,7 @@ Catalog catalog(const TopoDS_Shape& shape,const BoxBlend& b,const QString& featu
         QSet<int> assigned;
         for(int vi=1;vi<=vertices.Extent();++vi){
             const auto vertex=BRep_Tool::Pnt(TopoDS::Vertex(vertices(vi)));int match=-1;
-            for(size_t wi=0;wi<wanted.size();++wi)if(near(vertex,wanted[wi],b.eps)){
+            for(size_t wi=0;wi<wanted.size();++wi)if(shellNear(vertex,wanted[wi],b.eps)){
                 if(match>=0)fail(featureId,"shell_blend_uncertified","Rounded envelope corner is ambiguous");match=static_cast<int>(wi);
             }
             if(match<0 || assigned.contains(match))fail(featureId,"shell_blend_uncertified","Rounded envelope trim does not span its convex domain");
@@ -357,7 +357,7 @@ Catalog catalog(const TopoDS_Shape& shape,const BoxBlend& b,const QString& featu
             if(role->startsWith("vertical"))expectedV=b.h-2*b.r;
             else if(role->startsWith("rimX"))expectedV=b.w-2*b.R;
             else if(role->startsWith("rimY"))expectedV=b.d-2*b.R;
-            if(!near(u1-u0,std::numbers::pi/2,1e-6) || !near(v1-v0,expectedV,1e-6))
+            if(!shellNear(u1-u0,std::numbers::pi/2,1e-6) || !shellNear(v1-v0,expectedV,1e-6))
                 fail(featureId,"shell_blend_uncertified","Curved face extends outside its convex quarter domain");
         }
         for(int ei=1;ei<=edges.Extent();++ei){
@@ -380,14 +380,14 @@ Catalog catalog(const TopoDS_Shape& shape,const BoxBlend& b,const QString& featu
                     fail(featureId,"shell_blend_uncertified","Curved trim is not an iso-parametric segment");
                 const auto a=planar.Value(first),c=planar.Value(last);
                 const auto covers=[](double first,double last,double low,double high){
-                    return near(first,low,1e-6)&&near(last,high,1e-6)
-                        || near(first,high,1e-6)&&near(last,low,1e-6);
+                    return shellNear(first,low,1e-6)&&shellNear(last,high,1e-6)
+                        || shellNear(first,high,1e-6)&&shellNear(last,low,1e-6);
                 };
-                const bool edgeOfRectangle=(near(a.X(),c.X(),1e-6)
-                    && (near(a.X(),u0,1e-6)||near(a.X(),u1,1e-6))
+                const bool edgeOfRectangle=(shellNear(a.X(),c.X(),1e-6)
+                    && (shellNear(a.X(),u0,1e-6)||shellNear(a.X(),u1,1e-6))
                     && covers(a.Y(),c.Y(),v0,v1))
-                    || (near(a.Y(),c.Y(),1e-6)
-                    && (near(a.Y(),v0,1e-6)||near(a.Y(),v1,1e-6))
+                    || (shellNear(a.Y(),c.Y(),1e-6)
+                    && (shellNear(a.Y(),v0,1e-6)||shellNear(a.Y(),v1,1e-6))
                     && covers(a.X(),c.X(),u0,u1));
                 if(!edgeOfRectangle)
                     fail(featureId,"shell_blend_uncertified","Curved trim does not cover one full domain side");
@@ -434,7 +434,7 @@ QString innerEndpoint(const gp_Pnt& p,const BoxBlend& b,const QString& featureId
     const auto coordinate=[&](double value,double low,double high){
         const std::array<double,4> levels{low,low+b.R,high-b.R,high};
         int found=-1;
-        for(int i=0;i<4;++i)if(near(value,levels[i],b.eps)){
+        for(int i=0;i<4;++i)if(shellNear(value,levels[i],b.eps)){
             if(found>=0)fail(featureId,"shell_blend_uncertified","Inner endpoint has ambiguous semantic level");
             found=i;
         }
@@ -442,7 +442,7 @@ QString innerEndpoint(const gp_Pnt& p,const BoxBlend& b,const QString& featureId
         return found;
     };
     const auto x=coordinate(p.X(),b.x,b.x+b.w),y=coordinate(p.Y(),b.y,b.y+b.d);
-    const auto z=near(p.Z(),b.z,b.eps)?0:near(p.Z(),b.z+b.h,b.eps)?1:-1;
+    const auto z=shellNear(p.Z(),b.z,b.eps)?0:shellNear(p.Z(),b.z+b.h,b.eps)?1:-1;
     if(z<0)fail(featureId,"shell_blend_uncertified","Inner endpoint has no axial role");
     return QString("x%1y%2z%3").arg(x).arg(y).arg(z);
 }
@@ -465,12 +465,12 @@ std::vector<EvaluatedSupportFace> innerSupports(const EvaluatedBody& body,const 
         if(origin.size()!=3 || normal.size()!=3)continue;
         const auto p=point(origin);const gp_Dir n(normal[0].toDouble(),normal[1].toDouble(),normal[2].toDouble());
         QString role;
-        if(n.Dot(gp::DX().Reversed())>1-1e-7 && near(p.X(),b.x,b.eps))role="x0";
-        else if(n.Dot(gp::DX())>1-1e-7 && near(p.X(),b.x+b.w,b.eps))role="x1";
-        else if(n.Dot(gp::DY().Reversed())>1-1e-7 && near(p.Y(),b.y,b.eps))role="y0";
-        else if(n.Dot(gp::DY())>1-1e-7 && near(p.Y(),b.y+b.d,b.eps))role="y1";
-        else if(n.Dot(gp::DZ().Reversed())>1-1e-7 && near(p.Z(),b.z,b.eps))role="z0";
-        else if(n.Dot(gp::DZ())>1-1e-7 && near(p.Z(),b.z+b.h,b.eps))role="z1";
+        if(n.Dot(gp::DX().Reversed())>1-1e-7 && shellNear(p.X(),b.x,b.eps))role="x0";
+        else if(n.Dot(gp::DX())>1-1e-7 && shellNear(p.X(),b.x+b.w,b.eps))role="x1";
+        else if(n.Dot(gp::DY().Reversed())>1-1e-7 && shellNear(p.Y(),b.y,b.eps))role="y0";
+        else if(n.Dot(gp::DY())>1-1e-7 && shellNear(p.Y(),b.y+b.d,b.eps))role="y1";
+        else if(n.Dot(gp::DZ().Reversed())>1-1e-7 && shellNear(p.Z(),b.z,b.eps))role="z0";
+        else if(n.Dot(gp::DZ())>1-1e-7 && shellNear(p.Z(),b.z+b.h,b.eps))role="z1";
         if(role.isEmpty())continue;
         if(sources.contains(role))fail(featureId,"shell_blend_uncertified","Original planar support identity is ambiguous");
         sources.insert(role,source);
@@ -509,7 +509,7 @@ std::vector<EvaluatedSupportFace> innerSupports(const EvaluatedBody& body,const 
             if(matched<0 || used.contains(matched))fail(featureId,"shell_blend_uncertified","Inner plane edge has no unique void lineage");
             used.insert(matched);
             auto vertexIndex=[&](const gp_Pnt& p){int found=-1;
-                for(size_t i=0;i<innerCorners.size();++i)if(near(p,innerCorners[i],b.eps)){
+                for(size_t i=0;i<innerCorners.size();++i)if(shellNear(p,innerCorners[i],b.eps)){
                     if(found>=0)fail(featureId,"shell_blend_uncertified","Inner corner is ambiguous");
                     found=static_cast<int>(i);
                 }
@@ -551,7 +551,7 @@ bool ClosedBlendShell::evaluate(EvaluatedBody& body,const QJsonObject& parameter
         catalog(voidShape,ib,featureId,true);
         const double expectedVoid=(ib.w*ib.d-(4-M_PI)*ib.R*ib.R)*ib.h;
         const auto voidSummary=GeometryKernel::summarize(voidShape);
-        if(!near(voidSummary["volumeMm3"].toDouble(),expectedVoid,
+        if(!shellNear(voidSummary["volumeMm3"].toDouble(),expectedVoid,
             std::max(1e-4,expectedVoid*1e-8)) || !(expectedVoid>0)
             || !(expectedVoid<body.summary["volumeMm3"].toDouble()))
             fail(featureId,"shell_blend_uncertified","Inner cavity volume disagrees with analytic domain");

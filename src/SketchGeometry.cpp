@@ -87,13 +87,13 @@ std::array<double,4> linkedRectangleBounds(const QJsonObject& parameters,const Q
     }
     if(x1-x0<minimumLength || y1-y0<minimumLength)reject("Closed Offset rectangle is degenerate");
     QSet<int> sides;
-    const auto near=[](double a,double b){return std::abs(a-b)<1e-6;};
+    const auto sketchNear=[](double a,double b){return std::abs(a-b)<1e-6;};
     for(const auto& [a,b]:segments) {
         int side=-1;
-        if(near(a.y(),y0) && near(b.y(),y0) && near(std::abs(a.x()-b.x()),x1-x0))side=0;
-        else if(near(a.x(),x1) && near(b.x(),x1) && near(std::abs(a.y()-b.y()),y1-y0))side=1;
-        else if(near(a.y(),y1) && near(b.y(),y1) && near(std::abs(a.x()-b.x()),x1-x0))side=2;
-        else if(near(a.x(),x0) && near(b.x(),x0) && near(std::abs(a.y()-b.y()),y1-y0))side=3;
+        if(sketchNear(a.y(),y0) && sketchNear(b.y(),y0) && sketchNear(std::abs(a.x()-b.x()),x1-x0))side=0;
+        else if(sketchNear(a.x(),x1) && sketchNear(b.x(),x1) && sketchNear(std::abs(a.y()-b.y()),y1-y0))side=1;
+        else if(sketchNear(a.y(),y1) && sketchNear(b.y(),y1) && sketchNear(std::abs(a.x()-b.x()),x1-x0))side=2;
+        else if(sketchNear(a.x(),x0) && sketchNear(b.x(),x0) && sketchNear(std::abs(a.y()-b.y()),y1-y0))side=3;
         if(side<0 || sides.contains(side))reject("Closed Offset requires one complete edge on each rectangle side");
         sides.insert(side);
     }
