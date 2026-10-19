@@ -604,11 +604,18 @@
         "DOC-011",
         "DOC-012",
         "DOC-013",
-        "DOC-014",
         "FND-006",
         "FND-007",
         "FND-010",
-        "FND-011"
+        "FND-011",
+        "DOC-039",
+        "DOC-038",
+        "DOC-021",
+        "DOC-023",
+        "DOC-027",
+        "DOC-028",
+        "DOC-029",
+        "DOC-032"
       ],
       "labels": [
         "kind:validation",
@@ -616,7 +623,7 @@
         "priority:P0",
         "area:gate"
       ],
-      "body": "## Problem and result\nGate: first useful geometry object survives save and STEP round-trip. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nCreate a 20\u00d730\u00d710 mm gauge block and radius-5 mm cylinder through Alloy, select/inspect them, modify a primitive, undo/redo, save/reopen and export STEP. This is a blocking product validation gate, not an implementation substitute.\n\n## Acceptance criteria\n- Run the supported capability ledger from installed macOS, Windows and Linux candidate packages; retain per-platform package hashes and runtime/GPU results. Architecture/minimum-version exceptions must be explicit unresolved blockers rather than omitted assets.\n- All dependencies are implemented and their evidence reviewed; no unavailable/mock command may satisfy a step. Require live hardware-backed OCCT/OpenGL diagnostics, native Retina resize/picking and actual framebuffer capture; software fallback cannot satisfy the gate. Check analytic volume/bounds, actual selected identities, document parameters/IDs, independent STEP readback, physical pick/navigation and geometry-visible screenshot.\n\n## Proposed verification and evidence\nRe-run GATE-000 and GATE-005 and every previously accepted workflow in the capability-to-fixture ledger on the same build. Execute `python3 tests/workflows/run.py --gate GATE-010 --cumulative --evidence build/evidence/GATE-010` (proposed interface). Launch the real Alloy executable in a desktop session; create the object through Alloy automation, use direct computer input only for uncovered physical interactions, then inspect shared state. Capture before/after and reopen/export artifacts. The gate report lists every covered capability and prior fixture, tolerances, failures and unsupported behavior. Build-only/unit-only checks or stale captures cannot close this gate.\n\nAdd/execute `python3 tests/workflows/run.py --case GATE-010 --evidence build/evidence/GATE-010` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- reference CAD application desktop interface (reference `ui`) \u2014 retrieved 2026-10-11.\n- reference CAD application public command-input descriptions (reference `inputs`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nClosure requires fresh cumulative evidence on the candidate build. No reference CAD application runtime comparison. Reference visual claims require public-source provenance and matched viewport/scale/state, or explicit mismatch qualifications.\n"
+      "body": "## Problem and result\nGate: first useful geometry object survives save and STEP round-trip. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nCreate a 20\u00d730\u00d710 mm gauge block and radius-5 mm cylinder through Alloy, select/inspect them, modify a primitive, undo/redo, save/reopen and export STEP. This is a blocking product validation gate, not an implementation substitute.\n\n## Acceptance criteria\n- Run the supported capability ledger from installed macOS, Windows and Linux candidate packages; retain per-platform package hashes and runtime/GPU results. Architecture/minimum-version exceptions must be explicit unresolved blockers rather than omitted assets.\n- All dependencies are implemented and their evidence reviewed; no unavailable/mock command may satisfy a step. Require live hardware-backed OCCT/OpenGL diagnostics, native Retina resize/picking and actual framebuffer capture; software fallback cannot satisfy the gate. Check analytic volume/bounds, actual selected identities, document parameters/IDs, independent STEP readback, physical pick/navigation and geometry-visible screenshot.\n\n## Proposed verification and evidence\nRe-run GATE-000 and GATE-005 and every previously accepted workflow in the capability-to-fixture ledger on the same build. Execute `python3 tests/workflows/run.py --gate GATE-010 --cumulative --evidence build/evidence/GATE-010` (proposed interface). Launch the real Alloy executable in a desktop session; create the object through Alloy automation, use direct computer input only for uncovered physical interactions, then inspect shared state. Capture before/after and reopen/export artifacts. The gate report lists every covered capability and prior fixture, tolerances, failures and unsupported behavior. Build-only/unit-only checks or stale captures cannot close this gate.\n\nAdd/execute `python3 tests/workflows/run.py --case GATE-010 --evidence build/evidence/GATE-010` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- reference CAD application desktop interface (reference `ui`) \u2014 retrieved 2026-10-11.\n- reference CAD application public command-input descriptions (reference `inputs`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nClosure requires fresh cumulative evidence on the candidate build. No reference CAD application runtime comparison. Reference visual claims require public-source provenance and matched viewport/scale/state, or explicit mismatch qualifications.\n\n## First-v1 dependency boundary (2026-10-19)\nThe dependencies above name supported first-v1 subsets and cumulative fixtures. Broader family parents remain open for deferred noncloud modes, but do not block this gate merely because those later modes are unfinished. The release execution ledger still requires every proposed-v1 minimum, native geometry/edit/undo/reopen/output evidence and exact candidate-package platform checks; a dependency link alone is not acceptance.\n"
     },
     {
       "key": "SKT-001",
@@ -939,7 +946,7 @@
         "priority:P0",
         "area:his"
       ],
-      "body": "## Problem and result\nImplement timeline edit, rollback marker and suppression. Deliver the bounded result below within Alloy's standalone C++20 product.\n\n## Scope\nBind visible timeline to actual features; edit inputs, move evaluation marker, suppress/unsuppress with dependent propagation and guarded reorder.\n\n## Acceptance criteria\n- Temporary rollback does not delete authored future; suppression and hidden display are distinct; invalid dependency reorder is rejected.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nSuppress bracket fillet, roll before extrusion, restore end, change parameter and undo; check resulting features and save/reopen suppression.\n\nAdd/execute `python3 tests/workflows/run.py --case HIS-003 --evidence build/evidence/HIS-003` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Timeline editing and suppression (reference `timeline`) \u2014 retrieved 2026-10-11.\n- Parametric, direct, and base-feature modes (reference `modes`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n\n\n## Observed timeline readability case\nThe complete24feature die at1400x900 compresses every feature into the available width; labels become repeated truncated text and controls crowd. Evidence build-tutorial-polish/evidence/die-final/04-complete-die.png (2026-10-13). Preserve readable stable feature targets with a deliberate overflow/scroll policy when implementing broader Timeline controls. No fix or exact reference layout claim is implied by the accepted die geometry gate.\n\n\n## Bounded readability child\nHIS-005 owns fixed-size targets, overflow and complete names. Keep this parent Todo for rollback, suppression and wider history acceptance.\n\n\n## Advanced tutorial child\nHIS-006 owns the bounded reorder a feature in the timeline with dependency validation slice. This parent retains all remaining scope and stays Todo.\n\n\nBounded advanced tutorial child: HIS-007. Parent retains remaining scope.\n\n\n## Retained assembly history remainder\nASM-014 follows the established top-level typed joints[] authority for its bounded Revolute seed and gives Pin an actual assemblyPin timeline feature. Preserve broader joint timeline insertion, suppression, rollback and reorder here; do not mistake joint undo/save metadata for full feature timeline support. Prefix evaluation before a Pin must explicitly exclude that constraint, with qualified unpinned behavior or atomic refusal, never silently read the full-document Pin. Split this assembly history work into a bounded child when pulled; it remains Todo rather than blocking the initial source joint/Pin operation sequence."
+      "body": "## Problem and result\nImplement timeline edit, rollback marker and suppression. Deliver the bounded result below within Alloy's standalone C++20 product.\n\n## Scope\nBind visible timeline to actual features; edit inputs, move evaluation marker, suppress/unsuppress with dependent propagation and guarded reorder.\n\n## Acceptance criteria\n- Temporary rollback does not delete authored future; suppression and hidden display are distinct; invalid dependency reorder is rejected.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nSuppress bracket fillet, roll before extrusion, restore end, change parameter and undo; check resulting features and save/reopen suppression.\n\nAdd/execute `python3 tests/workflows/run.py --case HIS-003 --evidence build/evidence/HIS-003` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Timeline editing and suppression (reference `timeline`) \u2014 retrieved 2026-10-11.\n- Parametric, direct, and base-feature modes (reference `modes`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n\n\n## Observed timeline readability case\nThe complete24feature die at1400x900 compresses every feature into the available width; labels become repeated truncated text and controls crowd. Evidence build-tutorial-polish/evidence/die-final/04-complete-die.png (2026-10-13). Preserve readable stable feature targets with a deliberate overflow/scroll policy when implementing broader Timeline controls. No fix or exact reference layout claim is implied by the accepted die geometry gate.\n\n\n## Bounded readability child\nHIS-005 owns fixed-size targets, overflow and complete names. Keep this parent Todo for rollback, suppression and wider history acceptance.\n\n\n## Advanced tutorial child\nHIS-006 owns the bounded reorder a feature in the timeline with dependency validation slice. This parent retains all remaining scope and stays Todo.\n\n\nBounded advanced tutorial child: HIS-007. Parent retains remaining scope.\n\n\n## Retained assembly history remainder\nASM-014 follows the established top-level typed joints[] authority for its bounded Revolute seed and gives Pin an actual assemblyPin timeline feature. Preserve broader joint timeline insertion, suppression, rollback and reorder here; do not mistake joint undo/save metadata for full feature timeline support. Prefix evaluation before a Pin must explicitly exclude that constraint, with qualified unpinned behavior or atomic refusal, never silently read the full-document Pin. Split this assembly history work into a bounded child when pulled; it remains Todo rather than blocking the initial source joint/Pin operation sequence.\n\n## Bounded history children\nHIS-011 owns one retained suppression/restore workflow; suppression state is authored and survives save/reopen. HIS-012 owns temporary rollback; the marker is transient and save/reopen evaluates the latest authored feature. These children do not close broader suppression, rollback, reorder, or assembly-history requirements.\n"
     },
     {
       "key": "PRT-001",
@@ -1289,8 +1296,7 @@
       "phase": "P2 Parametric modeling",
       "priority": "P0",
       "depends_on": [
-        "SKT-007",
-        "SKT-011"
+        "SKT-007"
       ],
       "labels": [
         "kind:implementation",
@@ -1298,7 +1304,7 @@
         "priority:P0",
         "area:skt"
       ],
-      "body": "## Problem and result\nMake the illustrated bracket workflow executable exactly, including native interaction and visual state.\n\n## Scope\nA2.2: sketch-level Fillet for two selected corners in one command, radius 100, Enter commit. Distinct from solid edge fillets.\n\n## Acceptance criteria\nTrim lines and insert exact tangent arcs with a shared/equal radius relationship. Handle affected dimensional references explicitly; source lower 500 dimension disappears as illustrated. Preview/cancel and undo are atomic. Radius/tangent/equal glyphs and selected-corner cues reflect actual authored state.\n\n## Proposed verification and evidence\nUse exact bracket corners and radius; inspect arc geometry, relation identities and dimension removal; compare fillet checkpoint image; one cancel and undo check.\n\n## Public reference evidence\n- Original illustrated bracket lesson (reference `tutorial-illustrated-bracket`) \u2014 retrieved 2026-10-12. Detailed source steps, URLs and visual references remain outside the repository.\n\n## Limits and open questions\nPlanned, not implemented or accepted. Underlying API capability alone is not exact interaction evidence. Preserve public-source uncertainty; no proprietary application inspection.\n\n\n## Tutorial delivery order\nFollow `docs/backlog/tutorial-sequence.json`. Implement tutorial-required slices first; retain full issue acceptance and dependencies. Record each source step separately as passed, mismatch, blocked or unknown, with API/geometry, native-input and visual evidence distinguished.\n"
+      "body": "## Problem and result\nMake the illustrated bracket workflow executable exactly, including native interaction and visual state.\n\n## Scope\nA2.2: sketch-level Fillet for two selected corners in one command, radius 100, Enter commit. Distinct from solid edge fillets.\n\n## Acceptance criteria\nTrim lines and insert exact tangent arcs with a shared/equal radius relationship. Handle affected dimensional references explicitly; source lower 500 dimension disappears as illustrated. Preview/cancel and undo are atomic. Radius/tangent/equal glyphs and selected-corner cues reflect actual authored state.\n\n## Proposed verification and evidence\nUse exact bracket corners and radius; inspect arc geometry, relation identities and dimension removal; compare fillet checkpoint image; one cancel and undo check.\n\n## Public reference evidence\n- Original illustrated bracket lesson (reference `tutorial-illustrated-bracket`) \u2014 retrieved 2026-10-12. Detailed source steps, URLs and visual references remain outside the repository.\n\n## Limits and open questions\nPlanned, not implemented or accepted. Underlying API capability alone is not exact interaction evidence. Preserve public-source uncertainty; no proprietary application inspection.\n\n\n## Tutorial delivery order\nFollow `docs/backlog/tutorial-sequence.json`. Implement tutorial-required slices first; retain full issue acceptance and dependencies. Record each source step separately as passed, mismatch, blocked or unknown, with API/geometry, native-input and visual evidence distinguished.\n\n## First-v1 dependency note\nThis bounded two-corner sketch Fillet owns its own source-line trimming and constraint disposition; it does not require all Trim/Extend/Break/Offset from SKT-011.\n"
     },
     {
       "key": "SOL-016",
@@ -1335,9 +1341,9 @@
         "SKT-008",
         "SKT-010",
         "SKT-013",
-        "SKT-016",
         "FND-011",
-        "SOL-058"
+        "SOL-058",
+        "SKT-170"
       ],
       "labels": [
         "kind:validation",
@@ -1345,7 +1351,7 @@
         "priority:P0",
         "area:tut"
       ],
-      "body": "## Problem and result\nMake the illustrated bracket workflow executable exactly, including native interaction and visual state.\n\n## Scope\nExecute all three public illustrated activities in their documented order. Contract: docs/research/illustrated-bracket-gate.md; full step audit and visual sources external.\n\n## Acceptance criteria\nEvery numbered action and the profile-toggle note pass with exact tools, selection order, values and geometry. Visual acceptance includes constraint glyph identity/visibility, relation anchors, hover/selection, construction styling, dimensions, constrained colors, profile fills and manipulators. Any missing step or visual mismatch keeps gate blocked. No numerical-coordinate, separate Combine or manual body substitution.\n\n## Proposed verification and evidence\nUse local shared command API for state/geometry/undo/reopen and native input for command-first selection, snapping, inline values, context menus, drag and modifiers. Compare source-linked checkpoint captures with matched view/crop and declared scale limitations. Astra verifies independently. No dummy passing runner; unimplemented gate must refuse execution. Scope test evidence to the workflow, not exhaustive combinations.\n\n## Public reference evidence\n- Original illustrated bracket lesson (reference `tutorial-illustrated-bracket`) \u2014 retrieved 2026-10-12. Detailed source steps, URLs and visual references remain outside the repository.\n\n## Limits and open questions\nPlanned, not implemented or accepted. Underlying API capability alone is not exact interaction evidence. Preserve public-source uncertainty; no proprietary application inspection.\n\n## Permitted source variation\nActivity 1 permits initial automatic constraints to differ before explicit manual constraints. Honor that allowance while requiring the same final intended relations and geometry. The image archive distinguishes scene screenshots, command icons and unavailable icon URLs; toolbar icons do not prove in-canvas badge appearance.\n\n\n## Tutorial delivery order\nFollow `docs/backlog/tutorial-sequence.json`. Implement tutorial-required slices first; retain full issue acceptance and dependencies. Record each source step separately as passed, mismatch, blocked or unknown, with API/geometry, native-input and visual evidence distinguished.\n"
+      "body": "## Problem and result\nMake the illustrated bracket workflow executable exactly, including native interaction and visual state.\n\n## Scope\nExecute all three public illustrated activities in their documented order. Contract: docs/research/illustrated-bracket-gate.md; full step audit and visual sources external.\n\n## Acceptance criteria\nEvery numbered action and the profile-toggle note pass with exact tools, selection order, values and geometry. Visual acceptance includes constraint glyph identity/visibility, relation anchors, hover/selection, construction styling, dimensions, constrained colors, profile fills and manipulators. Any missing step or visual mismatch keeps gate blocked. No numerical-coordinate, separate Combine or manual body substitution.\n\n## Proposed verification and evidence\nUse local shared command API for state/geometry/undo/reopen and native input for command-first selection, snapping, inline values, context menus, drag and modifiers. Compare source-linked checkpoint captures with matched view/crop and declared scale limitations. Astra verifies independently. No dummy passing runner; unimplemented gate must refuse execution. Scope test evidence to the workflow, not exhaustive combinations.\n\n## Public reference evidence\n- Original illustrated bracket lesson (reference `tutorial-illustrated-bracket`) \u2014 retrieved 2026-10-12. Detailed source steps, URLs and visual references remain outside the repository.\n\n## Limits and open questions\nPlanned, not implemented or accepted. Underlying API capability alone is not exact interaction evidence. Preserve public-source uncertainty; no proprietary application inspection.\n\n## Permitted source variation\nActivity 1 permits initial automatic constraints to differ before explicit manual constraints. Honor that allowance while requiring the same final intended relations and geometry. The image archive distinguishes scene screenshots, command icons and unavailable icon URLs; toolbar icons do not prove in-canvas badge appearance.\n\n\n## Tutorial delivery order\nFollow `docs/backlog/tutorial-sequence.json`. Implement tutorial-required slices first; retain full issue acceptance and dependencies. Record each source step separately as passed, mismatch, blocked or unknown, with API/geometry, native-input and visual evidence distinguished.\n\n## First-v1 dependency note\nThe bracket gate depends on SKT-170 for its exact midpoint/construction picks; SKT-016 retains wider point-to-edge and relation family scope.\n"
     },
     {
       "key": "SKT-020",
@@ -1580,13 +1586,11 @@
         "SKT-007",
         "SKT-008",
         "SKT-009",
-        "PAR-001",
         "HIS-001",
         "SOL-001",
         "SOL-002",
         "SOL-003",
         "HIS-002",
-        "HIS-003",
         "PRT-001",
         "SKT-015",
         "SOL-015",
@@ -1595,16 +1599,30 @@
         "SKT-020",
         "FND-014",
         "FND-015",
-        "SKT-021",
         "SKT-022",
         "SKT-023",
         "SKT-024",
-        "SOL-017",
         "TUT-025",
         "FND-026",
         "TUT-026",
         "TUT-027",
-        "TUT-028"
+        "TUT-028",
+        "PAR-003",
+        "PAR-004",
+        "PAR-005",
+        "PAR-006",
+        "PAR-007",
+        "PAR-008",
+        "HIS-005",
+        "HIS-006",
+        "SKT-040",
+        "SKT-042",
+        "SKT-070",
+        "SKT-084",
+        "SKT-085",
+        "SKT-086",
+        "SKT-164",
+        "SOL-047"
       ],
       "labels": [
         "kind:validation",
@@ -1612,7 +1630,7 @@
         "priority:P0",
         "area:gate"
       ],
-      "body": "## Problem and result\nGate: editable bracket from constrained sketch through printable export. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nCreate an independently specified mounting bracket: anchored dimensioned plate sketch, 5 mm extrusion, a new sketch on a selected planar body face with projected-edge dimensions, perpendicular support joined to it, two radius-3 through holes, and 1 mm edge fillets. Change plate width 40\u219250 mm upstream, recompute, undo/redo, save/reopen, export STL and STEP. This is a blocking product validation gate, not an implementation substitute.\n\n## Acceptance criteria\n- Run the supported capability ledger from installed macOS, Windows and Linux candidate packages; retain per-platform package hashes and runtime/GPU results. Architecture/minimum-version exceptions must be explicit unresolved blockers rather than omitted assets.\n- All dependencies are implemented and their evidence reviewed; no unavailable/mock command may satisfy a step. Verify actual DOF/constraints, parameter values, selected semantic edge references, valid closed solid, measured dimensions and positive volume; compare pre-fillet analytic volume and post-fillet bounds/validity within declared tolerances. Include a physical dimension edit and capture the edited feature/dialog/timeline.\n\n## Proposed verification and evidence\nRe-run GATE-000 and GATE-010 and every previously accepted workflow in the capability-to-fixture ledger on the same build. Execute `python3 tests/workflows/run.py --gate GATE-020 --cumulative --evidence build/evidence/GATE-020` (proposed interface). Launch the real Alloy executable in a desktop session; create the object through Alloy automation, use direct computer input only for uncovered physical interactions, then inspect shared state. Capture before/after and reopen/export artifacts. The gate report lists every covered capability and prior fixture, tolerances, failures and unsupported behavior. Build-only/unit-only checks or stale captures cannot close this gate.\n\nAdd/execute `python3 tests/workflows/run.py --case GATE-020 --evidence build/evidence/GATE-020` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- reference CAD application desktop interface (reference `ui`) \u2014 retrieved 2026-10-11.\n- reference CAD application public command-input descriptions (reference `inputs`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nClosure requires fresh cumulative evidence on the candidate build. No reference CAD application runtime comparison. Reference visual claims require public-source provenance and matched viewport/scale/state, or explicit mismatch qualifications.\n\n\n## Tutorial delivery order\nFollow `docs/backlog/tutorial-sequence.json`. Implement tutorial-required slices first; retain full issue acceptance and dependencies. Record each source step separately as passed, mismatch, blocked or unknown, with API/geometry, native-input and visual evidence distinguished.\n"
+      "body": "## Problem and result\nGate: editable bracket from constrained sketch through printable export. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nCreate an independently specified mounting bracket: anchored dimensioned plate sketch, 5 mm extrusion, a new sketch on a selected planar body face with projected-edge dimensions, perpendicular support joined to it, two radius-3 through holes, and 1 mm edge fillets. Change plate width 40\u219250 mm upstream, recompute, undo/redo, save/reopen, export STL and STEP. This is a blocking product validation gate, not an implementation substitute.\n\n## Acceptance criteria\n- Run the supported capability ledger from installed macOS, Windows and Linux candidate packages; retain per-platform package hashes and runtime/GPU results. Architecture/minimum-version exceptions must be explicit unresolved blockers rather than omitted assets.\n- All dependencies are implemented and their evidence reviewed; no unavailable/mock command may satisfy a step. Verify actual DOF/constraints, parameter values, selected semantic edge references, valid closed solid, measured dimensions and positive volume; compare pre-fillet analytic volume and post-fillet bounds/validity within declared tolerances. Include a physical dimension edit and capture the edited feature/dialog/timeline.\n\n## Proposed verification and evidence\nRe-run GATE-000 and GATE-010 and every previously accepted workflow in the capability-to-fixture ledger on the same build. Execute `python3 tests/workflows/run.py --gate GATE-020 --cumulative --evidence build/evidence/GATE-020` (proposed interface). Launch the real Alloy executable in a desktop session; create the object through Alloy automation, use direct computer input only for uncovered physical interactions, then inspect shared state. Capture before/after and reopen/export artifacts. The gate report lists every covered capability and prior fixture, tolerances, failures and unsupported behavior. Build-only/unit-only checks or stale captures cannot close this gate.\n\nAdd/execute `python3 tests/workflows/run.py --case GATE-020 --evidence build/evidence/GATE-020` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- reference CAD application desktop interface (reference `ui`) \u2014 retrieved 2026-10-11.\n- reference CAD application public command-input descriptions (reference `inputs`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nClosure requires fresh cumulative evidence on the candidate build. No reference CAD application runtime comparison. Reference visual claims require public-source provenance and matched viewport/scale/state, or explicit mismatch qualifications.\n\n\n## Tutorial delivery order\nFollow `docs/backlog/tutorial-sequence.json`. Implement tutorial-required slices first; retain full issue acceptance and dependencies. Record each source step separately as passed, mismatch, blocked or unknown, with API/geometry, native-input and visual evidence distinguished.\n\n## First-v1 dependency boundary (2026-10-19)\nThe dependencies above name supported first-v1 subsets and cumulative fixtures. Broader family parents remain open for deferred noncloud modes, but do not block this gate merely because those later modes are unfinished. The release execution ledger still requires every proposed-v1 minimum, native geometry/edit/undo/reopen/output evidence and exact candidate-package platform checks; a dependency link alone is not acceptance.\n"
     },
     {
       "key": "SKT-012",
@@ -2004,8 +2022,11 @@
       "phase": "P3 Shape/import/print breadth",
       "priority": "P1",
       "depends_on": [
-        "SRF-005",
-        "DOC-008"
+        "DOC-008",
+        "SRF-013",
+        "SRF-016",
+        "SRF-018",
+        "SRF-021"
       ],
       "labels": [
         "kind:implementation",
@@ -2013,7 +2034,7 @@
         "priority:P1",
         "area:srf"
       ],
-      "body": "## Problem and result\nStitch surfaces with measurable gap and tolerance reporting. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nSew selected surfaces into shell or solid, report free edges/gaps and actual tolerance changes; do not silently inflate tolerance.\n\n## Acceptance criteria\n- Closed watertight output is marked solid; open output stays surface shell; selected gap can be identified in UI/API.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nStitch independently generated box faces with exact, sub-tolerance and excessive gaps; assert free-edge count, solid status and failure policy.\n\nAdd/execute `python3 tests/workflows/run.py --case SRF-006 --evidence build/evidence/SRF-006` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Stitch surfaces into a quilt or solid (reference `stitch`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n"
+      "body": "## Problem and result\nStitch surfaces with measurable gap and tolerance reporting. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nSew selected surfaces into shell or solid, report free edges/gaps and actual tolerance changes; do not silently inflate tolerance.\n\n## Acceptance criteria\n- Closed watertight output is marked solid; open output stays surface shell; selected gap can be identified in UI/API.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nStitch independently generated box faces with exact, sub-tolerance and excessive gaps; assert free-edge count, solid status and failure policy.\n\nAdd/execute `python3 tests/workflows/run.py --case SRF-006 --evidence build/evidence/SRF-006` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Stitch surfaces into a quilt or solid (reference `stitch`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n\n## First-v1 dependency note\nThe first-v1 Stitch prerequisite is the bounded surface creation/Trim fixture set, not the whole later Extend/Untrim parent.\n"
     },
     {
       "key": "SRF-007",
@@ -2288,7 +2309,9 @@
       "priority": "P1",
       "depends_on": [
         "PRT-001",
-        "SRF-001"
+        "SRF-014",
+        "SRF-020",
+        "SRF-022"
       ],
       "labels": [
         "kind:implementation",
@@ -2296,7 +2319,7 @@
         "priority:P1",
         "area:prt"
       ],
-      "body": "## Scope\nPreserved follow-up from PRT-001 (#44): allow deliberate STL export of evaluated open surfaces once surface authoring exists. Label the selection/output as non-solid; never claim an open sheet is watertight or printable volume.\n\n## Acceptance\nUI/API share export authority, units and tessellation controls. Export an independently measured open sheet, read triangles independently, confirm boundary edges and correct area/bounds. Closed-solid mesh behavior remains unchanged. Useful errors preserve the design and existing destination files.\n\n## Verification\nRun the surface fixture at GATE-030. Keep actual topology, warning presentation and exported-file evidence separate. This deferred requirement is not part of the closed-solid bracket delivery.\n"
+      "body": "## Scope\nPreserved follow-up from PRT-001 (#44): allow deliberate STL export of evaluated open surfaces once surface authoring exists. Label the selection/output as non-solid; never claim an open sheet is watertight or printable volume.\n\n## Acceptance\nUI/API share export authority, units and tessellation controls. Export an independently measured open sheet, read triangles independently, confirm boundary edges and correct area/bounds. Closed-solid mesh behavior remains unchanged. Useful errors preserve the design and existing destination files.\n\n## Verification\nRun the surface fixture at GATE-030. Keep actual topology, warning presentation and exported-file evidence separate. This deferred requirement is not part of the closed-solid bracket delivery.\n\n## First-v1 dependency note\nOpen-sheet mesh export uses accepted surface creation subsets; broader surface constructors remain later owners.\n"
     },
     {
       "key": "GATE-030",
@@ -2307,33 +2330,100 @@
       "depends_on": [
         "GATE-020",
         "SKT-010",
-        "SKT-011",
-        "SKT-012",
-        "SOL-004",
-        "SOL-005",
-        "SOL-006",
-        "SOL-007",
-        "SOL-008",
-        "SOL-009",
-        "SOL-010",
-        "GEO-001",
-        "SOL-011",
-        "SOL-012",
-        "SOL-013",
-        "SRF-001",
-        "SRF-002",
-        "SRF-003",
-        "SRF-004",
-        "SRF-005",
         "SRF-006",
-        "SRF-007",
-        "SRF-008",
-        "SKT-016",
         "SOL-014",
         "TUT-001",
-        "SKT-026",
         "PRT-004",
-        "DOC-029"
+        "DOC-029",
+        "SKT-029",
+        "SKT-044",
+        "SKT-065",
+        "SKT-067",
+        "SKT-073",
+        "SKT-076",
+        "SKT-090",
+        "SKT-169",
+        "SKT-059",
+        "SKT-060",
+        "SKT-008",
+        "SKT-034",
+        "SKT-038",
+        "SKT-066",
+        "SKT-071",
+        "SKT-072",
+        "SOL-029",
+        "SOL-030",
+        "SOL-037",
+        "SOL-028",
+        "SOL-088",
+        "SOL-089",
+        "SOL-024",
+        "SOL-040",
+        "GEO-008",
+        "SOL-035",
+        "SOL-078",
+        "SOL-079",
+        "SOL-019",
+        "SOL-023",
+        "SOL-083",
+        "SOL-084",
+        "SOL-025",
+        "SOL-027",
+        "SOL-036",
+        "SOL-038",
+        "SOL-050",
+        "SOL-051",
+        "SOL-053",
+        "SOL-054",
+        "SOL-055",
+        "SOL-085",
+        "SOL-043",
+        "SOL-044",
+        "SOL-047",
+        "SOL-056",
+        "SOL-057",
+        "SOL-080",
+        "SOL-081",
+        "SOL-082",
+        "GEO-002",
+        "GEO-003",
+        "GEO-004",
+        "GEO-005",
+        "GEO-024",
+        "GEO-025",
+        "GEO-026",
+        "GEO-027",
+        "SOL-032",
+        "SOL-033",
+        "SOL-026",
+        "SOL-045",
+        "SOL-052",
+        "SOL-086",
+        "SOL-087",
+        "SRF-014",
+        "SRF-020",
+        "SRF-022",
+        "SRF-025",
+        "SRF-009",
+        "SRF-012",
+        "SRF-015",
+        "SRF-017",
+        "SRF-019",
+        "SRF-026",
+        "SRF-027",
+        "SRF-028",
+        "SRF-029",
+        "SRF-030",
+        "SRF-013",
+        "SRF-016",
+        "SRF-018",
+        "SRF-021",
+        "SRF-031",
+        "SRF-032",
+        "SRF-010",
+        "SRF-033",
+        "SRF-034",
+        "SRF-035"
       ],
       "labels": [
         "kind:validation",
@@ -2341,7 +2431,7 @@
         "priority:P0",
         "area:gate"
       ],
-      "body": "## Problem and result\nGate: surface-authored duct becomes an editable closed printable solid. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nBuild a tapered air duct or scoop from editable open profiles, surface loft/sweep, trim, patch/stitch and 2 mm thickening. Also retain an enclosure/knob/slot fixture covering newly added solid/sketch operations. This is a blocking product validation gate, not an implementation substitute.\n\n## Acceptance criteria\n- Run the supported capability ledger from installed macOS, Windows and Linux candidate packages; retain per-platform package hashes and runtime/GPU results. Architecture/minimum-version exceptions must be explicit unresolved blockers rather than omitted assets.\n- All dependencies are implemented and their evidence reviewed; no unavailable/mock command may satisfy a step. Check surface area/continuity separately from watertight solid validity; verify wall thickness, deliberate gap failure, upstream edit, native reopen and STEP/STL readback. The coverage ledger must map every new command subset to a fixture, including patterns, shell, draft, splines and projection repair.\n\n## Proposed verification and evidence\nRe-run GATE-000, GATE-010 and GATE-020 and every previously accepted workflow in the capability-to-fixture ledger on the same build. Execute `python3 tests/workflows/run.py --gate GATE-030 --cumulative --evidence build/evidence/GATE-030` (proposed interface). Launch the real Alloy executable in a desktop session; create the object through Alloy automation, use direct computer input only for uncovered physical interactions, then inspect shared state. Capture before/after and reopen/export artifacts. The gate report lists every covered capability and prior fixture, tolerances, failures and unsupported behavior. Build-only/unit-only checks or stale captures cannot close this gate.\n\nAdd/execute `python3 tests/workflows/run.py --case GATE-030 --evidence build/evidence/GATE-030` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- reference CAD application desktop interface (reference `ui`) \u2014 retrieved 2026-10-11.\n- reference CAD application public command-input descriptions (reference `inputs`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nClosure requires fresh cumulative evidence on the candidate build. No reference CAD application runtime comparison. Reference visual claims require public-source provenance and matched viewport/scale/state, or explicit mismatch qualifications.\n"
+      "body": "## Problem and result\nGate: surface-authored duct becomes an editable closed printable solid. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nBuild a tapered air duct or scoop from editable open profiles, surface loft/sweep, trim, patch/stitch and 2 mm thickening. Also retain an enclosure/knob/slot fixture covering newly added solid/sketch operations. This is a blocking product validation gate, not an implementation substitute.\n\n## Acceptance criteria\n- Run the supported capability ledger from installed macOS, Windows and Linux candidate packages; retain per-platform package hashes and runtime/GPU results. Architecture/minimum-version exceptions must be explicit unresolved blockers rather than omitted assets.\n- All dependencies are implemented and their evidence reviewed; no unavailable/mock command may satisfy a step. Check surface area/continuity separately from watertight solid validity; verify wall thickness, deliberate gap failure, upstream edit, native reopen and STEP/STL readback. The coverage ledger must map every new command subset to a fixture, including patterns, shell, draft, splines and projection repair.\n\n## Proposed verification and evidence\nRe-run GATE-000, GATE-010 and GATE-020 and every previously accepted workflow in the capability-to-fixture ledger on the same build. Execute `python3 tests/workflows/run.py --gate GATE-030 --cumulative --evidence build/evidence/GATE-030` (proposed interface). Launch the real Alloy executable in a desktop session; create the object through Alloy automation, use direct computer input only for uncovered physical interactions, then inspect shared state. Capture before/after and reopen/export artifacts. The gate report lists every covered capability and prior fixture, tolerances, failures and unsupported behavior. Build-only/unit-only checks or stale captures cannot close this gate.\n\nAdd/execute `python3 tests/workflows/run.py --case GATE-030 --evidence build/evidence/GATE-030` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- reference CAD application desktop interface (reference `ui`) \u2014 retrieved 2026-10-11.\n- reference CAD application public command-input descriptions (reference `inputs`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nClosure requires fresh cumulative evidence on the candidate build. No reference CAD application runtime comparison. Reference visual claims require public-source provenance and matched viewport/scale/state, or explicit mismatch qualifications.\n\n## First-v1 dependency boundary (2026-10-19)\nThe dependencies above name supported first-v1 subsets and cumulative fixtures. Broader family parents remain open for deferred noncloud modes, but do not block this gate merely because those later modes are unfinished. The release execution ledger still requires every proposed-v1 minimum, native geometry/edit/undo/reopen/output evidence and exact candidate-package platform checks; a dependency link alone is not acceptance.\n"
     },
     {
       "key": "XCH-001",
@@ -2445,7 +2535,8 @@
       "priority": "P1",
       "depends_on": [
         "XCH-001",
-        "SKT-011"
+        "SKT-029",
+        "SKT-044"
       ],
       "labels": [
         "kind:implementation",
@@ -2453,7 +2544,7 @@
         "priority:P1",
         "area:xch"
       ],
-      "body": "## Problem and result\nImport and export the declared DXF sketch subset. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nImplement selected line/arc/circle/polyline-bulge/spline support, layers, transforms and units using the approved library path; map to editable sketch geometry.\n\n## Acceptance criteria\n- Layer-to-single/multiple-sketch policy is explicit; unsupported blocks/entities are reported; export preserves declared geometry tolerance.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nImport independent layered plate outline in inches, select layers, extrude the closed contour, export sketch DXF and compare units/curves with separate reader.\n\nAdd/execute `python3 tests/workflows/run.py --case XCH-006 --evidence build/evidence/XCH-006` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Insert DXF (reference `dxf`) \u2014 retrieved 2026-10-11.\n- Supported file formats (reference `formats`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n"
+      "body": "## Problem and result\nImport and export the declared DXF sketch subset. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nImplement selected line/arc/circle/polyline-bulge/spline support, layers, transforms and units using the approved library path; map to editable sketch geometry.\n\n## Acceptance criteria\n- Layer-to-single/multiple-sketch policy is explicit; unsupported blocks/entities are reported; export preserves declared geometry tolerance.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nImport independent layered plate outline in inches, select layers, extrude the closed contour, export sketch DXF and compare units/curves with separate reader.\n\nAdd/execute `python3 tests/workflows/run.py --case XCH-006 --evidence build/evidence/XCH-006` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Insert DXF (reference `dxf`) \u2014 retrieved 2026-10-11.\n- Supported file formats (reference `formats`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n\n## First-v1 dependency note\nThe declared DXF sketch import subset uses supported sketch geometry/Trim fixtures, not the full sketch-modify family.\n"
     },
     {
       "key": "XCH-007",
@@ -2463,7 +2554,8 @@
       "priority": "P1",
       "depends_on": [
         "XCH-001",
-        "SKT-012"
+        "SKT-059",
+        "SKT-060"
       ],
       "labels": [
         "kind:implementation",
@@ -2471,7 +2563,7 @@
         "priority:P1",
         "area:xch"
       ],
-      "body": "## Problem and result\nImport SVG paths with explicit scale and transforms. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nSupport a declared path/basic-shape subset, viewBox/unit/transform rules and hole fill behavior; do not treat Qt image rendering as geometric import.\n\n## Acceptance criteria\n- Imported paths become selectable authored sketch curves; unsupported text/filter/image content is reported rather than silently omitted.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nUse own SVG fixtures with nested transforms, cubic curves and a hole; compare millimeter bounds and profile areas then extrude a nameplate.\n\nAdd/execute `python3 tests/workflows/run.py --case XCH-007 --evidence build/evidence/XCH-007` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Supported file formats (reference `formats`) \u2014 retrieved 2026-10-11.\n- Sketches in reference CAD application (reference `sketch`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nDetailed reference CAD application SVG insertion defaults remain unresolved; research and record them before claiming interaction parity. Keep an explicit subset while preserving long-term support.\n"
+      "body": "## Problem and result\nImport SVG paths with explicit scale and transforms. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nSupport a declared path/basic-shape subset, viewBox/unit/transform rules and hole fill behavior; do not treat Qt image rendering as geometric import.\n\n## Acceptance criteria\n- Imported paths become selectable authored sketch curves; unsupported text/filter/image content is reported rather than silently omitted.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nUse own SVG fixtures with nested transforms, cubic curves and a hole; compare millimeter bounds and profile areas then extrude a nameplate.\n\nAdd/execute `python3 tests/workflows/run.py --case XCH-007 --evidence build/evidence/XCH-007` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Supported file formats (reference `formats`) \u2014 retrieved 2026-10-11.\n- Sketches in reference CAD application (reference `sketch`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nDetailed reference CAD application SVG insertion defaults remain unresolved; research and record them before claiming interaction parity. Keep an explicit subset while preserving long-term support.\n\n## First-v1 dependency note\nThe declared SVG profile subset uses accepted fit/control spline construction, not the full spline family.\n"
     },
     {
       "key": "PRT-002",
@@ -2520,8 +2612,9 @@
       "phase": "P3 Shape/import/print breadth",
       "priority": "P1",
       "depends_on": [
-        "PRT-002",
-        "XCH-008"
+        "XCH-008",
+        "PRT-011",
+        "PRT-012"
       ],
       "labels": [
         "kind:implementation",
@@ -2529,7 +2622,7 @@
         "priority:P1",
         "area:prt"
       ],
-      "body": "## Problem and result\nAdd print-mesh audit and independent consumer validation. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nCheck closure, nonmanifold edges, orientation, self-intersections and scale before printable export; warn about open surfaces without promising fabrication performance.\n\n## Acceptance criteria\n- Export report distinguishes geometric mesh validity from material/process printability; 3MF and STL bounds agree under explicit units.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nExport bracket/duct and deliberate bad meshes; independently inspect in a permitted slicer/parser and record units, shells, bounds and error cases; no hardware printing required.\n\nAdd/execute `python3 tests/workflows/run.py --case PRT-003 --evidence build/evidence/PRT-003` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- [Public mesh validity guidance](https://help.autodesk.com/cloudhelp/2026/ENU/NETF/files/GUID-CCEA9C88-4647-4598-9F4D-07454389F34F.htm) \u2014 retrieved 2026-10-11.\n- Save As Mesh format, units, and structure (reference `print`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n"
+      "body": "## Problem and result\nAdd print-mesh audit and independent consumer validation. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nCheck closure, nonmanifold edges, orientation, self-intersections and scale before printable export; warn about open surfaces without promising fabrication performance.\n\n## Acceptance criteria\n- Export report distinguishes geometric mesh validity from material/process printability; 3MF and STL bounds agree under explicit units.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nExport bracket/duct and deliberate bad meshes; independently inspect in a permitted slicer/parser and record units, shells, bounds and error cases; no hardware printing required.\n\nAdd/execute `python3 tests/workflows/run.py --case PRT-003 --evidence build/evidence/PRT-003` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- [Public mesh validity guidance](https://help.autodesk.com/cloudhelp/2026/ENU/NETF/files/GUID-CCEA9C88-4647-4598-9F4D-07454389F34F.htm) \u2014 retrieved 2026-10-11.\n- Save As Mesh format, units, and structure (reference `print`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n\n## First-v1 dependency note\nFirst-v1 dependency uses bounded PRT-011/012 refinement and batch-output children; PRT-002 retains later scope.\n"
     },
     {
       "key": "GATE-040",
@@ -2546,9 +2639,10 @@
         "XCH-006",
         "XCH-007",
         "XCH-008",
-        "PRT-002",
         "PRT-003",
-        "XCH-011"
+        "XCH-011",
+        "PRT-011",
+        "PRT-012"
       ],
       "labels": [
         "kind:validation",
@@ -2556,7 +2650,7 @@
         "priority:P0",
         "area:gate"
       ],
-      "body": "## Problem and result\nGate: imported CAD and sketch files produce measured printable parts. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nImport STEP fixture and IGES quilt, repair only within declared tolerance, add a dimensioned mounting feature, import DXF/SVG profiles and STL/OBJ mesh examples, then export selected parts as STEP/STL/Core 3MF and supported sketch interchange. 3MF import and optional extensions remain required later under XCH-005, outside this first-v1 gate. This is a blocking product validation gate, not an implementation substitute.\n\n## Acceptance criteria\n- Run the supported capability ledger from installed macOS, Windows and Linux candidate packages; retain per-platform package hashes and runtime/GPU results. Architecture/minimum-version exceptions must be explicit unresolved blockers rather than omitted assets.\n- All dependencies are implemented and their evidence reviewed; no unavailable/mock command may satisfy a step. Check every declared format subset with independent input/readback, physical units, placements, entity-loss reports, native save/reopen and UI import/export interaction. Capture useful modified adapter and print preview; reject corrupt/nonmanifold fixtures explicitly.\n\n## Proposed verification and evidence\nRe-run GATE-000 through GATE-030 and every previously accepted workflow in the capability-to-fixture ledger on the same build. Execute `python3 tests/workflows/run.py --gate GATE-040 --cumulative --evidence build/evidence/GATE-040` (proposed interface). Launch the real Alloy executable in a desktop session; create the object through Alloy automation, use direct computer input only for uncovered physical interactions, then inspect shared state. Capture before/after and reopen/export artifacts. The gate report lists every covered capability and prior fixture, tolerances, failures and unsupported behavior. Build-only/unit-only checks or stale captures cannot close this gate.\n\nAdd/execute `python3 tests/workflows/run.py --case GATE-040 --evidence build/evidence/GATE-040` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- reference CAD application desktop interface (reference `ui`) \u2014 retrieved 2026-10-11.\n- reference CAD application public command-input descriptions (reference `inputs`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nClosure requires fresh cumulative evidence on the candidate build. No reference CAD application runtime comparison. Reference visual claims require public-source provenance and matched viewport/scale/state, or explicit mismatch qualifications.\n"
+      "body": "## Problem and result\nGate: imported CAD and sketch files produce measured printable parts. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nImport STEP fixture and IGES quilt, repair only within declared tolerance, add a dimensioned mounting feature, import DXF/SVG profiles and STL/OBJ mesh examples, then export selected parts as STEP/STL/Core 3MF and supported sketch interchange. 3MF import and optional extensions remain required later under XCH-005, outside this first-v1 gate. This is a blocking product validation gate, not an implementation substitute.\n\n## Acceptance criteria\n- Run the supported capability ledger from installed macOS, Windows and Linux candidate packages; retain per-platform package hashes and runtime/GPU results. Architecture/minimum-version exceptions must be explicit unresolved blockers rather than omitted assets.\n- All dependencies are implemented and their evidence reviewed; no unavailable/mock command may satisfy a step. Check every declared format subset with independent input/readback, physical units, placements, entity-loss reports, native save/reopen and UI import/export interaction. Capture useful modified adapter and print preview; reject corrupt/nonmanifold fixtures explicitly.\n\n## Proposed verification and evidence\nRe-run GATE-000 through GATE-030 and every previously accepted workflow in the capability-to-fixture ledger on the same build. Execute `python3 tests/workflows/run.py --gate GATE-040 --cumulative --evidence build/evidence/GATE-040` (proposed interface). Launch the real Alloy executable in a desktop session; create the object through Alloy automation, use direct computer input only for uncovered physical interactions, then inspect shared state. Capture before/after and reopen/export artifacts. The gate report lists every covered capability and prior fixture, tolerances, failures and unsupported behavior. Build-only/unit-only checks or stale captures cannot close this gate.\n\nAdd/execute `python3 tests/workflows/run.py --case GATE-040 --evidence build/evidence/GATE-040` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- reference CAD application desktop interface (reference `ui`) \u2014 retrieved 2026-10-11.\n- reference CAD application public command-input descriptions (reference `inputs`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nClosure requires fresh cumulative evidence on the candidate build. No reference CAD application runtime comparison. Reference visual claims require public-source provenance and matched viewport/scale/state, or explicit mismatch qualifications.\n\n## First-v1 dependency boundary (2026-10-19)\nThe dependencies above name supported first-v1 subsets and cumulative fixtures. Broader family parents remain open for deferred noncloud modes, but do not block this gate merely because those later modes are unfinished. The release execution ledger still requires every proposed-v1 minimum, native geometry/edit/undo/reopen/output evidence and exact candidate-package platform checks; a dependency link alone is not acceptance.\n"
     },
     {
       "key": "REL-001",
@@ -3493,16 +3587,13 @@
       "depends_on": [
         "GATE-040",
         "REL-001",
-        "REL-002",
         "REL-003",
         "REL-004",
         "REL-005",
         "REL-006",
         "SKT-013",
-        "HIS-004",
         "UX-001",
         "GATE-045",
-        "SKT-025",
         "PAR-004",
         "DOC-022",
         "SKT-066",
@@ -3535,7 +3626,73 @@
         "SRF-024",
         "XCH-011",
         "SOL-059",
-        "GEO-024"
+        "GEO-024",
+        "REL-014",
+        "REL-055",
+        "PAR-006",
+        "PAR-007",
+        "PAR-008",
+        "PAR-009",
+        "SKT-075",
+        "SKT-160",
+        "SKT-161",
+        "SKT-162",
+        "SKT-163",
+        "HIS-009",
+        "HIS-010",
+        "SOL-064",
+        "SKT-169",
+        "SOL-080",
+        "SOL-081",
+        "SOL-082",
+        "SOL-083",
+        "SOL-084",
+        "SOL-085",
+        "SOL-086",
+        "SOL-087",
+        "SOL-088",
+        "SOL-089",
+        "SRF-025",
+        "SRF-026",
+        "SRF-027",
+        "SRF-028",
+        "SRF-029",
+        "SRF-030",
+        "SRF-031",
+        "SRF-032",
+        "SRF-033",
+        "SRF-034",
+        "SRF-035",
+        "GEO-025",
+        "GEO-026",
+        "GEO-027",
+        "DOC-039",
+        "PRT-011",
+        "PRT-012",
+        "HIS-011",
+        "HIS-012",
+        "SKT-061",
+        "SKT-047",
+        "SKT-092",
+        "DOC-031",
+        "ASM-021",
+        "SKT-158",
+        "SKT-105",
+        "SKT-094",
+        "SKT-111",
+        "SKT-097",
+        "SKT-098",
+        "SKT-101",
+        "SOL-060",
+        "SOL-061",
+        "SOL-077",
+        "SOL-066",
+        "SOL-063",
+        "SOL-068",
+        "SOL-069",
+        "SOL-070",
+        "SOL-065",
+        "DOC-037"
       ],
       "labels": [
         "kind:validation",
@@ -3543,7 +3700,7 @@
         "priority:P0",
         "area:gate"
       ],
-      "body": "## Problem and result\nGate: dependable initial shape-creation release. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nUse the packaged application to create and edit bracket, enclosure, knob and surface duct; reopen archived authored files, import independent geometry and export printable artifacts. This is a blocking product validation gate, not an implementation substitute.\n\n## Acceptance criteria\n- Run the supported capability ledger from installed macOS, Windows and Linux candidate packages; retain per-platform package hashes and runtime/GPU results. Architecture/minimum-version exceptions must be explicit unresolved blockers rather than omitted assets.\n- All dependencies are implemented and their evidence reviewed; no unavailable/mock command may satisfy a step. All initial accepted feature subsets are covered in the cumulative ledger, negative recovery cases pass, package/license evidence is complete, and physical workflow/visual gaps are documented. No open initial-release blocker is reclassified silently.\n- On one edited and reopened printable model containing a modeled external thread, export STL, STEP and 3MF from the same packaged candidate. Independently read back units, bounds and mesh closedness; for multi-object 3MF retain object identities/transforms. Check that export leaves authored history and Undo/Redo state unchanged. Physical print fit remains a separate limitation.\n\n## Proposed verification and evidence\nRe-run GATE-000 through GATE-040 and every previously accepted workflow in the capability-to-fixture ledger on the same build. Execute `python3 tests/workflows/run.py --gate GATE-050 --cumulative --evidence build/evidence/GATE-050` (proposed interface). Launch the real Alloy executable in a desktop session; create the object through Alloy automation, use direct computer input only for uncovered physical interactions, then inspect shared state. Capture before/after and reopen/export artifacts. The gate report lists every covered capability and prior fixture, tolerances, failures and unsupported behavior. Build-only/unit-only checks or stale captures cannot close this gate.\n\nAdd/execute `python3 tests/workflows/run.py --case GATE-050 --evidence build/evidence/GATE-050` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- reference CAD application desktop interface (reference `ui`) \u2014 retrieved 2026-10-11.\n- reference CAD application public command-input descriptions (reference `inputs`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nClosure requires fresh cumulative evidence on the candidate build. No reference CAD application runtime comparison. Reference visual claims require public-source provenance and matched viewport/scale/state, or explicit mismatch qualifications.\n"
+      "body": "## Problem and result\nGate: dependable initial shape-creation release. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nUse the packaged application to create and edit bracket, enclosure, knob and surface duct; reopen archived authored files, import independent geometry and export printable artifacts. This is a blocking product validation gate, not an implementation substitute.\n\n## Acceptance criteria\n- Run the supported capability ledger from installed macOS, Windows and Linux candidate packages; retain per-platform package hashes and runtime/GPU results. Architecture/minimum-version exceptions must be explicit unresolved blockers rather than omitted assets.\n- All dependencies are implemented and their evidence reviewed; no unavailable/mock command may satisfy a step. All initial accepted feature subsets are covered in the cumulative ledger, negative recovery cases pass, package/license evidence is complete, and physical workflow/visual gaps are documented. No open initial-release blocker is reclassified silently.\n- On one edited and reopened printable model containing a modeled external thread, export STL, STEP and 3MF from the same packaged candidate. Independently read back units, bounds and mesh closedness; for multi-object 3MF retain object identities/transforms. Check that export leaves authored history and Undo/Redo state unchanged. Physical print fit remains a separate limitation.\n\n## Proposed verification and evidence\nRe-run GATE-000 through GATE-040 and every previously accepted workflow in the capability-to-fixture ledger on the same build. Execute `python3 tests/workflows/run.py --gate GATE-050 --cumulative --evidence build/evidence/GATE-050` (proposed interface). Launch the real Alloy executable in a desktop session; create the object through Alloy automation, use direct computer input only for uncovered physical interactions, then inspect shared state. Capture before/after and reopen/export artifacts. The gate report lists every covered capability and prior fixture, tolerances, failures and unsupported behavior. Build-only/unit-only checks or stale captures cannot close this gate.\n\nAdd/execute `python3 tests/workflows/run.py --case GATE-050 --evidence build/evidence/GATE-050` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- reference CAD application desktop interface (reference `ui`) \u2014 retrieved 2026-10-11.\n- reference CAD application public command-input descriptions (reference `inputs`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nClosure requires fresh cumulative evidence on the candidate build. No reference CAD application runtime comparison. Reference visual claims require public-source provenance and matched viewport/scale/state, or explicit mismatch qualifications.\n\n## First-v1 dependency boundary (2026-10-19)\nThe dependencies above name supported first-v1 subsets and cumulative fixtures. Broader family parents remain open for deferred noncloud modes, but do not block this gate merely because those later modes are unfinished. The release execution ledger still requires every proposed-v1 minimum, native geometry/edit/undo/reopen/output evidence and exact candidate-package platform checks; a dependency link alone is not acceptance.\n\n## First-v1 inventory coverage\nRequire the bounded proposed-v1 owners for Conic, Text, Mirror, Rename, linked local occurrence Copy, Delete, Polygon, additional Rectangle, sketch Chamfer, sketch Pattern/Transform/Intersect, Coil, Pipe, Cone/Torus, Rib/Web, Emboss, face edits, path Pattern and Interference. These accepted/open issue links close prior gate reachability gaps; the full parent families remain on the roadmap.\n"
     },
     {
       "key": "ASM-001",
@@ -7349,7 +7506,6 @@
       "priority": "P1",
       "depends_on": [
         "REL-019",
-        "REL-020",
         "REL-028",
         "REL-033",
         "REL-034",
@@ -7364,7 +7520,7 @@
       "labels": [
         "area:rel"
       ],
-      "body": "## Initial-build readiness scope\nMeasure current startup, orbit/selection, sketch editing, recompute, reopen and assembly drag on the bracket, enclosure and piston with declared hardware/feature counts. Set practical interactive budgets before optimizing and profile only failed budgets. Reuse REL-011 drag scope. Long operations must visibly report progress and permit safe cancellation where supported; split asynchronous operation changes if necessary. Include continuous GPU interaction, not only isolated API timings.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n\n## Concrete performance fixture\nThe SKT-076 actual trimmed-seam inset core run observed approximately 30 seconds to refuse a collapsing inset on the development Mac. Preserve the exact fixture/evidence from its validation receipt and measure it as part of this task; do not repeatedly run the unchanged expensive case before profiling. This is an observed candidate limitation, not an accepted interaction budget.\n\n\n## Additional measured workflow 2026-10-15\nSRF-020 actual iron multi-profile Surface Extrude API measures cold picks9.3\u201310.9s, commit10.5\u201311.7s, edit opening18.5\u201322.2s and adding a profile25.7s. Evidence: external surface-iron-continuation-2026-10-15/per-profile-extrude-01/api-02. Functional acceptance does not meet interactive responsiveness. Profile and split a bounded fix before working this follow-up; do not broaden the current tutorial feature gate.\n\n\n## Corrected iron fixture timing, 2026-10-17\nSource-consistent TUT-034 candidate03 measures Surface Trim preview18.064s, commit14.249s and hiding the tool sketch14.093s (re-evaluation). External deliverables/iron-reassessment-2026-10-17/candidate-03-panel-tangent/reassessment-summary.json and transcript retain exact calls. These successful-command latency measurements are separate from GEO-023 Loft crash. Include this representative surface model in the existing responsiveness work; no new performance pass claimed.\n"
+      "body": "## Initial-build readiness scope\nMeasure current startup, orbit/selection, sketch editing, recompute, reopen and assembly drag on the bracket, enclosure and piston with declared hardware/feature counts. Set practical interactive budgets before optimizing and profile only failed budgets. Reuse REL-011 drag scope. Long operations must visibly report progress and permit safe cancellation where supported; split asynchronous operation changes if necessary. Include continuous GPU interaction, not only isolated API timings.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n\n## Concrete performance fixture\nThe SKT-076 actual trimmed-seam inset core run observed approximately 30 seconds to refuse a collapsing inset on the development Mac. Preserve the exact fixture/evidence from its validation receipt and measure it as part of this task; do not repeatedly run the unchanged expensive case before profiling. This is an observed candidate limitation, not an accepted interaction budget.\n\n\n## Additional measured workflow 2026-10-15\nSRF-020 actual iron multi-profile Surface Extrude API measures cold picks9.3\u201310.9s, commit10.5\u201311.7s, edit opening18.5\u201322.2s and adding a profile25.7s. Evidence: external surface-iron-continuation-2026-10-15/per-profile-extrude-01/api-02. Functional acceptance does not meet interactive responsiveness. Profile and split a bounded fix before working this follow-up; do not broaden the current tutorial feature gate.\n\n\n## Corrected iron fixture timing, 2026-10-17\nSource-consistent TUT-034 candidate03 measures Surface Trim preview18.064s, commit14.249s and hiding the tool sketch14.093s (re-evaluation). External deliverables/iron-reassessment-2026-10-17/candidate-03-panel-tangent/reassessment-summary.json and transcript retain exact calls. These successful-command latency measurements are separate from GEO-023 Loft crash. Include this representative surface model in the existing responsiveness work; no new performance pass claimed.\n\n## First-v1 dependency note\nExperimental assembly drag latency remains REL-020 Todo, outside first-v1 responsiveness acceptance unless a future documented representative fixture makes it applicable.\n"
     },
     {
       "key": "REL-017",
@@ -8666,7 +8822,7 @@
     },
     {
       "key": "SOL-064",
-      "title": "Support variable-radius or chordal fillet options",
+      "title": "Add a retained single-edge variable-radius Fillet",
       "kind": "implementation",
       "phase": "P3 Shape/import/print breadth",
       "priority": "P2",
@@ -8676,7 +8832,7 @@
       "labels": [
         "area:sol"
       ],
-      "body": "## Bounded result\nSupport variable-radius or chordal fillet options. This proposed printable-part v1 gap is a child of `ADV-005`; remaining modes stay on the parent roadmap.\n\n## Reference and scope\nBefore coding, record public command inputs, selection rules, defaults, preview, commit/cancel, history/edit behavior and visual examples in `../Alloy-reference-records/knowledge`, with dated provenance. Define a supported option subset and retain other noncloud modes on the parent.\n\n## Acceptance\n- Implement one publicly specified advanced mode first; retain edge references/control values through edit and diagnose other unsupported modes.\n- Native UI and local control use the same retained authored command. Check a meaningful upstream edit, one transactional refusal, Undo/Redo and save/reopen.\n- Inspect actual GPU presentation and native controls. For a printable solid, independently read back STL. Keep geometry, input and export evidence distinct.\n\n## Ownership\nInventory row `solid.advanced-fillet`; parent `ADV-005`. Todo until its public command contract and real-object fixture are accepted. Its closure does not complete the whole capability family or release gate.\n"
+      "body": "## Bounded result\nImplement the documented Variable radius mode for one supported selected solid edge, with editable Start and End radius/position controls. This is the chosen first-v1 advanced Fillet mode; Chord Length, Asymmetric, intermediate radius points, setback and wider topology remain under ADV-005/SOL-003.\n\n## Public reference and research boundary\nPermitted public reference record `v1-advanced-mode-scope-2026-10-19` documents Variable radius points along one edge, including Start and End; its source URL and retrieval date are held outside git in `../Alloy-reference-records/knowledge/specs/`. Before coding, research selection, defaults, preview, commit/cancel, history/edit and comparable screenshots; record unknowns rather than asserting exact parity. Do not operate proprietary software.\n\n## Acceptance\n- Create and edit one printable closed solid with a supported single-edge Variable fillet; retain the edge and Start/End radius/position inputs, and inspect evaluated surface/bounds against a declared fixture tolerance. Explicitly refuse unsupported topology or radius values without losing the previous valid result.\n- Expose the same command/session through native UI and local control API, including readable preview/selection, Cancel, and a meaningful upstream source edit. Verify Undo/Redo and exact save/reopen.\n- Inspect GPU presentation and native controls and independently read back STL from the printable fixture. Separate geometry, input, export and platform/package evidence; unsupported wider modes remain visible in the parent roadmap.\n\n## Ownership\nInventory row `solid.advanced-fillet`; parent ADV-005 and general Fillet SOL-003. Todo until the bounded source contract and real-object evidence pass; its closure does not complete the full Fillet family or release gate."
     },
     {
       "key": "SOL-065",
@@ -8827,12 +8983,13 @@
       "phase": "P2 Parametric modeling",
       "priority": "P1",
       "depends_on": [
-        "SKT-026"
+        "SKT-010",
+        "SKT-013"
       ],
       "labels": [
         "area:skt"
       ],
-      "body": "## Bounded result\nOwn the remaining proposed-v1 `sketch.intersection` gap as a finishable feature slice; existing related tools and broader family coverage remain separate.\n\n## Acceptance\nFrom a supported planar sketch, intersect selected solid edges/faces with the sketch plane into retained reference geometry using persistent source IDs. Show projected/intersection styling, update after an upstream edit, and fail recoverably for lost topology. Verify native selection, shared command, history, Undo/Redo and reopen. Broader include/silhouette modes remain explicit on the parent roadmap; research their public distinctions before implementation.\n\n## Ownership\nInventory row `sketch.intersection`. Start with a dated public workflow contract in `../Alloy-reference-records/knowledge`; keep references and images outside the repository. Native input, authored history, geometry/output and visual evidence must be distinguished."
+      "body": "## Bounded result\nOwn the remaining proposed-v1 `sketch.intersection` gap as a finishable feature slice; existing related tools and broader family coverage remain separate.\n\n## Acceptance\nFrom a supported planar sketch, intersect selected solid edges/faces with the sketch plane into retained reference geometry using persistent source IDs. Show projected/intersection styling, update after an upstream edit, and fail recoverably for lost topology. Verify native selection, shared command, history, Undo/Redo and reopen. Broader include/silhouette modes remain explicit on the parent roadmap; research their public distinctions before implementation.\n\n## Ownership\nInventory row `sketch.intersection`. Start with a dated public workflow contract in `../Alloy-reference-records/knowledge`; keep references and images outside the repository. Native input, authored history, geometry/output and visual evidence must be distinguished.\n## First-v1 dependency note\nThis bounded planar intersection uses accepted linked model-edge and face-sketch references; broader projection modes remain under SKT-026.\n"
     },
     {
       "key": "DOC-037",
@@ -8841,12 +8998,12 @@
       "phase": "P1 Geometry/document",
       "priority": "P1",
       "depends_on": [
-        "DOC-014"
+        "DOC-038"
       ],
       "labels": [
         "area:doc"
       ],
-      "body": "## Bounded result\nOwn the remaining proposed-v1 `inspection.interference` gap as a finishable feature slice; existing related tools and broader family coverage remain separate.\n\n## Acceptance\nProvide a user-facing inspection of two selected committed solids or components: report intersection volume when overlapping and minimum clearance for a supported nonoverlapping case, with units and selected identities. Inspection must not mutate history; verify native selection, shared API, exact independent BRep comparison on a small fixture, save/reopen and actionable refusal for unsupported selections. Keep the nominal enclosure connector fixture as adaptation evidence, not physical fit certification.\n\n## Ownership\nInventory row `inspection.interference`. Start with a dated public workflow contract in `../Alloy-reference-records/knowledge`; keep references and images outside the repository. Native input, authored history, geometry/output and visual evidence must be distinguished."
+      "body": "## Bounded result\nOwn the remaining proposed-v1 `inspection.interference` gap as a finishable feature slice; existing related tools and broader family coverage remain separate.\n\n## Acceptance\nProvide a user-facing inspection of two selected committed solids or components: report intersection volume when overlapping and minimum clearance for a supported nonoverlapping case, with units and selected identities. Inspection must not mutate history; verify native selection, shared API, exact independent BRep comparison on a small fixture, save/reopen and actionable refusal for unsupported selections. Keep the nominal enclosure connector fixture as adaptation evidence, not physical fit certification.\n\n## Ownership\nInventory row `inspection.interference`. Start with a dated public workflow contract in `../Alloy-reference-records/knowledge`; keep references and images outside the repository. Native input, authored history, geometry/output and visual evidence must be distinguished.\n## First-v1 dependency note\nTwo-solid interference and clearance inspection uses existing selected-solid Properties; broader analysis modes remain under DOC-014.\n"
     },
     {
       "key": "XCH-010",
@@ -10288,6 +10445,513 @@
         "priority:P0"
       ],
       "body": "## Bounded result\nMake stable printable-part v1 promotion an explicit decision after qualified functionality, packages, three-platform runtime and the per-command intrinsic-cost audit. Preview/milestone archives may be published under their own gates before this stable exit; this issue does not change their sequencing.\n\n## Acceptance\n- The final capability-to-fixture ledger names every required minimum, its accepted implementation receipt, native workflow, geometry/source-edit/Undo/save-reopen, independent STL/STEP/Core 3MF checks, and exact package revision/hash on declared macOS, Windows and Linux targets. Unqualified architecture, OS minimum, GPU, input or print-fit cases are visible blockers or explicit authorized limitations, never inferred from CI compilation.\n- REL-049's command-by-command intrinsic-cost audit and its measured fix children are complete for the supported v1 command inventory, including simple corrected-iron Cut. Responsiveness mitigations and intrinsic cost are reported separately; any accepted hardware/kernel limit is evidence-based.\n- Reconcile known gaps and provenance on the private v1 review plan and in release notes. Record the exact stable scope, third-party notices, signing status and source/archive hashes. A fresh user decision authorizes any final tag, paid CI dispatch or public release action; closing this planning gate alone does not trigger them.\n\n## Dependencies\n- [REL-030](https://github.com/rje/Alloy/issues/469) finalizes the v1 scope/ownership plan.\n- [GATE-050](https://github.com/rje/Alloy/issues/86) qualifies the cumulative packaged three-platform shape-creation release.\n- [REL-049](https://github.com/rje/Alloy/issues/529) qualifies intrinsic cost after functionality and packaging.\n\nThis is a future stable-release exit. It does not assert current functionality or package readiness.\n"
+    },
+    {
+      "key": "REL-055",
+      "title": "Preserve the last valid authored document after a failed save",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [
+        "REL-014"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P4",
+        "priority:P1",
+        "area:rel"
+      ],
+      "body": "## Bounded result\nA failed Save leaves the previous valid authored file intact and reports failure without replacing it with partial or invalid data.\n\nThis is a finishable child of REL-002; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Exercise a deterministic failure while replacing an existing native document and verify the prior file still opens with its original committed state.\n- Verify the in-memory document remains dirty and saves successfully after the failure condition is removed.\n- Verify the structured failure identifies the save operation and does not claim success; authored IDs and undo state remain unchanged.\n\n## Preserved remainder\nOlder-schema migration, interrupted large-save recovery, and disk-full recovery beyond the bounded failed-replacement fixture remain with REL-002.\n"
+    },
+    {
+      "key": "SKT-169",
+      "title": "Break supported analytic sketch curves with stable piece identity",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P1",
+        "area:skt"
+      ],
+      "body": "## Bounded result\nResearch public cut behavior for closed circles before coding, then implement one explicit interior-circle cut and bounded interior line/arc Break with retained analytic pieces and atomic refusal for unsupported cases.\n\nThis is a finishable child of SKT-011; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Before implementation, record dated permitted public evidence defining where a closed-circle cut begins/ends and how the resulting pieces are represented; if evidence is insufficient, record the uncertainty and implement only a clearly specified safe behavior.\n- Preview and commit an interior Break on one line and one arc and the researched supported closed-circle cut case, producing editable analytic pieces.\n- Preserve deterministic IDs for unaffected entities and explicitly report constraints removed or retained on split pieces.\n- Refuse endpoint, ambiguous, or unsupported picks without changing geometry/history; verify undo/redo and save/reopen.\n\n## Preserved remainder\nTrim, Offset, Extend and broader mixed-curve modification families remain under SKT-011.\n"
+    },
+    {
+      "key": "SOL-080",
+      "title": "Add editable symmetric and two-sided solid Extrude",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-001",
+        "SOL-002"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P1",
+        "area:sol"
+      ],
+      "body": "## Bounded result\nA supported closed sketch profile creates an editable New Body solid Extrude with symmetric and explicitly asymmetric two-sided distance extents.\n\nThis is a finishable child of SOL-010; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Support symmetric distance and separately specified start/end distances in the retained feature inputs.\n- Show preview and Cancel, then commit and edit each extent while preserving profile identity.\n- Refuse zero, invalid, or self-intersecting results atomically with the last valid solid retained.\n- Verify geometry bounds, downstream reference behavior, undo/redo, save/reopen, and STL readback.\n\n## Preserved remainder\nTaper, thin wall, broader extent targets, Intersect, and other option combinations remain separate SOL-010 work.\n"
+    },
+    {
+      "key": "SOL-081",
+      "title": "Add editable taper to supported solid Extrude",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-001",
+        "SOL-002"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P1",
+        "area:sol"
+      ],
+      "body": "## Bounded result\nA supported closed sketch profile creates an editable tapered New Body Extrude with a declared taper direction and angle range.\n\nThis is a finishable child of SOL-010; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Expose taper angle and direction as retained inputs with units and a default of zero taper.\n- Preview and edit taper on one convex profile and one profile with a concave region.\n- Refuse invalid angles or failed kernel results without replacing the last valid solid.\n- Verify downstream feature recompute, undo/redo, save/reopen, and independently read STL bounds.\n\n## Preserved remainder\nThin-wall extrusion and broader taper/profile/extent combinations remain under SOL-010.\n"
+    },
+    {
+      "key": "SOL-082",
+      "title": "Add thin-wall solid Extrude for supported open profiles",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-001",
+        "SOL-002"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P1",
+        "area:sol"
+      ],
+      "body": "## Bounded result\nA supported open sketch profile creates an editable thin-wall solid Extrude with explicit wall thickness and side placement.\n\nThis is a finishable child of SOL-010; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Support one declared open line/arc profile fixture and expose wall thickness and side placement as retained inputs.\n- Show preview and Cancel and edit thickness while preserving the source profile reference.\n- Refuse self-intersection, zero thickness, and invalid solid results atomically.\n- Verify closed solid geometry, bounds, downstream reference behavior, undo/redo, save/reopen, and STL readback.\n\n## Preserved remainder\nOther open-curve combinations, more wall-side modes, and combinations with unqualified extents/taper remain under SOL-010.\n"
+    },
+    {
+      "key": "SOL-083",
+      "title": "Create an independently editable retained Body Copy",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P1",
+        "area:sol"
+      ],
+      "body": "## Bounded result\nCopy one committed body as an independently editable snapshot with explicit placement and non-aliased authored identity; later source edits do not propagate.\n\nThis is a finishable child of SOL-008; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Document independent snapshot semantics: the copied authored state is fixed at copy time and later source edits do not propagate.\n- Create an independent snapshot copy with explicit placement and distinct stable body/feature IDs; later source edits do not change the copy, and the copy can be edited independently.\n- Edit the source after copying and verify the snapshot copy remains unchanged, then edit the copy and verify the source remains unchanged.\n- Verify undo/redo, save/reopen, and independent export readback preserve both bodies and placements.\n\n## Preserved remainder\nCross-document copy, linked/unique component semantics, multi-body copy and broader dependency transfer remain under SOL-008 or component owners.\n"
+    },
+    {
+      "key": "SOL-084",
+      "title": "Align one source body to a planar target face",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P1",
+        "area:sol"
+      ],
+      "body": "## Bounded result\nGeometry-based Align places one source body against one target planar face using a declared frame and flip choice, with retained transform and preview cancellation.\n\nThis is a finishable child of SOL-008; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Select source and target and expose the target frame, orientation, and flip choice in the preview.\n- Commit one valid alignment and verify measured face relationship and retained transform after recompute.\n- Cancel without modifying placement; refuse ambiguous or unsupported references atomically.\n- Verify undo/redo, save/reopen, and independent body selection.\n\n## Preserved remainder\nEdge/axis and multi-reference alignment and generalized assembly placement remain under SOL-008/component owners.\n"
+    },
+    {
+      "key": "SOL-085",
+      "title": "Add the missing retained body-seed rectangular pattern",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-027",
+        "SOL-036"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P1",
+        "area:sol"
+      ],
+      "body": "## Bounded result\nAdd retained one- or two-direction rectangular patterning for one committed body seed on supported retained straight axes; existing additive and Hole feature-seed pattern slices are covered elsewhere.\n\nThis is a finishable child of SOL-009; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Expose body seed, supported retained straight axes, direction counts, and spacing in the command contract.\n- Create and edit one- and two-direction patterns and verify occurrence count, spacing, placement, and stable instance identity.\n- Refuse zero/negative spacing and unsupported axes atomically without changing the source or prior pattern.\n- Verify recompute, undo/redo, save/reopen, and independent geometry/placement readback.\n\n## Preserved remainder\nOther seed kinds, unsupported axes, optimized patterns, and additional pattern objects remain under SOL-009.\n"
+    },
+    {
+      "key": "SOL-086",
+      "title": "Draft one supported solid face around a retained neutral plane",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P1",
+        "area:sol"
+      ],
+      "body": "## Bounded result\nApply one editable angle Draft to a supported solid side face about a retained neutral plane with explicit pull direction.\n\nThis is a finishable child of SOL-013; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Select one supported side face and retained neutral plane and preview a declared signed draft angle.\n- Verify face direction and measured angle on the resulting geometry.\n- Edit the angle and verify downstream references recompute; refuse invalid angles atomically.\n- Verify undo/redo, save/reopen, and STL bounds.\n\n## Preserved remainder\nMulti-face/group Draft, alternate neutral references, and broader topology remain under SOL-013.\n"
+    },
+    {
+      "key": "SOL-087",
+      "title": "Scale one retained body uniformly about an explicit origin",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P1",
+        "area:sol"
+      ],
+      "body": "## Bounded result\nUniformly scale one retained body around the document origin with an editable positive factor and preserved body identity.\n\nThis is a finishable child of SOL-013; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Expose a positive uniform factor and explicit origin in the retained feature inputs.\n- Verify resulting bounds and volume scale by the expected factor and factor cubed on an analytic fixture.\n- Edit the factor and preserve downstream references or refuse unsupported ones without partial mutation.\n- Verify undo/redo, save/reopen, and exported mesh bounds.\n\n## Preserved remainder\nNonuniform and multi-body scaling, selected-reference pivots, and copy-first semantics remain under SOL-013/SOL-008.\n"
+    },
+    {
+      "key": "SOL-088",
+      "title": "Add editable Two Distance Chamfer on supported solid edges",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P1",
+        "area:sol"
+      ],
+      "body": "## Bounded result\nCreate and edit a Two Distance Chamfer on supported retained solid edges with preview and atomic invalid-distance refusal.\n\nThis is a finishable child of SOL-005; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Expose both distances and selected edge identities as retained inputs with documented units.\n- Preview, commit, and edit the two distances on a supported analytic edge fixture.\n- Refuse zero, negative, or geometrically invalid distances without changing the last valid solid.\n- Verify downstream reference behavior, undo/redo, save/reopen, and STL bounds.\n\n## Preserved remainder\nTangent-chain variants, generated-edge naming, and difficult topology remain under SOL-005.\n"
+    },
+    {
+      "key": "SOL-089",
+      "title": "Add editable Distance And Angle Chamfer on supported solid edges",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P1",
+        "area:sol"
+      ],
+      "body": "## Bounded result\nCreate and edit a Distance And Angle Chamfer on supported retained solid edges with explicit reference face/direction and atomic refusal.\n\nThis is a finishable child of SOL-005; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Expose distance, angle, reference face, and direction as retained inputs.\n- Preview, commit, and edit the chamfer on a supported analytic edge fixture with measured resulting dimensions.\n- Refuse invalid angles, ambiguous references, and failed kernel results without partial history changes.\n- Verify downstream reference behavior, undo/redo, save/reopen, and STL bounds.\n\n## Preserved remainder\nTangent-chain variants, generated-edge naming, and difficult topology remain under SOL-005.\n"
+    },
+    {
+      "key": "SRF-025",
+      "title": "Create a retained surface Revolve from one open sketch section",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P1",
+        "area:srf"
+      ],
+      "body": "## Bounded result\nRevolve one supported open sketch section around a retained supported axis into an editable surface result, distinct from a closed solid.\n\nThis is a finishable child of SRF-001; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Expose retained axis, angle, and direction inputs and create a sheet result from one open section.\n- Verify surface result identity, area, bounds, and section/axis reference retention.\n- Edit angle/direction and verify recompute; refuse invalid or crossing axes without fabricating a solid.\n- Verify undo/redo and save/reopen.\n\n## Preserved remainder\nBroader section/axis sets, multiple profiles, joins, and surface-operation combinations remain under SRF-001.\n"
+    },
+    {
+      "key": "SRF-026",
+      "title": "Sweep one open section along a retained line or arc path",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P1",
+        "area:srf"
+      ],
+      "body": "## Bounded result\nCreate an editable G0 sheet by sweeping one supported open section along one retained line/arc path.\n\nThis is a finishable child of SRF-002; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Support the declared open section and line/arc path combinations and preserve both source identities.\n- Verify sheet output, path endpoints, bounds, and G0 boundary condition on a fixed fixture.\n- Edit section/path and verify recompute; refuse unsupported path or end conditions explicitly.\n- Verify undo/redo and save/reopen.\n\n## Preserved remainder\nGuide rails, multiple sections, G1/G2 continuity, and broader path/section combinations remain under SRF-002.\n"
+    },
+    {
+      "key": "SRF-027",
+      "title": "Create a planar cap from one closed planar loop",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P1",
+        "area:srf"
+      ],
+      "body": "## Bounded result\nCreate an editable planar sheet cap from one supported closed planar boundary loop.\n\nThis is a finishable child of SRF-003; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Accept one closed planar loop and produce a single planar face with retained boundary references.\n- Verify boundary deviation, face normal, and area against an analytic fixture.\n- Refuse open, disconnected, self-intersecting, or nonplanar loops without adding history.\n- Verify undo/redo and save/reopen.\n\n## Preserved remainder\nNonplanar fills, larger boundary networks, additional continuity classes, and multi-face repair remain under SRF-003.\n"
+    },
+    {
+      "key": "SRF-028",
+      "title": "Fill one bounded nonplanar four-edge boundary",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P1",
+        "area:srf"
+      ],
+      "body": "## Bounded result\nCreate one editable sheet patch with G0 boundary continuity from a supported closed nonplanar four-edge loop and stable boundary references.\n\nThis is a finishable child of SRF-003; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Create a sheet from one supported closed nonplanar four-edge loop and verify maximum boundary deviation is at most 0.01 mm on the fixed fixture; document this Alloy acceptance tolerance.\n- Inspect resulting surface bounds and area on a fixed fixture; do not promise tangent-continuity beyond G0.\n- Refuse disconnected or underdefined boundaries atomically.\n- Verify source edits, undo/redo, and save/reopen preserve or explicitly refuse the patch.\n\n## Preserved remainder\nLarger boundary networks, continuity classes beyond the bounded patch, and multi-face repair remain under SRF-003.\n"
+    },
+    {
+      "key": "SRF-029",
+      "title": "Offset one supported retained face as an editable sheet",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P1",
+        "area:srf"
+      ],
+      "body": "## Bounded result\nCreate an editable signed offset of one supported retained face with explicit normal direction.\n\nThis is a finishable child of SRF-004; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Expose signed distance and normal direction and preview the offset on one supported face fixture.\n- Verify expected separation, area, and bounds and retain source-face identity.\n- Refuse self-intersection/folding or invalid distance without changing the prior feature result.\n- Verify edit, undo/redo, and save/reopen.\n\n## Preserved remainder\nBroader surface families, multi-face offset, and self-intersection recovery remain under SRF-004.\n"
+    },
+    {
+      "key": "SRF-030",
+      "title": "Create a ruled flange from one retained edge",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P1",
+        "area:srf"
+      ],
+      "body": "## Bounded result\nCreate an editable ruled flange from one supported retained edge with Normal type, distance, and angle controls.\n\nThis is a finishable child of SRF-004; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Expose one retained edge, Normal type, distance, and angle as the complete bounded inputs; document defaults and units.\n- Preview, commit, and edit one flange fixture; verify the ruled boundary, angle, distance, area, and bounds.\n- Refuse invalid values or failed/folded kernel results atomically with a clear result.\n- Verify source edits, undo/redo, and save/reopen.\n\n## Preserved remainder\nTangent/Direction types, multiple edges, broader surface families, and self-intersection recovery remain under SRF-004.\n"
+    },
+    {
+      "key": "SRF-031",
+      "title": "Extend one supported sheet boundary to a distance or target",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P1",
+        "area:srf"
+      ],
+      "body": "## Bounded result\nExtend one supported sheet boundary by a declared distance or retained target while preserving source/history identity.\n\nThis is a finishable child of SRF-005; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Support a declared straight boundary and distance/target input with visible preview.\n- Verify the extended surface reaches the requested extent and retains the original face and boundary references.\n- Refuse invalid targets or self-intersection atomically without changing the source.\n- Verify undo/redo and save/reopen.\n\n## Preserved remainder\nMulti-edge and generalized intersection-driven extension and complex trim histories remain under SRF-005.\n"
+    },
+    {
+      "key": "SRF-032",
+      "title": "Restore one supported trimmed face to its prior boundary",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P1",
+        "area:srf"
+      ],
+      "body": "## Bounded result\nUntrim one supported trimmed face to its retained prior boundary as an editable operation that preserves source/history.\n\nThis is a finishable child of SRF-005; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Apply a known trim to a supported face and untrim it to the recorded pretrim boundary.\n- Verify the restored boundary and face bounds against the original fixture.\n- Refuse missing or ambiguous trim history without altering the current face.\n- Verify undo/redo and save/reopen.\n\n## Preserved remainder\nMulti-edge histories, generalized trim restoration, and broader recovery variants remain under SRF-005.\n"
+    },
+    {
+      "key": "SRF-033",
+      "title": "Display evaluated face normals for selected surfaces",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P1",
+        "area:srf"
+      ],
+      "body": "## Bounded result\nDisplay evaluated normals for selected supported faces with clear scale/orientation and no authored geometry changes.\n\nThis is a finishable child of SRF-008; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Enable normal display for one selected planar and one curved face.\n- Verify displayed directions against analytic normals at the documented sample points.\n- Verify visibility toggling and selection changes do not modify model/history state.\n- Capture the GPU viewport result at a declared scale/theme and verify save/reopen state if display settings persist.\n\n## Preserved remainder\nBroader diagnostic glyph controls and other analysis display modes remain under SRF-008.\n"
+    },
+    {
+      "key": "SRF-034",
+      "title": "Add a bounded zebra surface inspection view",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P1",
+        "area:srf"
+      ],
+      "body": "## Bounded result\nProvide a zebra display for selected supported surfaces as a visual inspection aid, without changing geometry or history.\n\nThis is a finishable child of SRF-008; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Enable and disable zebra display on planar and curved fixtures with stable visual settings.\n- Verify the view follows surface edits and does not change geometry or history.\n- Record the display method and limits; do not use its appearance as a numeric continuity claim.\n- Capture the GPU viewport result and verify the view remains readable at the supported UI scale.\n\n## Preserved remainder\nCurvature Map, curvature combs, broad sampling controls, and advanced continuity analysis remain under SRF-008.\n"
+    },
+    {
+      "key": "SRF-035",
+      "title": "Report sampled positional and tangent continuity between faces",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P1",
+        "area:srf"
+      ],
+      "body": "## Bounded result\nReport sampled positional and tangent continuity with an explicit method and units for one supported shared boundary.\n\nThis is a finishable child of SRF-008; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Measure positional and tangent deviation for one known continuous and one known discontinuous face pair.\n- Report sample method/count, units, and numeric values independently from any display overlay.\n- Verify source edits update measurements and inspection leaves authored geometry/history unchanged.\n- Verify deterministic results on save/reopen for the same model and sampling settings.\n\n## Preserved remainder\nG2/advanced continuity analysis, curvature-comb tooling, and broad sampling controls remain under SRF-008.\n"
+    },
+    {
+      "key": "GEO-025",
+      "title": "Create an angled datum plane from a retained line and plane",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P1",
+        "area:geo"
+      ],
+      "body": "## Bounded result\nCreate one editable angled datum plane from one supported retained line/edge and one source plane, with explicit angle and side controls.\n\nThis is a finishable child of GEO-001; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Document the exact accepted line/edge and source-plane forms and reject all other source forms explicitly.\n- Create and edit angle/side on one supported fixture and verify the resulting plane equation and orientation.\n- Update from source edits or refuse explicitly if stable construction is no longer possible.\n- Verify undo/redo and save/reopen.\n\n## Preserved remainder\nOther point/edge-derived plane combinations and broader interactive manipulation remain under GEO-001.\n"
+    },
+    {
+      "key": "GEO-026",
+      "title": "Create a retained datum Axis from two points or one supported edge",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P1",
+        "area:geo"
+      ],
+      "body": "## Bounded result\nCreate a datum Axis using exactly either two retained points or one declared supported edge constructor.\n\nThis is a finishable child of GEO-001; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Document and implement the two-point and single-edge source forms; reject unsupported references explicitly.\n- Create both constructors on fixtures and verify axis origin/direction against source geometry.\n- Edit source references and update or refuse without silently rebinding.\n- Verify undo/redo and save/reopen.\n\n## Preserved remainder\nOther axis constructors and inferred reference combinations remain under GEO-001.\n"
+    },
+    {
+      "key": "GEO-027",
+      "title": "Create a retained datum Point from a vertex or curve location",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P1",
+        "area:geo"
+      ],
+      "body": "## Bounded result\nCreate a construction Point using exactly either a retained vertex or an explicit location on a supported curve.\n\nThis is a finishable child of GEO-001; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Document and implement the vertex and curve-location forms with an explicit location parameter; reject other forms explicitly.\n- Verify coordinates against analytic fixtures and keep source identity inspectable.\n- Update on source edit or refuse if the original reference becomes invalid or ambiguous.\n- Verify undo/redo and save/reopen.\n\n## Preserved remainder\nOther point constructors, inferred references, and broader derived-geometry classes remain under GEO-001.\n"
+    },
+    {
+      "key": "DOC-039",
+      "title": "Measure the area of one selected supported face",
+      "kind": "implementation",
+      "phase": "P1 Geometry/document",
+      "priority": "P1",
+      "depends_on": [],
+      "labels": [
+        "kind:implementation",
+        "phase:P1",
+        "priority:P1",
+        "area:doc"
+      ],
+      "body": "## Bounded result\nProvide native analytic Measure for selected edge length, point/line distance, angle, and supported face area, with active units and source provenance and without changing authored state.\n\nThis is a finishable child of DOC-014; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Measure edge length, point-to-line distance, line-pair angle, planar face area, and supported curved face area on analytic fixtures; compare with expected values in active units.\n- Identify the measured face/source object in the result and expose a structured refusal for invalid or ambiguous selections.\n- Verify inspection leaves geometry, history, and undo state unchanged.\n\n## Preserved remainder\nSection analysis, solid area/volume, and broader multi-object measurement combinations remain under DOC-014.\n"
+    },
+    {
+      "key": "PRT-011",
+      "title": "Preview mesh refinement with actual triangle counts",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "PRT-001",
+        "XCH-011"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P1",
+        "area:prt"
+      ],
+      "body": "## Bounded result\nOffer coarse, fine, and custom mesh tessellation preview with actual triangle counts for selected committed solids, producing STL or Core 3MF only.\n\nThis is a finishable child of PRT-002; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Show coarse/fine presets and custom tolerance inputs with documented units/defaults.\n- Report triangle counts from the produced meshes and verify finer settings increase or preserve detail on a curved fixture.\n- Preview and Cancel leave authored geometry, history, and existing export files unchanged.\n- Verify chosen settings produce independently readable STL and Core 3MF outputs with correct units and bounds.\n\n## Preserved remainder\nSTEP export remains under the existing exchange/export owners and release gates. Advanced presets, physical chooser qualification, and platform-specific export input remain under PRT-002/release gates.\n"
+    },
+    {
+      "key": "PRT-012",
+      "title": "Export selected bodies as one mesh file or per-body mesh files safely",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "PRT-001",
+        "XCH-011"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P1",
+        "area:prt"
+      ],
+      "body": "## Bounded result\nExport selected bodies as one-file or per-body STL/Core 3MF files with collision handling and atomic cancellation/failure behavior.\n\nThis is a finishable child of PRT-002; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Expose one-file/per-body structure and deterministic naming for selected bodies in STL and Core 3MF.\n- Test filename collisions, an existing destination, and cancellation; preserve prior files and publish no partial batch.\n- Independently read every produced mesh and verify units, object count, bounds, and transforms for the fixture.\n- Verify failed/cancelled export leaves authored geometry, history, and undo state unchanged.\n\n## Preserved remainder\nSTEP and other exporters, broader batch naming/presets, and native platform chooser qualification remain with PRT-002 and cumulative release gates.\n"
+    },
+    {
+      "key": "HIS-011",
+      "title": "Suppress and restore one retained history feature",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "HIS-001"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P1",
+        "area:his"
+      ],
+      "body": "## Bounded result\nSuppress and restore one feature with dependent evaluation, retaining suppression as authored intent across save/reopen.\n\nThis is a finishable child of HIS-003; the parent retains broader timeline/history scope.\n\n## Acceptance criteria\n- Suppress and restore one supported feature and verify downstream features recompute or report a clear dependency failure without corrupting the last valid result.\n- Keep suppression distinct from visibility and preserve authored feature inputs and identity.\n- Verify undo/redo and save/reopen preserve the suppression state and its restoration.\n- Verify suppression refusal leaves the prior valid document/history unchanged.\n\n## Preserved remainder\nSuppression combinations across every feature/dependency family and broader recovery UI remain under HIS-003.\n\n## First-v1 dependency note\nOne supported suppression fixture relies on the authored history core; wider downstream-reference repair remains separately owned.\n"
+    },
+    {
+      "key": "HIS-012",
+      "title": "Temporarily roll back evaluation and return to the latest feature",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "HIS-001"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P1",
+        "area:his"
+      ],
+      "body": "## Bounded result\nMove a transient evaluation marker to an earlier history point and restore the latest feature without deleting future authored history.\n\nThis is a finishable child of HIS-003; the parent retains broader timeline/history scope.\n\n## Acceptance criteria\n- Move the marker backward and verify only the evaluated prefix is active while later authored features remain present and identifiable.\n- Return to the latest feature and verify the original full evaluated result and feature identities are restored.\n- Treat the rollback marker as transient view/evaluation state: never serialize it as the document current point; save/reopen evaluates the latest authored feature.\n- Verify marker movement and return are undo-safe or explicitly non-document view actions, and leave authored feature data unchanged.\n\n## Preserved remainder\nTimeline reorder and broader rollback/history behavior remain under HIS-003.\n"
+    },
+    {
+      "key": "SKT-170",
+      "title": "Retain midpoint and construction picks for the illustrated bracket",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-008",
+        "SKT-018"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P1",
+        "area:skt"
+      ],
+      "body": "## Bounded result\nComplete the exact illustrated-bracket Activity 2 construction-line conversion and midpoint/inferred-circle picks through native input and the shared sketch command model. This is a finishable child of SKT-016; broader point-to-edge and relation variants remain under the parent.\n\n## Acceptance criteria\n- Convert the documented selected sketch line to construction via the public-source context-menu sequence; retain its ID, exclude it from closed profiles, and display construction styling.\n- Midpoint relation and inference use real line references, retain source identity through edits, and yield the circle centers required by the bracket sequence.\n- Native actual-hit input shows menu, snap/constraint cues and resulting circles without harness focus repair; API inspection proves constraints, geometry and stable IDs.\n- One source edit, Undo/Redo and save/reopen preserve the relation; compare the relevant illustrated checkpoints using external public references.\n\n## Preserved remainder\nSKT-016 continues to own wider construction, midpoint and point-to-edge behavior outside this bracket slice.\n"
     }
   ]
 }

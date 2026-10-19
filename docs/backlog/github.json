@@ -1,7 +1,7 @@
 {
   "repository": "rje/Alloy",
   "project_url": "https://github.com/users/rje/projects/1",
-  "updated": "2026-10-19T20:22:56.245232+00:00",
+  "updated": "2026-10-19T22:08:32.174008+00:00",
   "issues": {
     "HIS-008": {
       "number": 474,
@@ -3061,6 +3061,166 @@
     "REL-054": {
       "number": 615,
       "url": "https://github.com/rje/Alloy/issues/615",
+      "state": "open"
+    },
+    "REL-055": {
+      "number": 616,
+      "url": "https://github.com/rje/Alloy/issues/616",
+      "state": "open"
+    },
+    "SKT-169": {
+      "number": 617,
+      "url": "https://github.com/rje/Alloy/issues/617",
+      "state": "open"
+    },
+    "SOL-080": {
+      "number": 618,
+      "url": "https://github.com/rje/Alloy/issues/618",
+      "state": "open"
+    },
+    "SOL-081": {
+      "number": 619,
+      "url": "https://github.com/rje/Alloy/issues/619",
+      "state": "open"
+    },
+    "SOL-082": {
+      "number": 620,
+      "url": "https://github.com/rje/Alloy/issues/620",
+      "state": "open"
+    },
+    "SOL-083": {
+      "number": 621,
+      "url": "https://github.com/rje/Alloy/issues/621",
+      "state": "open"
+    },
+    "SOL-084": {
+      "number": 622,
+      "url": "https://github.com/rje/Alloy/issues/622",
+      "state": "open"
+    },
+    "SOL-085": {
+      "number": 623,
+      "url": "https://github.com/rje/Alloy/issues/623",
+      "state": "open"
+    },
+    "SOL-086": {
+      "number": 624,
+      "url": "https://github.com/rje/Alloy/issues/624",
+      "state": "open"
+    },
+    "SOL-087": {
+      "number": 625,
+      "url": "https://github.com/rje/Alloy/issues/625",
+      "state": "open"
+    },
+    "SOL-088": {
+      "number": 626,
+      "url": "https://github.com/rje/Alloy/issues/626",
+      "state": "open"
+    },
+    "SOL-089": {
+      "number": 627,
+      "url": "https://github.com/rje/Alloy/issues/627",
+      "state": "open"
+    },
+    "SRF-025": {
+      "number": 628,
+      "url": "https://github.com/rje/Alloy/issues/628",
+      "state": "open"
+    },
+    "SRF-026": {
+      "number": 629,
+      "url": "https://github.com/rje/Alloy/issues/629",
+      "state": "open"
+    },
+    "SRF-027": {
+      "number": 630,
+      "url": "https://github.com/rje/Alloy/issues/630",
+      "state": "open"
+    },
+    "SRF-028": {
+      "number": 631,
+      "url": "https://github.com/rje/Alloy/issues/631",
+      "state": "open"
+    },
+    "SRF-029": {
+      "number": 632,
+      "url": "https://github.com/rje/Alloy/issues/632",
+      "state": "open"
+    },
+    "SRF-030": {
+      "number": 633,
+      "url": "https://github.com/rje/Alloy/issues/633",
+      "state": "open"
+    },
+    "SRF-031": {
+      "number": 634,
+      "url": "https://github.com/rje/Alloy/issues/634",
+      "state": "open"
+    },
+    "SRF-032": {
+      "number": 635,
+      "url": "https://github.com/rje/Alloy/issues/635",
+      "state": "open"
+    },
+    "SRF-033": {
+      "number": 636,
+      "url": "https://github.com/rje/Alloy/issues/636",
+      "state": "open"
+    },
+    "SRF-034": {
+      "number": 637,
+      "url": "https://github.com/rje/Alloy/issues/637",
+      "state": "open"
+    },
+    "SRF-035": {
+      "number": 638,
+      "url": "https://github.com/rje/Alloy/issues/638",
+      "state": "open"
+    },
+    "GEO-025": {
+      "number": 639,
+      "url": "https://github.com/rje/Alloy/issues/639",
+      "state": "open"
+    },
+    "GEO-026": {
+      "number": 640,
+      "url": "https://github.com/rje/Alloy/issues/640",
+      "state": "open"
+    },
+    "GEO-027": {
+      "number": 641,
+      "url": "https://github.com/rje/Alloy/issues/641",
+      "state": "open"
+    },
+    "DOC-039": {
+      "number": 642,
+      "url": "https://github.com/rje/Alloy/issues/642",
+      "state": "open"
+    },
+    "PRT-011": {
+      "number": 643,
+      "url": "https://github.com/rje/Alloy/issues/643",
+      "state": "open"
+    },
+    "PRT-012": {
+      "number": 644,
+      "url": "https://github.com/rje/Alloy/issues/644",
+      "state": "open"
+    },
+    "HIS-011": {
+      "number": 645,
+      "url": "https://github.com/rje/Alloy/issues/645",
+      "state": "open"
+    },
+    "HIS-012": {
+      "number": 646,
+      "url": "https://github.com/rje/Alloy/issues/646",
+      "state": "open"
+    },
+    "SKT-170": {
+      "number": 647,
+      "url": "https://github.com/rje/Alloy/issues/647",
       "state": "open"
     }
   }

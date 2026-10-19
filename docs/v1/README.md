@@ -17,6 +17,12 @@ v1-versus-later option boundary under REL-030, though finishable owners and
 release evidence remain open. Their [working disposition](partial-row-disposition.md) names
 the proposed variants; ordinary Combine name/error recovery is accepted as
 SOL-071/#566. REL-030 still owns final scope and release-gate reconciliation.
+The 2026-10-19 decomposition adds 32 bounded Todo children for previously
+bundled document/history, advanced solid, surface, datum, inspection and mesh
+export minima. [The execution ledger](release-execution-ledger.md) links these
+to the affected rows. Existing accepted spline, expression and circular-pattern
+slices were reused instead of reissued. This is work allocation, not a new
+implementation pass.
 The user explicitly included 3MF export and modeled printable threads in the
 first stable v1 on 2026-10-17. [XCH-011/#524](../backlog/github.md) and
 [SOL-059/#504](../backlog/github.md) own those bounded deliverables. The

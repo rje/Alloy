@@ -126,7 +126,8 @@
         "DOC-004",
         "DOC-013",
         "DOC-015",
-        "REL-002"
+        "REL-002",
+        "REL-055"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -188,7 +189,8 @@
       ],
       "issueKeys": [
         "REL-014",
-        "REL-002"
+        "REL-002",
+        "REL-055"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -306,7 +308,9 @@
         "HIS-003",
         "HIS-005",
         "HIS-006",
-        "REL-025"
+        "REL-025",
+        "HIS-011",
+        "HIS-012"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -355,7 +359,8 @@
       "gap": "No registered suppression command; dependency handling, saved state and native UI require implementation.",
       "apiIds": [],
       "issueKeys": [
-        "HIS-003"
+        "HIS-003",
+        "HIS-011"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -373,7 +378,8 @@
       "gap": "No registered rollback-marker command; evaluate an earlier history point without deleting later authored work.",
       "apiIds": [],
       "issueKeys": [
-        "HIS-003"
+        "HIS-003",
+        "HIS-012"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -945,7 +951,8 @@
       "issueKeys": [
         "SKT-016",
         "SKT-008",
-        "SKT-034"
+        "SKT-034",
+        "SKT-170"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -1398,7 +1405,10 @@
         "SOL-056",
         "SOL-057",
         "PAR-008",
-        "SOL-047"
+        "SOL-047",
+        "SOL-080",
+        "SOL-081",
+        "SOL-082"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -1843,7 +1853,8 @@
       "issueKeys": [
         "SOL-009",
         "SOL-027",
-        "SOL-036"
+        "SOL-036",
+        "SOL-085"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -2292,7 +2303,8 @@
         "inspect.measure"
       ],
       "issueKeys": [
-        "DOC-014"
+        "DOC-014",
+        "DOC-039"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
@@ -3307,7 +3319,8 @@
       "gap": "Trim does not establish independent Break/split behavior.",
       "apiIds": [],
       "issueKeys": [
-        "SKT-011"
+        "SKT-011",
+        "SKT-169"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3382,7 +3395,10 @@
       "gap": "One-sided solid Extrude lacks these options; surface Two Sides does not fulfill them.",
       "apiIds": [],
       "issueKeys": [
-        "SOL-010"
+        "SOL-010",
+        "SOL-080",
+        "SOL-081",
+        "SOL-082"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3551,7 +3567,8 @@
       "gap": "No Draft command is registered.",
       "apiIds": [],
       "issueKeys": [
-        "SOL-013"
+        "SOL-013",
+        "SOL-086"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3569,7 +3586,8 @@
       "gap": "No retained Scale command is registered.",
       "apiIds": [],
       "issueKeys": [
-        "SOL-013"
+        "SOL-013",
+        "SOL-087"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3587,7 +3605,8 @@
       "gap": "Move coordinates do not provide an Align selection workflow.",
       "apiIds": [],
       "issueKeys": [
-        "SOL-008"
+        "SOL-008",
+        "SOL-084"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3605,7 +3624,8 @@
       "gap": "Linked component copies are implemented; general independent body copying is not established.",
       "apiIds": [],
       "issueKeys": [
-        "SOL-008"
+        "SOL-008",
+        "SOL-083"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3672,7 +3692,7 @@
       "scope": "proposed-v1",
       "implementation": "missing",
       "nativeEvidence": "unknown",
-      "gap": "Current constant-radius/special bounded constructions do not establish these variants.",
+      "gap": "A documented single-edge Start/End Variable-radius mode is the proposed first-v1 advanced Fillet choice under SOL-064. It is not implemented; Chord Length and wider modes remain later under ADV-005/SOL-003.",
       "apiIds": [],
       "issueKeys": [
         "SOL-003",
@@ -3695,7 +3715,9 @@
       "gap": "Current retained Chamfer is equal-distance only.",
       "apiIds": [],
       "issueKeys": [
-        "SOL-005"
+        "SOL-005",
+        "SOL-088",
+        "SOL-089"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3733,7 +3755,8 @@
       "gap": "No surface Revolve registration.",
       "apiIds": [],
       "issueKeys": [
-        "SRF-001"
+        "SRF-001",
+        "SRF-025"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3751,7 +3774,8 @@
       "gap": "No surface Sweep registration; solid circular Sweep is distinct.",
       "apiIds": [],
       "issueKeys": [
-        "SRF-002"
+        "SRF-002",
+        "SRF-026"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3769,7 +3793,9 @@
       "gap": "Boundary Fill produces a solid cell; it is not a general Patch surface tool.",
       "apiIds": [],
       "issueKeys": [
-        "SRF-003"
+        "SRF-003",
+        "SRF-027",
+        "SRF-028"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3787,7 +3813,9 @@
       "gap": "No retained Offset Surface or Ruled Surface commands.",
       "apiIds": [],
       "issueKeys": [
-        "SRF-004"
+        "SRF-004",
+        "SRF-029",
+        "SRF-030"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3805,7 +3833,9 @@
       "gap": "Trim exists in bounded modes; Extend/Untrim are not registered.",
       "apiIds": [],
       "issueKeys": [
-        "SRF-005"
+        "SRF-005",
+        "SRF-031",
+        "SRF-032"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3841,7 +3871,10 @@
       "gap": "Sketch Curvature Comb is not surface continuity/zebra analysis.",
       "apiIds": [],
       "issueKeys": [
-        "SRF-008"
+        "SRF-008",
+        "SRF-033",
+        "SRF-034",
+        "SRF-035"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3859,7 +3892,8 @@
       "gap": "Only Offset/Midplane/endpoint path/tangent-point families are currently registered.",
       "apiIds": [],
       "issueKeys": [
-        "GEO-001"
+        "GEO-001",
+        "GEO-025"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -3877,7 +3911,9 @@
       "gap": "No retained construction Axis or Point authoring registration; sketch points and origin axes are distinct.",
       "apiIds": [],
       "issueKeys": [
-        "GEO-001"
+        "GEO-001",
+        "GEO-026",
+        "GEO-027"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -4032,7 +4068,9 @@
       "gap": "STL settings/export exist but full preview and grouped output organization remain unimplemented/unqualified.",
       "apiIds": [],
       "issueKeys": [
-        "PRT-002"
+        "PRT-002",
+        "PRT-011",
+        "PRT-012"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -4069,7 +4107,11 @@
       "apiIds": [],
       "issueKeys": [
         "PAR-001",
-        "HIS-004"
+        "HIS-004",
+        "PAR-006",
+        "PAR-007",
+        "PAR-008",
+        "PAR-009"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -17311,5 +17353,5 @@
     }
   ],
   "reconciliationDate": "2026-10-19",
-  "reconciliationNote": "Later accepted bounded receipts and issue ownership amended; command IDs remain the dated generated snapshot."
+  "reconciliationNote": "Dated 397-command runtime snapshot with later bounded evidence amendments and 2026-10-19 finishable issue-owner splits; new child links are planning, not implementation acceptance."
 }
