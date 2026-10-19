@@ -135,7 +135,8 @@
       ],
       "receipts": [
         "docs/validation/authored-document.md",
-        "docs/validation/document-tabs.md"
+        "docs/validation/document-tabs.md",
+        "docs/validation/failed-save.md"
       ],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },
@@ -197,7 +198,8 @@
         "src/AlloyWindow.cpp"
       ],
       "receipts": [
-        "docs/validation/document-recovery.md"
+        "docs/validation/document-recovery.md",
+        "docs/validation/failed-save.md"
       ],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },

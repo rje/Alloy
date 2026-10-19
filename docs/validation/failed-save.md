@@ -1,8 +1,8 @@
 # Failed native save: bounded REL-055 receipt
 
-2026-10-19, macOS 26.5.1 arm64. Core regression passed; real-entrypoint API
-qualification remains pending. No native input, screenshot or cross-platform
-runtime acceptance is claimed.
+2026-10-19, macOS 26.5.1 arm64. Core regression and real-entrypoint API
+qualification passed. No native input, screenshot or cross-platform runtime
+acceptance is claimed.
 
 ## Contract and implementation
 
@@ -16,8 +16,7 @@ fallback explicitly disabled, and updates the path/clean checkpoint only after
 the complete write and successful commit. No product change was needed.
 `document.save` already maps a storage failure to `ok: false`,
 `completion: failed`, error code `save_failed` and field `path`; its native Save
-actions invoke this shared command. This structured response is source-reviewed
-here; the new real-app driver has not yet executed it.
+actions invoke this shared command. The real-app driver observed this response.
 
 This is an Alloy integrity requirement from REL-055, with no new controls or
 presentation. No proprietary runtime observation or exact reference behavior is
@@ -58,7 +57,7 @@ The inspected cache uses Ninja/Release and Qt6_DIR
 `/Users/rje/src/cpp/Alloy-dependencies/qt-private-runtime/install/lib/cmake/Qt6`
 (Qt 6.11.2); the accepted kernel is OCCT 7.9.3. No CI dispatch or GUI launch.
 
-## Pending actual-application check
+## Actual-application check
 
 `tests/failed_save_api.py` uses the existing native entrypoint/local control
 harness. It creates a 20 × 30 × 10 mm box, saves, edits width to 24 mm and
@@ -68,7 +67,7 @@ checks successful retry, Undo/Redo, original-byte snapshot reopen and edited
 file reopen. It writes `previous.alloy`, `retry.alloy`, `app.log` and a JSON
 response transcript with both file hashes.
 
-Run only when the single private GUI lease is free and the Mac is unlocked:
+Executed with the single private app lease; the app quit cleanly:
 
 ```sh
 python3 tests/failed_save_api.py \
@@ -76,9 +75,14 @@ python3 tests/failed_save_api.py \
   --output ../Alloy-reference-records/validation/failed-save-2026-10-19/api
 ```
 
-The application target must be rebuilt before this pending run if its binary is
-stale. This driver is syntax-checked only; its results must not be presented as
-executed API evidence. Independent compatibility review also remains pending.
+The accepted app binary was newer than the unchanged Save/command source.
+The 22-response transcript passed. Its failed Save returned `save_failed` for
+`path` with `Permission denied`; full inspection matched before and after the
+failure. The prior and retry files have distinct SHA-256 values, recorded in
+`failed-save-api.json`; both reopened with their exact expected authored data.
+The external evidence directory contains `previous.alloy`, `retry.alloy`,
+`failed-save-api.json` and `app.log`. This run used the local command API; it
+does not qualify physical Save-menu/chooser input.
 
 ## Limits
 

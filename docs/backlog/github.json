@@ -1,7 +1,7 @@
 {
   "repository": "rje/Alloy",
   "project_url": "https://github.com/users/rje/projects/1",
-  "updated": "2026-10-19T22:08:32.174008+00:00",
+  "updated": "2026-10-19T22:14:54.611868+00:00",
   "issues": {
     "HIS-008": {
       "number": 474,
@@ -3066,7 +3066,7 @@
     "REL-055": {
       "number": 616,
       "url": "https://github.com/rje/Alloy/issues/616",
-      "state": "open"
+      "state": "closed"
     },
     "SKT-169": {
       "number": 617,
