@@ -12,7 +12,7 @@ The current local backlog contains **604 issues**: **477 implementation, 24 rese
 Use the live issue state for completion and readiness.
 REL-052/#587 accepts the [native Save As Mesh sheet keyboard and return slice](../validation/mesh-export-keyboard.md);
 REL-053/#607 retains actual OS chooser Cancel/Save and independent STL readback,
-and blocks the cumulative REL-012 gate.
+and blocks the cumulative REL-012 gate. A [bounded native chooser diagnosis](../validation/native-mesh-chooser-investigation.md) reached a real NSSavePanel but not usable key-window return after Cancel; both draft fixes were reverted and the issue is Todo.
 FND-028/#589 accepts the [unlocked macOS native first-input prerequisite](../validation/ordinary-bracket-modal-readiness.md):
 AppKit key-window and Qt focus agree, an actual-hit click followed by C works,
 and a native window capture is inspected. REL-052/#587 accepts the export-sheet
