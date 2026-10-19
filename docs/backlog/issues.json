@@ -3694,7 +3694,8 @@
         "SOL-069",
         "SOL-070",
         "SOL-065",
-        "DOC-037"
+        "DOC-037",
+        "HIS-013"
       ],
       "labels": [
         "kind:validation",
@@ -10935,7 +10936,7 @@
         "priority:P1",
         "area:his"
       ],
-      "body": "## Bounded result\nMove a transient evaluation marker to an earlier history point and restore the latest feature without deleting future authored history.\n\nThis is a finishable child of HIS-003; the parent retains broader timeline/history scope.\n\n## Acceptance criteria\n- Move the marker backward and verify only the evaluated prefix is active while later authored features remain present and identifiable.\n- Return to the latest feature and verify the original full evaluated result and feature identities are restored.\n- Treat the rollback marker as transient view/evaluation state: never serialize it as the document current point; save/reopen evaluates the latest authored feature.\n- Verify marker movement and return are undo-safe or explicitly non-document view actions, and leave authored feature data unchanged.\n\n## Preserved remainder\nTimeline reorder and broader rollback/history behavior remain under HIS-003.\n"
+      "body": "## Bounded result\nMove a transient evaluation marker to an earlier history point and restore the latest feature without deleting future authored history.\n\nThis is a finishable child of HIS-003; the parent retains broader timeline/history scope.\n\n## Acceptance criteria\n- Move the marker backward and verify only the evaluated prefix is active while later authored features remain present and identifiable.\n- Return to the latest feature and verify the original full evaluated result and feature identities are restored.\n- Treat the rollback marker as transient view/evaluation state: never serialize it as the document current point; save/reopen evaluates the latest authored feature.\n- Verify marker movement and return are undo-safe or explicitly non-document view actions, and leave authored feature data unchanged.\n\n## Preserved remainder\nTimeline reorder and broader rollback/history behavior remain under HIS-003.\n\n## Accepted bounded core and explicit native split \u2014 2026-10-19\nCommit b0a75a3 passes focused document checks and a 35-call real-app Box\u2192Offset Face replay: one body ID changes from 3000 to 4500 mm\u00b3, rollback restores the earlier geometry without changing authored/revision/Undo state, and Save while rolled reopens at latest. The GPU prefix capture is clean after clearing a stale selected-face actor; see docs/validation/history-rollback.md. Actual-hit native Timeline input is unqualified after a standalone Qt probe crashed before recording any successful action checkpoint. HIS-013 is the required first-v1 native-control/diagnosis gate. Closing this child accepts the tested transient core, not the native control or broad assembly/history parity.\n"
     },
     {
       "key": "SKT-170",
@@ -11005,6 +11006,24 @@
         "area:doc"
       ],
       "body": "## Bounded first-v1 result\nMake the supported Measure set deterministic and trustworthy when references overlap, are represented equivalently, or change after a model edit. This retains the ambiguity/refusal and source-provenance remainder from DOC-039/#642.\n\n## Acceptance criteria\n- With two coincident/overlapping visible sketch edges, either provide an explicit user choice or return a structured ambiguity refusal; never choose by QHash iteration order. Distinct nonoverlapping picks keep the current closest-hit behavior.\n- Detect duplicate resolved sources even if equivalent JSON references differ in optional fields. Invalid/missing/hidden/ambiguous IDs refuse without changing authored state.\n- Measure a qualified source after edit, Undo/Redo and save/reopen. Preserve stable IDs or explicitly report unavailable source; verify the current evaluated value, not cached coordinates.\n- Qualify one placed occurrence source with explicit identity and refuse a body ID that is ambiguous across instances. Keep shared native/API source resolution and add only focused fixtures for these material risks.\n\n## Preserved remainder\nGeneral topology repair, every curve/face family and broader analysis stay with DOC-014 and DOC-041.\n\n## Accepted bounded evidence \u2014 2026-10-19\nCommit 8ac32f3 passes a 147-call real-entrypoint fixture for deterministic half-pixel overlap refusal, resolved-source duplicate identity, line/face edits and Undo/Redo, deletion recovery, explicit placed occurrence identity, translated point-edge distance and exact save/reopen. Independent Sol review found no material blocker; see docs/validation/measure-references.md. Native actual-hit controls remain DOC-040, wider results/visual modes DOC-041, and platform gates stay open.\n"
+    },
+    {
+      "key": "HIS-013",
+      "title": "Qualify native Timeline rollback controls and diagnose failed actual-hit probe",
+      "kind": "validation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "HIS-012",
+        "FND-028"
+      ],
+      "labels": [
+        "kind:validation",
+        "phase:P2",
+        "priority:P1",
+        "area:his"
+      ],
+      "body": "## Bounded first-v1 result\nQualify the real Timeline Roll History Marker Here and Move to End controls through native actual-hit input on macOS, and repair any product defect found. This preserves the native-control remainder from HIS-012/#646.\n\n## Acceptance criteria\n- Diagnose the preserved standalone Qt probe crash before attributing it to Alloy. Use a valid app/window lifetime and hit-test the control actually under each click; initial activation is separate and there is no focus/selection repair between steps.\n- On a Box followed by an Offset Face, open the later feature's Timeline menu, activate Roll History Marker Here, and verify the earlier geometry and inactive later tile through the shared API and native GPU capture.\n- Use Move to End through an actual hit and verify full geometry/body identity, unchanged authored history and Undo stack, and no stale future-face highlight. Check camera navigation and one read-only edit refusal during rollback.\n- Record actual native steps, captures, exact app/build hashes and any remaining unmatched public visual behavior. If the console prevents first input, retain a candidate and keep this issue open.\n\n## Preserved remainder\nPhysical device input, exact reference-product pixel parity, Windows/Linux runtime and assembly-history rollback remain under existing navigation/history/release owners. Public-source references remain outside git in Alloy-reference-records.\n"
     }
   ]
 }
