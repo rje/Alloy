@@ -61,6 +61,57 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     check(result.supportFaces[0].boundaryEdges.size()==1&&result.supportFaces[0].boundaryEdges[0].edgeId==slopedRimId,
         "Sloped top boundary retains exact rim identity");
  }
+ // The ledge becomes flush with the upper step at +5. OCCT still returns one
+ // valid solid, but both short vertical step edges have no final descendants.
+ BRepBuilderAPI_MakePolygon steppedWire;
+ for(const auto& point: {gp_Pnt(0,0,0),gp_Pnt(20,0,0),gp_Pnt(20,0,5),
+                         gp_Pnt(10,0,5),gp_Pnt(10,0,10),gp_Pnt(0,0,10)})
+     steppedWire.Add(point);
+ steppedWire.Close();
+ EvaluatedBody stepped;stepped.bodyId=CadDocument::newId();stepped.featureId=CadDocument::newId();
+ stepped.shape=BRepPrimAPI_MakePrism(BRepBuilderAPI_MakeFace(steppedWire.Wire()).Face(),gp_Vec(0,10,0)).Shape();
+ stepped.summary=GeometryKernel::summarize(stepped.shape);
+ check(stepped.summary["valid"].toBool(),"Stepped source valid");
+ for(TopExp_Explorer it(stepped.shape,TopAbs_FACE);it.More();it.Next()) {
+     const auto face=TopoDS::Face(it.Current());const BRepAdaptor_Surface plane(face);
+     if(plane.GetType()!=GeomAbs_Plane || std::abs(plane.Plane().Location().Z()-5)>1e-6
+         || std::abs(plane.Plane().Axis().Direction().Z())<.99)continue;
+     stepped.supportFaces.push_back({CadDocument::newId(),stepped.bodyId,stepped.featureId,
+         "fixture.ledge",face,{{"origin",QJsonArray{15,0,5}},{"normal",QJsonArray{0,0,1}},
+         {"uAxis",QJsonArray{1,0,0}},{"vAxis",QJsonArray{0,1,0}}},{},{}});
+ }
+ check(stepped.supportFaces.size()==1,"Unique stepped ledge support");
+ QString deletedId,stableId;
+ for(TopExp_Explorer it(stepped.shape,TopAbs_EDGE);it.More();it.Next()) {
+     const auto edge=TopoDS::Edge(it.Current());const BRepAdaptor_Curve curve(edge);
+     if(curve.GetType()!=GeomAbs_Line)continue;
+     const auto first=curve.Value(curve.FirstParameter()),last=curve.Value(curve.LastParameter());
+     const bool deleted=std::abs(first.X()-10)<1e-6 && std::abs(last.X()-10)<1e-6
+         && std::abs(first.Y())<1e-6 && std::abs(last.Y())<1e-6
+         && std::abs(std::min(first.Z(),last.Z())-5)<1e-6
+         && std::abs(std::max(first.Z(),last.Z())-10)<1e-6;
+     const bool stable=std::abs(first.Z())<1e-6 && std::abs(last.Z())<1e-6
+         && std::abs(first.Y())<1e-6 && std::abs(last.Y())<1e-6
+         && std::abs(std::abs(first.X()-last.X())-20)<1e-6;
+     if(!deleted&&!stable)continue;
+     const auto edgeId=CadDocument::newId();
+     stepped.solidEdges.push_back({edgeId,edge,{{"startMm",QJsonArray{first.X(),first.Y(),first.Z()}},
+         {"endMm",QJsonArray{last.X(),last.Y(),last.Z()}}}});
+     if(deleted)deletedId=edgeId;else stableId=edgeId;
+ }
+ check(!deletedId.isEmpty()&&!stableId.isEmpty(),"Named deleted and unaffected source edges");
+ SolidFaceOffset::evaluate(stepped,{{"face",ref(stepped.supportFaces[0])},
+     {"targetBodyId",stepped.bodyId},{"distanceMm",5}},CadDocument::newId());
+ check(stepped.summary["valid"].toBool()&&stepped.summary["closed"].toBool()
+     &&std::abs(stepped.summary["volumeMm3"].toDouble()-2000)<1e-5,
+     "Deleted-edge offset still yields one valid solid");
+ const auto resolved=[&](const QString& edgeId){return std::find_if(stepped.solidEdges.begin(),stepped.solidEdges.end(),
+     [&](const auto& edge){return edge.edgeId==edgeId;});};
+ check(resolved(deletedId)!=stepped.solidEdges.end()&&resolved(deletedId)->edge.IsNull()
+     &&resolved(deletedId)->provenance["resolutionError"]=="deleted",
+     "Vanished step edge explicitly unavailable");
+ check(resolved(stableId)!=stepped.solidEdges.end()&&!resolved(stableId)->edge.IsNull(),
+     "Unaffected bottom edge remains available");
  CadDocument d;auto a=d.authored();QJsonObject box{{"id",CadDocument::newId()},{"bodyId",CadDocument::newId()},{"ownerId",a["documentId"]},{"type","box"},{"name","Box"},{"visible",true},{"parameters",QJsonObject{{"xMm",0},{"yMm",0},{"zMm",0},{"widthMm",20},{"depthMm",20},{"heightMm",10}}}};
  a["features"]=QJsonArray{box};commit(d,a);QJsonObject selected;
  QString boxTopRimId,boxBottomRimId;

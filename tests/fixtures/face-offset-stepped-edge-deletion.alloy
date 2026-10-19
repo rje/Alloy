@@ -1,0 +1,103 @@
+{
+    "displayUnits": "mm",
+    "documentId": "7931b3ba-3d0f-4aff-bdcf-367e029940bc",
+    "features": [
+        {
+            "id": "cc299ee2-0820-485f-8f78-d4f1a4e9bab8",
+            "name": "Stepped profile",
+            "ownerId": "7931b3ba-3d0f-4aff-bdcf-367e029940bc",
+            "parameters": {
+                "dimensions": [
+                ],
+                "entities": [
+                    {
+                        "endPointId": "7bde9a6f-7fde-42e3-b34f-0d31a891da42",
+                        "id": "cce48b66-6a6e-4abe-905f-373f3101e6f3",
+                        "startPointId": "47e553be-b300-4e94-a339-82861149c1fd",
+                        "type": "line"
+                    },
+                    {
+                        "endPointId": "07d18c84-c821-4c11-88a8-f0b671234571",
+                        "id": "71dc77c7-d0de-4de7-9962-1db029e271d6",
+                        "startPointId": "7bde9a6f-7fde-42e3-b34f-0d31a891da42",
+                        "type": "line"
+                    },
+                    {
+                        "endPointId": "41d4e46c-7aad-4bd7-8fbb-893080d2f2ad",
+                        "id": "9ef70562-269b-4641-a1cb-454a11092ab9",
+                        "startPointId": "07d18c84-c821-4c11-88a8-f0b671234571",
+                        "type": "line"
+                    },
+                    {
+                        "endPointId": "5f0773eb-0337-45bf-8fd1-099dc76b8ab7",
+                        "id": "1e03f286-17d3-49f0-ae50-678342c94785",
+                        "startPointId": "41d4e46c-7aad-4bd7-8fbb-893080d2f2ad",
+                        "type": "line"
+                    },
+                    {
+                        "endPointId": "8fe03979-77bf-4a28-b973-2f9263ce4e5f",
+                        "id": "19af5480-7404-42d1-bb14-dd0802129c85",
+                        "startPointId": "5f0773eb-0337-45bf-8fd1-099dc76b8ab7",
+                        "type": "line"
+                    },
+                    {
+                        "endPointId": "47e553be-b300-4e94-a339-82861149c1fd",
+                        "id": "89d60515-7151-43a7-add8-30b72b86a68a",
+                        "startPointId": "8fe03979-77bf-4a28-b973-2f9263ce4e5f",
+                        "type": "line"
+                    }
+                ],
+                "nextDimensionNameIndex": 1,
+                "plane": "XZ",
+                "points": [
+                    {
+                        "id": "47e553be-b300-4e94-a339-82861149c1fd",
+                        "uMm": 0,
+                        "vMm": 0
+                    },
+                    {
+                        "id": "7bde9a6f-7fde-42e3-b34f-0d31a891da42",
+                        "uMm": 20,
+                        "vMm": 0
+                    },
+                    {
+                        "id": "07d18c84-c821-4c11-88a8-f0b671234571",
+                        "uMm": 20,
+                        "vMm": 5
+                    },
+                    {
+                        "id": "41d4e46c-7aad-4bd7-8fbb-893080d2f2ad",
+                        "uMm": 10,
+                        "vMm": 5
+                    },
+                    {
+                        "id": "5f0773eb-0337-45bf-8fd1-099dc76b8ab7",
+                        "uMm": 10,
+                        "vMm": 10
+                    },
+                    {
+                        "id": "8fe03979-77bf-4a28-b973-2f9263ce4e5f",
+                        "uMm": 0,
+                        "vMm": 10
+                    }
+                ]
+            },
+            "type": "sketch",
+            "visible": false
+        },
+        {
+            "bodyId": "873fe1ca-5be6-483e-8c9d-ebb6caf878be",
+            "id": "6d8fd968-88bd-4bb5-897a-cb0e6996b10f",
+            "name": "Extrude",
+            "ownerId": "7931b3ba-3d0f-4aff-bdcf-367e029940bc",
+            "parameters": {
+                "distanceMm": 10,
+                "profileId": "81658e49-8ddc-562a-b631-7e95d90b13c8",
+                "sketchId": "cc299ee2-0820-485f-8f78-d4f1a4e9bab8"
+            },
+            "type": "extrude",
+            "visible": true
+        }
+    ],
+    "schema": "alloy-document/1"
+}
