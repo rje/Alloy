@@ -1001,6 +1001,31 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
     for(size_t i=0;i<prefix.featureOrder.size();++i)
         if(prefix.featureOrder[i]!=features[static_cast<int>(i)].toObject()["id"].toString())
             reject("invalid_evaluation_prefix","Evaluated prefix order does not match authored history");
+    // First suppression slice: independent Boxes with retained planar Offset Face
+    // chains. Refuse other families rather than guessing their dependency graph.
+    bool suppressionActive=false;
+    for(const auto& row:features)suppressionActive|=row.toObject().value("suppressed").toBool();
+    if(suppressionActive && !authored.value("joints").toArray().isEmpty())
+        reject("suppression_unsupported","Suppression does not yet support assembly joints");
+    QMap<QString,QString> lastBodyFeature;
+    evaluated.featureStates={};
+    for(const auto& row:features) {
+        const auto f=row.toObject();const auto id=f.value("id").toString(),type=f.value("type").toString();
+        if(f.contains("suppressed") && (!f.value("suppressed").isBool() || (type!="box" && type!="faceOffset")))
+            throw EvaluationError({{"code","suppression_unsupported"},{"message","Suppression requires a boolean on a supported Box or Offset Face feature"},{"featureId",id},{"featureType",type}});
+        if(suppressionActive && type!="box" && type!="faceOffset")
+            throw EvaluationError({{"code","suppression_unsupported"},{"message","Suppression currently supports only Box and Offset Face histories"},{"featureId",id},{"featureType",type}});
+        const auto parameters=f.value("parameters").toObject();QString dependency;
+        if(type=="faceOffset") {
+            const auto prior=lastBodyFeature.value(parameters.value("targetBodyId").toString());
+            const auto producer=parameters.value("face").toObject().value("producerFeatureId").toString();
+            for(const auto& ref:{prior,producer})if(evaluated.featureStates.value(ref).toObject().value("effectiveSuppressed").toBool()) {dependency=ref;break;}
+        }
+        const bool explicitSuppressed=f.value("suppressed").toBool();
+        evaluated.featureStates[id]=QJsonObject{{"explicitSuppressed",explicitSuppressed},{"effectiveSuppressed",explicitSuppressed || !dependency.isEmpty()},{"dependencyFeatureId",dependency}};
+        if(type=="box")lastBodyFeature[f.value("bodyId").toString()]=id;
+        else if(type=="faceOffset")lastBodyFeature[parameters.value("targetBodyId").toString()]=id;
+    }
     QMap<QString,size_t> priorSketches;
     for(size_t i=0;i<evaluated.sketches.size();++i)priorSketches[evaluated.sketches[i].featureId]=i;
     for (int featureIndex=static_cast<int>(prefix.featureOrder.size());featureIndex<features.size();++featureIndex) {
@@ -1010,6 +1035,9 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
         const auto parameters = feature["parameters"].toObject();
         QJsonObject context{{"featureId",id},{"featureType",type}};
         try {
+            if(evaluated.featureStates.value(id).toObject().value("effectiveSuppressed").toBool()) {
+                evaluated.featureOrder.push_back(id);continue;
+            }
             if(type=="assemblyPin") {
                 // Pin constrains occurrence presentation. Definition geometry and
                 // its authored history prefix remain unchanged.
@@ -1499,6 +1527,12 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
         // dormant so Undo and Keep Tools edits restore the same body identity.
         if(feature["id"]==evaluatedId && feature["type"]=="boolean" && !feature["parameters"].toObject()["keepTools"].toBool())
             for(const auto& id:feature["parameters"].toObject()["toolBodyIds"].toArray())intentionallyRemoved.insert(id.toString());
+    }
+    // Retain authored name/organization for dormant source bodies, as for
+    // consumed tools. Restoration reuses the original body and feature IDs.
+    for(const auto& row:features) {const auto f=row.toObject();
+        if(evaluated.featureStates.value(f.value("id").toString()).toObject().value("effectiveSuppressed").toBool()
+            && !f.value("bodyId").toString().isEmpty())intentionallyRemoved.insert(f.value("bodyId").toString());
     }
     for(auto& body:evaluated.bodies){
         if(body.occurrenceId.isEmpty() && featureTypes.value(body.featureId)!="stepImport"

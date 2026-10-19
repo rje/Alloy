@@ -67,6 +67,7 @@ struct EvaluatedDocument {
     std::vector<EvaluatedConstructionPlane> constructionPlanes;
     std::vector<QString> featureOrder;
     QJsonObject joinBodyResults;
+    QJsonObject featureStates; // Derived availability; only explicit suppression is authored.
     // Disposable, exact source-stage tools for retained feature replication.
     // These are evaluated geometry, never a second authored representation.
     QMap<QString,std::vector<TopoDS_Shape>> cutFeatureTools;

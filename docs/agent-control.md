@@ -1101,3 +1101,24 @@ The retained `arcTangent.endpoints` array is canonical arc then line, each
 with `endpoint` and stable `pointId`; the arc contact also retains `sweepSign`.
 The point identities remain distinct. The relation jointly constrains
 coincidence and tangency, and never rematches its endpoint roles after edits.
+
+### Bounded retained feature suppression
+
+`history.suppression {featureId, suppressed}` sets one explicit boolean on a
+retained Box or Offset Face. The same transaction powers Timeline context-menu
+**Suppress Features** / **Unsuppress Features** and its arrow menu. There is no
+preview or separate propagation transaction. The result reports `changed`,
+`affectedDependentIds` and `featureStates`; document evaluation and Timeline
+inspection expose explicit and effective suppression separately. A dependent
+Offset is unavailable without acquiring an authored suppression flag.
+
+This slice qualifies histories composed of independent Boxes and their retained
+planar Offset Face modifiers. Any other feature family in a suppression-active
+history, joints, or Pin refuses atomically; the result includes diagnostics for
+the blocking feature when applicable. Unknown IDs refuse; an already requested
+explicit state is a no-op. Unsupported suppression-bearing feature records also
+refuse on load. Suppressed-feature editing is unavailable until restoration.
+Suppression remains distinct from `feature.visibility` and ordinary Browser
+visibility. One-step Undo/Redo and save/reopen preserve authored flags, feature
+order, inputs, identities and dormant body names/organization. Transient rollback
+remains read-only. See [the bounded receipt](validation/history-suppression.md).

@@ -1,3 +1,4 @@
+#include <QGraphicsOpacityEffect>
 #include <BRep_Builder.hxx>
 #include <BRepAdaptor_Surface.hxx>
 #include <TopoDS_Compound.hxx>
@@ -1483,6 +1484,10 @@ bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
     if(timelineDragging_ && event->type()==QEvent::KeyPress
         && static_cast<QKeyEvent*>(event)->key()==Qt::Key_Escape){cancelTimelineDrag(true);return true;}
     if(auto* button=qobject_cast<QToolButton*>(watched);button && !button->property("featureId").toString().isEmpty()){
+        if(event->type()==QEvent::MouseButtonRelease && static_cast<QMouseEvent*>(event)->button()==Qt::RightButton && button->menu()) {
+            if(!QApplication::activePopupWidget())button->menu()->popup(static_cast<QMouseEvent*>(event)->globalPosition().toPoint());
+            return true;
+        }
         if(event->type()==QEvent::MouseButtonRelease && timelineCancelledButton_==button
             && static_cast<QMouseEvent*>(event)->button()==Qt::LeftButton){
             timelineCancelledButton_.clear();button->setDown(false);return true;
@@ -1658,7 +1663,7 @@ QJsonObject AlloyWindow::timelineState() const {
     for(int index=0;index<timelineLayout_->count();++index)if(auto* button=qobject_cast<QToolButton*>(timelineLayout_->itemAt(index)->widget())) {
         const QRect local(button->mapTo(viewport,QPoint{}),button->size());const auto point=button->mapTo(this,QPoint{});
         features.append(QJsonObject{{"featureId",button->property("featureId").toString()},{"type",button->property("featureType").toString()},
-            {"evaluated",button->property("evaluated").toBool()},{"name",button->property("featureName").toString()},{"tooltip",button->toolTip()},{"accessibleName",button->accessibleName()},
+            {"evaluated",button->property("evaluated").toBool()},{"explicitSuppressed",button->property("explicitSuppressed").toBool()},{"effectiveSuppressed",button->property("effectiveSuppressed").toBool()},{"name",button->property("featureName").toString()},{"tooltip",button->toolTip()},{"accessibleName",button->accessibleName()},
             {"width",button->width()},{"height",button->height()},{"fullyVisible",viewport->rect().contains(local)},
             {"bounds",QJsonObject{{"x",point.x()},{"y",point.y()},{"width",button->width()},{"height",button->height()}}}});
     }
@@ -6357,6 +6362,25 @@ void AlloyWindow::registerCommands() {
         });
     const QJsonObject visible{{"visible", parameter("boolean", "Whether this region is visible.")}};
     add("layout.browser", "Show / hide Browser", "Control the left Browser region.", visible, [this](const auto& a) { browserVisible_ = a.value("visible").toBool(); return QJsonObject{}; });
+    add("history.suppression","Suppress or unsuppress feature","Set retained suppression for a Box/Offset Face history; dependent availability is derived.",
+        {{"featureId",parameter("string","Stable authored feature UUID.")},{"suppressed",parameter("boolean","Explicit desired suppression state.")}},[this](const auto& a){
+            if(!session_.isEmpty() || !pendingReference_.isEmpty() || !failedEditRepair_.isEmpty())return failure("command_active","Complete or cancel the active command before suppression");
+            auto candidate=document_->authored();auto features=candidate.value("features").toArray();bool found=false;
+            for(int i=0;i<features.size();++i) {auto f=features[i].toObject();if(f.value("id")!=a.value("featureId"))continue;
+                if(f.value("type")!="box" && f.value("type")!="faceOffset")return failure("suppression_unsupported","Suppression currently supports Box and Offset Face features","featureId");
+                found=true;if(f.value("suppressed").toBool()==a.value("suppressed").toBool())return QJsonObject{{"changed",false},{"featureStates",document_->evaluation().featureStates},{"affectedDependentIds",QJsonArray{}}};
+                f["suppressed"]=a.value("suppressed");features[i]=f;break;
+            }
+            if(!found)return failure("stale_entity","Feature does not exist","featureId");
+            const auto before=document_->evaluation().featureStates;candidate["features"]=features;
+            const auto error=document_->commit(candidate,a.value("suppressed").toBool() ? "Suppress feature" : "Unsuppress feature");
+            if(!error.isEmpty()) {auto result=failure("suppression_refused",error,"featureId");result["diagnostics"]=document_->lastEvaluationError();return result;}
+            QJsonArray affected;const auto after=document_->evaluation().featureStates;
+            for(auto it=after.begin();it!=after.end();++it)if(it.key()!=a.value("featureId").toString() && before.value(it.key())!=it.value())affected.append(it.key());
+            selectedBody_.clear();selectedSketch_.clear();selectedOccurrence_.clear();selectedFace_={};selectedEdge_={};selectedPlane_.clear();
+            view_->selectSupportFace({},{});view_->clearSolidEdgeHighlights();view_->selectConstructionPlane({});
+            return QJsonObject{{"changed",true},{"featureStates",after},{"affectedDependentIds",affected}};
+        });
     add("timeline.rollbackBefore","Roll history before feature","Inspect an evaluated prefix without changing authored history. Modeling is read-only until Move to End.",
         {{"featureId",parameter("string","First inactive authored feature UUID.")}},[this](const auto& a){
             if(!session_.isEmpty() || !pendingReference_.isEmpty() || !failedEditRepair_.isEmpty())return failure("command_active","Complete or cancel the active command before rollback");
@@ -6833,6 +6857,9 @@ QString AlloyWindow::geometryWorkLabel(const QString& id,const QJsonObject& args
 }
 
 QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
+    if((id=="feature.edit" || id=="feature.editDialog" || id.startsWith("solid.") || id.startsWith("surface."))
+        && document_->evaluation().featureStates.value(args.value("featureId").toString()).toObject().value("effectiveSuppressed").toBool())
+        return failure("feature_suppressed","Unsuppress this feature and its source before editing","featureId");
     if(document_->isRolledBack()) {
         const bool viewEdit=QStringList{"view.conventionUp","view.conventionSet","view.conventionReset","view.namedCreate",
             "view.namedRename","view.namedDelete","view.homeSet","view.homeReset"}.contains(id);
@@ -7592,16 +7619,27 @@ void AlloyWindow::refresh() {
 
             connect(button,&QToolButton::clicked,this,[this,id]{if(session_.value("command")=="solid.rectangularPattern")execute("selection.featureSet",{{"featureId",id}});else if(session_.value("command")=="solid.featureMirror")execute("selection.featureMirrorSet",{{"featureId",id}});else execute("feature.editDialog",{{"featureId",id}});});
             const bool inactive=document_->isRolledBack() && std::find(document_->evaluation().featureOrder.begin(),document_->evaluation().featureOrder.end(),id)==document_->evaluation().featureOrder.end();
+            const auto suppression=document_->evaluation().featureStates.value(id).toObject();
+            const bool suppressed=suppression.value("effectiveSuppressed").toBool();
+            button->setProperty("explicitSuppressed",suppression.value("explicitSuppressed").toBool());button->setProperty("effectiveSuppressed",suppressed);
+            if(suppressed) {auto* opacity=new QGraphicsOpacityEffect(button);opacity->setOpacity(0.42);button->setGraphicsEffect(opacity);
+                button->setToolTip(fullName+(suppression.value("explicitSuppressed").toBool() ? "\nSuppressed." : "\nSuppressed by dependency: "+suppression.value("dependencyFeatureId").toString())+"\nUnsuppress the source before editing.");}
             button->setProperty("evaluated",!inactive);
             if(inactive)button->setStyleSheet(button->styleSheet()+"QToolButton { background: #eceff1; color: #7b858c; border-color: #c9cfd3; } ");
             if(document_->rollbackState().value("beforeFeatureId")==id)button->setStyleSheet(button->styleSheet()+"QToolButton { border-left: 3px solid #1478a8; }");
             button->setToolTip(document_->isRolledBack() ? fullName+(inactive ? "\nAfter evaluation marker (inactive)." : "\nEvaluated prefix.")+"\nMove to End before editing." : button->toolTip());
             auto* menu=new QMenu(button);
+            if(type=="box" || type=="faceOffset") {
+                auto* action=menu->addAction(feature.value("suppressed").toBool() ? "Unsuppress Features" : "Suppress Features",this,[this,id,desired=!feature.value("suppressed").toBool()]{execute("history.suppression",{{"featureId",id},{"suppressed",desired}});});
+                action->setEnabled(!document_->isRolledBack());menu->addSeparator();
+            }
             menu->addAction("Roll History Marker Here",this,[this,id]{execute("timeline.rollbackBefore",{{"featureId",id}});});
             menu->addAction("Move to End",this,[this]{execute("timeline.returnToLatest");});
             menu->addSeparator();menu->addAction("Delete",this,[this,id]{execute("feature.delete",{{"featureId",id}});});
             if(type=="sketch") {auto* redefine=menu->addAction("Redefine Sketch Plane",this,[this,id]{execute("sketch.redefinePlaneBegin",{{"sketchId",id}});});
                 redefine->setObjectName("timeline.redefineSketchPlane."+id);connect(menu,&QMenu::aboutToShow,this,[this,redefine,id]{const auto sketch=session_.value("draftSketch").toObject();redefine->setEnabled(!failedEditRepair_.isEmpty() && (failedEditRepair_.value("diagnostics").toObject().value("code")=="support_unavailable" || failedEditRepair_.value("diagnostics").toObject().value("code")=="offset_lineage_unavailable") && sketch.value("id")==id && (SketchPlaneRepair::ordinary(sketch) || SketchPlaneRepair::singleInset(sketch)) && sketch.value("ownerId")==document_->authored().value("documentId"));});}
+            button->setContextMenuPolicy(Qt::CustomContextMenu);
+            connect(button,&QWidget::customContextMenuRequested,this,[button,menu](const QPoint& point){if(!QApplication::activePopupWidget())menu->popup(button->mapToGlobal(point));});
             button->setMenu(menu);button->setPopupMode(QToolButton::MenuButtonPopup);timelineLayout_->addWidget(button);
         }
         timelineLayout_->addStretch();timelineLayout_->activate();

@@ -2397,6 +2397,9 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
         if (!owners.contains(feature["ownerId"].toString())) return "Feature owner must be an existing component definition";
         if (!feature["name"].isString() || feature["name"].toString().trimmed().isEmpty()
             || !feature["visible"].isBool()) return "Feature name and visibility are required";
+        if(feature.contains("suppressed") && (!feature.value("suppressed").isBool()
+            || (feature.value("type")!="box" && feature.value("type")!="faceOffset")))
+            return "Suppression requires a boolean on a supported Box or Offset Face feature";
         const auto type = feature["type"].toString();
         if (!feature["parameters"].isObject()) return "Feature parameters must be an object";
         const auto p = feature["parameters"].toObject();
@@ -3007,7 +3010,7 @@ QJsonObject CadDocument::state() const {
         {"revision", static_cast<qint64>(revision_)}, {"dirty", isDirty()},
         {"lastTransactionId", lastTransaction_},
         {"features", authored_["features"].toArray().size()}, {"bodies",static_cast<int>(evaluation_->bodies.size())}, {"sketches", static_cast<int>(evaluation_->sketches.size())},
-        {"evaluation",QJsonObject{{"status","current"},{"recompute",evaluation_->recompute},{"featureOrder",order},{"joinBodyResults",evaluation_->joinBodyResults},
+        {"evaluation",QJsonObject{{"status","current"},{"recompute",evaluation_->recompute},{"featureOrder",order},{"featureStates",evaluation_->featureStates},{"joinBodyResults",evaluation_->joinBodyResults},
             {"documentRevision",static_cast<qint64>(revision_)},{"bodies",evaluated},{"sketches",evaluatedSketches},{"constructionPlanes",evaluatedPlanes}}},
         {"rollback",rollbackState()}, {"editableHistory", !isRolledBack()}, {"authored", authored_},
         {"undo", QJsonObject{{"canUndo", history_.canUndo()}, {"canRedo", history_.canRedo()},
