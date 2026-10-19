@@ -224,6 +224,9 @@ Visible [Pan, Zoom and Zoom Window](docs/validation/navigation-pan-zoom-window.m
 and Orbit tools support users without a middle mouse button.
 [Fit Selection and planar Look At](docs/validation/navigation-selection-look-at.md)
 frame bodies, supported faces and visible sketch geometry.
+The [cumulative navigation gate](docs/validation/navigation-cumulative.md)
+also frames placed assembly children and their exact planar faces; physical
+mouse/trackpad and packaged-platform qualification remain open.
 The [Camera menu](docs/validation/navigation-projection.md) provides orthographic,
 perspective and hybrid projection, with per-tab restoration.
 [Custom named views](docs/validation/navigation-named-views.md) can be saved,

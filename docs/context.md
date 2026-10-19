@@ -1249,6 +1249,17 @@ history/reopen and GPU clipping pass. A bisected side face refuses ambiguity.
 See [the receipt](validation/section-split-support.md). Historical movie still
 shows the old unavailable section; new separate capture records the fix.
 
+## Cumulative visible navigation workflow (2026-10-19)
+
+NAV-005/#411 now passes a 110-call actual-app cumulative Fit/Home,
+Pan/Zoom/Window, selected body/face/small-sketch and hidden-geometry workflow.
+The selected planar face of a +90° placed assembly child exposed a false
+unsupported-face refusal; `view.lookAt` now checks the uniquely matched
+displayed world face for planarity and uses its placed frame. Curved-face and
+ambiguous-instance refusals remain. See
+[the receipt](validation/navigation-cumulative.md). NAV-008/NAV-009 retain
+physical/native input, while GATE-005 retains packaged multi-OS GPU/runtime.
+
 ## Cone and torus primitive slice (2026-10-19)
 
 SOL-062/#507 adds retained circular Cone/Frustum and ring Torus New Bodies to

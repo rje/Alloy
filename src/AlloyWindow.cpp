@@ -6658,8 +6658,12 @@ void AlloyWindow::registerCommands() {
                     support.producerFeatureId==selectedFace_.value("producerFeatureId")) {face=support;++matches;}
             if(matches!=1)return failure(matches ? "ambiguous_instance" : "stale_entity",
                 matches ? "Select one exact face occurrence for Look At" : "Selected visible face is no longer current");
-            try {GeometryKernel::resolveSketchSupport(document_->evaluation(),selectedFace_);}
-            catch(const std::exception&) {return failure("unsupported_face","Look At requires a planar selected face");}
+            // The uniquely resolved presentation face already carries the exact
+            // occurrence's world placement. Sketch support resolution accepts
+            // definition-only identities and must not reject navigation merely
+            // because its selected identity also names an occurrence.
+            if(face.face.IsNull() || BRepAdaptor_Surface(face.face).GetType()!=GeomAbs_Plane)
+                return failure("unsupported_face","Look At requires a planar selected face");
             if(!view_->lookAtPlane(face.frame,face.face))return failure("unsupported_face","Selected planar face has no usable world frame");
             return view_->cameraState();
         }

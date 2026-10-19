@@ -10,6 +10,11 @@ dependency keys with issue numbers.
 The current local backlog contains **603 issues**: **476 implementation, 24 research,
 3 research/design, 22 epics, and 78 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
+NAV-005/#411 accepts the [cumulative visible-navigation workflow](../validation/navigation-cumulative.md):
+the shared controls, placed-assembly-face Look At, camera invariants, save/reopen
+and GPU captures pass in a real-app API run. Physical mouse/trackpad and native
+input stay in NAV-008/#414 and NAV-009/#428; packaged platform runtime stays in
+GATE-005/#134.
 TUT-016/#299 accepts the [cumulative adapted enclosure tutorial](../validation/enclosure-cumulative-gate.md):
 fresh blank-document creation, exact saved-model rim continuation, two checked
 printable halves, nominal connector clearance and independent Astra review.
