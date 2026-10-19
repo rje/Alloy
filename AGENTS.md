@@ -130,7 +130,9 @@ These rules supersede any earlier suggestion to verify behavior in proprietary s
 - Use mature libraries for geometry, constraints, and interchange where they
   fit. Keep custom infrastructure small and tied to a real workflow.
 - Native build CI runs at version tags or explicit manual dispatch, not every
-  commit/PR update. Publish qualified builds at coherent workflow milestones.
+  commit/PR update. CI costs money: ask the user before every future manual
+  dispatch or tag push that would trigger CI. Approval for one run does not
+  authorize another. Publish qualified builds at coherent workflow milestones.
 - The renderer destination is Alloy CAD presentation on an established RHI:
   native Metal on macOS, Vulkan on Windows/Linux. OCCT remains the geometry kernel;
   AIS/V3d/OpenGL is the current prototype. See decision 003 before migration.
