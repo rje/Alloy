@@ -11,6 +11,7 @@
 #include <TopTools_IndexedDataMapOfShapeListOfShape.hxx>
 #include <TopTools_IndexedMapOfShape.hxx>
 #include <TopoDS.hxx>
+#include <gp_Lin.hxx>
 #include <QSet>
 #include <QUuid>
 #include <algorithm>
@@ -170,6 +171,66 @@ void SolidFaceOffset::evaluate(EvaluatedBody& body,const QJsonObject& p,const QS
         provenance["startMm"]=coordinates(a);provenance["endMm"]=coordinates(b);
         return {};
     };
+    const auto qualifyCircle=[&](const TopoDS_Edge& source,const TopoDS_Edge& next,QJsonObject& provenance)->QString {
+        const BRepAdaptor_Curve beforeCurve(source),afterCurve(next);
+        if(beforeCurve.GetType()!=GeomAbs_Circle || afterCurve.GetType()!=GeomAbs_Circle)
+            return "modified_curve_by_face_offset";
+        const auto beforeFaces=incidentFaces(initialIncidence,source),afterFaces=incidentFaces(resultIncidence,next);
+        if(beforeFaces.Extent()!=2 || afterFaces.Extent()!=2)return "face_offset_incidence_unqualified";
+        const auto oldCircle=beforeCurve.Circle(),newCircle=afterCurve.Circle();
+        const bool moves=beforeFaces.Contains(original);
+        const auto expectedCenter=oldCircle.Location().Translated(moves ? gp_Vec(normal)*distance : gp_Vec(0,0,0));
+        if(newCircle.Location().Distance(expectedCenter)>1e-5
+            || std::abs(newCircle.Radius()-oldCircle.Radius())>1e-5
+            || std::abs(oldCircle.Axis().Direction().Dot(newCircle.Axis().Direction()))<1-1e-9)
+            return "face_offset_circle_mismatch";
+        const double oldSweep=beforeCurve.LastParameter()-beforeCurve.FirstParameter();
+        const double newSweep=afterCurve.LastParameter()-afterCurve.FirstParameter();
+        if(!std::isfinite(oldSweep) || !std::isfinite(newSweep)
+            || std::abs(std::abs(oldSweep)-2*std::acos(-1.0))>1e-7
+            || std::abs(std::abs(newSweep)-2*std::acos(-1.0))>1e-7)
+            return "modified_arc_by_face_offset";
+        const auto a=afterCurve.Value(afterCurve.FirstParameter()),b=afterCurve.Value(afterCurve.LastParameter());
+        if(!finite(a) || !finite(b))return "face_offset_endpoints_unqualified";
+        TopTools_IndexedMapOfShape mappedFaces;
+        for(int i=1;i<=beforeFaces.Extent();++i) {
+            const auto sourceFace=TopoDS::Face(beforeFaces(i));
+            const auto faceIndex=initialFaces.FindIndex(sourceFace);
+            if(!faceIndex || faceImages[faceIndex].IsNull())return "face_offset_incidence_unqualified";
+            const auto& nextFace=faceImages[faceIndex];
+            if(faceOwners[resultFaces.FindIndex(nextFace)]!=1 || !afterFaces.Contains(nextFace))
+                return "face_offset_incidence_unqualified";
+            mappedFaces.Add(nextFace);
+            const BRepAdaptor_Surface beforeSurface(sourceFace),afterSurface(nextFace);
+            if(beforeSurface.GetType()!=afterSurface.GetType())return "face_offset_incidence_unqualified";
+            if(beforeSurface.GetType()==GeomAbs_Plane) {
+                const auto oldPlane=beforeSurface.Plane(),newPlane=afterSurface.Plane();
+                const auto expectedOrigin=oldPlane.Location().Translated(sourceFace.IsSame(original)
+                    ? gp_Vec(normal)*distance : gp_Vec(0,0,0));
+                if(std::abs(oldPlane.Axis().Direction().Dot(newPlane.Axis().Direction()))<1-1e-9
+                    || newPlane.Distance(expectedOrigin)>1e-5 || newPlane.Distance(a)>1e-5)
+                    return "face_offset_plane_mismatch";
+            } else if(beforeSurface.GetType()==GeomAbs_Cylinder) {
+                const auto oldCylinder=beforeSurface.Cylinder(),newCylinder=afterSurface.Cylinder();
+                const gp_Lin oldAxis(oldCylinder.Axis()),newAxis(newCylinder.Axis());
+                if(std::abs(oldCylinder.Radius()-newCylinder.Radius())>1e-5
+                    || std::abs(oldCylinder.Axis().Direction().Dot(newCylinder.Axis().Direction()))<1-1e-9
+                    || oldAxis.Distance(newCylinder.Location())>1e-5
+                    || newAxis.Distance(newCircle.Location())>1e-5
+                    || std::abs(newCylinder.Radius()-newCircle.Radius())>1e-5)
+                    return "face_offset_cylinder_mismatch";
+            } else return "face_offset_incidence_unqualified";
+        }
+        if(mappedFaces.Extent()!=2)return "face_offset_incidence_unqualified";
+        if(provenance.contains("startContact") || provenance.contains("endContact")) {
+            provenance["sourceBoundaryContacts"]=QJsonObject{{"start",provenance["startContact"]},{"end",provenance["endContact"]}};
+            provenance.remove("startContact");provenance.remove("endContact");
+        }
+        provenance["endpointProvenance"]="currentKernelBoundary";
+        provenance["lineage"]="uniqueOffsetCircle";
+        provenance["startMm"]=coordinates(a);provenance["endMm"]=coordinates(b);
+        return {};
+    };
     const auto resolveEdge=[&](const TopoDS_Edge& source,QJsonObject& provenance) {
         const auto reject=[&](const QString& error) {provenance["resolutionError"]=error;return TopoDS_Edge{};};
         if(provenance["resolutionError"].toString().startsWith("ambiguous"))
@@ -182,7 +243,8 @@ void SolidFaceOffset::evaluate(EvaluatedBody& body,const QJsonObject& p,const QS
         const auto next=TopoDS::Edge(images(1));
         if(edgeOwners[resultEdges.FindIndex(next)]!=1)return reject("ambiguous_merge");
         if(!next.IsSame(source)) {
-            const auto error=qualifyStraight(source,next,provenance);
+            const auto error=BRepAdaptor_Curve(source).GetType()==GeomAbs_Circle
+                ? qualifyCircle(source,next,provenance) : qualifyStraight(source,next,provenance);
             if(!error.isEmpty())return reject(error);
         }
         provenance.remove("resolutionError");return next;

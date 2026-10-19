@@ -3576,20 +3576,23 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "accepted-bounded-macos",
-      "gap": "One retained planar face with signed in-canvas dragging and qualified straight-edge references is accepted. Rebuilt curved edges, multi-face, tangent chain and source-feature modification remain broader scope.",
+      "gap": "One retained planar face with signed in-canvas dragging and qualified straight and full circular cap-rim references is accepted. Other rebuilt curves, native circular-rim pointer input, multi-face, tangent chain and source-feature modification remain broader scope.",
       "apiIds": ["solid.faceOffset", "solid.faceOffsetDialog", "solid.faceOffsetDrag"],
       "issueKeys": [
         "ADV-001",
         "SOL-016",
         "SOL-067",
         "SOL-072",
-        "SOL-073"
+        "SOL-073",
+        "SOL-074",
+        "SOL-075",
+        "SOL-076"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
       ],
       "receipts": ["docs/validation/face-offset.md"],
-      "planningStatus": "SOL-067 accepts one retained planar face; SOL-072 accepts drag; SOL-073 accepts qualified straight planar edge continuation"
+      "planningStatus": "SOL-067 accepts one retained planar face; SOL-072 accepts drag; SOL-073 accepts straight edges; SOL-074 accepts full circular cap rims; SOL-075/076 retain other curves/native circular pointer input"
     },
     {
       "id": "solid.face-edit",

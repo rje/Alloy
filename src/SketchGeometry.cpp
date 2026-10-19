@@ -2016,8 +2016,10 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             if(!value.isObject())return "Circle projection must be an object";
             const auto projection=value.toObject(),source=projection["source"].toObject();
             if(projection.size()!=3 || !validId(projection["id"].toString()) || projection["profile"]!=true
-                || source.size()!=3 || !validId(source["bodyId"].toString()) || !validId(source["edgeId"].toString())
-                || !validId(source["occurrenceId"].toString()))return "Invalid retained circular projection";
+                || (source.size()!=2 && source.size()!=3)
+                || !validId(source["bodyId"].toString()) || !validId(source["edgeId"].toString())
+                || (source.size()==3 && !validId(source["occurrenceId"].toString())))
+                return "Invalid retained circular projection";
             const auto key=source["bodyId"].toString()+":"+source["edgeId"].toString();
             if(sources.contains(key))return "Duplicate projected source edge";sources.insert(key);
             circles.append(QJsonObject{{"id",projection["id"]},{"source",source},{"uMm",0},{"vMm",0},{"radiusMm",1}});

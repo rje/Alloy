@@ -3,6 +3,7 @@
 #include "SketchGeometry.h"
 #include "SolidFaceOffset.h"
 #include <BRepPrimAPI_MakePrism.hxx>
+#include <BRepPrimAPI_MakeCylinder.hxx>
 #include <BRepBuilderAPI_MakePolygon.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepAdaptor_Surface.hxx>
@@ -10,6 +11,7 @@
 #include <BRep_Tool.hxx>
 #include <TopExp.hxx>
 #include <TopExp_Explorer.hxx>
+#include <TopTools_IndexedMapOfShape.hxx>
 #include <TopoDS.hxx>
 #include <QCoreApplication>
 #include <QTemporaryDir>
@@ -112,6 +114,57 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
      "Vanished step edge explicitly unavailable");
  check(resolved(stableId)!=stepped.solidEdges.end()&&!resolved(stableId)->edge.IsNull(),
      "Unaffected bottom edge remains available");
+ EvaluatedBody round;round.bodyId=CadDocument::newId();round.featureId=CadDocument::newId();
+ round.shape=BRepPrimAPI_MakeCylinder(10,10).Shape();round.summary=GeometryKernel::summarize(round.shape);
+ for(TopExp_Explorer it(round.shape,TopAbs_FACE);it.More();it.Next()) {
+     const auto face=TopoDS::Face(it.Current());const BRepAdaptor_Surface surface(face);
+     if(surface.GetType()!=GeomAbs_Plane || surface.Plane().Location().Z()<9)continue;
+     round.supportFaces.push_back({CadDocument::newId(),round.bodyId,round.featureId,
+         "fixture.circularCap",face,{{"origin",QJsonArray{0,0,10}},
+         {"normal",QJsonArray{0,0,1}},{"uAxis",QJsonArray{1,0,0}},
+         {"vAxis",QJsonArray{0,1,0}}},{},{}});
+ }
+ check(round.supportFaces.size()==1,"Circular cap support");
+ QString topCircleId,bottomCircleId;
+ TopTools_IndexedMapOfShape sourceRims;TopExp::MapShapes(round.shape,TopAbs_EDGE,sourceRims);
+ for(int i=1;i<=sourceRims.Extent();++i) {
+     const auto edge=TopoDS::Edge(sourceRims(i));const BRepAdaptor_Curve curve(edge);
+     if(curve.GetType()!=GeomAbs_Circle)continue;
+     const auto center=curve.Circle().Location();const auto edgeId=CadDocument::newId();
+     round.solidEdges.push_back({edgeId,edge,{{"endpointProvenance","currentKernelBoundary"}}});
+     if(center.Z()>9) {
+         topCircleId=edgeId;
+         round.supportFaces[0].boundaryEdges.push_back({edgeId,"circle",edge,{}});
+     } else bottomCircleId=edgeId;
+ }
+ check(!topCircleId.isEmpty()&&!bottomCircleId.isEmpty(),"Circular source rims");
+ auto inwardRound=round;
+ SolidFaceOffset::evaluate(round,{{"face",ref(round.supportFaces[0])},
+     {"targetBodyId",round.bodyId},{"distanceMm",3}},CadDocument::newId());
+ check(round.summary["valid"].toBool()&&round.summary["closed"].toBool()
+     &&std::abs(round.summary["volumeMm3"].toDouble()-1300*std::acos(-1.0))<1e-5,
+     "Circular cap offset valid volume");
+ for(const auto& edge:round.solidEdges)if(edge.edgeId==topCircleId || edge.edgeId==bottomCircleId) {
+     check(!edge.edge.IsNull()&&edge.provenance["lineage"]=="uniqueOffsetCircle",
+         "Unique rebuilt circular rim retained");
+     const BRepAdaptor_Curve curve(edge.edge);
+     check(curve.GetType()==GeomAbs_Circle
+         &&std::abs(curve.Circle().Radius()-10)<1e-6
+         &&std::abs(curve.Circle().Location().Z()-(edge.edgeId==topCircleId?13:0))<1e-6,
+         "Circular rim uses true current geometry");
+ }
+ check(round.supportFaces[0].boundaryEdges.size()==1
+     &&round.supportFaces[0].boundaryEdges[0].edgeId==topCircleId,
+     "Moved circular support retains exact boundary");
+ SolidFaceOffset::evaluate(inwardRound,{{"face",ref(inwardRound.supportFaces[0])},
+     {"targetBodyId",inwardRound.bodyId},{"distanceMm",-2}},CadDocument::newId());
+ check(std::abs(inwardRound.summary["volumeMm3"].toDouble()-800*std::acos(-1.0))<1e-5,
+     "Inward circular cap offset volume");
+ const auto inwardRim=std::find_if(inwardRound.solidEdges.begin(),inwardRound.solidEdges.end(),
+     [&](const auto& edge){return edge.edgeId==topCircleId;});
+ check(inwardRim!=inwardRound.solidEdges.end()&&!inwardRim->edge.IsNull()
+     &&std::abs(BRepAdaptor_Curve(inwardRim->edge).Circle().Location().Z()-8)<1e-6,
+     "Inward circular rim retains current identity and height");
  CadDocument d;auto a=d.authored();QJsonObject box{{"id",CadDocument::newId()},{"bodyId",CadDocument::newId()},{"ownerId",a["documentId"]},{"type","box"},{"name","Box"},{"visible",true},{"parameters",QJsonObject{{"xMm",0},{"yMm",0},{"zMm",0},{"widthMm",20},{"depthMm",20},{"heightMm",10}}}};
  a["features"]=QJsonArray{box};commit(d,a);QJsonObject selected;
  QString boxTopRimId,boxBottomRimId;

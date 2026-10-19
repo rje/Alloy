@@ -2986,12 +2986,22 @@
     "SOL-074": {
       "number": 600,
       "url": "https://github.com/rje/Alloy/issues/600",
-      "state": "open"
+      "state": "closed"
     },
     "GATE-120": {
       "number": 601,
       "url": "https://github.com/rje/Alloy/issues/601",
       "state": "closed"
+    },
+    "SOL-075": {
+      "number": 602,
+      "url": "https://github.com/rje/Alloy/issues/602",
+      "state": "open"
+    },
+    "SOL-076": {
+      "number": 603,
+      "url": "https://github.com/rje/Alloy/issues/603",
+      "state": "open"
     }
   }
 }
