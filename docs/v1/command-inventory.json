@@ -383,7 +383,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "HIS-009/HIS-010 inspect failed support and changed-boundary edits; SKT-154 gives two actionable Delete recovery messages. SKT-160 accepts explicit ordinary root sketch reassignment to an earlier parallel face or plane as one valid history edit. SKT-161 defines generated-loop identity policy; SKT-162/163 own two unimplemented valid recreation routes. Physical native input and wider supports remain open.",
+      "gap": "HIS-009/HIS-010 inspect failed support and changed-boundary edits; SKT-154 gives actionable Delete guidance. SKT-160 accepts ordinary root sketch reassignment, SKT-161 defines generated-loop identity, and SKT-162 accepts explicit distinct-face Offset recreation. SKT-163 same-face changed-valid recreation, physical native input and wider supports remain open.",
       "apiIds": [],
       "issueKeys": [
         "HIS-002",
@@ -410,9 +410,10 @@
         "docs/validation/failed-boundary-inspection.md",
         "docs/validation/sketch-loop-offset-recovery.md",
         "docs/validation/sketch-plane-redefinition.md",
-        "docs/validation/generated-loop-repair-policy.md"
+        "docs/validation/generated-loop-repair-policy.md",
+        "docs/validation/generated-loop-replacement.md"
       ],
-      "planningStatus": "HIS-009/HIS-010 inspection, SKT-154 Delete guidance, SKT-160 ordinary repair and SKT-161 generated identity policy accepted; generated recreation and wider repair open"
+      "planningStatus": "HIS-009/HIS-010 inspection, SKT-154 guidance, SKT-160 ordinary repair, SKT-161 identity policy and SKT-162 distinct-face recreation accepted; same-face and wider repair open"
     },
     {
       "id": "sketch.lifecycle",
@@ -421,7 +422,7 @@
       "scope": "proposed-v1",
       "implementation": "present",
       "nativeEvidence": "partial",
-      "gap": "HIS-009/HIS-010 inspect failed support and changed-boundary edits; SKT-160 accepts explicit ordinary root sketch reassignment to an earlier parallel face or plane. SKT-161 defines generated-loop identity policy; SKT-162/163 own unimplemented recreation. Physical native input and wider supports remain open.",
+      "gap": "HIS-009/HIS-010 inspect failed support and changed-boundary edits; SKT-160 accepts ordinary root sketch reassignment, SKT-161 defines generated-loop identity, and SKT-162 accepts explicit distinct-face Offset recreation. SKT-163 same-face changed-valid recreation, physical native input and wider supports remain open.",
       "apiIds": [
         "sketch.begin",
         "sketch.cancel",
@@ -449,9 +450,10 @@
         "docs/validation/sketches.md",
         "docs/validation/face-supported-sketches.md",
         "docs/validation/sketch-plane-redefinition.md",
-        "docs/validation/generated-loop-repair-policy.md"
+        "docs/validation/generated-loop-repair-policy.md",
+        "docs/validation/generated-loop-replacement.md"
       ],
-      "planningStatus": "Ordinary parallel support repair and generated-owner identity policy accepted; SKT-162/163 and wider supports remain open"
+      "planningStatus": "Ordinary parallel repair, generated identity policy and distinct-face recreation accepted; SKT-163 and wider supports remain open"
     },
     {
       "id": "sketch.interaction",
@@ -1140,7 +1142,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Several specialized retained forms exist. General mixed-loop offsets, self-intersections, arbitrary chains and broad option parity remain incomplete. SKT-161 defines generated-loop support-boundary identity; SKT-162/163 must implement explicit recreation on valid changed boundaries.",
+      "gap": "Several specialized retained forms exist. General mixed-loop offsets, self-intersections, arbitrary chains and broad option parity remain incomplete. SKT-161 defines generated-loop support-boundary identity; SKT-162 accepts distinct-face recreation and SKT-163 retains same-face changed-valid recreation.",
       "apiIds": [
         "sketch.circleOffset",
         "sketch.circleOffsetUpdate",
@@ -1179,7 +1181,8 @@
         "docs/validation/open-chain-offset.md",
         "docs/validation/closed-rectangle-offset.md",
         "docs/validation/trimmed-seam-inset.md",
-        "docs/validation/generated-loop-repair-policy.md"
+        "docs/validation/generated-loop-repair-policy.md",
+        "docs/validation/generated-loop-replacement.md"
       ],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },
