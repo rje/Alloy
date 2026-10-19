@@ -203,4 +203,4 @@ acceptance remains with the cumulative release gates.
 
 ## Local child decomposition added 2026-10-19
 
-The matching finishable children are recorded in docs/backlog/issues.json: REL-055, SKT-169–170, SOL-080–SOL-089, SRF-025–SRF-035, GEO-025–GEO-027, DOC-039, PRT-011–PRT-012, and HIS-011–HIS-012. HIS-011 saves suppression as authored state; HIS-012 keeps rollback transient and reopens at the latest authored feature. The parents remain open for their stated broader scope.
+The matching finishable children are recorded in docs/backlog/issues.json: REL-055, SKT-169–170, SOL-080–SOL-089, SRF-025–SRF-035, GEO-025–GEO-027, DOC-039, PRT-011–PRT-012, and HIS-011–HIS-012. Subsequent DOC-040–042 split the accepted Measure analytic core from native/source-integrity gates and later result breadth. HIS-011 saves suppression as authored state; HIS-012 keeps rollback transient and reopens at the latest authored feature. The parents remain open for their stated broader scope.

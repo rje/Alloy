@@ -615,7 +615,9 @@
         "DOC-027",
         "DOC-028",
         "DOC-029",
-        "DOC-032"
+        "DOC-032",
+        "DOC-040",
+        "DOC-042"
       ],
       "labels": [
         "kind:validation",
@@ -623,7 +625,7 @@
         "priority:P0",
         "area:gate"
       ],
-      "body": "## Problem and result\nGate: first useful geometry object survives save and STEP round-trip. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nCreate a 20\u00d730\u00d710 mm gauge block and radius-5 mm cylinder through Alloy, select/inspect them, modify a primitive, undo/redo, save/reopen and export STEP. This is a blocking product validation gate, not an implementation substitute.\n\n## Acceptance criteria\n- Run the supported capability ledger from installed macOS, Windows and Linux candidate packages; retain per-platform package hashes and runtime/GPU results. Architecture/minimum-version exceptions must be explicit unresolved blockers rather than omitted assets.\n- All dependencies are implemented and their evidence reviewed; no unavailable/mock command may satisfy a step. Require live hardware-backed OCCT/OpenGL diagnostics, native Retina resize/picking and actual framebuffer capture; software fallback cannot satisfy the gate. Check analytic volume/bounds, actual selected identities, document parameters/IDs, independent STEP readback, physical pick/navigation and geometry-visible screenshot.\n\n## Proposed verification and evidence\nRe-run GATE-000 and GATE-005 and every previously accepted workflow in the capability-to-fixture ledger on the same build. Execute `python3 tests/workflows/run.py --gate GATE-010 --cumulative --evidence build/evidence/GATE-010` (proposed interface). Launch the real Alloy executable in a desktop session; create the object through Alloy automation, use direct computer input only for uncovered physical interactions, then inspect shared state. Capture before/after and reopen/export artifacts. The gate report lists every covered capability and prior fixture, tolerances, failures and unsupported behavior. Build-only/unit-only checks or stale captures cannot close this gate.\n\nAdd/execute `python3 tests/workflows/run.py --case GATE-010 --evidence build/evidence/GATE-010` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- reference CAD application desktop interface (reference `ui`) \u2014 retrieved 2026-10-11.\n- reference CAD application public command-input descriptions (reference `inputs`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nClosure requires fresh cumulative evidence on the candidate build. No reference CAD application runtime comparison. Reference visual claims require public-source provenance and matched viewport/scale/state, or explicit mismatch qualifications.\n\n## First-v1 dependency boundary (2026-10-19)\nThe dependencies above name supported first-v1 subsets and cumulative fixtures. Broader family parents remain open for deferred noncloud modes, but do not block this gate merely because those later modes are unfinished. The release execution ledger still requires every proposed-v1 minimum, native geometry/edit/undo/reopen/output evidence and exact candidate-package platform checks; a dependency link alone is not acceptance.\n"
+      "body": "## Problem and result\nGate: first useful geometry object survives save and STEP round-trip. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nCreate a 20\u00d730\u00d710 mm gauge block and radius-5 mm cylinder through Alloy, select/inspect them, modify a primitive, undo/redo, save/reopen and export STEP. This is a blocking product validation gate, not an implementation substitute.\n\n## Acceptance criteria\n- Run the supported capability ledger from installed macOS, Windows and Linux candidate packages; retain per-platform package hashes and runtime/GPU results. Architecture/minimum-version exceptions must be explicit unresolved blockers rather than omitted assets.\n- All dependencies are implemented and their evidence reviewed; no unavailable/mock command may satisfy a step. Require live hardware-backed OCCT/OpenGL diagnostics, native Retina resize/picking and actual framebuffer capture; software fallback cannot satisfy the gate. Check analytic volume/bounds, actual selected identities, document parameters/IDs, independent STEP readback, physical pick/navigation and geometry-visible screenshot.\n\n## Proposed verification and evidence\nRe-run GATE-000 and GATE-005 and every previously accepted workflow in the capability-to-fixture ledger on the same build. Execute `python3 tests/workflows/run.py --gate GATE-010 --cumulative --evidence build/evidence/GATE-010` (proposed interface). Launch the real Alloy executable in a desktop session; create the object through Alloy automation, use direct computer input only for uncovered physical interactions, then inspect shared state. Capture before/after and reopen/export artifacts. The gate report lists every covered capability and prior fixture, tolerances, failures and unsupported behavior. Build-only/unit-only checks or stale captures cannot close this gate.\n\nAdd/execute `python3 tests/workflows/run.py --case GATE-010 --evidence build/evidence/GATE-010` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- reference CAD application desktop interface (reference `ui`) \u2014 retrieved 2026-10-11.\n- reference CAD application public command-input descriptions (reference `inputs`) \u2014 retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nClosure requires fresh cumulative evidence on the candidate build. No reference CAD application runtime comparison. Reference visual claims require public-source provenance and matched viewport/scale/state, or explicit mismatch qualifications.\n\n## First-v1 dependency boundary (2026-10-19)\nThe dependencies above name supported first-v1 subsets and cumulative fixtures. Broader family parents remain open for deferred noncloud modes, but do not block this gate merely because those later modes are unfinished. The release execution ledger still requires every proposed-v1 minimum, native geometry/edit/undo/reopen/output evidence and exact candidate-package platform checks; a dependency link alone is not acceptance.\n\n## Measure first-v1 dependency note\nDOC-039 accepts the bounded analytic evaluator/API and Alloy GPU panel candidate; DOC-040 and DOC-042 retain required native and reference/ambiguity qualification. DOC-041 preserves later result/visual breadth without blocking the first-v1 minimum.\n"
     },
     {
       "key": "SKT-001",
@@ -10863,7 +10865,7 @@
         "priority:P1",
         "area:doc"
       ],
-      "body": "## Bounded result\nProvide native analytic Measure for selected edge length, point/line distance, angle, and supported face area, with active units and source provenance and without changing authored state.\n\nThis is a finishable child of DOC-014; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Measure edge length, point-to-line distance, line-pair angle, planar face area, and supported curved face area on analytic fixtures; compare with expected values in active units.\n- Identify the measured face/source object in the result and expose a structured refusal for invalid or ambiguous selections.\n- Verify inspection leaves geometry, history, and undo state unchanged.\n\n## Preserved remainder\nSection analysis, solid area/volume, and broader multi-object measurement combinations remain under DOC-014.\n"
+      "body": "## Bounded result\nProvide native analytic Measure for selected edge length, point/line distance, angle, and supported face area, with active units and source provenance and without changing authored state.\n\nThis is a finishable child of DOC-014; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Measure edge length, point-to-line distance, line-pair angle, planar face area, and supported curved face area on analytic fixtures; compare with expected values in active units.\n- Identify the measured face/source object in the result and expose a structured refusal for invalid or ambiguous selections.\n- Verify inspection leaves geometry, history, and undo state unchanged.\n\n## Preserved remainder\nSection analysis, solid area/volume, and broader multi-object measurement combinations remain under DOC-014.\n\n## Bounded completion and explicit split \u2014 2026-10-19\nThe analytic core, shared Measure panel/API, active-unit values and authored immutability pass a 52-call real-app workflow with independent Sol review; see docs/validation/measure.md. Initial native window activation was unavailable, so actual-hit selection is not accepted. The native acceptance criteria and ambiguity/reference-lifecycle cases are retained as required first-v1 children DOC-040 and DOC-042, linked from GATE-010. Additional documented outputs and visual details remain DOC-041 on the long-term roadmap. Closing this issue accepts the finished analytic core only, not the deferred children or release gate.\n"
     },
     {
       "key": "PRT-011",
@@ -10952,6 +10954,57 @@
         "area:skt"
       ],
       "body": "## Bounded result\nComplete the exact illustrated-bracket Activity 2 construction-line conversion and midpoint/inferred-circle picks through native input and the shared sketch command model. This is a finishable child of SKT-016; broader point-to-edge and relation variants remain under the parent.\n\n## Acceptance criteria\n- Convert the documented selected sketch line to construction via the public-source context-menu sequence; retain its ID, exclude it from closed profiles, and display construction styling.\n- Midpoint relation and inference use real line references, retain source identity through edits, and yield the circle centers required by the bracket sequence.\n- Native actual-hit input shows menu, snap/constraint cues and resulting circles without harness focus repair; API inspection proves constraints, geometry and stable IDs.\n- One source edit, Undo/Redo and save/reopen preserve the relation; compare the relevant illustrated checkpoints using external public references.\n\n## Preserved remainder\nSKT-016 continues to own wider construction, midpoint and point-to-edge behavior outside this bracket slice.\n"
+    },
+    {
+      "key": "DOC-040",
+      "title": "Qualify native Measure selection and controls",
+      "kind": "implementation",
+      "phase": "P1 Geometry/document",
+      "priority": "P1",
+      "depends_on": [
+        "DOC-039"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P1",
+        "priority:P1",
+        "area:doc"
+      ],
+      "body": "## Bounded first-v1 result\nFinish the actual-hit native Inspect > Measure and `I` workflow for supported sketch/body edge, point and face selections. This is the retained native remainder split from DOC-039/#642; API canvas picks and semantic GPU captures do not qualify physical input.\n\n## Acceptance criteria\n- On an unlocked Mac, verify initial harness activation separately, then actual toolbar and `I` activation, filter controls, viewport picks, two-source result, Clear Selection, clickable copy, Escape/Close and return to ordinary selection without repairing focus or selection between demonstrated steps.\n- Assert each pointer hit reaches the user-facing widget; native popup readiness/closure is observed before the next step. Show one edge length, point/line distance, right angle, planar and cylindrical area through the same command/evaluator as the API.\n- Capture readable panel and highlighted source against a comparable public-source state, with GPU vendor/renderer and 1\u00d7/2\u00d7 display-scale checks. Inspect authored/history/undo invariance and ensure one private editor closes after evidence.\n- Record Mac physical result separately from Windows/Linux release-platform gates; if desktop activation remains unavailable, keep this Todo rather than fabricating a pass.\n\n## Preserved remainder\nHover-specific measurement graphics, extra fields/precision and unsupported geometry pairs remain DOC-041; overlap/source-lifecycle hardening remains DOC-042. Broad analysis modes remain DOC-014.\n"
+    },
+    {
+      "key": "DOC-041",
+      "title": "Extend Measure result fields and visual parity",
+      "kind": "implementation",
+      "phase": "P1 Geometry/document",
+      "priority": "P2",
+      "depends_on": [
+        "DOC-039"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P1",
+        "priority:P2",
+        "area:doc"
+      ],
+      "body": "## Later compatibility result\nResearch and implement documented Measure outputs beyond the bounded first-v1 analytic set: radius/diameter, face loop length, optional precision/secondary units, hover-specific canvas graphics, qualified vertex/endpoint picks and additional angle conventions/analytic face types. Preserve exact public-source provenance outside the repo.\n\n## Acceptance criteria\n- Choose one finishable mode/subset before implementation and split remaining modes into linked Todo children if needed; do not claim all geometry pairs from one fixture.\n- For each selected mode, verify current authored source IDs, active-unit formatting, native/API shared results, hover/copy state and visual comparison where public screenshots permit.\n- Include a retained Fillet/curved-face fixture before claiming toroidal or fillet-area behavior, and state unknown conventions rather than inventing parity.\n\n## Preserved first-v1 gates\nDOC-040 owns required native selection/controls, and DOC-042 owns ambiguity/reference integrity for the supported first-v1 Measure set. This issue preserves later feature-for-feature breadth.\n"
+    },
+    {
+      "key": "DOC-042",
+      "title": "Harden Measure source ambiguity and retained reference lifecycle",
+      "kind": "implementation",
+      "phase": "P1 Geometry/document",
+      "priority": "P1",
+      "depends_on": [
+        "DOC-039"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P1",
+        "priority:P1",
+        "area:doc"
+      ],
+      "body": "## Bounded first-v1 result\nMake the supported Measure set deterministic and trustworthy when references overlap, are represented equivalently, or change after a model edit. This retains the ambiguity/refusal and source-provenance remainder from DOC-039/#642.\n\n## Acceptance criteria\n- With two coincident/overlapping visible sketch edges, either provide an explicit user choice or return a structured ambiguity refusal; never choose by QHash iteration order. Distinct nonoverlapping picks keep the current closest-hit behavior.\n- Detect duplicate resolved sources even if equivalent JSON references differ in optional fields. Invalid/missing/hidden/ambiguous IDs refuse without changing authored state.\n- Measure a qualified source after edit, Undo/Redo and save/reopen. Preserve stable IDs or explicitly report unavailable source; verify the current evaluated value, not cached coordinates.\n- Qualify one placed occurrence source with explicit identity and refuse a body ID that is ambiguous across instances. Keep shared native/API source resolution and add only focused fixtures for these material risks.\n\n## Preserved remainder\nGeneral topology repair, every curve/face family and broader analysis stay with DOC-014 and DOC-041.\n"
     }
   ]
 }

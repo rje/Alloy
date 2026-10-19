@@ -1,6 +1,7 @@
 # Bounded analytic Measure candidate (DOC-039)
 
-Status: implementation candidate; this does not close DOC-039 or establish full
+Status: bounded analytic core accepted after independent Sol review; native and
+broader compatibility remainder is split to DOC-040–042. This does not establish full
 workflow/visual compatibility. Public inputs and observed limitations are in the
 external `knowledge/specs/doc039-measure-minimum-2026-10-19.md` contract. Source
 index DOC-039 was retrieved 2026-10-19; bulk evidence remains external.
@@ -47,10 +48,11 @@ close on document switch or another active modeling session.
 - Native Windows/Linux, display-scale qualification and matched public visual
   comparisons remain unqualified.
 
-Proposed follow-up: keep DOC-039 open and split a child for native Measure
-presentation/hover/vertex completion and a child for extended analytic results
-and angle conventions. Preserve these requirements rather than shrinking the
-parent's acceptance.
+Follow-up ownership: DOC-040 requires native actual-hit selection and controls;
+DOC-042 requires deterministic overlap/duplicate handling and source lifecycle.
+Both are first-v1 prerequisites through GATE-010. DOC-041 retains wider
+result fields, hover graphics, precision/secondary units and vertex variants
+on the long-term roadmap. The bounded core closure does not close these gates.
 
 ## Execution evidence
 
@@ -78,10 +80,11 @@ parent's acceptance.
   the modeless dialog itself must become active; both failed logs are retained.
   Physical/native selection and control acceptance remain unqualified.
 - Private validation application/test processes exited; no CI, publishing or
-  other-platform runtime was performed. Independent compatibility review remains
-  with the integrator.
+  other-platform runtime was performed. Independent Sol review accepted the named analytic fixtures and source-ID
+  behavior, while flagging overlap tie selection, equivalent duplicate
+  references and source-edit/occurrence replay for DOC-042.
 
 External output: `validation/doc039-measure-2026-10-19/` under the
 reference-records directory, including build/native logs, API transcript,
-framebuffer captures and both saved fixtures. This is a bounded candidate, not
-DOC-039 closure.
+framebuffer captures and both saved fixtures. This is bounded analytic core evidence; DOC-040/042 remain required for the
+first-v1 Measure workflow.

@@ -2298,22 +2298,33 @@
       "label": "Measure distance, angle, radius and geometry properties",
       "category": "Inspection",
       "scope": "proposed-v1",
-      "implementation": "missing",
-      "nativeEvidence": "unknown",
-      "gap": "Registered unavailable placeholder. No released native Measure tool; geometry.inspect summaries are not a substitute.",
+      "implementation": "partial",
+      "nativeEvidence": "partial",
+      "gap": "Bounded exact analytic Measure and local API/GPU panel are accepted for named edge, point-line, right-angle, planar and cylindrical fixtures. Native actual-hit controls, overlap ambiguity and source-edit lifecycle remain required under DOC-040/042; wider fields and visual parity remain DOC-041.",
       "apiIds": [
-        "inspect.measure"
+        "inspect.measure",
+        "inspect.measureResult",
+        "inspect.measureFilter",
+        "inspect.measureClear"
       ],
       "issueKeys": [
         "DOC-014",
-        "DOC-039"
+        "DOC-039",
+        "DOC-040",
+        "DOC-041",
+        "DOC-042"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
-        "src/AlloyWindow.cpp"
+        "src/AlloyWindow.cpp",
+        "src/Measure.cpp",
+        "src/MeasureControls.cpp",
+        "src/ReferenceView.cpp"
       ],
-      "receipts": [],
-      "planningStatus": "Existing scope owners; verify accepted subset before pulling"
+      "receipts": [
+        "docs/validation/measure.md"
+      ],
+      "planningStatus": "Bounded analytic core accepted; required native and source-integrity children open"
     },
     {
       "id": "selection.general",

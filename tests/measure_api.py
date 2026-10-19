@@ -61,5 +61,6 @@ with application(a.app,out) as (call,transcript):
     measured([planar]);measured([point,lines[0]])
     call('document.save',{'path':str(out/'measure-fixture-after.alloy')})
     assert (out/'measure-fixture.alloy').read_bytes()==(out/'measure-fixture-after.alloy').read_bytes()
-    (out/'receipt.json').write_text(json.dumps({'status':'passed','calls':len(transcript),'gpu':call('app.state')['viewport']['gpu'],'sources':{'lines':lines,'point':point,'planar':planar,'cylinder':lateral},'transcript':transcript},indent=2)+'\n')
+    gpu=call('app.state')['viewport']['gpu']
+    (out/'receipt.json').write_text(json.dumps({'status':'passed','calls':len(transcript),'gpu':gpu,'sources':{'lines':lines,'point':point,'planar':planar,'cylinder':lateral},'transcript':transcript},indent=2)+'\n')
 print('PASS bounded analytic Measure')
