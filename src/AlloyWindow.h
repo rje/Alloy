@@ -193,6 +193,19 @@ private:
     CadDocument* failedEditDocument_=nullptr;
     QDockWidget* failedEditDock_=nullptr;
     QLabel* failedEditActionError_=nullptr;
+    void registerSketchPlaneRepairCommands();
+    QJsonObject beginSketchPlaneRepair(const QString& sketchId);
+    QJsonObject previewSketchPlaneRepair(const QJsonObject& replacement);
+    QJsonObject cancelSketchPlaneRepair();
+    QJsonObject commitSketchPlaneRepair();
+    void presentSketchPlaneRepair();
+    QJsonObject planeRepairSession_,planeRepairCamera_;
+    CadDocument::CandidateEvaluation planeRepairPreview_;
+    QDockWidget* planeRepairDock_=nullptr;
+    QLabel* planeRepairInfo_=nullptr;
+    QLabel* planeRepairError_=nullptr;
+    QPushButton* planeRepairOk_=nullptr;
+
 
     QJsonObject beginSplitBody(const QJsonObject& inputs);
     QJsonObject previewSplitBody();

@@ -15,6 +15,7 @@
 #include "ReferenceView.h"
 #include "GeometryKernel.h"
 #include "SketchGeometry.h"
+#include "SketchPlaneRepair.h"
 #include "SketchMirror.h"
 #include "SketchSpline.h"
 #include "SketchSplineOffset.h"
@@ -1231,6 +1232,7 @@ AlloyWindow::AlloyWindow() {
     sketchEscape_->setContext(Qt::WidgetShortcut);sketchEscape_->setEnabled(false);
     connect(sketchEscape_,&QShortcut::activated,this,[this]{
         if(!sectionEdit_.isEmpty())return;
+        if(!planeRepairSession_.isEmpty()){execute("sketch.redefinePlaneCancel");return;}
         if(!failedEditRepair_.isEmpty()){execute("sketch.cancel");return;}
         if(session_.value("command")=="sketch.plane")execute("sketch.cancel");
         else if(session_.value("command").toString()=="sketch.edit") {
@@ -1459,7 +1461,7 @@ bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
     // the outer Qt shortcut window. Handle delivered sketch dimension keys here.
     if(watched==view_ && event->type()==QEvent::KeyPress && !failedEditRepair_.isEmpty()) {
         const auto key=static_cast<QKeyEvent*>(event)->key();
-        if(key==Qt::Key_Escape){execute("sketch.cancel");return true;}
+        if(key==Qt::Key_Escape){execute(planeRepairSession_.isEmpty() ? "sketch.cancel" : "sketch.redefinePlaneCancel");return true;}
         if(key==Qt::Key_Delete || key==Qt::Key_Backspace){
             const auto response=execute("sketch.deleteSelection");
             if(failedEditActionError_)failedEditActionError_->setText(response.value("error").toObject().value("message").toString());
@@ -2449,6 +2451,7 @@ void AlloyWindow::registerCommands() {
         const auto response=execute("document.open",{{"path",path},{"discard",true}});
         return response["ok"].toBool() ? response["result"].toObject() : response;
     });
+    registerSketchPlaneRepairCommands();
     add("history.failedEditInspect","Inspect Failed Edit","Inspect the transient failed candidate, exact support diagnostic and valid prefix; committed authored state remains valid.",{},[this](const auto&){return failedEditRepair_;});
     add("history.failedEditBegin","Inspect failed Combine edit","Inspect cached sketch geometry after a missing-support or changed-boundary Combine preview.",{},[this](const auto&){
         if(session_.value("command")!="solid.combine")return failure("invalid_session","A failed Combine preview is required");
@@ -6616,9 +6619,10 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
             const bool select=id=="sketch.selectionSet" || id=="sketch.selectionPick" || id=="sketch.selectionWindow" || id=="sketch.pointerMove"
                 || id=="sketch.constraintHover" || id=="sketch.selectOther" || id=="sketch.selectOtherChoose" || id=="sketch.selectOtherHover";
             const bool cancel=id=="command.cancel" || id=="sketch.cancel";
+            const bool planeRepair=id.startsWith("sketch.redefinePlane");
             const bool cachedOpen=id=="sketch.edit" && failedEditRepair_.value("impactedSketchIds").toArray().contains(args.value("sketchId"));
             const bool selectTool=id=="sketch.tool" && args.value("tool")=="select";
-            if(!inspect && !select && !cancel && !cachedOpen && !selectTool && id!="sketch.deleteSelection") {
+            if(!inspect && !select && !cancel && !planeRepair && !cachedOpen && !selectTool && id!="sketch.deleteSelection") {
                 if(id.startsWith("sketch.") || id=="command.commit" || id=="command.update" || id=="command.preview")
                     return failure("repair_read_only","This is cached failed-edit inspection; Cancel before editing");
                 closeFailedEditRepair("invalidated",true);
@@ -7309,6 +7313,8 @@ void AlloyWindow::refresh() {
 
             connect(button,&QToolButton::clicked,this,[this,id]{if(session_.value("command")=="solid.rectangularPattern")execute("selection.featureSet",{{"featureId",id}});else if(session_.value("command")=="solid.featureMirror")execute("selection.featureMirrorSet",{{"featureId",id}});else execute("feature.editDialog",{{"featureId",id}});});
             auto* menu=new QMenu(button);menu->addAction("Delete",this,[this,id]{execute("feature.delete",{{"featureId",id}});});
+            if(type=="sketch") {auto* redefine=menu->addAction("Redefine Sketch Plane",this,[this,id]{execute("sketch.redefinePlaneBegin",{{"sketchId",id}});});
+                redefine->setObjectName("timeline.redefineSketchPlane."+id);connect(menu,&QMenu::aboutToShow,this,[this,redefine,id]{const auto sketch=session_.value("draftSketch").toObject();redefine->setEnabled(!failedEditRepair_.isEmpty() && failedEditRepair_.value("diagnostics").toObject().value("code")=="support_unavailable" && sketch.value("id")==id && SketchPlaneRepair::ordinary(sketch) && sketch.value("ownerId")==document_->authored().value("documentId"));});}
             button->setMenu(menu);button->setPopupMode(QToolButton::MenuButtonPopup);timelineLayout_->addWidget(button);
         }
         timelineLayout_->addStretch();timelineLayout_->activate();
@@ -7714,6 +7720,7 @@ void AlloyWindow::refresh() {
     if(!failedEditRepair_.isEmpty()) {
         auto selection=session_.value("selection").toObject();selection["tool"]="select";
         view_->decorateSketch(session_.value("draftSketch").toObject(),selection,session_.value("solverDiagnostics").toObject(),session_.value("inputs").toObject().value("units").toString());
+        if(!planeRepairSession_.isEmpty() && planeRepairPreview_.ok)presentSketchPlaneRepair();
     }
     view_->sync();
     positionDimensionEditor();
@@ -8862,6 +8869,7 @@ void AlloyWindow::showPathPlane() {
 
 QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     if(!failedEditRepair_.isEmpty() && failedEditRepair_.value("id")==id) {
+        if(!planeRepairSession_.isEmpty())return commit ? commitSketchPlaneRepair() : cancelSketchPlaneRepair();
         if(commit)return failure("repair_read_only","The failed candidate cannot be committed; Cancel inspection before editing");
         return closeFailedEditRepair("cancelled",true);
     }

@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: MIT
+#include "sketch_plane_repair_fixtures.h"
+#include "SketchPlaneRepair.h"
+#include <QCoreApplication>
+#include <QTemporaryDir>
+#include <iostream>
+using MultiFaceFixtures::check;
+int main(int argc,char** argv){QCoreApplication app(argc,argv);try {
+ QTemporaryDir scratch;const auto folder=argc>1 ? QString::fromLocal8Bit(argv[1]) : scratch.path();const auto ids=SketchPlaneRepairFixtures::create(folder);CadDocument doc;check(doc.open(folder+"/ordinary-plane-repair.alloy").isEmpty(),"open saved ordinary fixture");const auto before=doc.state();const auto sketchId=ids.value("sketchId").toString();
+ const auto original=SketchGeometry::findFeature(doc.authored(),sketchId);check(SketchPlaneRepair::ordinary(original),"ordinary fixture");
+ const auto failed=CadDocument::booleanCandidate(doc.authored(),{{"featureId",ids.value("combineFeatureId")},{"targetBodyId",ids.value("targetBodyId")},{"toolBodyIds",QJsonArray{ids.value("deleteBodyId")}},{"operation","cut"},{"keepTools",true}});
+ check(!doc.commit(failed,"Lose support").isEmpty() && doc.lastEvaluationError().value("code")=="support_unavailable","real support loss");check(doc.state()==before,"failed edit atomic");
+ auto prefix=failed;QJsonArray rows;for(const auto& row:failed.value("features").toArray()){if(row.toObject().value("id")==sketchId)break;rows.append(row);}prefix["features"]=rows;const auto evaluated=CadDocument::evaluateCandidate(prefix);check(evaluated.ok,"candidate prefix");const auto oldFrame=GeometryKernel::sketchFrame(doc.evaluationBefore(sketchId),original);
+ const QJsonObject replacement{{"support",ids.value("replacementSupport")}};const auto repaired=SketchPlaneRepair::candidate(failed,*evaluated.evaluation,sketchId,replacement,oldFrame);auto changed=SketchGeometry::findFeature(repaired.authored,sketchId);auto expected=original;auto p=expected.value("parameters").toObject();p["support"]=ids.value("replacementSupport");expected["parameters"]=p;check(changed==expected,"local data/IDs changed");
+ for(const auto& test:std::initializer_list<std::pair<QJsonObject,QString>>{{{{"support",ids.value("laterSupport")}},"later_support"},{{{"support",ids.value("curvedSupport")}},"nonplanar_support"},{{{"support",ids.value("support")}},"support_unavailable"},{{{"plane","XZ"}},"unsupported_plane_orientation"}}){bool refused=false;try{SketchPlaneRepair::candidate(failed,*evaluated.evaluation,sketchId,test.first,oldFrame);}catch(const GeometryKernel::EvaluationError& e){refused=e.diagnostics().value("code")==test.second;}check(refused,"invalid replacement was accepted");check(doc.state()==before,"invalid choice mutated document");}
+ for(const auto& target:std::initializer_list<QJsonObject>{{{"plane","XY"}},{{"planeId",ids.value("constructionPlaneId")}}})check(CadDocument::evaluateCandidate(SketchPlaneRepair::candidate(failed,*evaluated.evaluation,sketchId,target,oldFrame).authored).ok,"earlier plane preview");
+ const auto preview=CadDocument::evaluateCandidate(repaired.authored);check(preview.ok,preview.error);check(doc.commit(repaired.authored,"Redefine Sketch Plane").isEmpty(),"aggregate repair");const auto after=doc.state();check(after.value("undo").toObject().value("count").toInt()==before.value("undo").toObject().value("count").toInt()+1,"one transaction");
+ for(const auto& body:doc.bodies())if(body.featureId==ids.value("downstreamFeatureId").toString()){check(body.summary.value("boundsMm").toObject().value("min").toArray()==QJsonArray({3.5,43.5,8}),"downstream frame translation");}
+ doc.history().undo();check(doc.authored()==before.value("authored").toObject(),"exact undo");doc.history().redo();check(doc.authored()==after.value("authored").toObject(),"exact redo");check(doc.save(folder+"/repaired.alloy").isEmpty(),"save");CadDocument reopened;check(reopened.open(folder+"/repaired.alloy").isEmpty() && reopened.authored()==doc.authored(),"reopen");std::cout<<"PASS: ordinary local-frame repair, exact candidate-prefix refusals, downstream geometry, atomic history and reopen\n";return 0;
+}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

@@ -2,6 +2,7 @@
 #include "AlloyWindow.h"
 #include "ReferenceView.h"
 #include "RoundedLoopOffset.h"
+#include "SketchPlaneRepair.h"
 #include <QCloseEvent>
 #include <QDockWidget>
 #include <QJsonDocument>
@@ -103,6 +104,7 @@ bool AlloyWindow::retainFailedEditRepair(const QString& command,const QJsonObjec
 
 QJsonObject AlloyWindow::closeFailedEditRepair(const QString& status,bool restoreSelection) {
     auto terminal=failedEditRepair_;if(terminal.isEmpty())return {};
+    planeRepairSession_={};planeRepairCamera_={};planeRepairPreview_={};if(planeRepairDock_)planeRepairDock_->hide();
     const auto sessionId=terminal.value("id").toString();
     // Clear the guard before normal sketch teardown; no history operation occurs.
     failedEditRepair_={};failedEditPrefix_.reset();failedEditDocument_=nullptr;
@@ -135,13 +137,15 @@ void AlloyWindow::showFailedEditRepair() {
     const auto diagnostic=failedEditRepair_.value("diagnostics").toObject();
     label(diagnostic.value("message").toString())->setObjectName("failedEditRepair.diagnostic");
     const auto sketchId=diagnostic.value("featureId").toString();
+    const auto affected=SketchGeometry::findFeature(document_->authored(),sketchId);
+    const bool ordinary=SketchPlaneRepair::ordinary(affected);
     auto* identity=label(QString("Sketch: %1\nSupport: %2\nSession: %3\nCandidate: %4\nBase revision: %5")
         .arg(sketchId,diagnostic.value("faceId").toString(),failedEditRepair_.value("id").toString(),failedEditRepair_.value("candidateId").toString())
         .arg(failedEditRepair_.value("baseDocumentRevision").toInteger()));
     identity->setObjectName("failedEditRepair.identity");
     identity->setToolTip(QString::fromUtf8(QJsonDocument(QJsonObject{{"failedCommand",failedEditRepair_.value("failedCommand")},
         {"cachedOwnerIds",failedEditRepair_.value("cachedOwnerIds")}}).toJson(QJsonDocument::Indented)));
-    label("Select a cached generated profile to inspect Delete. Cached geometry is not an evaluated result of the failed candidate.");
+    label(ordinary ? "Cached sketch geometry is shown for inspection. Choose Redefine Sketch Plane to select an earlier replacement. Nothing has been committed." : "Select a cached generated profile to inspect Delete. Cached geometry is not an evaluated result of the failed candidate.");
     auto* profiles=new QListWidget;profiles->setObjectName("failedEditRepair.profiles");
     for(const auto& id:failedEditRepair_.value("cachedProfileIds").toArray()) {
         auto* row=new QListWidgetItem("Cached profile · "+id.toString().left(8),profiles);row->setData(Qt::UserRole,id.toString());
@@ -149,9 +153,13 @@ void AlloyWindow::showFailedEditRepair() {
     }
     layout->addWidget(profiles);
     connect(profiles,&QListWidget::currentItemChanged,this,[this](QListWidgetItem* item){if(item)execute("sketch.selectionSet",{{"profileIds",QJsonArray{item->data(Qt::UserRole).toString()}}});});
-    auto* remove=new QPushButton("Delete Selected Cached Profile");remove->setObjectName("failedEditRepair.delete");layout->addWidget(remove);
+    auto* remove=new QPushButton("Delete Selected Cached Profile");remove->setObjectName("failedEditRepair.delete");layout->addWidget(remove);remove->setVisible(!ordinary);
     failedEditActionError_=label({});failedEditActionError_->setObjectName("failedEditRepair.actionError");failedEditActionError_->setStyleSheet("color:#984800;");
     connect(remove,&QPushButton::clicked,this,[this]{const auto response=execute("sketch.deleteSelection");failedEditActionError_->setText(response.value("error").toObject().value("message").toString());failedEditActionError_->setMinimumHeight(failedEditActionError_->heightForWidth(failedEditActionError_->width()));});
+    if(ordinary && affected.value("ownerId")==document_->authored().value("documentId")) {
+        auto* redefine=new QPushButton("Redefine Sketch Plane");redefine->setObjectName("failedEditRepair.redefinePlane");layout->addWidget(redefine);
+        connect(redefine,&QPushButton::clicked,this,[this,sketchId]{execute("sketch.redefinePlaneBegin",{{"sketchId",sketchId}});});
+    }
     auto* cancel=new QPushButton("Cancel Failed Edit");cancel->setObjectName("failedEditRepair.cancel");layout->addWidget(cancel);
     connect(cancel,&QPushButton::clicked,this,[this]{execute("command.cancel",{{"session",session_.value("id")}});});
     dock->onClose=[this]{execute("command.cancel",{{"session",session_.value("id")}});};
