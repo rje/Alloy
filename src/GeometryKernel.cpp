@@ -3,6 +3,7 @@
 #include "SolidFillet.h"
 #include "SolidChamfer.h"
 #include "SolidShell.h"
+#include "SolidFaceOffset.h"
 #include "ClosedBlendShell.h"
 #include "SolidSplit.h"
 #include "SolidSphere.h"
@@ -1174,6 +1175,10 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                 evaluated.bodies.push_back(std::move(solid));
             } else if(type=="sphere") {
                 SolidSphere::evaluate(evaluated,feature);
+            } else if(type=="faceOffset") {
+                const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==parameters["targetBodyId"].toString();});
+                if(target==evaluated.bodies.end())reject("face_offset_body_unavailable","Offset Face requires an active earlier solid body");
+                SolidFaceOffset::evaluate(*target,parameters,id);
             } else if(type=="thread") {
                 const auto support=parameters["support"].toObject();
                 context["support"]=support;context["targetBodyId"]=support["bodyId"];

@@ -2546,7 +2546,7 @@
     "SOL-067": {
       "number": 512,
       "url": "https://github.com/rje/Alloy/issues/512",
-      "state": "open"
+      "state": "closed"
     },
     "SOL-068": {
       "number": 513,
@@ -2972,6 +2972,16 @@
       "number": 597,
       "url": "https://github.com/rje/Alloy/issues/597",
       "state": "closed"
+    },
+    "SOL-072": {
+      "number": 598,
+      "url": "https://github.com/rje/Alloy/issues/598",
+      "state": "open"
+    },
+    "SOL-073": {
+      "number": 599,
+      "url": "https://github.com/rje/Alloy/issues/599",
+      "state": "open"
     }
   }
 }

@@ -109,6 +109,7 @@ public:
     static QJsonObject removeBodyCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject thickenCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject sphereCandidate(const QJsonObject& authored, const QJsonObject& arguments);
+    static QJsonObject faceOffsetCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QJsonObject threadCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QJsonObject holeCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QJsonObject shellCandidate(const QJsonObject& authored, const QJsonObject& arguments);

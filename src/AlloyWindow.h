@@ -492,6 +492,13 @@ private:
     void showThicken();
     QDockWidget* thickenDock_=nullptr;
     QShortcut* thickenEscape_=nullptr;
+    QJsonObject faceOffsetCandidate(const QJsonObject& inputs) const;
+    QJsonObject beginFaceOffset(const QJsonObject& inputs = {});
+    QJsonObject previewFaceOffset();
+    QJsonObject selectFaceOffsetFace(const QJsonObject& face);
+    void showFaceOffset();
+    QDockWidget* faceOffsetDock_ = nullptr;
+    QShortcut* faceOffsetEscape_ = nullptr;
     QJsonObject shellCandidate(const QJsonObject& inputs) const;
     QJsonObject previewShell();
     void showShell();

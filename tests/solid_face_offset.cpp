@@ -1,0 +1,62 @@
+// SPDX-License-Identifier: MIT
+#include "CadDocument.h"
+#include "SketchGeometry.h"
+#include "SolidFaceOffset.h"
+#include <BRepPrimAPI_MakePrism.hxx>
+#include <BRepBuilderAPI_MakePolygon.hxx>
+#include <BRepBuilderAPI_MakeFace.hxx>
+#include <BRepAdaptor_Surface.hxx>
+#include <TopExp_Explorer.hxx>
+#include <TopoDS.hxx>
+#include <QCoreApplication>
+#include <QTemporaryDir>
+#include <iostream>
+#include <cmath>
+static void check(bool b,const char* m){if(!b)throw std::runtime_error(m);}
+static void commit(CadDocument& d,const QJsonObject& a){auto e=d.commit(a,"Offset Face fixture");if(!e.isEmpty())throw std::runtime_error(e.toStdString());}
+static QJsonObject ref(const EvaluatedSupportFace& f){return {{"bodyId",f.bodyId},{"producerFeatureId",f.producerFeatureId},{"faceId",f.faceId}};}
+int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
+ // Exercise the actual evaluator with a sloped adjacent wall. The volume
+ // integral is 20 * (20*h - h*h/4), not a constant-section prism addition.
+ BRepBuilderAPI_MakePolygon wire;wire.Add(gp_Pnt(0,0,0));wire.Add(gp_Pnt(20,0,0));wire.Add(gp_Pnt(15,0,10));wire.Add(gp_Pnt(0,0,10));wire.Close();
+ EvaluatedBody angled;angled.bodyId=CadDocument::newId();angled.featureId=CadDocument::newId();
+ angled.shape=BRepPrimAPI_MakePrism(BRepBuilderAPI_MakeFace(wire.Wire()).Face(),gp_Vec(0,20,0)).Shape();angled.summary=GeometryKernel::summarize(angled.shape);
+ for(TopExp_Explorer it(angled.shape,TopAbs_FACE);it.More();it.Next()){
+    auto face=TopoDS::Face(it.Current());const BRepAdaptor_Surface plane(face);
+    if(plane.GetType()==GeomAbs_Plane&&plane.Plane().Axis().Direction().Z()>.99&&plane.Plane().Location().Z()>9)
+        angled.supportFaces.push_back({CadDocument::newId(),angled.bodyId,angled.featureId,"fixture.top",face,
+            {{"origin",QJsonArray{0,0,10}},{"normal",QJsonArray{0,0,1}},{"uAxis",QJsonArray{1,0,0}},{"vAxis",QJsonArray{0,1,0}}},{},{}});
+ }
+ check(angled.supportFaces.size()==1,"Angled top identity");
+ for(double distance:{2.,-2.}){auto result=angled;
+    SolidFaceOffset::evaluate(result,{{"face",ref(angled.supportFaces[0])},{"targetBodyId",angled.bodyId},{"distanceMm",distance}},CadDocument::newId());
+    check(std::abs(result.summary["volumeMm3"].toDouble()-(distance>0?4080:2880))<1e-5,"Angled-adjacent true offset volume");
+    check(result.supportFaces.size()==1&&std::abs(result.supportFaces[0].frame["origin"].toArray()[2].toDouble()-10-distance)<1e-6,"Angled exact moved support");
+ }
+ CadDocument d;auto a=d.authored();QJsonObject box{{"id",CadDocument::newId()},{"bodyId",CadDocument::newId()},{"ownerId",a["documentId"]},{"type","box"},{"name","Box"},{"visible",true},{"parameters",QJsonObject{{"xMm",0},{"yMm",0},{"zMm",0},{"widthMm",20},{"depthMm",20},{"heightMm",10}}}};
+ a["features"]=QJsonArray{box};commit(d,a);QJsonObject selected;
+ for(const auto& f:d.bodies()[0].supportFaces)if(f.frame["normal"].toArray()[2].toDouble()>.99)selected=ref(f);
+ check(!selected.isEmpty(),"Top support");
+ auto candidate=CadDocument::faceOffsetCandidate(a,{{"targetBodyId",box["bodyId"]},{"face",selected},{"distanceMm",2}});commit(d,candidate);
+ const auto id=d.authored()["features"].toArray().last().toObject().value("id");
+ check(std::abs(d.bodies()[0].summary["volumeMm3"].toDouble()-4800)<1e-5,"Positive offset volume");
+ const auto created=d.authored();d.history().undo();check(d.authored()==a,"Undo");d.history().redo();check(d.authored()==created,"Redo");
+ commit(d,CadDocument::faceOffsetCandidate(d.authored(),{{"featureId",id},{"distanceMm",-2}}));
+ check(std::abs(d.bodies()[0].summary["volumeMm3"].toDouble()-3200)<1e-5,"Negative offset volume");
+ commit(d,CadDocument::faceOffsetCandidate(d.authored(),{{"featureId",id},{"distanceMm",2}}));
+ EvaluatedSupportFace moved;for(const auto& f:d.bodies()[0].supportFaces)if(f.role=="faceOffset.end")moved=f;
+ check(!moved.face.IsNull()&&moved.producerFeatureId==id.toString(),"Exact retained moved support");
+ auto sketch=SketchGeometry::newSupportedFeature(a["documentId"].toString(),ref(moved),"Hole point",{});
+ const auto context=GeometryKernel::projectionContext(d.evaluation(),sketch);
+ auto solved=SketchGeometry::addStandalonePoint(sketch,{{"uMm",10},{"vMm",10}},context);check(solved.ok,"Point solve");sketch=solved.feature;
+ auto point=sketch["parameters"].toObject()["entities"].toArray()[0].toObject();commit(d,SketchGeometry::replaceFeature(d.authored(),sketch));
+ commit(d,CadDocument::holeCandidate(d.authored(),{{"sourceSketchId",sketch["id"]},{"sourceEntityId",point["id"]},{"sourcePointId",point["pointId"]},{"targetBodyId",box["bodyId"]},{"boreDiameterMm",2},{"sinkDiameterMm",4},{"includedAngleDeg",90}}));
+ commit(d,CadDocument::faceOffsetCandidate(d.authored(),{{"featureId",id},{"distanceMm",4}}));
+ check(std::abs(d.bodies()[0].summary["entryMm"].toArray()[2].toDouble()-14)<1e-5,"Later Hole follows offset edit");
+ const auto stable=d.authored();const auto revision=d.revision();
+ check(!d.commit(CadDocument::faceOffsetCandidate(stable,{{"featureId",id},{"distanceMm",-20}}),"Collapse").isEmpty(),"Collapse refused");
+ check(d.authored()==stable&&d.revision()==revision,"Collapse atomic");
+ auto stale=selected;stale["faceId"]=CadDocument::newId();check(!d.commit(CadDocument::faceOffsetCandidate(stable,{{"featureId",id},{"face",stale}}),"Stale").isEmpty(),"Stale refused");check(d.authored()==stable&&d.revision()==revision,"Stale atomic");
+ QTemporaryDir temp;auto path=temp.filePath("offset.alloy");check(d.save(path).isEmpty(),"Save");CadDocument reopened;check(reopened.open(path).isEmpty()&&reopened.authored()==stable,"Reopen");
+ std::cout<<"Offset Face signed volume, retained moved support, downstream Hole/edit, atomic refusal, undo/redo and reopen passed\n";return 0;
+}catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

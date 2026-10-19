@@ -12,6 +12,10 @@ sketch dimensions, feature editing and mesh-size verification from a Browser
 change control. [Selected-solid Properties](docs/validation/body-properties.md)
 now show active-unit area, volume and bounding dimensions through the Browser
 and shared inspection command.
+[Planar Offset Face](docs/validation/face-offset.md) now creates an editable
+single-face solid modification with live native preview, exact moved-face
+support for a later Hole, signed edit/refusal, history/reopen and checked STL
+bounds. Its in-canvas drag and edge-reference follow-ups remain open.
 [Regular sketch polygons](docs/validation/sketch-regular-polygons.md) now have
 three retained creation modes, editable size/count, and a verified extrusion
 and STL path. [Canvas size annotations](docs/validation/sketch-polygon-annotations.md)

@@ -553,6 +553,7 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
             continue;
         }
         QJsonArray planeSupports;
+        if(feature["type"]=="faceOffset")planeSupports.append(feature["parameters"].toObject()["face"]);
         if(feature["type"]=="thread" || (feature["type"]=="sketch" && feature["parameters"].toObject()["plane"]=="face"))
             planeSupports.append(feature["parameters"].toObject()["support"]);
         if(feature["type"]=="constructionPlane"){
@@ -2025,6 +2026,22 @@ QJsonObject CadDocument::sphereCandidate(const QJsonObject& authored,const QJson
     if(index>=0)features[index]=feature;else features.append(feature);candidate["features"]=features;
     const auto error=validate(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
 }
+QJsonObject CadDocument::faceOffsetCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
+    const QSet<QString> allowed{"targetBodyId","face","distanceMm","featureId","newFeatureId","ownerId","name"};
+    for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Offset Face argument");
+    if(arguments.contains("featureId")&&arguments.contains("newFeatureId"))throw std::invalid_argument("Choose existing or new Offset Face identity");
+    for(const auto& key:{"featureId","newFeatureId","ownerId"})if(arguments.contains(key)&&!validId(arguments[key].toString()))throw std::invalid_argument("Offset Face identities must be stable UUIDs");
+    auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
+    if(arguments.contains("featureId")){
+        for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}
+        if(index<0||feature["type"]!="faceOffset")throw std::invalid_argument("Offset Face feature unavailable");
+    }else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","faceOffset"},{"name","Offset Face"},{"visible",true}};
+    auto p=feature["parameters"].toObject();
+    for(const auto& key:{"targetBodyId","face","distanceMm"})if(arguments.contains(key))p[key]=arguments[key];
+    feature["parameters"]=p;if(arguments.contains("name"))feature["name"]=arguments["name"];
+    if(index<0)features.append(feature);else features[index]=feature;candidate["features"]=features;
+    const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
+}
 QJsonObject CadDocument::threadCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
     const QSet<QString> allowed{"support","nominalDiameterMm","pitchMm","startOffsetMm","lengthMm","direction","modeled","fullLength","threadSide","standard","featureId","newFeatureId","ownerId","name"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Thread argument");
@@ -2511,6 +2528,15 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
                 for(const auto& edge:members){if(!edge.isString() || !validId(edge.toString()) || edges.contains(edge.toString()) || edges.size()>=100)return "Fillet edge references must be distinct stable UUIDs";edges.insert(edge.toString());}
                 if(!group["radiusMm"].isDouble() || !std::isfinite(group["radiusMm"].toDouble()) || group["radiusMm"].toDouble()<0.001 || group["radiusMm"].toDouble()>100000)return "Fillet radius must be 0.001..100000 mm";
             }
+            continue;
+        }
+        if(type=="faceOffset") {
+            const auto face=p["face"].toObject();
+            if(feature.contains("bodyId")||p.size()!=3||!validId(p["targetBodyId"].toString())||!p["face"].isObject()||face.size()!=3||face["bodyId"]!=p["targetBodyId"])
+                return "Offset Face requires one target body and retained face";
+            for(const auto& key:{"producerFeatureId","bodyId","faceId"})if(!validId(face[key].toString()))return "Offset Face requires stable face identities";
+            if(!p["distanceMm"].isDouble()||!std::isfinite(p["distanceMm"].toDouble())||std::abs(p["distanceMm"].toDouble())<0.001||std::abs(p["distanceMm"].toDouble())>100000)
+                return "Offset Face requires a nonzero signed distance of 0.001..100000 mm";
             continue;
         }
         if(type=="thread") {

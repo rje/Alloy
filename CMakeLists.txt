@@ -30,6 +30,7 @@ target_include_directories(alloy_sketch_solver PUBLIC src)
 target_link_libraries(alloy_sketch_solver PUBLIC Qt6::Core PRIVATE alloy_planegcs)
 
 add_library(alloy_kernel STATIC
+    src/SolidFaceOffset.cpp src/SolidFaceOffset.h
     src/SolidThreadGeometry.cpp src/SolidThreadGeometry.h
     src/ReferenceCanvas.cpp src/ReferenceCanvas.h
     src/AssemblySlider.cpp src/AssemblySlider.h
@@ -92,6 +93,9 @@ if(ALLOY_BUILD_SPIKES)
         TKernel TKMath TKBRep TKPrim TKTopAlgo TKLCAF TKCAF TKBin TKBinL TKCDF)
 endif()
 if(BUILD_TESTING)
+    add_executable(solid_face_offset_test tests/solid_face_offset.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_link_libraries(solid_face_offset_test PRIVATE alloy_kernel Qt6::Widgets)
+    add_test(NAME solid_face_offset COMMAND solid_face_offset_test)
     add_executable(sketch_chamfer_test tests/sketch_chamfer.cpp)
     target_link_libraries(sketch_chamfer_test PRIVATE alloy_application Qt6::Core)
     add_test(NAME sketch_chamfer COMMAND sketch_chamfer_test)
@@ -1199,6 +1203,10 @@ if(BUILD_TESTING)
     add_executable(mesh_export_controls_test tests/mesh_export_controls.cpp)
     target_link_libraries(mesh_export_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME mesh_export_controls COMMAND mesh_export_controls_test)
+
+    add_executable(face_offset_controls_test tests/face_offset_controls.cpp)
+    target_link_libraries(face_offset_controls_test PRIVATE alloy_application Qt6::Test)
+    add_test(NAME face_offset_controls COMMAND face_offset_controls_test)
     set_tests_properties(mesh_export_controls PROPERTIES TIMEOUT 60 LABELS "widget;gpu" RUN_SERIAL TRUE)
 
     add_executable(multibody_mesh_test tests/multibody_mesh.cpp)

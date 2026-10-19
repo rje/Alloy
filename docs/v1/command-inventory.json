@@ -3574,20 +3574,22 @@
       "label": "Offset/Press Pull existing faces",
       "category": "Solid modify",
       "scope": "proposed-v1",
-      "implementation": "missing",
-      "nativeEvidence": "unknown",
-      "gap": "Profile Press Pull does not establish face-offset/direct editing.",
-      "apiIds": [],
+      "implementation": "partial",
+      "nativeEvidence": "accepted-bounded-macos",
+      "gap": "One retained planar face is accepted; in-canvas normal dragging and exact edge-reference continuation remain Todo. Multi-face, tangent chain and source-feature modification remain broader scope.",
+      "apiIds": ["solid.faceOffset", "solid.faceOffsetDialog"],
       "issueKeys": [
         "ADV-001",
         "SOL-016",
-        "SOL-067"
+        "SOL-067",
+        "SOL-072",
+        "SOL-073"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
       ],
-      "receipts": [],
-      "planningStatus": "Existing scope owners; verify accepted subset before pulling"
+      "receipts": ["docs/validation/face-offset.md"],
+      "planningStatus": "SOL-067 accepted one planar face; SOL-072/073 retain drag and exact edge references"
     },
     {
       "id": "solid.face-edit",
