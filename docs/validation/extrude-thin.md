@@ -1,6 +1,6 @@
 # Thin solid Extrude from one open Line
 
-SOL-082/#620 bounded Mac candidate, 2026-10-19.
+SOL-082/#620 accepted bounded Mac slice, 2026-10-19.
 [Command contract](../research/commands/extrude-thin.md). Public-source evidence is
 external in `knowledge/specs/sol082-thin-extrude-2026-10-19.md`, R1–R8.
 Factory defaults and precise visual parity remain unknown.
@@ -59,12 +59,13 @@ are fixed for this bounded evaluator test; this does not qualify a constraint
 creation workflow. Only the far planar cap is published as qualified support;
 no thin side-face, solid-edge or synthetic cap-boundary lineage is asserted.
 
-Native Type switching originally retained unsupported ordinary settings and
+Independent Sol review found no material blocker after the final Thin, taper
+and symmetric native runs and inspected compact full-dock capture. Native Type
+switching originally retained unsupported ordinary settings and
 would have trapped the user if controls were disabled. The final mode change
 normalizes conflicting inputs through the shared command path; an existing
 modifying feature cannot change its operation. Native verification includes
-this specific transition. Independent review and final text-only capture
-verification are recorded by the integrator before acceptance. The Thin and
+this specific transition. The Thin and
 symmetric native hit helpers now observe that the requested widget receives
 the real hit after asynchronous form reflow before delivering a pointer event;
 they do not alter focus, selection, scroll position or geometry.

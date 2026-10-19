@@ -12,6 +12,7 @@ Current direction: [printable-part v1 plan](https://alloy-v1-review.rjevans1.cha
 [Retained feature suppression](docs/validation/history-suppression.md) now turns off a Box and its dependent Offset Face while leaving an independent later Box active. The shared command and native right-click Timeline menu pass exact geometry, visibility separation, Undo/Redo and save/reopen checks for this bounded family.
 [Symmetric and Two Sides solid Extrude](docs/validation/extrude-symmetric-two-sides.md) now retain Half/Whole Length or independent side extents on one New Body feature. Preview, edit, downstream cap support, Undo/Redo, reopen and STL readback pass bounded Mac checks.
 [Tapered polygon Extrude](docs/validation/extrude-taper.md) now retains a signed angle on a New Body feature. Convex and concave shapes, positive-cap downstream edits, undo/reopen and STL readback pass bounded Mac checks.
+[Thin Extrude from an open line](docs/validation/extrude-thin.md) now creates a retained New Body wall with Side 1, Side 2 or Center placement. Canvas selection, exact preview/solid geometry, downstream cap Cut and STL readback pass bounded Mac checks.
 [Bounded OBJ export](docs/validation/obj-export.md) now writes selected committed solids as deterministic material-free groups with mm/in coordinates and independent Blender readback. Native chooser input and broader options remain Todo.
 [Cone and torus New Body primitives](docs/validation/cone-torus.md) now have
 editable numeric dimensions, retained history, checked STL output and

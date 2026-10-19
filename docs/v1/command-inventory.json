@@ -1406,7 +1406,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "One Side and bounded Symmetric/Two Sides Distance New Body modes pass Mac fixtures. Signed one-sided polygon taper now passes convex/concave and downstream far-cap fixtures. Thin-wall and broader extent/support/operation/profile combinations remain open.",
+      "gap": "One Side and bounded Symmetric/Two Sides Distance New Body modes pass Mac fixtures. Signed one-sided polygon taper and one open-Line Thin Extrude with three wall locations now pass. Broader extent/support/operation/profile combinations remain open.",
       "apiIds": [
         "solid.extrude",
         "solid.extrudeDialog",
@@ -1441,7 +1441,8 @@
         "docs/validation/extrude-distance-expression.md",
         "docs/validation/face-supported-cut-all.md",
         "docs/validation/extrude-symmetric-two-sides.md",
-        "docs/validation/extrude-taper.md"
+        "docs/validation/extrude-taper.md",
+        "docs/validation/extrude-thin.md"
       ],
       "options": [
         "One Side",
@@ -1455,7 +1456,8 @@
         "Intersect",
         "Symmetric Half/Whole Length (Distance, New Body)",
         "Two Sides independent distances (New Body)",
-        "One Side signed Taper Angle (polygon, Distance, New Body)"
+        "One Side signed Taper Angle (polygon, Distance, New Body)",
+        "Thin Extrude open Line, Center/Side 1/Side 2 (New Body)"
       ],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },
@@ -3428,7 +3430,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Symmetric Half/Whole, independent Two Sides and signed one-sided polygon taper pass bounded Mac fixtures. Thin Extrude and broader combinations remain open.",
+      "gap": "Symmetric Half/Whole, independent Two Sides, signed polygon taper and one open-Line Thin Extrude pass bounded Mac fixtures. Broader targets and combinations remain open.",
       "apiIds": [],
       "issueKeys": [
         "SOL-010",
@@ -3444,7 +3446,8 @@
       ],
       "receipts": [
         "docs/validation/extrude-symmetric-two-sides.md",
-        "docs/validation/extrude-taper.md"
+        "docs/validation/extrude-taper.md",
+        "docs/validation/extrude-thin.md"
       ],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },
