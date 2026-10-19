@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 #include "SketchPlaneRepair.h"
 #include "SketchGeometry.h"
+#include "RoundedLoopOffset.h"
+#include <QJsonDocument>
 #include <BRepAdaptor_Surface.hxx>
 #include <QUuid>
 #include <cmath>
@@ -58,4 +60,45 @@ SketchPlaneRepair::Candidate SketchPlaneRepair::candidate(const QJsonObject& fai
     QSet<QString> ids;if(const auto error=SketchGeometry::validateParameters(p,ids);!error.isEmpty())fail("invalid_replacement",error);
     sketch["parameters"]=p;
     return {SketchGeometry::replaceFeature(failed,sketch),replacement,frame};
+}
+
+bool SketchPlaneRepair::singleInset(const QJsonObject& feature) {
+    auto plain=feature;auto p=plain.value("parameters").toObject();const auto rows=p.value("loopOffsets").toArray();
+    if(rows.size()!=1 || rows.first().toObject().value("kind")!="planarInsetV1" || !RoundedLoopOffset::validate(p).isEmpty())return false;
+    p.remove("loopOffsets");plain["parameters"]=p;return ordinary(plain);
+}
+SketchPlaneRepair::Candidate SketchPlaneRepair::recreateInset(const QJsonObject& failed,const EvaluatedDocument& prefix,
+    const QString& sketchId,const QJsonObject& replacement,const QJsonObject& acceptedFrame,const QSet<QString>& oldGeneratedIds) {
+    const auto original=SketchGeometry::findFeature(failed,sketchId);
+    if(!singleInset(original))fail("unsupported_sketch_repair","Recreation requires exactly one planar inset owner without linked geometry");
+    int owners=0;for(const auto& f:failed.value("features").toArray())owners+=f.toObject().value("parameters").toObject().value("loopOffsets").toArray().size();
+    if(owners!=1)fail("unsupported_sketch_repair","First recreation scope requires one loop Offset owner in the document");
+    if(replacement.size()!=2 || !replacement.contains("support") || !replacement.value("distanceMm").isDouble())
+        fail("offset_confirmation_required","Select an explicit face boundary and confirm its signed Offset distance");
+    const auto distance=replacement.value("distanceMm").toDouble();if(!std::isfinite(distance) || distance>=-1e-7)
+        fail("invalid_offset_distance","Planar inset recreation requires a finite negative signed distance");
+    const auto parameters=original.value("parameters").toObject();const auto oldOwner=parameters.value("loopOffsets").toArray().first().toObject();
+    const auto support=replacement.value("support").toObject();
+    if(support==parameters.value("support").toObject())fail("distinct_support_required","Select a distinct replacement face; same-face boundary repair is separate");
+    // Generated profile and edge references contain owner-derived UUIDs. Reject
+    // consumers of this sketch's generated outputs before removing its owner.
+    const auto acceptedProfile=QUuid::createUuidV5(QUuid(oldOwner.value("id").toString()),"alloy-inset-interior/1").toString(QUuid::WithoutBraces);
+    for(const auto& f:failed.value("features").toArray()) {
+        const auto row=f.toObject();if(position(failed,row.value("id").toString())<=position(failed,sketchId))continue;
+        const auto bytes=QJsonDocument(row).toJson(QJsonDocument::Compact);
+        bool consumes=bytes.contains(acceptedProfile.toUtf8()) || bytes.contains(sketchId.toUtf8());
+        for(const auto& id:oldGeneratedIds)if(!id.isEmpty() && bytes.contains(id.toUtf8()))consumes=true;
+        if(consumes)
+            fail("generated_profile_consumer","A downstream feature consumes this generated sketch. Repair that consumer separately before recreating the Offset");
+    }
+    auto plain=original;auto p=parameters;p.remove("loopOffsets");plain["parameters"]=p;
+    const auto ordinaryFailed=SketchGeometry::replaceFeature(failed,plain);
+    auto result=candidate(ordinaryFailed,prefix,sketchId,{{"support",support}},acceptedFrame);
+    const auto face=GeometryKernel::resolveSketchSupport(prefix,support);
+    const auto loop=RoundedLoopOffset::insetLoopId(face);
+    if(loop==oldOwner.value("outerLoopId").toString())fail("distinct_boundary_required","The replacement must have a distinct exact boundary");
+    auto changed=SketchGeometry::findFeature(result.authored,sketchId);p=changed.value("parameters").toObject();
+    // Recreate intent, retaining no old owner identity or implicit binding.
+    p["loopOffsets"]=QJsonArray{QJsonObject{{"kind","planarInsetV1"},{"id",QUuid::createUuid().toString(QUuid::WithoutBraces)},{"outerLoopId",loop},{"distanceMm",distance},{"chain",true}}};
+    changed["parameters"]=p;result.authored=SketchGeometry::replaceFeature(result.authored,changed);result.reference=replacement;return result;
 }

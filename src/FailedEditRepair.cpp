@@ -156,8 +156,8 @@ void AlloyWindow::showFailedEditRepair() {
     auto* remove=new QPushButton("Delete Selected Cached Profile");remove->setObjectName("failedEditRepair.delete");layout->addWidget(remove);remove->setVisible(!ordinary);
     failedEditActionError_=label({});failedEditActionError_->setObjectName("failedEditRepair.actionError");failedEditActionError_->setStyleSheet("color:#984800;");
     connect(remove,&QPushButton::clicked,this,[this]{const auto response=execute("sketch.deleteSelection");failedEditActionError_->setText(response.value("error").toObject().value("message").toString());failedEditActionError_->setMinimumHeight(failedEditActionError_->heightForWidth(failedEditActionError_->width()));});
-    if(ordinary && affected.value("ownerId")==document_->authored().value("documentId")) {
-        auto* redefine=new QPushButton("Redefine Sketch Plane");redefine->setObjectName("failedEditRepair.redefinePlane");layout->addWidget(redefine);
+    if((ordinary || (SketchPlaneRepair::singleInset(affected) && diagnostic.value("code")=="support_unavailable")) && affected.value("ownerId")==document_->authored().value("documentId")) {
+        auto* redefine=new QPushButton(ordinary ? "Redefine Sketch Plane" : "Recreate Offset on Replacement Face");redefine->setObjectName("failedEditRepair.redefinePlane");layout->addWidget(redefine);
         connect(redefine,&QPushButton::clicked,this,[this,sketchId]{execute("sketch.redefinePlaneBegin",{{"sketchId",sketchId}});});
     }
     auto* cancel=new QPushButton("Cancel Failed Edit");cancel->setObjectName("failedEditRepair.cancel");layout->addWidget(cancel);

@@ -2,6 +2,10 @@
 #include "AlloyWindow.h"
 #include "AlloyTheme.h"
 #include "sketch_plane_repair_fixtures.h"
+#include "generated_loop_repair_fixtures.h"
+#include <QDoubleSpinBox>
+#include <QScrollArea>
+#include <QScrollBar>
 #include <QApplication>
 #include <QAction>
 #include <QMenu>
@@ -14,6 +18,26 @@ class SketchPlaneRepairControlsTest final : public QObject {
  Q_OBJECT
  QJsonObject call(AlloyWindow& w,const QString& command,const QJsonObject& args={}) {auto r=w.execute(command,args);const auto initial=r.value("result").toObject();for(int i=0;r.value("completion")=="pending" && i<500;++i){QTest::qWait(10);r=w.execute("command.status",{{"session",initial.value("id")}});}if(!r.value("ok").toBool())qFatal("%s",QJsonDocument(r).toJson().constData());return r.value("result").toObject();}
 private slots:
+ void generatedRecreation() {
+  QTemporaryDir scratch;const auto folder=qEnvironmentVariable("ALLOY_GENERATED_REPAIR_EVIDENCE",scratch.path());QDir().mkpath(folder);
+  const auto ids=GeneratedLoopRepairFixtures::create(folder+"/fixtures");AlloyTheme::apply(*qApp);AlloyWindow w;w.resize(1360,860);w.show();QVERIFY(QTest::qWaitForWindowExposed(&w));
+  call(w,"document.open",{{"path",folder+"/fixtures/generated-loop-repair.alloy"}});const auto base=call(w,"document.inspect");
+  const auto failed=w.execute("solid.combine",{{"featureId",ids.value("combineFeatureId")},{"targetBodyId",ids.value("targetBodyId")},{"toolBodyIds",QJsonArray{ids.value("deleteBodyId")}},{"operation","cut"},{"keepTools",true}});QVERIFY(!failed.value("ok").toBool());const auto cached=w.state().value("activeSession");
+  auto hitButton=[](QPushButton* button){if(!button || !button->isVisible() || !button->isEnabled())return false;if(QApplication::widgetAt(button->mapToGlobal(button->rect().center()))!=button)return false;QTest::mouseClick(button,Qt::LeftButton);return true;};
+  auto* begin=w.findChild<QPushButton*>("failedEditRepair.redefinePlane");QVERIFY(hitButton(begin));
+  auto choose=[&]{auto* list=w.findChild<QListWidget*>("sketch.redefinePlane.choices");if(!list)return false;QListWidgetItem* item=nullptr;for(int i=0;i<list->count();++i)if(list->item(i)->data(Qt::UserRole).toJsonObject().value("support")==ids.value("replacementSupport"))item=list->item(i);if(!item)return false;list->scrollToItem(item);QTest::qWait(15);const auto point=list->visualItemRect(item).center();if(QApplication::widgetAt(list->viewport()->mapToGlobal(point))!=list->viewport())return false;QTest::mouseClick(list->viewport(),Qt::LeftButton,Qt::NoModifier,point);qInfo()<<"Generated selection observed"<<(list->currentItem()==item)<<"list focus"<<list->hasFocus()<<"actual focus"<<QApplication::focusWidget();return list->currentItem()==item;};
+  QVERIFY(choose());QVERIFY(!w.state().value("activeSession").toObject().value("planeRedefinition").toObject().value("previewed").toBool());auto* ok=w.findChild<QPushButton*>("sketch.redefinePlane.ok");QVERIFY(ok && !ok->isEnabled());auto* distance=w.findChild<QDoubleSpinBox*>("sketch.redefinePlane.distance");QVERIFY(distance && distance->value()==-1);
+  QVERIFY(hitButton(w.findChild<QPushButton*>("sketch.redefinePlane.confirmOffset")));const auto preview=w.state().value("activeSession").toObject().value("planeRedefinition").toObject();QVERIFY(preview.value("previewed").toBool());QCOMPARE(preview.value("confirmedDistanceMm").toDouble(),-1.);QCOMPARE(preview.value("boundaryEdgeIds").toArray().size(),4);QVERIFY(w.findChild<QLabel*>("sketch.redefinePlane.frame")->text().contains("Boundary:"));QCOMPARE(call(w,"document.inspect"),base);
+  // A real spin-button click invalidates the candidate and restores cached display.
+  const QPoint spinHit(distance->width()-8,5);QCOMPARE(QApplication::widgetAt(distance->mapToGlobal(spinHit)),distance);QTest::mouseClick(distance,Qt::LeftButton,Qt::NoModifier,spinHit);
+  QVERIFY(!ok->isEnabled());QVERIFY(!w.state().value("activeSession").toObject().value("planeRedefinition").toObject().value("previewed").toBool());const auto cachedGpu=w.state().value("viewport").toObject().value("gpu").toObject();QVERIFY(cachedGpu.value("bodyStageKey").toString().isEmpty());QCOMPARE(cachedGpu.value("draftSketchId"),ids.value("sketchId"));QCOMPARE(cachedGpu.value("sketchProfiles").toArray().first().toObject().value("profileId"),base.value("evaluation").toObject().value("sketches").toArray().last().toObject().value("profiles").toArray().first().toObject().value("profileId"));QVERIFY(w.findChild<QLabel*>("sketch.redefinePlane.frame")->text().contains("CACHED ACCEPTED"));
+  QVERIFY(hitButton(w.findChild<QPushButton*>("sketch.redefinePlane.confirmOffset")));QVERIFY(ok->isEnabled());
+  call(w,"view.orientation",{{"name","isometric"}});call(w,"view.fit");call(w,"capture.screenshot",{{"path",folder+"/qt-generated-preview.png"}});
+  auto* details=w.findChild<QScrollArea*>("sketch.redefinePlane.frameScroll");QVERIFY(details);auto* scroll=details->verticalScrollBar();QVERIFY(scroll && scroll->isVisible());if(scroll->maximum()>0){const auto hit=QPoint(scroll->width()/2,scroll->height()-5);QCOMPARE(QApplication::widgetAt(scroll->mapToGlobal(hit)),scroll);for(int i=0;i<30 && scroll->value()<scroll->maximum();++i)QTest::mouseClick(scroll,Qt::LeftButton,Qt::NoModifier,hit);QCOMPARE(scroll->value(),scroll->maximum());}call(w,"capture.screenshot",{{"path",folder+"/qt-generated-boundary.png"}});
+  QVERIFY(hitButton(w.findChild<QPushButton*>("sketch.redefinePlane.cancel")));QCOMPARE(w.state().value("activeSession"),cached);QCOMPARE(call(w,"document.inspect"),base);
+  QVERIFY(hitButton(begin));QVERIFY(choose());QVERIFY(hitButton(w.findChild<QPushButton*>("sketch.redefinePlane.confirmOffset")));ok=w.findChild<QPushButton*>("sketch.redefinePlane.ok");QVERIFY(hitButton(ok));QVERIFY(w.state().value("activeSession").toObject().isEmpty());const auto after=call(w,"document.inspect");QCOMPARE(after.value("undo").toObject().value("count").toInt(),base.value("undo").toObject().value("count").toInt()+1);
+  call(w,"history.undo");QCOMPARE(call(w,"document.inspect").value("authored"),base.value("authored"));call(w,"history.redo");QCOMPARE(call(w,"document.inspect").value("authored"),after.value("authored"));const auto gpu=w.state().value("viewport").toObject().value("gpu").toObject();QVERIFY(gpu.value("hardwareAccelerated").toBool());QFile receipt(folder+"/qt-generated-receipt.json");QVERIFY(receipt.open(QIODevice::WriteOnly));receipt.write(QJsonDocument(QJsonObject{{"status","pass"},{"input","Qt actual-hit delivery; physical input unqualified"},{"gpu",gpu},{"preview",preview},{"after",after}}).toJson());
+ }
  void explicitPreviewCancelAndCommit() {
   QTemporaryDir scratch;const auto folder=qEnvironmentVariable("ALLOY_PLANE_REPAIR_EVIDENCE",scratch.path());QDir().mkpath(folder);const auto ids=SketchPlaneRepairFixtures::create(folder+"/fixtures");
   AlloyTheme::apply(*qApp);AlloyWindow w;w.resize(1360,860);w.show();QVERIFY(QTest::qWaitForWindowExposed(&w));call(w,"document.open",{{"path",folder+"/fixtures/ordinary-plane-repair.alloy"}});const auto base=call(w,"document.inspect");
