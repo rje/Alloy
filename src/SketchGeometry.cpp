@@ -3155,6 +3155,42 @@ SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& dra
             if(a.size()==2 && b.size()==2 && ((a[0]==b[0] && a[1]==b[1]) || (a[0]==b[1] && a[1]==b[0])))
                 reject(constraint["type"]=="collinear" ? "Collinear relation already exists for this pair" : "Concentric relation already exists for this pair");
         }
+        // A direct certificate, not a general solver conflict-core claim: both
+        // endpoint coordinates would coincide, contradicting a positive length.
+        if((constraint.value("type")=="horizontal" || constraint.value("type")=="vertical")
+            && constraint.value("entityIds").toArray().size()==1 && !constraint.contains("pointIds")) {
+            const auto ids=constraint.value("entityIds").toArray();
+            QJsonObject line;
+            for(const auto& row:parameters.value("entities").toArray())
+                if(row.toObject().value("id")==ids[0] && row.toObject().value("type")=="line")line=row.toObject();
+            const QJsonArray endpoints{line.value("startPointId"),line.value("endPointId")};
+            QJsonObject length,opposite;
+            for(const auto& row:parameters.value("dimensions").toArray()) {
+                const auto dimension=row.toObject();const auto points=dimension.value("pointIds").toArray();
+                if(dimension.value("kind")=="linear" && dimension.value("driving").toBool(true)
+                    && dimension.value("valueMm").toDouble()>1e-7 && points.size()==2
+                    && ((points[0]==endpoints[0] && points[1]==endpoints[1]) || (points[1]==endpoints[0] && points[0]==endpoints[1])))length=dimension;
+            }
+            for(const auto& row:constraints) {
+                const auto prior=row.toObject();
+                if(prior.value("entityIds")==ids && !prior.contains("pointIds")
+                    && prior.value("type")== (constraint.value("type")=="vertical" ? "horizontal" : "vertical"))opposite=prior;
+            }
+            if(!line.isEmpty() && !length.isEmpty() && !opposite.isEmpty()) {
+                const auto baseline=solveDraft(draft,projectionContext);
+                if(baseline.ok) {
+                    const auto title=[](const QJsonValue& kind){const auto text=kind.toString();return text.first(1).toUpper()+text.sliced(1);};
+                    const auto message=QString("%1 conflicts with existing %2 on this line. Its driving length is %3 mm. Select the existing relation, then press Delete to remove it and retry %1.")
+                        .arg(title(constraint.value("type")),title(opposite.value("type")),QString::number(length.value("valueMm").toDouble(),'g',8));
+                    return {false,draft,QJsonObject{{"code","constraint_conflict"},{"accepted",false},
+                        {"message",message},{"diagnosisScope","direct_line_orientation_with_positive_length"},
+                        {"attemptedRelation",constraint},{"attemptedRelationAuthored",false},
+                        {"conflictingRelations",QJsonArray{opposite}},{"conflictingConstraintIds",QJsonArray{opposite.value("id")}},
+                        {"conflictingEntityIds",ids},{"conflictingPointIds",endpoints},
+                        {"supportingDimensions",QJsonArray{length}},{"postFailureSolver",baseline.diagnostics}},message};
+                }
+            }
+        }
         constraints.append(constraint);
         parameters["constraints"] = constraints;
         if((constraint["type"]=="horizontal" || constraint["type"]=="vertical") && constraint["entityIds"].toArray().size()==1) {
@@ -3194,6 +3230,34 @@ SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& dra
             for(const auto& value:parameters["entities"].toArray())if(value.toObject()["id"]==source)first=value.toObject()["centerPointId"].toString();
         }
         auto result=solveDraft(candidate,projectionContext,first);
+        // At an exactly perpendicular starting line the length equation has a
+        // singular Jacobian for this orientation change. Retry with an aligned
+        // endpoint seed; the same solver still validates every retained equation.
+        if(!result.ok && first.isEmpty() && !constraint.contains("pointIds")
+            && (constraint.value("type")=="horizontal" || constraint.value("type")=="vertical")
+            && constraint.value("entityIds").toArray().size()==1) {
+            QJsonObject line;
+            for(const auto& row:parameters.value("entities").toArray())
+                if(row.toObject().value("id")==constraint.value("entityIds").toArray()[0]
+                    && row.toObject().value("type")=="line")line=row.toObject();
+            auto points=parameters.value("points").toArray();QJsonObject start,end;int endIndex=-1;
+            for(int i=0;i<points.size();++i) {
+                const auto point=points[i].toObject();
+                if(point.value("id")==line.value("startPointId"))start=point;
+                if(point.value("id")==line.value("endPointId")){end=point;endIndex=i;}
+            }
+            if(!start.isEmpty() && endIndex>=0) {
+                const double dx=end.value("uMm").toDouble()-start.value("uMm").toDouble(),dy=end.value("vMm").toDouble()-start.value("vMm").toDouble();
+                const bool vertical=constraint.value("type")=="vertical";
+                if(std::abs(vertical ? dy : dx)<1e-8) {
+                    const double length=std::hypot(dx,dy);
+                    end["uMm"]=start.value("uMm").toDouble()+(vertical ? 0 : length);
+                    end["vMm"]=start.value("vMm").toDouble()+(vertical ? length : 0);
+                    points[endIndex]=end;auto seeded=parameters;seeded["points"]=points;
+                    auto retry=candidate;retry["parameters"]=seeded;result=solveDraft(retry,projectionContext);
+                }
+            }
+        }
         if(!result.ok && !first.isEmpty())result=solveDraft(candidate,projectionContext);
         if(result.ok && !first.isEmpty())result=solveDraft(result.feature,projectionContext);
         return result.ok ? result : SolveResult{false, draft, result.diagnostics, result.error};

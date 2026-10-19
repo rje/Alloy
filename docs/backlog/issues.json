@@ -10253,6 +10253,24 @@
         "priority:P0"
       ],
       "body": "## Bounded result\nQualify the remaining point-to-straight-edge dimension behavior after SKT-034/#205 independently accepted D \u2192 circle center \u2192 two projected straight edges \u2192 3.9 mm twice, retained solver references, Cut, upstream edits, history and reopen. Do not reimplement that accepted workflow.\n\n## Acceptance\n- Through the real application, add a redundant supported point-to-straight-edge dimension and verify the shared explicit Driven offer: accepting retains a read-only parenthesized measurement; cancelling leaves draft/history unchanged; a conflicting nonmatching value refuses. Inspect the authored dimension kind, point/edge IDs, solver DOF, and updated measurement after supported source edit. Use one focused core or API check rather than replaying the whole toy-block tutorial.\n- Under an unlocked native desktop, run the point/edge D and 3.9 mm input path with actual widget-hit assertions, natural focus/selection between steps, and a separate Escape/cancel path without interstep `setFocus`. Inspect actual GPU annotation readability. Preserve the previously accepted bounded Qt evidence; distinguish this stricter gate from physical OS input.\n- Record the dated public tutorial/help input-order discrepancy and Alloy's already documented infinite supporting-line/side policy as documented or unresolved, without claiming exact source parity.\n\n## Dependencies\n- [SKT-034](https://github.com/rje/Alloy/issues/205) is the accepted implementation and tutorial workflow.\n- [SKT-089](https://github.com/rje/Alloy/issues/404) supplies the generic new-dimension Driven offer.\n\nNative input remains blocked when `tools/native_input_preflight.py` reports a locked macOS console. The public-evidence audit is external under `../Alloy-reference-records/knowledge/specs/skt-016-point-edge-distance-2026-10-19.md`.\n"
+    },
+    {
+      "key": "SKT-168",
+      "title": "Diagnose rejected edits of existing driving sketch dimensions",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P0",
+      "depends_on": [
+        "SKT-089",
+        "SKT-100"
+      ],
+      "labels": [
+        "kind:implementation",
+        "area:skt",
+        "phase:P2",
+        "priority:P0"
+      ],
+      "body": "## Bounded result\nDiagnose one supported rejected edit of an existing driving sketch dimension, identify solver-proven accepted conflicting relation/dimension IDs, and provide an explicit recoverable path. This is a remainder of SKT-100/#519, whose direct same-line H/V relation conflict is a separate candidate.\n\n## Acceptance\n- In a supported sketch fixture, editing an accepted driving dimension to an incompatible value refuses atomically. The shared error names the attempted dimension/value, implicated entity/point IDs, and only accepted relation/dimension IDs that can be proven to participate. The original dimension, solved geometry, sketch status, draft history and authored revision remain unchanged. Unsupported coupled conflicts return an honest generic failure without invented culprits.\n- Present readable actionable native feedback, including selection of a named accepted culprit for ordinary edit/removal. Where a redundant new dimension can instead become Driven, use the existing explicit new-dimension offer; do not silently convert an existing dimension. If a documented dimension-only Driven recovery applies to this edit, expose it explicitly and record the resulting expression policy.\n- Verify repair through a real sketch\u2192profile\u2192solid source edit, Undo/Redo and exact save/reopen, with distinct API, geometry, GPU and native actual-hit evidence. A locked macOS console blocks native acceptance; do not substitute focus repair or claim a passing native run.\n\n## Dependencies\n- [SKT-089](https://github.com/rje/Alloy/issues/404) supplies the bounded new-dimension Driven offer.\n- [SKT-100](https://github.com/rje/Alloy/issues/519) owns direct relation conflict presentation/recovery.\n\nGeneral minimal unsatisfiable cores, arbitrary coupled parameter conflicts and legacy-sketch repair remain later solver scope. Clean-room source contract is external under `../Alloy-reference-records/knowledge/specs/skt-100-overconstraint-diagnosis-2026-10-18.md`.\n"
     }
   ]
 }

@@ -5284,6 +5284,16 @@ void AlloyWindow::registerCommands() {
             session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}},{"constraintIds",ids}};
             return session_["selection"].toObject();
         });
+    add("sketch.conflictSelect","Select conflicting relation","Reveal and select the certified existing relation for normal badge Delete; no authored change.",{},[this](const auto&){
+        if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+        const auto diagnostic=session_.value("lastSolveFailure").toObject();
+        const auto ids=diagnostic.value("conflictingConstraintIds").toArray();
+        if(diagnostic.value("code")!="constraint_conflict" || ids.size()!=1)return failure("no_constraint_conflict","No certified relation conflict is available");
+        const auto tool=execute("sketch.tool",{{"tool","select"}});if(!tool.value("ok").toBool())return tool;
+        auto options=session_.value("displayOptions").toObject();options["showConstraints"]=true;options["hideFullyConstrained"]=false;session_["displayOptions"]=options;
+        const auto selected=execute("sketch.constraintSelect",{{"constraintId",ids[0]}});
+        return selected.value("ok").toBool() ? selected.value("result").toObject() : selected;
+    });
     add("sketch.constraintHover","Hover constraint badge","Identify a current visible relation without authoring or selecting geometry.",{{"constraintId",optional(badgeId)}},[this](const auto& a){
         if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","Restart this sketch");
@@ -6977,7 +6987,8 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     // selection and retry prompt. Publish that presentation without committing
     // the rejected geometry.
     const auto refreshConstraintFailure=[this,&id] {
-        if(id.startsWith("sketch.") && session_.value("tool")=="constraint")refresh();
+        if(id.startsWith("sketch.") && (session_.value("tool")=="constraint"
+            || session_.value("lastSolveFailure").toObject().value("code")=="constraint_conflict"))refresh();
     };
     QElapsedTimer phaseTimer;if(traceGraphSolves)phaseTimer.start();
     try { result=command->run(args); }
@@ -11147,8 +11158,14 @@ QJsonObject AlloyWindow::publishSketchSolve(const SketchGeometry::SolveResult& s
     if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
     if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return failure("stale_session","The document changed; cancel and restart this sketch");
     if(!solved.ok) {
-        session_["lastSolveFailure"]=solved.diagnostics;
-        auto response=failure("sketch_solve_failed",solved.error);auto error=response["error"].toObject();error["diagnostics"]=solved.diagnostics;response["error"]=error;return response;
+        auto diagnostics=solved.diagnostics;
+        diagnostics["postFailureSolver"]=session_.value("solverDiagnostics");
+        diagnostics["documentRevision"]=static_cast<qint64>(document_->revision());
+        diagnostics["draftHistory"]=session_.value("draftHistory");
+        diagnostics["sketchId"]=session_.value("draftSketch").toObject().value("id");
+        session_["lastSolveFailure"]=diagnostics;
+        auto response=failure(diagnostics.value("code")=="constraint_conflict" ? "constraint_conflict" : "sketch_solve_failed",solved.error);
+        auto error=response["error"].toObject();error["accepted"]=false;error["diagnostics"]=diagnostics;response["error"]=error;return response;
     }
     const auto candidate=SketchGeometry::replaceFeature(document_->authored(),solved.feature);const auto error=CadDocument::validate(candidate);
     if(!error.isEmpty())return failure("invalid_sketch",error);
@@ -11624,7 +11641,9 @@ QJsonArray AlloyWindow::angleRaySigns(const QJsonArray& entityIds,const QJsonObj
 
 void AlloyWindow::sketchResponse(const QJsonObject& response) {
     if(sketchError_){
-        sketchError_->setText(response["ok"].toBool() ? "" : response["error"].toObject()["message"].toString());
+        const auto conflict=session_.value("lastSolveFailure").toObject();
+        sketchError_->setText(conflict.value("code")=="constraint_conflict" ? "Constraint conflict: "+conflict.value("message").toString()
+            : response["ok"].toBool() ? "" : response["error"].toObject()["message"].toString());
         // Error feedback lives outside the scrolled palette. Reserve its wrapped
         // height after a refusal so the explanation cannot be compressed away.
         sketchError_->setMinimumHeight(sketchError_->text().isEmpty() ? 0
@@ -12399,6 +12418,16 @@ void AlloyWindow::refreshSketchControls() {
         options->setVisible(index>=0);
         if(index>=0){const QSignalBlocker block(mode);mode->setCurrentIndex(index);}
     }
+    const auto conflict=session_.value("lastSolveFailure").toObject();
+    if(auto* repair=sketchPanel_->findChild<QPushButton*>("sketch.conflict.select"))
+        repair->setVisible(conflict.value("code")=="constraint_conflict");
+    if(sketchError_ && conflict.value("code")=="constraint_conflict") {
+        sketchError_->setProperty("constraintConflict",true);
+        sketchError_->setText("Constraint conflict: "+conflict.value("message").toString());
+        sketchError_->setMinimumHeight(sketchError_->heightForWidth(std::max(80,sketchError_->contentsRect().width())));
+    } else if(sketchError_ && sketchError_->property("constraintConflict").toBool()) {
+        sketchError_->setProperty("constraintConflict",false);sketchError_->clear();sketchError_->setMinimumHeight(0);
+    }
     if(auto* offer=sketchPanel_->findChild<QWidget*>("sketch.dimension.offer"))
         offer->setVisible(session_.contains("pendingDrivenOffer"));
     if(auto* project=sketchPanel_->findChild<QWidget*>("sketch.projectControls")) {
@@ -13091,6 +13120,9 @@ void AlloyWindow::showSketch() {
         connect(grid,&QPushButton::clicked,this,[this]{execute("view.grid",{{"visible",!view_->grid}});});
     }
     layout->addStretch();sketchError_=new QLabel;sketchError_->setObjectName("sketch.error");sketchError_->setWordWrap(true);sketchError_->setStyleSheet("color: #a63832;");panelLayout->addWidget(sketchError_);
+    auto* conflictSelect=new QPushButton("Select Existing Relation");conflictSelect->setObjectName("sketch.conflict.select");
+    conflictSelect->hide();panelLayout->addWidget(conflictSelect);
+    connect(conflictSelect,&QPushButton::clicked,this,[this]{sketchResponse(execute("sketch.conflictSelect"));view_->setFocus();});
     auto* actions=new QHBoxLayout;
     if(!choosing) {
         auto* finish=new QPushButton("Finish Sketch");finish->setObjectName("sketch.palette.finish");actions->addWidget(finish);

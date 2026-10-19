@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **610 issues**: **482 implementation, 24 research,
+The current local backlog contains **611 issues**: **483 implementation, 24 research,
 3 research/design, 22 epics, and 79 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 REL-052/#587 accepts the [native Save As Mesh sheet keyboard and return slice](../validation/mesh-export-keyboard.md);
@@ -30,6 +30,7 @@ product quality concerns rather than evidence claimed by this gate.
 SKT-164/#610 accepts [retained finite line-intersection inference](../validation/sketch-line-intersection.md) through a sketch-to-Extrude workflow, source edits, native Qt cue/badge input and independent Astra review. SKT-021/#162 retains other inference and numeric behavior.
 SKT-165/#611 has a committed direct Toggle Driven/Driving candidate with independent core/API/sketch-to-Extrude/GPU review, but remains Todo until its native actual-hit sequence can run on an unlocked Mac; see [the candidate receipt](../validation/sketch-dimension-driving.md). SKT-166/#612 retains a separate recoverable relation-add conflict that converts an existing dimension; this is distinct from the accepted SKT-089 new-dimension offer.
 SKT-167/#613 has an independently reviewed point-edge-specific redundant Driven offer through core/API/GPU, but remains Todo for the strict native actual-hit/focus gate while the Mac console is locked; see [its candidate receipt](../validation/point-edge-driven-offer.md). SKT-034/#205 already accepts the core two-offset point-to-edge workflow; SKT-016/#144 retains the wider dimension family. The dated public audit is outside the repository.
+SKT-100/#519 has a direct same-line H/V conflict candidate with solver-certified accepted relation, atomic API rejection, repair and independently reviewed 63-call real-app/GPU evidence; native input remains pending. SKT-168/#614 separately retains rejected driving-dimension-edit diagnosis and recovery.
 SOL-078/#608 accepts [retained Simple Hole](../validation/simple-hole.md) on a supported sketch Point with explicit target and Distance/All, including native controls, upstream edit, downstream Chamfer and independent STL. SOL-079/#609 accepts [retained Counterbore](../validation/counterbore-hole.md) with editable recess diameter/depth, native controls, source following, downstream Chamfer and independent STL; wider placements and thread subtypes stay SOL-007/#52.
 SOL-062/#507 accepts [Cone and Torus New Body primitives](../validation/cone-torus.md)
 through real-app API/GPU, retained editing and independent STL checks.
