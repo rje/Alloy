@@ -79,6 +79,9 @@ public:
     // creation above never acquires an implicit target.
     // Shared near-axis cue for pointer-created Line. Returns an ordinary H/V
     // relation and projected free endpoint, or empty when inference is unsafe.
+    // Unique finite intersection of two authored straight lines; empty if unavailable.
+    static QJsonArray pointerLineIntersections(const QJsonObject& parameters);
+    static QJsonObject pointerLineIntersection(const QJsonObject& parameters,const QJsonArray& lineIds);
     static QJsonObject pointerLineAxis(double u1,double v1,double u2,double v2,bool endAcquired);
     // Analytic circle contact/tangent geometry shared by pointer preview and
     // retained Line creation. Empty means unavailable; from-contact returns an

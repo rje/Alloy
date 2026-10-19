@@ -3360,8 +3360,8 @@ void AlloyWindow::registerCommands() {
     coordinate["minimum"]=-100000;coordinate["maximum"]=100000;
     QJsonObject drawSchema{{"x1",coordinate},{"y1",coordinate},{"x2",coordinate},{"y2",coordinate},
         {"units",optional(units)},{"session",optional(parameter("string","Optional active sketch session identity."))},
-        {"startSnapTarget",optional(parameter("object","Retained origin or point endpoint target."))},
-        {"endSnapTarget",optional(parameter("object","Retained origin or point endpoint target."))}};
+        {"startSnapTarget",optional(parameter("object","Retained origin, point, line midpoint, finite line-pair intersection or circle endpoint target."))},
+        {"endSnapTarget",optional(parameter("object","Retained origin, point, line midpoint, finite line-pair intersection or circle endpoint target."))}};
     for(const auto& tool:QStringList{"line","rectangle"})add("sketch."+tool,tool=="line" ? "Line" : "Two-Point Rectangle",
         "Append stable authored points and edges to the active sketch draft.",drawSchema,[this,tool](const auto& a){return appendSketchEntity(tool,a);});
     auto conicPoint=parameter("object","Canonical millimeter point {uMm,vMm}, optionally retained pointId.");
@@ -10644,6 +10644,19 @@ QJsonObject AlloyWindow::resolveSketchSnap(double x,double y,const QString& plan
             offer({{"kind","midpoint"},{"entityId",line["id"]}},u,v);
         }
     }
+    if(session_.value("tool")=="line") {
+        auto visibleParameters=parameters;QJsonArray lines;
+        for(const auto& row:parameters.value("entities").toArray()){
+            const auto e=row.toObject();
+            if(!view_->sketchEntityVisible(e.value("id").toString()))continue;
+            lines.append(e);
+        }
+        visibleParameters["entities"]=lines;
+        for(const auto& row:SketchGeometry::pointerLineIntersections(visibleParameters)){
+            const auto crossing=row.toObject();
+            offer({{"kind","intersection"},{"entityIds",crossing.value("entityIds")}},crossing.value("uMm").toDouble(),crossing.value("vMm").toDouble());
+        }
+    }
     offer({{"kind","origin"}},0,0);
     QMap<QString,bool> endpointIds;
     for(const auto& entry:parameters["entities"].toArray()){
@@ -10709,7 +10722,7 @@ QJsonObject AlloyWindow::resolveSketchSnap(double x,double y,const QString& plan
             && std::hypot(candidate.value("uMm").toDouble(),candidate.value("vMm").toDouble())<1e-6)return -1;
         const auto kind=candidate["target"].toObject()["kind"];
         return kind=="origin" ? 0 : kind=="point" && !candidate.value("projected").toBool() ? 1
-            : kind=="point" ? 2 : 3;
+            : kind=="point" ? 2 : kind=="intersection" ? 3 : 4;
     };
     std::sort(candidates.begin(),candidates.end(),[&](const QJsonObject& a,const QJsonObject& b){
         const double distanceA=a["distancePx"].toDouble(),distanceB=b["distancePx"].toDouble();
@@ -10770,12 +10783,14 @@ QJsonObject AlloyWindow::resolveSketchSnap(double x,double y,const QString& plan
             const auto representativeKind=representative["target"].toObject()["kind"].toString();
             const bool incidentalMidpoint=(candidateKind=="midpoint" && identities(candidate).isEmpty())
                 || (representativeKind=="midpoint" && identities(representative).isEmpty());
+            const bool intersectionOverlay=(candidateKind=="intersection" || representativeKind=="intersection")
+                && candidateKind!=representativeKind && (candidateKind=="point" || candidateKind=="origin" || representativeKind=="point" || representativeKind=="origin");
             const bool projectedOverlay=(candidate.value("projected").toBool() || representative.value("projected").toBool())
                 && (candidateKind=="point" || candidateKind=="origin")
                 && (representativeKind=="point" || representativeKind=="origin");
             if(!linked(candidate,representative) && !(incidentalMidpoint
                 && candidateKind!=representativeKind && (candidateKind=="midpoint" || representativeKind=="midpoint"))
-                && !projectedOverlay)continue;
+                && !projectedOverlay && !intersectionOverlay)continue;
             if(rank(candidate)<rank(representative))representative=candidate;
             joined=true;break;
         }

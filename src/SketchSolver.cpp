@@ -294,6 +294,10 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 auto& anchor=point(reference(constraint,"pointIds",0));auto& vertex=point(reference(constraint,"pointIds",1));
                 solver.addConstraintDifference(anchor.x,vertex.x,constant(number(constraint,"offsetUMm")),t);
                 solver.addConstraintDifference(anchor.y,vertex.y,constant(number(constraint,"offsetVMm")),t);
+            } else if(type=="intersection") {
+                auto& p=point(reference(constraint,"pointIds",0));
+                solver.addConstraintPointOnLine(p,line(reference(constraint,"entityIds",0)),t);
+                solver.addConstraintPointOnLine(p,line(reference(constraint,"entityIds",1)),t);
             } else if(type=="pointOnCurve" || type=="supportLine") {
                 const auto id=reference(constraint,"entityIds",0);auto& p=point(reference(constraint,"pointIds",0));
                 if(lineMap.contains(id))solver.addConstraintPointOnLine(p,line(id),t);else solver.addConstraintPointOnCircle(p,circleMap.at(id),t);
@@ -646,6 +650,17 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
         for (const auto& entry : constraints) {
             const auto c=entry.toObject(); const auto type=c.value("type").toString();
             if(type=="coincident") check(separation("linear",point(reference(c,"pointIds",0)),point(reference(c,"pointIds",1))),lengthTolerance);
+            else if(type=="intersection") {
+                const auto& p=point(reference(c,"pointIds",0));
+                const auto& a=line(reference(c,"entityIds",0));const auto& b=line(reference(c,"entityIds",1));
+                const double ax=*a.p2.x-*a.p1.x,ay=*a.p2.y-*a.p1.y,bx=*b.p2.x-*b.p1.x,by=*b.p2.y-*b.p1.y;
+                const double al=std::hypot(ax,ay),bl=std::hypot(bx,by);
+                require(al>=minimumLength && bl>=minimumLength && std::abs(ax*by-ay*bx)>1e-8*al*bl,"Intersection sources became parallel or degenerate");
+                for(const auto* l:{&a,&b}){const double dx=*l->p2.x-*l->p1.x,dy=*l->p2.y-*l->p1.y,len=std::hypot(dx,dy);
+                    check((dx*(*p.y-*l->p1.y)-dy*(*p.x-*l->p1.x))/len,lengthTolerance);
+                    const double foot=((*p.x-*l->p1.x)*dx+(*p.y-*l->p1.y)*dy)/(len*len);
+                    require(foot>=-1e-6 && foot<=1+1e-6,"Intersection left its finite source span");}
+            }
             else if(type=="pointOnCurve" || type=="supportLine") {
                 const auto id=reference(c,"entityIds",0);const auto& p=point(reference(c,"pointIds",0));
                 if(lineMap.contains(id)){const auto& l=line(id);double dx=*l.p2.x-*l.p1.x,dy=*l.p2.y-*l.p1.y,len=std::hypot(dx,dy);check((dx*(*p.y-*l.p1.y)-dy*(*p.x-*l.p1.x))/len,lengthTolerance);double t=((*p.x-*l.p1.x)*dx+(*p.y-*l.p1.y)*dy)/(len*len);if(type=="pointOnCurve")require(t>=-1e-6 && t<=1+1e-6,"Trim contact left its finite boundary line");}

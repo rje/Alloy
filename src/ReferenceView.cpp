@@ -2195,13 +2195,14 @@ void ReferenceView::decorateSketch(const QJsonObject& sourceFeature,const QJsonO
                 {"viewportLocal",true},{"units","logicalPixels"}});
             continue;
         }
-        if(kind!="coincident" && kind!="equal" && kind!="horizontal" && kind!="vertical" && kind!="concentric" && kind!="perpendicular" && kind!="parallel" && kind!="collinear" && kind!="midpoint" && kind!="pointOnCurve" && kind!="circleOffset" && kind!="symmetry")continue;
+        if(kind!="coincident" && kind!="equal" && kind!="horizontal" && kind!="vertical" && kind!="concentric" && kind!="perpendicular" && kind!="parallel" && kind!="collinear" && kind!="midpoint" && kind!="intersection" && kind!="pointOnCurve" && kind!="circleOffset" && kind!="symmetry")continue;
         const bool pointAlignment=(kind=="coincident" || kind=="horizontal" || kind=="vertical") && relation.contains("pointIds");
         // Concentric has one semantic center shared by the pair. One badge
         // near that center is clearer than a badge on each distant arc rim.
         const auto targets=pointAlignment ? QJsonArray{relation["pointIds"].toArray().at(1)}
             : kind=="concentric" ? QJsonArray{relation["entityIds"].toArray().at(0)}
             : kind=="symmetry" ? QJsonArray{relation["entityIds"].toArray().at(2)}
+            : kind=="intersection" ? QJsonArray{relation["entityIds"].toArray().at(0)}
             : kind=="collinear" ? QJsonArray{relation["entityIds"].toArray().at(0)} : relation["entityIds"].toArray();
         for(const auto& target:targets) {
             const auto entity=entities.value(target.toString());if(!pointAlignment && entity.isEmpty())continue;
@@ -2212,7 +2213,7 @@ void ReferenceView::decorateSketch(const QJsonObject& sourceFeature,const QJsonO
             } else if(kind=="concentric") {
                 const auto center=points.value(entity["centerPointId"].toString());if(center.isEmpty())continue;
                 u=center["uMm"].toDouble();v=center["vMm"].toDouble();
-            } else if(kind=="midpoint" || kind=="pointOnCurve") {
+            } else if(kind=="midpoint" || kind=="intersection" || kind=="pointOnCurve") {
                 const auto pointId=relation["pointIds"].toArray().at(0).toString();
                 const auto point=points.value(pointId);if((kind=="midpoint" && entity["type"]!="line" && entity["type"]!="arc") || point.isEmpty())continue;
                 u=point["uMm"].toDouble();v=point["vMm"].toDouble();
@@ -2245,6 +2246,7 @@ void ReferenceView::decorateSketch(const QJsonObject& sourceFeature,const QJsonO
             TopoDS_Compound strokes;BRep_Builder builder;builder.MakeCompound(strokes);
             auto stroke=[&](double x1,double y1,double x2,double y2){builder.Add(strokes,BRepBuilderAPI_MakeEdge(sketchWorld(plane,u+x1*size,v+y1*size),sketchWorld(plane,u+x2*size,v+y2*size)).Edge());};
             if(kind=="pointOnCurve" || kind=="coincident"){stroke(-3,-3,3,-3);stroke(3,-3,3,3);stroke(3,3,-3,3);stroke(-3,3,-3,-3);stroke(-1,0,1,0);}
+            else if(kind=="intersection"){stroke(-4,-4,4,4);stroke(-4,4,4,-4);stroke(-5,-5,5,-5);stroke(5,-5,5,5);stroke(5,5,-5,5);stroke(-5,5,-5,-5);}
             else if(kind=="midpoint"){stroke(-5,4,5,4);stroke(5,4,0,-5);stroke(0,-5,-5,4);}
             else if(kind=="symmetry"){stroke(0,-5,0,5);stroke(-5,-3,-2,0);stroke(-2,0,-5,3);stroke(5,-3,2,0);stroke(2,0,5,3);}
             else if(kind=="collinear"){stroke(-6,0,-1,0);stroke(1,0,6,0);stroke(-1,-3,1,-3);stroke(-1,3,1,3);}
@@ -2550,6 +2552,8 @@ void ReferenceView::showSketchSnap(const QString& plane,const QJsonObject& snap)
         segment(-1,-1,1,-1);segment(1,-1,1,1);segment(1,1,-1,1);segment(-1,1,-1,-1);
     } else if(snap.value("target").toObject().value("kind")=="filletCorner"){
         segment(-1,-1,1,-1);segment(1,-1,1,1);segment(1,1,-1,1);segment(-1,1,-1,-1);
+    } else if(snap.value("target").toObject().value("kind")=="intersection"){
+        segment(-1,-1,1,1);segment(-1,1,1,-1);segment(-1,-1,1,-1);segment(1,-1,1,1);segment(1,1,-1,1);segment(-1,1,-1,-1);
     } else if(snap.value("target").toObject().value("kind")=="midpoint"){
         segment(-1,0.7,1,0.7);segment(1,0.7,0,-1);segment(0,-1,-1,0.7);
     } else if(snap.value("supportPoint").toBool()){
@@ -3365,6 +3369,7 @@ QJsonObject ReferenceView::diagnostics() const {
     snapCue["marker"]=snapCue.value("status")=="ambiguous" ? "cross" : snapCue.value("status")=="acquired" ?
         (snapCue.value("target").toObject().value("kind")=="filletCorner" ? "fillet-corner-square" :
          snapCue.value("target").toObject().value("kind")=="tangent" ? "tangent-square" :
+         snapCue.value("target").toObject().value("kind")=="intersection" ? "intersection-square-cross" :
          snapCue.value("target").toObject().value("kind")=="midpoint" ? "midpoint-triangle" :
          snapCue.value("supportPoint").toBool() ? "support-center-cross" :
          snapCue.value("target").toObject().value("kind")=="origin" ? "origin-diamond" : "endpoint-diamond") : "none";

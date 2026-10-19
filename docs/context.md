@@ -1260,6 +1260,10 @@ ambiguous-instance refusals remain. See
 [the receipt](validation/navigation-cumulative.md). NAV-008/NAV-009 retain
 physical/native input, while GATE-005 retains packaged multi-OS GPU/runtime.
 
+## Retained sketch intersection slice (2026-10-19)
+
+SKT-164/#610 now accepts a finite line-line intersection candidate while authoring a Line endpoint, represented by one retained two-source relation. Both source-line edits recompute a closed profile and downstream Extrude (2000→2500 mm³); finite/parallel/ambiguous sources refuse or omit atomically. Core/HV 2/2, an 84-call real-app workflow, native Qt pointer/badge Delete/Undo 3/3, exact reopen and Apple M4 GPU captures passed independent Astra review. See [receipt](validation/sketch-line-intersection.md). Exact public glyph styling, physical input, linked projected curves and large-sketch performance remain open.
+
 ## Simple Hole slice (2026-10-19)
 
 SOL-078/#608 now accepts retained sketch-point Simple Hole on an explicit target with Distance or All extent, editable history, source-point reassignment and upstream width follow. Focused core 2/2 including legacy Countersink, a 73-call real-app workflow, native Qt Point/Create/target/numeric/Timeline input, exact Undo/Redo/reopen, downstream Chamfer and independent closed STL readback passed. Independent Sol review found no blocker; see [receipt](validation/simple-hole.md). SOL-079/#609 now accepts retained Counterbore recess diameter/depth with Distance/All, 3/3 focused core including direct BRep step/depth probes, an 83-call real-app replay, native Qt controls/GPU and independent closed STL; independent Sol review found no blocker. See [receipt](validation/counterbore-hole.md). Direct face placement, broader Hole types, physical-device and packaged runtime remain separate.

@@ -1472,6 +1472,40 @@ SketchGeometry::SolveResult SketchGeometry::addPointerTangentArc(const QJsonObje
     }catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
 }
 
+namespace {
+QJsonObject finiteLineIntersection(const QMap<QString,QJsonObject>& points,const QJsonObject& a,const QJsonObject& b) {
+    const auto p=points.value(a.value("startPointId").toString()),q=points.value(a.value("endPointId").toString()),
+        r=points.value(b.value("startPointId").toString()),t=points.value(b.value("endPointId").toString());
+    if(p.isEmpty() || q.isEmpty() || r.isEmpty() || t.isEmpty())return {};
+    const double x=p.value("uMm").toDouble(),y=p.value("vMm").toDouble(),dx=q.value("uMm").toDouble()-x,dy=q.value("vMm").toDouble()-y,
+        ex=t.value("uMm").toDouble()-r.value("uMm").toDouble(),ey=t.value("vMm").toDouble()-r.value("vMm").toDouble(),
+        rx=r.value("uMm").toDouble()-x,ry=r.value("vMm").toDouble()-y,den=dx*ey-dy*ex;
+    const double al=std::hypot(dx,dy),bl=std::hypot(ex,ey);
+    if(al<minimumLength || bl<minimumLength || std::abs(den)<=1e-8*al*bl)return {};
+    const double u=(rx*ey-ry*ex)/den,v=(rx*dy-ry*dx)/den;
+    if(!std::isfinite(u) || !std::isfinite(v) || u<0 || u>1 || v<0 || v>1)return {};
+    return {{"uMm",x+u*dx},{"vMm",y+u*dy}};
+}
+}
+QJsonObject SketchGeometry::pointerLineIntersection(const QJsonObject& parameters,const QJsonArray& ids) {
+    if(ids.size()!=2 || ids[0]==ids[1])return {};
+    QMap<QString,QJsonObject> points,lines;
+    for(const auto& row:parameters.value("points").toArray()){const auto p=row.toObject();points[p.value("id").toString()]=p;}
+    for(const auto& row:parameters.value("entities").toArray()){const auto e=row.toObject();if(e.value("type")=="line")lines[e.value("id").toString()]=e;}
+    const auto a=lines.value(ids[0].toString()),b=lines.value(ids[1].toString());if(a.isEmpty() || b.isEmpty())return {};
+    return finiteLineIntersection(points,a,b);
+}
+QJsonArray SketchGeometry::pointerLineIntersections(const QJsonObject& parameters) {
+    QMap<QString,QJsonObject> points;QList<QJsonObject> lines;QJsonArray result;
+    for(const auto& row:parameters.value("points").toArray()){const auto p=row.toObject();points[p.value("id").toString()]=p;}
+    for(const auto& row:parameters.value("entities").toArray()){const auto e=row.toObject();if(e.value("type")=="line")lines.append(e);}
+    for(qsizetype i=0;i<lines.size();++i)for(qsizetype j=i+1;j<lines.size();++j){
+        auto crossing=finiteLineIntersection(points,lines[i],lines[j]);if(crossing.isEmpty())continue;
+        crossing["entityIds"]=QJsonArray{lines[i].value("id"),lines[j].value("id")};result.append(crossing);
+    }
+    return result;
+}
+
 SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& draft, const QString& tool, const QJsonObject& arguments, const QJsonObject& projectionContext) {
     try {
         validateDraft(draft);
@@ -1486,6 +1520,7 @@ SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& 
         auto entities=parameters["entities"].toArray();auto constraints=parameters["constraints"].toArray();
         auto freshPoint=[&](double u,double v) {const auto id=newId();points.append(QJsonObject{{"id",id},{"uMm",u},{"vMm",v}});return id;};
         QString startMidpointLine,endMidpointLine,startCircle,endCircle;
+        QJsonArray startIntersection,endIntersection;
         int endCircleBranch=0;
         auto target=[&](const QString& key,double& u,double& v,QString& midpointLine) -> QString {
             if (!arguments.contains(key)) return {};
@@ -1510,6 +1545,13 @@ SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& 
                     midpointLine=line["id"].toString();return {};
                 }
                 reject("Midpoint snap line no longer exists");
+            } else if(kind=="intersection" && tool=="line") {
+                const auto ids=selected.value("entityIds").toArray();
+                if(selected.size()!=2 || ids.size()!=2 || !validId(ids[0].toString()) || !validId(ids[1].toString()))reject("Intersection snap requires two retained line IDs");
+                const auto crossing=pointerLineIntersection(parameters,ids);
+                if(crossing.isEmpty())reject("Intersection requires distinct nonparallel finite source lines");
+                u=crossing.value("uMm").toDouble();v=crossing.value("vMm").toDouble();
+                (key=="startSnapTarget" ? startIntersection : endIntersection)=ids;return {};
             } else if(kind=="circle" && tool=="line") {
                 if(!selected["entityId"].isString() || !validId(selected["entityId"].toString()))reject("Circle contact needs a retained circle ID");
                 const auto circleId=selected["entityId"].toString();
@@ -1535,7 +1577,7 @@ SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& 
         const auto startTarget=target("startSnapTarget",u1,v1,startMidpointLine),endTarget=target("endSnapTarget",u2,v2,endMidpointLine);
         if(!startCircle.isEmpty() && !endCircle.isEmpty())reject("One pointer Line cannot infer contacts on two circles");
         if(arguments.value("inferCircleTangent").toBool()) {
-            if(startCircle.isEmpty() || !endCircle.isEmpty() || !endTarget.isEmpty() || !endMidpointLine.isEmpty())
+            if(startCircle.isEmpty() || !endCircle.isEmpty() || !endTarget.isEmpty() || !endMidpointLine.isEmpty() || !endIntersection.isEmpty())
                 reject("Shift tangency requires a starting circle and free endpoint");
             const auto projected=pointerCircleFrom(parameters,startCircle,u1,v1,u2,v2);
             if(projected.isEmpty() || projected.value("status")=="ambiguous")reject("Starting circle tangent direction is ambiguous");
@@ -1548,7 +1590,7 @@ SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& 
             u2=contact["uMm"].toDouble();v2=contact["vMm"].toDouble();
         }
         const auto inference=tool=="line" && startCircle.isEmpty() && endCircle.isEmpty() && arguments.value("inferAxis").toBool()
-            ? pointerLineAxis(u1,v1,u2,v2,!endTarget.isEmpty() || !endMidpointLine.isEmpty()) : QJsonObject{};
+            ? pointerLineAxis(u1,v1,u2,v2,!endTarget.isEmpty() || !endMidpointLine.isEmpty() || !endIntersection.isEmpty()) : QJsonObject{};
         if(!inference.isEmpty()) {
             u1=inference["u1Mm"].toDouble();v1=inference["v1Mm"].toDouble();
             u2=inference["u2Mm"].toDouble();v2=inference["v2Mm"].toDouble();
@@ -1580,6 +1622,11 @@ SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& 
         if(last!=endTarget)coincide(last,endTarget);
         if(!startMidpointLine.isEmpty())constraints.append(QJsonObject{{"id",newId()},{"type","midpoint"},{"pointIds",QJsonArray{first}},{"entityIds",QJsonArray{startMidpointLine}}});
         if(!endMidpointLine.isEmpty())constraints.append(QJsonObject{{"id",newId()},{"type","midpoint"},{"pointIds",QJsonArray{last}},{"entityIds",QJsonArray{endMidpointLine}}});
+        for(const bool start:{true,false}) {
+            const auto ids=start ? startIntersection : endIntersection;if(ids.isEmpty())continue;
+            constraints.append(QJsonObject{{"id",newId()},{"type","intersection"},
+                {"pointIds",QJsonArray{start ? first : last}},{"entityIds",ids}});
+        }
         auto circleRelation=[&](const QString& circleId,const QString& contactPoint,bool tangent) {
             if(circleId.isEmpty())return;
             constraints.append(QJsonObject{{"id",newId()},{"type","pointOnCurve"},
@@ -1599,14 +1646,14 @@ SketchGeometry::SolveResult SketchGeometry::addPointerEntity(const QJsonObject& 
         parameters["points"]=points;parameters["entities"]=entities;parameters["constraints"]=constraints;
         auto candidate=draft;candidate["parameters"]=parameters;
         const auto result=solveDraft(candidate,projectionContext);
-        if(result.ok && !inference.isEmpty())for(const auto& oldValue:draft["parameters"].toObject()["points"].toArray()) {
+        if(result.ok && (!inference.isEmpty() || !startIntersection.isEmpty() || !endIntersection.isEmpty()))for(const auto& oldValue:draft["parameters"].toObject()["points"].toArray()) {
             const auto old=oldValue.toObject();bool same=false;
             for(const auto& newValue:result.feature["parameters"].toObject()["points"].toArray()) {
                 const auto now=newValue.toObject();if(now["id"]!=old["id"])continue;
                 same=std::hypot(now["uMm"].toDouble()-old["uMm"].toDouble(),
                     now["vMm"].toDouble()-old["vMm"].toDouble())<1e-5;break;
             }
-            if(!same)return {false,draft,result.diagnostics,"Inferred axis would move existing sketch geometry"};
+            if(!same)return {false,draft,result.diagnostics,"Inferred relation would move existing sketch geometry"};
         }
         return result.ok ? result : SolveResult{false,draft,result.diagnostics,result.error};
     } catch (const std::exception& error) {return invalidDraft(draft,QString::fromUtf8(error.what()));}
@@ -2396,6 +2443,13 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                 coordinate(constraint,"offsetUMm");coordinate(constraint,"offsetVMm");bool owned=false;
                 for(const auto& row:parameters["polygonGroups"].toArray())owned|=row.toObject()["constraintIds"].toArray().contains(constraint["id"]);
                 if(!owned)return "Polygon relative driver has no owning Polygon";
+            } else if(type=="intersection") {
+                if(constraint.size()!=4 || !checkReferences(constraint,"pointIds",1,pointIds)
+                    || !checkReferences(constraint,"entityIds",2,lineIds))return "Intersection requires one point and two straight lines";
+                const auto ids=constraint.value("entityIds").toArray();if(ids[0]==ids[1])return "Intersection requires distinct lines";
+                for(const auto& row:parameters.value("entities").toArray()){const auto e=row.toObject();if(ids.contains(e.value("id"))
+                    && constraint.value("pointIds").toArray().contains(e.value("startPointId")))return "Intersection source cannot own its target point";
+                    if(ids.contains(e.value("id")) && constraint.value("pointIds").toArray().contains(e.value("endPointId")))return "Intersection source cannot own its target point";}
             } else if (type == "pointOnCurve" || type == "supportLine") {
                 if(constraint.size()!=4 || !checkReferences(constraint,"pointIds",1,pointIds) || !checkReferences(constraint,"entityIds",1,entityIds))return "Point-on-curve requires one point and one curve";
                 const auto id=constraint["entityIds"].toArray()[0].toString();for(const auto& entry:parameters["entities"].toArray())if(entry.toObject()["id"]==id &&

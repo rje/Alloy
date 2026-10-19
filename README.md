@@ -7,6 +7,7 @@ Current direction: [printable-part v1 plan](https://alloy-v1-review.rjevans1.cha
 editable numeric dimensions, retained history, checked STL output and
 independently reviewed native Qt controls at 1× and 2× scale. Physical input
 and packaged-platform qualification remain separate.
+[Retained sketch-line intersection inference](docs/validation/sketch-line-intersection.md) now follows both source lines through edits and an Extrude workflow, with visible GPU cue and native Qt input.
 [Editable Simple Hole](docs/validation/simple-hole.md) now supports retained sketch-point placement with Distance or Through All and an explicit target; Counterbore now has the same retained point/target path and independently checked stepped cavity.
 [Core 3MF export](docs/validation/3mf-export.md) now saves separate placed
 millimeter solids through Save As Mesh, with independent readback and a separate
