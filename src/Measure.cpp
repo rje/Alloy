@@ -7,6 +7,7 @@
 #include <BRepGProp.hxx>
 #include <GProp_GProps.hxx>
 #include <Standard_Failure.hxx>
+#include <QSet>
 #include <cmath>
 #include <algorithm>
 namespace {
@@ -17,9 +18,11 @@ QJsonObject measureGeometry(const EvaluatedDocument& evaluation,const std::vecto
     if(sources.isEmpty() || sources.size()>2)return refused("measure_selection_count","Select one or two supported objects");
     struct Resolved {TopoDS_Shape shape;TopoDS_Edge edge;TopoDS_Face face;bool point=false;};
     std::vector<Resolved> resolved;
+    QSet<QStringList> identities;
     try {
-        for(const auto& item:sources){const auto source=item.toObject();const auto kind=source.value("kind").toString();Resolved result;int matches=0;
+        for(const auto& item:sources){const auto source=item.toObject();const auto kind=source.value("kind").toString();Resolved result;int matches=0;QStringList identity;
             if(kind=="sketchEdge" || kind=="sketchPoint"){
+                identity={kind,source.value("sketchId").toString(),source.value(kind=="sketchEdge"?"entityId":"pointId").toString()};
                 for(const auto& sketch:evaluation.sketches)if(sketch.visible && sketch.featureId==source.value("sketchId").toString()){
                     if(kind=="sketchEdge" && sketch.entityEdges.contains(source.value("entityId").toString())){result.edge=sketch.entityEdges.value(source.value("entityId").toString());result.shape=result.edge;++matches;}
                     if(kind=="sketchPoint")for(const auto& entry:sketch.summary.value("standalonePoints").toArray()){
@@ -31,13 +34,14 @@ QJsonObject measureGeometry(const EvaluatedDocument& evaluation,const std::vecto
             }else if(kind=="edge" || kind=="face"){
                 for(const auto& body:bodies)if(body.visible && body.bodyId==source.value("bodyId").toString()
                     && (!source.contains("occurrenceId") || body.occurrenceId==source.value("occurrenceId").toString())){
-                    if(kind=="edge")for(const auto& edge:body.solidEdges)if(edge.edgeId==source.value("edgeId").toString()){result.edge=edge.edge;result.shape=edge.edge;++matches;}
+                    if(kind=="edge")for(const auto& edge:body.solidEdges)if(edge.edgeId==source.value("edgeId").toString()){identity={kind,body.bodyId,body.occurrenceId,edge.edgeId};result.edge=edge.edge;result.shape=edge.edge;++matches;}
                     if(kind=="face")for(const auto& face:body.supportFaces)if(face.faceId==source.value("faceId").toString()
-                        && (!source.contains("producerFeatureId") || face.producerFeatureId==source.value("producerFeatureId").toString())){result.face=face.face;result.shape=face.face;++matches;}
+                        && (!source.contains("producerFeatureId") || face.producerFeatureId==source.value("producerFeatureId").toString())){identity={kind,body.bodyId,body.occurrenceId,face.faceId};result.face=face.face;result.shape=face.face;++matches;}
                 }
             }else return refused("measure_unsupported","Unsupported measurement source kind");
             if(matches!=1 || result.shape.IsNull())return refused(matches>1?"measure_ambiguous":"measure_unavailable","Measurement source is unavailable or ambiguous");
-            resolved.push_back(result);
+            if(identities.contains(identity))return refused("measure_duplicate","Choose two distinct sources");
+            identities.insert(identity);resolved.push_back(result);
         }
         const double scale=units=="in"?25.4:1.;QJsonArray values;
         const auto add=[&](const QString& name,double canonical,int dimension){const auto unit=dimension==0?QString("deg"):units+(dimension==2?QString::fromUtf8("²"):QString{});
@@ -55,7 +59,6 @@ QJsonObject measureGeometry(const EvaluatedDocument& evaluation,const std::vecto
             const auto& a=resolved[0];const auto& b=resolved[1];
             if(!((a.point && !b.edge.IsNull()) || (b.point && !a.edge.IsNull()) || (!a.edge.IsNull() && !b.edge.IsNull())))
                 return refused("measure_unsupported","Supported pairs are point/straight edge and two straight edges");
-            if(sources[0]==sources[1])return refused("measure_duplicate","Choose two distinct sources");
             BRepExtrema_DistShapeShape distance(a.shape,b.shape);if(!distance.IsDone())return refused("measure_failed","Exact distance evaluation failed");
             add("Distance",distance.Value(),1);
             if(!a.edge.IsNull() && !b.edge.IsNull()){

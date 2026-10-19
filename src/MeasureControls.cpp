@@ -64,9 +64,13 @@ QJsonObject AlloyWindow::pickMeasure(double x,double y){
     if(filter=="Face"){source=view_->pickSupportFace(x,y,presentationBodies());if(!source.isEmpty())source["kind"]="face";}
     else if(filter=="Point")source=view_->pickFinishedPoint(x,y);
     else {source=view_->pickMeasureSketchEdge(x,y);if(source.isEmpty())source=view_->pickSolidEdge(x,y,presentationBodies());if(!source.isEmpty() && !source.contains("kind"))source["kind"]="edge";}
+    if(source.contains("error"))return source;
     if(source.isEmpty())return {{"ok",false},{"error",QJsonObject{{"code","measure_unavailable"},{"message","No supported geometry under the pointer"}}}};
     if(measureSources_.size()>=2)return {{"ok",false},{"error",QJsonObject{{"code","measure_selection_count"},{"message","Clear Selection before choosing more objects"}}}};
-    measureSources_.append(source);
+    auto candidate=measureSources_;candidate.append(source);
+    const auto candidateResult=measureGeometry(document_->evaluation(),presentationBodies(),candidate,document_->authored().value("displayUnits").toString("mm"));
+    if(candidateResult.value("error").toObject().value("code")=="measure_duplicate")return candidateResult;
+    measureSources_=candidate;
     if(source.value("kind")=="edge")view_->highlightSolidEdges(presentationBodies(),source.value("bodyId").toString(),QJsonArray{source.value("edgeId")},source.value("occurrenceId").toString());
     else if(source.value("kind")=="face")for(const auto& body:presentationBodies())if(body.bodyId==source.value("bodyId") && (!source.contains("occurrenceId") || body.occurrenceId==source.value("occurrenceId")))for(const auto& face:body.supportFaces)if(face.faceId==source.value("faceId"))view_->selectSupportFace(source,face.face);
     if(source.value("kind")=="sketchPoint")view_->selectFinishedPoint(source);

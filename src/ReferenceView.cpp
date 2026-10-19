@@ -1214,7 +1214,8 @@ void ReferenceView::selectFinishedPoint(const QJsonObject& reference) {
     selectedFinishedPoint_=reference;applyEditDisplay();
 }
 QJsonObject ReferenceView::pickMeasureSketchEdge(double x,double y) const {
-    if(view_.IsNull())return {};const auto scale=windowScale();double best=7;QJsonObject hit;
+    if(view_.IsNull())return {};const auto scale=windowScale();double best=7;
+    struct Candidate {double distance;QJsonObject source;};std::vector<Candidate> candidates;
     for(const auto& sketch:finishedSketches_)if(sketch.visible)for(auto it=sketch.entityEdges.cbegin();it!=sketch.entityEdges.cend();++it){
         BRepAdaptor_Curve curve(it.value());if(curve.GetType()!=GeomAbs_Line)continue;
         const auto a=curve.Value(curve.FirstParameter()),b=curve.Value(curve.LastParameter());int ax,ay,bx,by;
@@ -1223,8 +1224,14 @@ QJsonObject ReferenceView::pickMeasureSketchEdge(double x,double y) const {
         const double square=dx*dx+dy*dy;if(square<1)continue;
         const double t=std::clamp(((x-px)*dx+(y-py)*dy)/square,0.,1.);
         const double distance=std::hypot(x-px-t*dx,y-py-t*dy);
-        if(distance<best){best=distance;hit={{"kind","sketchEdge"},{"sketchId",sketch.featureId},{"entityId",it.key()}};}
-    }return hit;
+        if(distance<7){best=std::min(best,distance);candidates.push_back({distance,{{"kind","sketchEdge"},{"sketchId",sketch.featureId},{"entityId",it.key()}}});}
+    }
+    // Pixel projection/rounding makes coincident hits numerically unequal.
+    // Refuse ties within half a logical pixel rather than depending on QHash order.
+    QJsonObject hit;int matches=0;
+    for(const auto& candidate:candidates)if(candidate.distance<=best+0.5){hit=candidate.source;++matches;}
+    if(matches>1)return {{"ok",false},{"error",QJsonObject{{"code","measure_ambiguous"},{"message","Multiple sketch edges under the pointer; hide an overlapping source or choose exact source IDs"}}}};
+    return hit;
 }
 QJsonObject ReferenceView::pickFinishedPoint(double x,double y) const {
     if(view_.IsNull() || x<0 || y<0 || x>=width() || y>=height())return {};
