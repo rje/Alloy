@@ -34,7 +34,7 @@ QJsonObject AlloyWindow::beginHole(const QJsonObject& overrides) {
     if(!session_.isEmpty())return holeFailure("session_busy","Complete or cancel the active command first");
     const auto error=validateArguments(*findCommand("solid.hole"),overrides);if(!error.isEmpty())return holeFailure("invalid_arguments",error);
     QJsonObject inputs{{"placement","fromSketch"},{"holeType","countersink"},{"extent","all"},
-        {"boreDiameterMm",4},{"sinkDiameterMm",10},{"includedAngleDeg",90},{"name","Hole"}};
+        {"recessDiameterMm",10},{"recessDepthMm",3},{"boreDiameterMm",4},{"sinkDiameterMm",10},{"includedAngleDeg",90},{"name","Hole"}};
     const auto picked=view_->finishedPointSelection();
     if(picked["kind"]=="sketchPoint") {
         const auto ids=pointInputs(picked);for(auto i=ids.begin();i!=ids.end();++i)inputs[i.key()]=i.value();
@@ -49,8 +49,8 @@ QJsonObject AlloyWindow::beginHole(const QJsonObject& overrides) {
         if(!found)return holeFailure("stale_entity","Hole feature unavailable");
     }
     for(auto i=overrides.begin();i!=overrides.end();++i)inputs[i.key()]=i.value();
-    for(const auto& field:{"sinkDiameterMm","includedAngleDeg","distanceMm"})if(!inputs.contains(field))
-        inputs[field]=QString(field)=="distanceMm" ? 5 : QString(field)=="sinkDiameterMm" ? 10 : 90;
+    for(const auto& field:{"sinkDiameterMm","includedAngleDeg","distanceMm","recessDiameterMm","recessDepthMm"})if(!inputs.contains(field))
+        inputs[field]=QString(field)=="recessDepthMm" ? 3 : QString(field)=="distanceMm" ? 5 : (QString(field)=="sinkDiameterMm" || QString(field)=="recessDiameterMm") ? 10 : 90;
     session_={{"id",CadDocument::newId()},{"command","solid.hole"},{"status","active"},{"inputs",inputs},
         {"newFeatureId",CadDocument::newId()},{"baseDocumentRevision",static_cast<qint64>(document_->revision())},
         {"previewed",false},{"inputSchema",findCommand("solid.hole")->parameters},{"selectionRole",inputs.contains("sourcePointId") ? "ready" : "point"}};
@@ -114,10 +114,10 @@ QJsonObject AlloyWindow::previewHole() {
 void AlloyWindow::refreshHoleControls() {
     if(!holeDock_ || session_.value("command")!="solid.hole")return;
     const auto inputs=session_["inputs"].toObject();
-    for(const auto& field:{"boreDiameterMm","sinkDiameterMm","includedAngleDeg","distanceMm"})if(auto* spin=holeDock_->findChild<QDoubleSpinBox*>("hole."+QString(field))) {
+    for(const auto& field:{"boreDiameterMm","sinkDiameterMm","includedAngleDeg","distanceMm","recessDiameterMm","recessDepthMm"})if(auto* spin=holeDock_->findChild<QDoubleSpinBox*>("hole."+QString(field))) {
         const QSignalBlocker block(spin);spin->setValue(inputs[field].toDouble());
     }
-    const bool simple=inputs["holeType"]=="simple",distance=inputs["extent"]=="distance";
+    const bool simple=inputs["holeType"]!="countersink",counterbore=inputs["holeType"]=="counterbore",distance=inputs["extent"]=="distance";
     for(const auto& entry:{qMakePair(QString("hole.type"),QString("holeType")),qMakePair(QString("hole.extent"),QString("extent"))})
         if(auto* combo=holeDock_->findChild<QComboBox*>(entry.first)) {
             const QSignalBlocker block(combo);combo->setCurrentIndex(combo->findData(inputs[entry.second].toString()));
@@ -125,6 +125,7 @@ void AlloyWindow::refreshHoleControls() {
     if(auto* panel=holeDock_->widget())if(auto* form=qobject_cast<QFormLayout*>(panel->layout())) {
         for(const auto& field:{"sinkDiameterMm","includedAngleDeg","depth"})
             if(auto* widget=panel->findChild<QWidget*>("hole."+QString(field)))form->setRowVisible(widget,!simple);
+        for(const auto& field:{"recessDiameterMm","recessDepthMm"})if(auto* widget=panel->findChild<QWidget*>("hole."+QString(field)))form->setRowVisible(widget,counterbore);
         if(auto* widget=panel->findChild<QWidget*>("hole.distanceMm"))form->setRowVisible(widget,simple && distance);
     }
     if(auto* combo=holeDock_->findChild<QComboBox*>("hole.extent"))combo->setEnabled(simple);
@@ -151,7 +152,7 @@ void AlloyWindow::showHole() {
     auto* chooseTarget=new QPushButton("Select Target",panel);chooseTarget->setObjectName("hole.selectTarget");form->addRow(chooseTarget);
     connect(chooseTarget,&QPushButton::clicked,panel,[this,sessionId]{if(session_.value("id")!=sessionId)return;session_["selectionRole"]="target";session_["previewed"]=false;session_["geometryEvaluated"]=false;
         session_.remove("geometry");session_.remove("documentDraft");view_->clearPreview();refreshHoleControls();view_->setFocus();});
-    auto* type=new QComboBox(panel);type->setObjectName("hole.type");type->addItem("Simple","simple");type->addItem("Countersink","countersink");form->addRow("Hole Type",type);
+    auto* type=new QComboBox(panel);type->setObjectName("hole.type");type->addItem("Simple","simple");type->addItem("Countersink","countersink");type->addItem("Counterbore","counterbore");form->addRow("Hole Type",type);
     choice("Tap Type","Simple","hole.tap");
     auto* extent=new QComboBox(panel);extent->setObjectName("hole.extent");extent->addItem("All","all");extent->addItem("Distance","distance");form->addRow("Extent",extent);
     choice("Drill Point","Flat","hole.drillPoint");
@@ -170,7 +171,8 @@ void AlloyWindow::showHole() {
         spin->setRange(minimum,maximum);spin->setDecimals(3);spin->setSuffix(suffix);spin->setKeyboardTracking(false);spin->setValue(session_["inputs"].toObject()[field].toDouble());form->addRow(label,spin);
         connect(spin,&QDoubleSpinBox::valueChanged,panel,[this,sessionId,field](double value){if(session_.value("id")!=sessionId)return;const auto r=execute("command.update",{{"session",sessionId},{"inputs",QJsonObject{{field,value}}}});if(r["ok"].toBool())previewHole();});return spin;
     };
-    number("Bore Diameter","boreDiameterMm",.001,100000," mm");number("Depth","distanceMm",.001,100000," mm");number("Countersink Diameter","sinkDiameterMm",.001,100000," mm");number("Included Angle","includedAngleDeg",.001,179.999,"°");
+    number("Bore Diameter","boreDiameterMm",.001,100000," mm");number("Depth","distanceMm",.001,100000," mm");
+    number("Counterbore Depth","recessDepthMm",.001,100000," mm");number("Counterbore Diameter","recessDiameterMm",.001,100000," mm");number("Countersink Diameter","sinkDiameterMm",.001,100000," mm");number("Included Angle","includedAngleDeg",.001,179.999,"°");
     auto* depth=new QLabel(panel);depth->setObjectName("hole.depth");form->addRow("Derived Sink Depth",depth);
     auto* error=new QLabel(panel);error->setObjectName("hole.error");error->setWordWrap(true);form->addRow(error);
     auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,panel);buttons->setObjectName("hole.buttons");form->addRow(buttons);

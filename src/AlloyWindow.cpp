@@ -2688,17 +2688,17 @@ void AlloyWindow::registerCommands() {
     auto holeLength=parameter("number","Positive canonical length in millimeters.");holeLength["minimum"]=.001;holeLength["maximum"]=100000;
     auto holeAngle=parameter("number","Countersink included angle in degrees.");holeAngle["minimum"]=.001;holeAngle["maximum"]=179.999;
     auto holePlacement=parameter("string","One explicit standalone point from a supported sketch.");holePlacement["enum"]=QJsonArray{"fromSketch"};
-    auto holeType=parameter("string","Simple cylindrical or Countersink hole.");holeType["enum"]=QJsonArray{"simple","countersink"};
+    auto holeType=parameter("string","Simple cylindrical, Counterbore or Countersink hole.");holeType["enum"]=QJsonArray{"simple","countersink","counterbore"};
     auto holeExtent=parameter("string","Recomputed through termination against the current target.");holeExtent["enum"]=QJsonArray{"all","distance"};
     QJsonObject holeSchema{{"sourceSketchId",optional(parameter("string","Retained source sketch UUID."))},
         {"sourceEntityId",optional(parameter("string","Explicit standalone Point entity UUID."))},
         {"sourcePointId",optional(parameter("string","Stable point UUID referenced by that entity."))},
         {"targetBodyId",optional(parameter("string","Same-owner support body to cut."))},
         {"placement",optional(holePlacement)},{"holeType",optional(holeType)},{"extent",optional(holeExtent)},
-        {"boreDiameterMm",optional(holeLength)},{"distanceMm",optional(holeLength)},{"sinkDiameterMm",optional(holeLength)},{"includedAngleDeg",optional(holeAngle)},
+        {"boreDiameterMm",optional(holeLength)},{"recessDiameterMm",optional(holeLength)},{"recessDepthMm",optional(holeLength)},{"distanceMm",optional(holeLength)},{"sinkDiameterMm",optional(holeLength)},{"includedAngleDeg",optional(holeAngle)},
         {"featureId",optional(featureId)},{"name",optional(parameter("string","Hole feature name."))}};
-    add("solid.hole","Hole","Create/edit one retained sketch-point Hole: Simple Distance/All or Countersink All.",holeSchema,[this](const auto& a){
-        auto inputs=a;const QJsonObject defaults{{"placement","fromSketch"},{"holeType","countersink"},{"extent","all"},{"boreDiameterMm",4},{"sinkDiameterMm",10},{"includedAngleDeg",90}};
+    add("solid.hole","Hole","Create/edit one retained sketch-point Hole: Simple/Counterbore Distance/All or Countersink All.",holeSchema,[this](const auto& a){
+        auto inputs=a;const QJsonObject defaults{{"placement","fromSketch"},{"holeType","countersink"},{"extent","all"},{"boreDiameterMm",4},{"sinkDiameterMm",10},{"includedAngleDeg",90},{"recessDiameterMm",10},{"recessDepthMm",3}};
         if(!inputs.contains("featureId"))for(auto i=defaults.begin();i!=defaults.end();++i)if(!inputs.contains(i.key()))inputs[i.key()]=i.value();
         QJsonObject candidate;try{candidate=holeCandidate(inputs);}catch(const std::exception& e){return failure("invalid_arguments",QString::fromUtf8(e.what()));}
         const auto error=document_->commit(candidate,"Hole");if(!error.isEmpty()){auto r=failure("evaluation_failed",error);auto detail=r["error"].toObject();detail["diagnostics"]=document_->lastEvaluationError();r["error"]=detail;return r;}return document_->state();

@@ -2071,7 +2071,7 @@ QJsonObject CadDocument::threadCandidate(const QJsonObject& authored,const QJson
 }
 QJsonObject CadDocument::holeCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
     const QSet<QString> allowed{"sourceSketchId","sourceEntityId","sourcePointId","targetBodyId","placement","holeType","extent",
-        "boreDiameterMm","sinkDiameterMm","includedAngleDeg","distanceMm","name","featureId","newFeatureId","ownerId"};
+        "boreDiameterMm","sinkDiameterMm","includedAngleDeg","distanceMm","recessDiameterMm","recessDepthMm","name","featureId","newFeatureId","ownerId"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Hole argument");
     if(arguments.contains("featureId") && arguments.contains("newFeatureId"))throw std::invalid_argument("Choose an existing or new Hole identity");
     auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
@@ -2082,11 +2082,12 @@ QJsonObject CadDocument::holeCandidate(const QJsonObject& authored,const QJsonOb
         {"type","hole"},{"name","Hole"},{"visible",true}};
     auto p=feature["parameters"].toObject();
     for(const auto& key:{"sourceSketchId","sourceEntityId","sourcePointId","targetBodyId","placement","holeType","extent",
-        "boreDiameterMm","sinkDiameterMm","includedAngleDeg","distanceMm"})if(arguments.contains(key))p[key]=arguments[key];
+        "boreDiameterMm","sinkDiameterMm","includedAngleDeg","distanceMm","recessDiameterMm","recessDepthMm"})if(arguments.contains(key))p[key]=arguments[key];
     if(!p.contains("placement"))p["placement"]="fromSketch";
     if(!p.contains("holeType"))p["holeType"]="countersink";
     if(!p.contains("extent"))p["extent"]="all";
-    if(p["holeType"]=="simple") {p.remove("sinkDiameterMm");p.remove("includedAngleDeg");}
+    if(p["holeType"]!="countersink") {p.remove("sinkDiameterMm");p.remove("includedAngleDeg");}
+    if(p["holeType"]!="counterbore") {p.remove("recessDiameterMm");p.remove("recessDepthMm");}
     if(p["extent"]=="all")p.remove("distanceMm");
     feature["parameters"]=p;if(arguments.contains("name"))feature["name"]=arguments["name"];
     if(index<0)features.append(feature);else features[index]=feature;candidate["features"]=features;
@@ -2558,18 +2559,24 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             continue;
         }
         if(type=="hole") {
-            const bool simple=p["holeType"]=="simple",distance=p["extent"]=="distance";
-            if(feature.contains("bodyId") || p.size()!=(simple ? (distance ? 9 : 8) : 10)
+            const bool simple=p["holeType"]=="simple",counterbore=p["holeType"]=="counterbore",distance=p["extent"]=="distance";
+            if(feature.contains("bodyId") || p.size()!=(simple ? (distance ? 9 : 8) : counterbore ? (distance ? 11 : 10) : 10)
                 || !validId(p["sourceSketchId"].toString()) || !validId(p["sourceEntityId"].toString())
                 || !validId(p["sourcePointId"].toString()) || !validId(p["targetBodyId"].toString())
-                || p["placement"]!="fromSketch" || (!simple && p["holeType"]!="countersink")
-                || (p["extent"]!="all" && !(simple && distance)))
-                return "Hole requires one retained sketch point and target; Simple Distance/All or Countersink All";
+                || p["placement"]!="fromSketch" || (!simple && !counterbore && p["holeType"]!="countersink")
+                || (p["extent"]!="all" && !((simple || counterbore) && distance)))
+                return "Hole requires one retained sketch point and target; Simple/Counterbore Distance/All or Countersink All";
             const auto bore=p["boreDiameterMm"].toDouble();
             if(!p["boreDiameterMm"].isDouble() || !std::isfinite(bore) || bore<0.001 || bore>100000)
                 return "Hole diameter must be 0.001..100000 mm";
-            if(simple) {
-                if(p.contains("sinkDiameterMm") || p.contains("includedAngleDeg"))return "Simple Hole has no countersink dimensions";
+            if(simple || counterbore) {
+                if(p.contains("sinkDiameterMm") || p.contains("includedAngleDeg"))return "This Hole has no countersink dimensions";
+                if(counterbore) {
+                    const auto diameter=p["recessDiameterMm"].toDouble(),depth=p["recessDepthMm"].toDouble();
+                    if(!p["recessDiameterMm"].isDouble() || !p["recessDepthMm"].isDouble() || !std::isfinite(diameter) || !std::isfinite(depth)
+                        || diameter<=bore || diameter>100000 || depth<0.001 || depth>100000 || (distance && depth>=p["distanceMm"].toDouble()))
+                        return "Counterbore requires a larger recess diameter and positive recess depth smaller than Distance";
+                }
                 if(distance && (!p["distanceMm"].isDouble() || !std::isfinite(p["distanceMm"].toDouble())
                     || p["distanceMm"].toDouble()<0.001 || p["distanceMm"].toDouble()>100000))return "Hole Distance must be 0.001..100000 mm";
             } else {

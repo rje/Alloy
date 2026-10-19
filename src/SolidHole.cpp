@@ -26,7 +26,7 @@ gp_Pnt point(const QJsonArray& values) {
 }
 
 TopoDS_Shape SolidHole::tool(const TopoDS_Shape& target,const gp_Pnt& entry,const gp_Dir& outward,
-    double boreDiameterMm,double sinkDiameterMm,double includedAngleDeg,double* sinkDepthMm,bool simple,double distanceMm) {
+    double boreDiameterMm,double sinkDiameterMm,double includedAngleDeg,double* sinkDepthMm,bool simple,double distanceMm,double recessDiameterMm,double recessDepthMm) {
     if(target.IsNull() || !std::isfinite(boreDiameterMm) || boreDiameterMm<0.001 || boreDiameterMm>100000
         || !std::isfinite(distanceMm) || distanceMm<0 || distanceMm>100000)
         fail("invalid_hole_dimensions","The Hole dimensions are outside supported bounds");
@@ -62,6 +62,14 @@ TopoDS_Shape SolidHole::tool(const TopoDS_Shape& target,const gp_Pnt& entry,cons
     const auto start=entry.Translated(gp_Vec(inward)*-1e-3);
     const gp_Ax2 boreAxis(start,inward),sinkAxis(entry,inward);
     const auto bore=BRepPrimAPI_MakeCylinder(boreAxis,boreDiameterMm/2,boreLength+1e-3).Shape();
+    if(recessDiameterMm>0) {
+        if(!simple || !std::isfinite(recessDiameterMm) || recessDiameterMm<=boreDiameterMm || recessDiameterMm>100000
+            || !std::isfinite(recessDepthMm) || recessDepthMm<0.001 || recessDepthMm>100000
+            || (distanceMm>0 && recessDepthMm>=distanceMm))
+            fail("invalid_hole_dimensions","Counterbore requires a larger recess diameter and positive recess depth smaller than Distance");
+        const auto recess=BRepPrimAPI_MakeCylinder(boreAxis,recessDiameterMm/2,recessDepthMm+1e-3).Shape();
+        return GeometryKernel::booleanOperation("join",bore,{recess});
+    }
     if(simple)return bore;
     const auto sink=BRepPrimAPI_MakeCone(sinkAxis,sinkDiameterMm/2,boreDiameterMm/2,depth).Shape();
     return GeometryKernel::booleanOperation("join",bore,{sink});
@@ -93,7 +101,8 @@ TopoDS_Shape SolidHole::cutter(const EvaluatedDocument& document,const QJsonObje
     const gp_Dir outward(n[0].toDouble(),n[1].toDouble(),n[2].toDouble());
     double depth=0;const auto shape=tool(target->shape,entry,outward,p["boreDiameterMm"].toDouble(),
         p["sinkDiameterMm"].toDouble(),p["includedAngleDeg"].toDouble(),&depth,
-        p["holeType"]=="simple",p["extent"]=="distance" ? p["distanceMm"].toDouble() : 0);
+        p["holeType"]!="countersink",p["extent"]=="distance" ? p["distanceMm"].toDouble() : 0,
+        p["recessDiameterMm"].toDouble(),p["recessDepthMm"].toDouble());
     if(details)*details={{"entryMm",chosen["positionMm"]},{"sinkDepthMm",depth}};
     return shape;
 }
@@ -114,6 +123,7 @@ void SolidHole::evaluate(EvaluatedDocument& document,const QJsonObject& feature,
     if(p.contains("distanceMm"))summary["distanceMm"]=p["distanceMm"];
     summary["boreDiameterMm"]=p["boreDiameterMm"];summary["sinkDiameterMm"]=p["sinkDiameterMm"];
     summary["includedAngleDeg"]=p["includedAngleDeg"];summary["sinkDepthMm"]=details["sinkDepthMm"];
+    if(p["holeType"]=="counterbore") {summary["recessDiameterMm"]=p["recessDiameterMm"];summary["recessDepthMm"]=p["recessDepthMm"];}
     summary["removedVolumeMm3"]=removed;summary["entryMm"]=details["entryMm"];
     summary["supportFaces"]=PlanarFaces::descriptors(faces);summary["solidEdges"]=SolidFillet::descriptors(edges);
     target->shape=result;target->summary=summary;target->supportFaces=std::move(faces);target->solidEdges=std::move(edges);
