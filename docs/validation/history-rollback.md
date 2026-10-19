@@ -93,3 +93,47 @@ qualification remains a separate gate.
 Actual-hit native menu/button input, physical OS keys, Windows/Linux runtime,
 matched visual parity and broad-history/assembly behavior remain unqualified.
 The private validation editor is closed after each API fixture.
+
+
+## HIS-013 native-control candidate — 2026-10-19
+
+The preserved driver crash is now diagnosed as a test pointer lifetime error.
+The reproduced full LLDB backtrace enters `QTest::mouseEvent` and then
+`QWidget::mapToGlobal`: the Timeline arrow press enters a nested menu loop;
+the selected action rebuilds the Timeline and deletes the original tile;
+the outer QWidget click then attempts its release through the deleted tile.
+A guarded tile pointer in the corrected driver becomes null before that outer
+click returns. This evidence does not require a product change.
+
+`tests/history_rollback_controls.cpp` delivers that outer click through the
+surviving top-level `QWindow`, allowing Qt to route input to the current widget.
+Every target is checked with `QApplication::widgetAt`; the menu item and
+Move to End receive actual-hit widget input. Initial native window activation
+is observed separately; no inter-step focus or selection repair occurs. The
+menu must become the active popup and close before the next user step.
+
+The bounded native run opens the Offset Face tile's arrow on Box 20 × 15 × 10
+plus top Offset Face +5, clicks **Roll History Marker Here**, then **Move to End**.
+Shared inspection checks one body ID, 3000 mm³ prefix and 4500 mm³ latest,
+unchanged authored/revision/dirty/Undo state, inactive future tile, exact full
+evaluation restoration, read-only feature-edit refusal, camera navigation and
+empty selected-face overlay. The inspected prefix/restored GPU captures show
+the height change, gray future tile/blue boundary, readable controls and no
+stale future-face highlight. Public source IDs and visual unknowns above still
+apply: this is bounded native input qualification, not matched pixel parity.
+
+```sh
+cmake --build build-preview-release --target history_rollback_controls_test -j4
+ALLOY_ROLLBACK_EVIDENCE="$PWD/../Alloy-reference-records/validation/history-rollback-2026-10-19/native" \
+  build-preview-release/history_rollback_controls_test
+```
+
+External evidence is in the existing dated output directory: full diagnosis in
+`native-controls-diagnosis-lldb.log`, final build/run logs, and `native/` JSON
+states, popup capture and native framebuffer captures. `native/manifest.json`
+records exact executable, source and evidence hashes. Runtime identifies Apple
+M4, Apple OpenGL 4.1 Metal, 4× MSAA and 2× display scale; the GPU viewport is
+1148 × 608 logical / 2296 × 1216 framebuffer pixels. The private test editor
+exits at completion. Independent bounded review remains with the integrator.
+Physical device input, Windows/Linux runtime, assembly rollback and exact
+public-reference styling remain unqualified under their existing owners.
