@@ -25,6 +25,59 @@ class FaceOffsetControlsTest final : public QObject {
     QJsonObject inspect(AlloyWindow& window) { return call(window, "document.inspect"); }
     QJsonObject session(AlloyWindow& window) { return window.state().value("activeSession").toObject(); }
 private slots:
+    void curvedOffsetRimFeedsNativeFilletSelection() {
+        AlloyTheme::apply(*qApp);
+        AlloyWindow window;window.resize(1280,860);window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        ReferenceView* view=nullptr;
+        for(auto* widget:window.findChildren<QWidget*>())
+            if(auto* candidate=dynamic_cast<ReferenceView*>(widget))view=candidate;
+        QVERIFY(view);
+        call(window,"sketch.begin",{{"plane","XY"}});
+        call(window,"sketch.addCircle",{{"centerX",0},{"centerY",0},{"diameter",20},{"units","mm"}});
+        call(window,"sketch.finish");
+        const auto sketch=inspect(window).value("evaluation").toObject().value("sketches").toArray().first().toObject();
+        call(window,"solid.extrude",{{"sketchId",sketch.value("sketchId")},
+            {"profileId",sketch.value("profiles").toArray().first().toObject().value("profileId")},
+            {"distance",10},{"units","mm"}});
+        const auto body=inspect(window).value("evaluation").toObject().value("bodies").toArray().first().toObject();
+        QJsonObject top;QString rim;
+        for(const auto& item:body.value("supportFaces").toArray())if(item.toObject().value("role")=="extrude.endCap")top=item.toObject();
+        for(const auto& item:body.value("solidEdges").toArray())if(item.toObject().value("provenance").toObject().value("role")=="endRim")rim=item.toObject().value("edgeId").toString();
+        QVERIFY(!top.isEmpty()&&!rim.isEmpty());
+        call(window,"solid.faceOffset",{{"targetBodyId",body.value("bodyId")},
+            {"face",QJsonObject{{"bodyId",top.value("bodyId")},{"producerFeatureId",top.value("producerFeatureId")},{"faceId",top.value("faceId")}}},
+            {"distanceMm",5}});
+        const auto before=inspect(window).value("authored").toObject();
+        call(window,"view.orientation",{{"name","isometric"}});call(window,"view.fit");
+        QApplication::setActiveWindow(&window);view->setFocus();QTRY_VERIFY(view->hasFocus());
+        call(window,"solid.filletDialog",{{"targetBodyId",body.value("bodyId")}});
+        const auto pixel=call(window,"view.projectEdge",{{"bodyId",body.value("bodyId")},{"edgeId",rim}});
+        const QPoint point(qRound(pixel.value("x").toDouble()),qRound(pixel.value("y").toDouble()));
+        QCOMPARE(QApplication::widgetAt(view->mapToGlobal(point)),static_cast<QWidget*>(view));
+        QTest::mouseClick(view,Qt::LeftButton,Qt::NoModifier,point);
+        const auto selected=session(window).value("inputs").toObject().value("edgeIds").toArray();
+        QVERIFY(selected.contains(rim));
+        auto* radius=window.findChild<QDoubleSpinBox*>("filletRadius");
+        QVERIFY(radius&&radius->isVisible());
+        QTest::mouseClick(radius,Qt::LeftButton);
+        QTest::keyClick(radius,Qt::Key_A,Qt::ControlModifier);
+        QTest::keyClicks(radius,"1");
+        QTest::keyClick(radius,Qt::Key_Return);
+        QTRY_VERIFY(session(window).value("previewed").toBool());
+        QCOMPARE(inspect(window).value("authored").toObject(),before);
+        const auto evidence=qEnvironmentVariable("ALLOY_FACE_OFFSET_EVIDENCE");
+        if(!evidence.isEmpty())call(window,"capture.screenshot",{{"path",evidence+"/native-circular-rim-fillet.png"}});
+        auto* dock=window.findChild<QDockWidget*>("filletDock");
+        QVERIFY(dock);auto* buttons=dock->findChild<QDialogButtonBox*>();
+        QVERIFY(buttons&&buttons->button(QDialogButtonBox::Cancel));
+        QTest::mouseClick(buttons->button(QDialogButtonBox::Cancel),Qt::LeftButton);
+        QVERIFY(session(window).isEmpty());
+        QCOMPARE(inspect(window).value("authored").toObject(),before);
+        call(window,"document.new",{{"discard",true}});
+        window.close();
+    }
+
     void offsetEdgeFeedsNativeFilletSelection() {
         AlloyTheme::apply(*qApp);
         AlloyWindow window;

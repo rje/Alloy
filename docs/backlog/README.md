@@ -18,10 +18,10 @@ SOL-067/#512 accepts [retained planar Offset Face](../validation/face-offset.md)
 with exact moved support, a downstream Hole, native signed preview/edit and
 independent STL bounds. SOL-072/#598 accepts in-canvas signed normal dragging;
 SOL-073/#599 accepts qualified straight-edge and planar-boundary continuation
-through downstream Fillet and linked Project. Curved rebuilt edges remain
-SOL-074/#600 now accepts a full circular cap rim through linked Project and
-Fillet. Other changed curves remain SOL-075/#602, and native circular-rim
-pointer qualification is SOL-076/#603. GATE-120/#601 accepts a valid-solid
+through downstream Fillet and linked Project. SOL-074/#600 accepts a full
+circular cap rim through linked Project and Fillet; SOL-076/#603 qualifies its
+native actual-hit selection and R1 preview. Other changed curves remain
+SOL-075/#602. GATE-120/#601 accepts a valid-solid
 deleted-edge refusal; split and merge remain source-reviewed without a runtime fixture.
 GEO-006/#309 accepts the circular-seam provenance repair with both retained brackets reopening. REL-051/#586 now accepts the native sketch→Extrude→Undo→Browser popup prefix plus separate API STL/readback; see [its receipt](../validation/ordinary-bracket-input-prefix.md). REL-012/#415 remains Todo/blocked on REL-052/#587 for Save As Mesh modal focus and OS chooser. The strict native probe now stops before user input because the private macOS test process lacks AppKit activation/key window; FND-028/#589 owns that prerequisite. External `../Alloy-reference-records/validation/rel012-ordinary-input-2026-10-18/README.md` retains both failure and accepted evidence.
 SKT-115–121 and SKT-123–124/#540–546, #548–549 are accepted analytic constraint pairs and endpoint contacts; SKT-129/#554 accepts distinct-ID arc/line endpoint Tangent and SKT-022/#163 is closed for its declared v1 analytic scope. SKT-122/#547 and SKT-130–132/#555–557 retain later multi-pair Symmetry, spline constraints and branch-control research.
