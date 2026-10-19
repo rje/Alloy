@@ -75,6 +75,53 @@ controls are accepted only for the recorded Qt/API fixture, without physical OS
 input or full tutorial acceptance; and feature/body transformations remain
 limited to their documented fixtures. Those uncertainties remain release work.
 
+## Next 15 broad partial rows after row 049
+
+Scope proposal added 2026-10-19. Each entry keeps a useful v1 capability in its
+family and marks broader modes as a proposed remainder, not an accepted deferral
+or completion claim. Existing receipts prove only their named fixtures.
+
+| Inventory row | Proposed minimum for v1 | Later or separately owned remainder |
+| --- | --- | --- |
+| `solid.rectangular-pattern` | Retained one- or two-direction rectangular patterns for supported body and additive/Hole feature seeds, with count/spacing edits, stable occurrence identity and atomic invalid-input refusal. | Broader feature/component kinds, optimized modes and more pattern objects. The required body-versus-feature minimum remains a scope decision under SOL-009. |
+| `solid.circular-pattern` | Retained full-circle pattern of one body around a supported axis, plus an editable count and stable occurrence identities. | Arbitrary axes, partial/angular distribution and circular feature/component pattern families remain proposed under SOL-009. |
+| `surface.extrude` | Extrude selected open sketch lines/fit splines into separate editable sheet faces, with one- or two-sided extent and retained source identity. | Broader profile/extent combinations, sewn or joined surface output, and automatic inclusion of newly added curves. |
+| `surface.loft` | Create an editable G0 sheet through ordered supported sections, including one retained guide/centerline route, with explicit refusal when requested continuity or references are unsupported. | G1/G2 modes, broader rails/sections and other continuity combinations. |
+| `surface.trim` | Trim one supported sheet with a retained intersecting planar sheet or paired sketch cutter; make the kept region explicit and preserve the target on cancel/failure. | General curved/multi-cell partitions, arbitrary tool/target classes, Extend and Untrim. |
+| `surface.thicken` | Thicken one supported retained sheet into an editable closed solid using signed one-side thickness, stable source references and atomic self-intersection refusal. | Broader curvature/self-intersection cases and general Join/Cut or alternate operation modes. |
+| `construction.offset-plane` | Create an editable signed offset from an origin plane, prior construction plane, sketch plane or supported planar face; retain the source and update after edits. | Interactive arrow manipulation, angled/edge/point-derived datum variants and broader source classes. |
+| `inspection.section` | One active non-destructive section view on an origin plane or supported retained planar face, with offset/flip, readable hatching and persisted visibility. | Multiple simultaneous sections, arbitrary transformed/curved supports, custom colors and broader inspect tools. |
+| `inspection.measure` | User-facing measurements for selected edge length, point/line distance, angle, planar area and solid area/volume, with units and source-selection identity; inspection leaves authored geometry unchanged. | Curvature, minimum-distance/clearance, mass properties and broader multi-object measurement combinations. |
+| `selection.general` | Select and inspect stable body/face/edge IDs through viewport and Browser, with clear/add/replace/filter behavior and explicit refusal for stale or ambiguous targets. | Further occlusion/overlap policies, platform modifier routes and other physical-input qualification owned by the release gates. |
+| `component.local` | Create and activate local components, assign/reparent bodies and sketches, and preserve component ownership and placement through edit, undo and reopen. | Arbitrary transformed/nested hierarchy, broad Browser drag gestures and assembly joint behavior. |
+| `component.linked-copy` | Copy/paste a local component occurrence with its linked subtree and a distinct retained placement/occurrence identity; source edits continue to update linked instances. | Make Unique/unlinked independent copies, cross-document copy and broader nested linked structures. |
+| `component.reference` | Insert a local STEP assembly as an external linked component with retained placement/source identity; update an unchanged source and support one changed-source update only where correspondence is proven, otherwise refuse safely. | General changed-file correspondence/relink, broader source formats and multi-file reference management. Common-format import remains a separately required v1 capability. |
+| `sketch.break` | Break one supported analytic line, arc or circle at an interior pick into retained editable pieces, with explicit IDs/constraint handling and atomic refusal on unsupported geometry. | Spline/group Break, multiple simultaneous breaks and broader constraint-repair cases. |
+| `sketch.transform` | Move, Copy, Rotate or Scale one connected selected sketch group as an editable shared-authority operation; preserve compatible constraints or refuse, with preview/Cancel, undo and save/reopen. | Disconnected/multi-group transforms, broader constraint transformations and unsupported curve families. |
+
+This tranche does not remove or reduce the printable-part release contract.
+STL/STEP and Core 3MF export, common-format import, modeled external Thread,
+and the macOS/Windows/Linux package/runtime gates remain separately owned and
+required v1 work in the inventory and cumulative release gates. These proposals
+do not approve a later disposition for any wider noncloud feature family.
+
+The following are the highest-priority bounded ownership gaps exposed by this
+tranche. These are proposed child scopes/dependencies, not newly created issues
+or accepted v1 cuts; where an existing broad parent is named, split it only
+after preserving its remaining requirements.
+
+| Candidate bounded owner | Existing parent/dependency | Finishable acceptance boundary |
+| --- | --- | --- |
+| Measure analytic baseline | DOC-014/#26 | Separate from Section; measure selected edge length, point/line distance and angle with units/provenance, compare against analytic fixture values, and prove no authored geometry/history change. |
+| Analytic sketch Break | SKT-011/#47 | Break one line/arc/circle at an interior pick into editable pieces with stable IDs and explicit constraint disposition; unsupported cases fail atomically; verify undo/save-reopen. |
+| Required solid pattern seed matrix | SOL-009/#54; receipts SOL-027/#191, SOL-036/#248, SOL-038/#263 | Declare body and required feature seed kinds for rectangular and circular patterns; cover count/spacing, retained edits and stable instances for each claimed kind. Keep arbitrary axes/partial angular distribution as a separate remainder unless explicitly accepted. |
+| Surface Extrude minimum separated from Revolve | SRF-001/#60; receipts SRF-014/#355, SRF-020/#461, SRF-022/#464 | Name required v1 curve/profile and extent cases, then verify editable sheet output, source identity, edit and refusal behavior; keep Revolve separately visible in the parent remainder. |
+| Changed external-reference source update | ASM-011/#315; insertion/unchanged-source prerequisite ASM-010/#314 | Use one committed local STEP source-change fixture; update when persistent correspondence is provable, preserve occurrence placement, otherwise refuse without corrupting the prior instance. Keep relink/multi-file behavior explicit. |
+
+The inventory cross-links below point to this section. Existing accepted receipts
+remain fixture-bounded; none of the proposed minima claims full interaction,
+native-input, package or cross-platform release acceptance.
+
 | Inventory row | Proposed v1 subset | Wider family after v1 or separately owned |
 | --- | --- | --- |
 | `sketch.arc` | Center Point, Three-Point and accepted line hold-drag tangent continuation | Other tangent modes and construction variants |
