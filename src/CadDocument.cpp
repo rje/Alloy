@@ -1667,7 +1667,7 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
     auto reject = [](const QString& message) {throw std::invalid_argument(message.toStdString());};
     const auto initial = validate(authored);
     if (!initial.isEmpty()) reject(initial);
-    const QSet<QString> allowed{"ownerId","sketchId","profileId","profileIds","profileSelection","direction","measurement","negativeDistanceMm","taperAngleDeg","distanceMm","distanceParameterId","distanceExpression","distanceReferenceIds","distanceExpressionUnits","start","startOffsetMm","startOffsetParameterId","extent","flip","endSupport","endOffsetMm","endOffsetParameterId","name","featureId","newFeatureId","newBodyId","operation","targetBodyIds"};
+    const QSet<QString> allowed{"sourceEntityId","wallThicknessMm","wallLocation","ownerId","sketchId","profileId","profileIds","profileSelection","direction","measurement","negativeDistanceMm","taperAngleDeg","distanceMm","distanceParameterId","distanceExpression","distanceReferenceIds","distanceExpressionUnits","start","startOffsetMm","startOffsetParameterId","extent","flip","endSupport","endOffsetMm","endOffsetParameterId","name","featureId","newFeatureId","newBodyId","operation","targetBodyIds"};
     for (auto it = arguments.begin(); it != arguments.end(); ++it)
         if (!allowed.contains(it.key())) reject("Unknown extrusion argument: "+it.key());
     const bool edit = arguments.contains("featureId"), newFeature = arguments.contains("newFeatureId"), newBody = arguments.contains("newBodyId");
@@ -1695,7 +1695,7 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
         if(operation=="join")feature["bodyResults"]=QJsonArray{};
     }
     if (arguments.contains("name")) feature["name"] = arguments["name"];
-    if(int(arguments.contains("profileId"))+int(arguments.contains("profileIds"))+int(arguments.contains("profileSelection"))!=1)
+    if(int(arguments.contains("sourceEntityId"))+int(arguments.contains("profileId"))+int(arguments.contains("profileIds"))+int(arguments.contains("profileSelection"))!=1)
         reject("Choose one profile, cell set, or Offset loop union exclusively");
     if(arguments.contains("profileSelection") && operation!="cut")reject("Offset loop union currently supports Cut only");
     auto profileParameters=QJsonObject{{"sketchId",arguments["sketchId"]}};
@@ -1751,7 +1751,12 @@ QJsonObject CadDocument::extrusionCandidate(const QJsonObject& authored, const Q
         QSet<QString> chosen;for(const auto& value:targets.toArray()){if(!value.isString() || !validId(value.toString()) || chosen.contains(value.toString()))reject("Join/Cut/Intersect targets must be distinct stable body IDs");chosen.insert(value.toString());}
         profileParameters["operation"]=operation;profileParameters["targetBodyIds"]=targets;
     }
-    if(arguments.contains("profileSelection")) {
+    if(arguments.contains("sourceEntityId")) {
+        profileParameters["sourceEntityId"]=arguments.value("sourceEntityId");
+        profileParameters["wallThicknessMm"]=arguments.contains("wallThicknessMm") ? arguments.value("wallThicknessMm") : previousParameters.value("wallThicknessMm");
+        profileParameters["wallLocation"]=arguments.contains("wallLocation") ? arguments.value("wallLocation") : QJsonValue(previousParameters.value("wallLocation").toString("side1"));
+    } else if(arguments.contains("wallThicknessMm") || arguments.contains("wallLocation"))reject("Wall inputs require a Thin Line source");
+    else if(arguments.contains("profileSelection")) {
         const auto selection=arguments.value("profileSelection").toObject();const auto ids=selection.value("groupIds").toArray();
         if(selection.size()!=2 || selection.value("kind")!="closedRectOffsetUnion" || ids.isEmpty())
             reject("Choose retained closed Offset groups for the union");
@@ -2937,8 +2942,13 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             } else if(all) {
                 if(p.value("operation")!="cut" || !p.value("flip").isBool() || p.contains("distanceMm") || p.contains("distanceParameterId") || p.contains("distanceExpression") || p.contains("endSupport") || p.contains("endOffsetMm") || p.contains("endOffsetParameterId"))return "All extent requires Cut, a Flip flag and a derived reach";
             } else if(p.contains("endSupport") || p.contains("endOffsetMm") || p.contains("endOffsetParameterId") || p.contains("flip"))return "Distance extent cannot carry retained extent inputs";
-            if (p.size()!=(cut ? 5 : 3)+(toObject ? 2 : 0)+(all ? 1 : 0)+int(p.contains("endOffsetParameterId"))+int(p.contains("distanceParameterId"))+(p.contains("distanceExpression") ? 3 : 0)+int(p.contains("direction"))+int(p.contains("measurement"))+int(p.contains("negativeDistanceMm"))+int(p.contains("taperAngleDeg"))+int(p.contains("start"))+int(p.contains("startOffsetMm"))+int(p.contains("startOffsetParameterId")) || !p["sketchId"].isString() || !validId(p["sketchId"].toString())
-                || int(p.contains("profileId"))+int(p.contains("profileIds"))+int(p.contains("profileSelection"))!=1) return "Extrusion requires one exclusive profile selection";
+            if (p.size()!=(cut ? 5 : 3)+2*int(p.contains("sourceEntityId"))+(toObject ? 2 : 0)+(all ? 1 : 0)+int(p.contains("endOffsetParameterId"))+int(p.contains("distanceParameterId"))+(p.contains("distanceExpression") ? 3 : 0)+int(p.contains("direction"))+int(p.contains("measurement"))+int(p.contains("negativeDistanceMm"))+int(p.contains("taperAngleDeg"))+int(p.contains("start"))+int(p.contains("startOffsetMm"))+int(p.contains("startOffsetParameterId")) || !p["sketchId"].isString() || !validId(p["sketchId"].toString())
+                || int(p.contains("sourceEntityId"))+int(p.contains("profileId"))+int(p.contains("profileIds"))+int(p.contains("profileSelection"))!=1) return "Extrusion requires one exclusive profile selection";
+            if(p.contains("sourceEntityId")) {
+                if(!validId(p.value("sourceEntityId").toString()) || !p.value("wallThicknessMm").isDouble() || !std::isfinite(p.value("wallThicknessMm").toDouble()) || p.value("wallThicknessMm").toDouble()<0.001 || p.value("wallThicknessMm").toDouble()>100000)return "Thin Extrude requires a retained Line and positive Wall Thickness 0.001..100000 mm";
+                if(p.value("wallLocation")!="side1" && p.value("wallLocation")!="side2" && p.value("wallLocation")!="center")return "Unsupported Wall Location";
+                if(cut || toObject || all || p.contains("start") || p.value("direction").toString("oneSide")!="oneSide" || p.value("taperAngleDeg").toDouble()!=0 || p.value("distanceMm").toDouble()<=0)return "Thin Extrude supports New Body, positive Distance, One Side, Profile Plane and zero taper";
+            }
             const auto direction=p.value("direction").toString("oneSide");
             if(direction!="oneSide" && direction!="symmetric" && direction!="twoSides")return "Unsupported extrusion direction";
             if(p.contains("taperAngleDeg") && (!p.value("taperAngleDeg").isDouble() || !std::isfinite(p.value("taperAngleDeg").toDouble()) || std::abs(p.value("taperAngleDeg").toDouble())>=90))return "Taper Angle must be finite and strictly between -90 and 90 degrees";
@@ -2977,7 +2987,7 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
                     chosen.insert(id.toString());
                 }
                 if(errorContext)(*errorContext)["profileIds"]=p["profileIds"];
-            } else if(!p["profileId"].isString() || !validId(p["profileId"].toString()))return "Extrusion requires a stable profileId";
+            } else if(p.contains("sourceEntityId")) { /* Retained open Line validated above. */ } else if(!p["profileId"].isString() || !validId(p["profileId"].toString()))return "Extrusion requires a stable profileId";
             if (!toObject && !all && (!p["distanceMm"].isDouble() || !std::isfinite(p["distanceMm"].toDouble())
                 || std::abs(p["distanceMm"].toDouble()) < 0.001 || std::abs(p["distanceMm"].toDouble()) > 100000))
                 return "Extrusion distance must be signed 0.001..100000 mm; zero is unsupported";

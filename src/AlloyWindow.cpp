@@ -2600,7 +2600,8 @@ void AlloyWindow::registerCommands() {
     extrusionMeasurement["enum"]=QJsonArray{"halfLength","wholeLength"};
     auto taperAngle=parameter("number","Signed degrees: negative inward, positive outward, default zero. Nonzero requires one straight polygon, positive Distance, One Side, Profile Plane, New Body; kernel may refuse collapse.");
     taperAngle["minimum"]=-90;taperAngle["maximum"]=90;
-    QJsonObject extrudeSchema{{"taperAngleDeg",optional(taperAngle)},{"direction",optional(extrusionDirection)},{"measurement",optional(extrusionMeasurement)},
+    auto wallLocation=parameter("string","Side 1 is sketch normal cross directed Line tangent; Side 2 opposite; Center splits thickness.");wallLocation["enum"]=QJsonArray{"side1","side2","center"};
+    QJsonObject extrudeSchema{{"sourceEntityId",optional(parameter("string","One retained open straight Line UUID; exclusive with closed profiles."))},{"wallThickness",optional(length)},{"wallLocation",optional(wallLocation)},{"taperAngleDeg",optional(taperAngle)},{"direction",optional(extrusionDirection)},{"measurement",optional(extrusionMeasurement)},
         {"negativeDistance",optional(length)},{"extent",optional(extrusionExtent)},
         {"flip",optional(parameter("boolean","All extent only: cut opposite the profile normal."))},
         {"endSupport",optional(parameter("object","Retained producerFeatureId/bodyId/faceId of the end face."))},
@@ -2635,6 +2636,11 @@ void AlloyWindow::registerCommands() {
             for(const auto& value:document_->authored()["features"].toArray())if(value.toObject()["id"]==inputs["featureId"]){existing=value.toObject();break;}
             if(existing["type"]!="extrude")return failure("stale_entity","Extrusion feature does not exist","featureId");
             const auto parameters=existing["parameters"].toObject();
+            if(parameters.contains("sourceEntityId")) {
+                if(!a.contains("sourceEntityId") && !a.contains("profileId") && !a.contains("profileIds"))inputs["sourceEntityId"]=parameters.value("sourceEntityId");
+                if(!a.contains("wallThickness"))inputs["wallThickness"]=parameters.value("wallThicknessMm").toDouble()/(inputs.value("units").toString(document_->authored()["displayUnits"].toString())=="in" ? 25.4 : 1);
+                if(!a.contains("wallLocation"))inputs["wallLocation"]=parameters.value("wallLocation");
+            }
             if(!a.contains("taperAngleDeg") && parameters.contains("taperAngleDeg"))inputs["taperAngleDeg"]=parameters.value("taperAngleDeg");
             if(!a.contains("direction") && parameters.contains("direction"))inputs["direction"]=parameters.value("direction");
             if(inputs.value("direction")=="symmetric" && !a.contains("measurement"))inputs["measurement"]=parameters.value("measurement").toString("halfLength");
@@ -2652,7 +2658,7 @@ void AlloyWindow::registerCommands() {
             const auto target=faceSupportedAllCutTarget(inputs);if(!target.isEmpty())inputs["targetBodyIds"]=target;
         }
         if(const auto invalid=validateExtrudeInputs(inputs);!invalid.isEmpty())return failure("invalid_arguments",invalid);
-        if(!inputs.contains("profileId") && !inputs.contains("profileIds") && !inputs.contains("profileSelection"))return failure("profile_required","Select a closed sketch region or Offset loop union","profileIds");
+        if(!inputs.contains("sourceEntityId") && !inputs.contains("profileId") && !inputs.contains("profileIds") && !inputs.contains("profileSelection"))return failure("profile_required","Select a closed sketch region or Offset loop union","profileIds");
         if(inputs.contains("profileSelection") && !inputs.contains("targetBodyIds"))return failure("target_required","Offset loop union Cut needs one explicit target body","targetBodyIds");
         if((inputs.value("operation")=="cut" || inputs.value("operation")=="join" || inputs.value("operation")=="intersect") && !inputs.contains("targetBodyIds")) {
             if(inputs.value("extent")=="all")return failure("target_required","All extent needs one explicitly selected target body","targetBodyIds");
@@ -5571,7 +5577,8 @@ void AlloyWindow::registerCommands() {
                     if(p.contains("startOffsetParameterId"))for(const auto& entry:document_->authored()["userParameters"].toArray())
                         if(entry.toObject()["id"]==p["startOffsetParameterId"]){inputs.remove("startOffset");inputs["startOffsetParameter"]=entry.toObject()["name"];break;}
                 }
-                if(p.contains("profileIds"))inputs["profileIds"]=p["profileIds"];
+                if(p.contains("sourceEntityId"))inputs["sourceEntityId"]=p.value("sourceEntityId");
+                else if(p.contains("profileIds"))inputs["profileIds"]=p["profileIds"];
                 else inputs["profileId"]=p["profileId"];
                 if(p["operation"]=="cut" || p["operation"]=="join" || p["operation"]=="intersect") {inputs["operation"]=p["operation"];inputs["targetBodyIds"]=p["targetBodyIds"];}
                 return beginSession("solid.extrude",inputs);
@@ -5977,6 +5984,24 @@ void AlloyWindow::registerCommands() {
             const auto id=view_->pickBody(a["x"].toDouble(),a["y"].toDouble());selectCombineBody(id);
             return QJsonObject{{"bodyId",id},{"kind","body"},{"combineInputs",session_.value("inputs")}};
         }
+        if(session_.value("command")=="solid.extrude" && extrudePanel_ && extrudePanel_->findChild<QComboBox*>("extrude.type")->currentData()=="thin") {
+            const auto inputs=session_.value("inputs").toObject();const auto edit=inputs.value("featureId").toString();const auto stage=edit.isEmpty() ? document_->evaluation() : document_->evaluationBefore(edit);
+            QString sketchId,entityId;double nearest=7;bool ambiguous=false;const QPointF pointer(a.value("x").toDouble(),a.value("y").toDouble());
+            for(const auto& sketch:stage.sketches)if(sketch.visible || sketch.featureId==inputs.value("sketchId").toString()) {
+                QMap<QString,QJsonArray> points;for(const auto& row:sketch.summary.value("worldPoints").toArray()){const auto p=row.toObject();points[p.value("id").toString()]=p.value("positionMm").toArray();}
+                for(const auto& row:sketch.summary.value("entities").toArray()) {const auto e=row.toObject();const auto id=e.value("id").toString();
+                    if(e.value("type")!="line" || e.value("construction").toBool())continue;
+                    bool closed=false;for(const auto& profile:sketch.profiles)closed|=profile.summary.value("sourceEntityIds").toArray().contains(id);if(closed)continue;
+                    const auto p=points.value(e.value("startPointId").toString()),q=points.value(e.value("endPointId").toString());if(p.size()!=3 || q.size()!=3)continue;
+                    const auto start=view_->projectWorldPoint(p),end=view_->projectWorldPoint(q),delta=end-start;const double length2=QPointF::dotProduct(delta,delta);if(length2<1e-8)continue;
+                    const double t=std::clamp(QPointF::dotProduct(pointer-start,delta)/length2,0.,1.);const auto offset=pointer-(start+delta*t);const double distance=std::hypot(offset.x(),offset.y());
+                    if(distance<nearest-1e-6){nearest=distance;sketchId=sketch.featureId;entityId=id;ambiguous=false;}else if(std::abs(distance-nearest)<1e-6)ambiguous=true;
+                }
+            }
+            if(entityId.isEmpty() || ambiguous)return failure("thin_line_required","Click one unambiguous open straight Line");
+            updateExtrude({{"sketchId",sketchId},{"sourceEntityId",entityId},{"wallThickness",extrudePanel_->findChild<QDoubleSpinBox*>("extrude.wallThickness")->value()},{"wallLocation",extrudePanel_->findChild<QComboBox*>("extrude.wallLocation")->currentData().toString()}});
+            return QJsonObject{{"kind","thinLine"},{"sketchId",sketchId},{"sourceEntityId",entityId}};
+        }
         const bool selectingProfile=session_.value("command")=="solid.extrude" || session_.value("command")=="solid.loft";
         if(!selectingProfile) {
             if(session_.isEmpty()) {
@@ -6044,8 +6069,9 @@ void AlloyWindow::registerCommands() {
                 if(updates.value("direction")!="symmetric")inputs.remove("measurement");
                 if(updates.value("direction")!="twoSides")inputs.remove("negativeDistance");
             }
-            if(updates.contains("profileIds") || updates.contains("profileId") || updates.contains("profileSelection")) {
-                inputs.remove("profileId");inputs.remove("profileIds");inputs.remove("profileSelection");
+            if(updates.contains("sourceEntityId") || updates.contains("profileIds") || updates.contains("profileId") || updates.contains("profileSelection")) {
+                if(!updates.contains("sourceEntityId")){inputs.remove("wallThickness");inputs.remove("wallLocation");}
+                inputs.remove("sourceEntityId");inputs.remove("profileId");inputs.remove("profileIds");inputs.remove("profileSelection");
             }
             if(updates.contains("distance") && !updates.contains("distanceParameter") && !updates.contains("distanceExpression")){inputs.remove("distanceParameter");inputs.remove("distanceExpression");}
             if(updates.contains("distanceParameter")) {
@@ -6257,7 +6283,8 @@ void AlloyWindow::registerCommands() {
         if(target=="solid.shell" && session_.contains("invalidNamedInput") && (updates.contains("thicknessMm") || updates.contains("thicknessParameter")))session_.remove("invalidNamedInput");
         session_["inputs"] = inputs;if(target=="solid.extrude") {
             QJsonObject source{{"sketchId",inputs.value("sketchId")}};
-            if(inputs.contains("profileSelection"))source["profileSelection"]=inputs["profileSelection"];
+            if(inputs.contains("sourceEntityId"))source["sourceEntityId"]=inputs.value("sourceEntityId");
+            else if(inputs.contains("profileSelection"))source["profileSelection"]=inputs["profileSelection"];
             else if(inputs.contains("profileIds"))source["profileIds"]=inputs["profileIds"];
             else source["profileId"]=inputs.value("profileId");
             session_["source"]=source;
@@ -8181,6 +8208,11 @@ QString AlloyWindow::validateExtrudeInputs(const QJsonObject& inputs) const {
     schema["profileSelection"]=QJsonObject{{"type","object"},{"required",false}};
     Command command=*findCommand("solid.extrude");command.parameters=schema;
     const auto error=validateArguments(command,inputs);if(!error.isEmpty())return error;
+    if(inputs.contains("sourceEntityId")) {
+        const double wall=inputs.value("wallThickness").toDouble();
+        if(!inputs.value("wallThickness").isDouble() || !std::isfinite(wall) || wall<=0)return "Enter a positive Wall Thickness";
+        if(inputs.value("direction").toString("oneSide")!="oneSide" || inputs.value("operation").toString("newBody")!="newBody" || inputs.value("start").toString("profilePlane")!="profilePlane" || inputs.value("extent").toString("distance")!="distance" || inputs.value("taperAngleDeg").toDouble()!=0)return "Thin Extrude supports New Body, One Side, Profile Plane, Distance and zero taper";
+    } else if(inputs.contains("wallThickness") || inputs.contains("wallLocation"))return "Wall inputs require an open Line selection";
     const auto direction=inputs.value("direction").toString("oneSide");
     const double taper=inputs.value("taperAngleDeg").toDouble();
     if(!std::isfinite(taper) || std::abs(taper)>=90)return "Taper Angle must be finite and strictly between -90 and 90 degrees";
@@ -8206,7 +8238,7 @@ QString AlloyWindow::validateExtrudeInputs(const QJsonObject& inputs) const {
     const auto start=inputs.value("start").toString("profilePlane");
     if(start=="profilePlane" && (inputs.contains("startOffsetParameter") || (inputs.contains("startOffset") && inputs["startOffset"].toDouble()!=0)))return "Profile Plane start cannot carry an offset";
     if(start=="offset" && !inputs.contains("startOffset"))return "Offset start requires a signed length";
-    if(int(inputs.contains("profileId"))+int(inputs.contains("profileIds"))+int(inputs.contains("profileSelection"))>1)return "Choose ordinary regions or Offset loop union, never both";
+    if(int(inputs.contains("sourceEntityId"))+int(inputs.contains("profileId"))+int(inputs.contains("profileIds"))+int(inputs.contains("profileSelection"))>1)return "Choose ordinary regions or Offset loop union, never both";
     if(inputs.contains("profileSelection")) {
         const auto selection=inputs.value("profileSelection").toObject();const auto groups=selection.value("groupIds").toArray();
         if(inputs.value("operation")!="cut" || selection.size()!=2 || selection.value("kind")!="closedRectOffsetUnion" || groups.isEmpty())return "Offset loop union requires retained groups and Cut";
@@ -8318,7 +8350,9 @@ QJsonObject AlloyWindow::extrudeExtentParameters(const QJsonObject& inputs) cons
 }
 QJsonObject AlloyWindow::extrusionCandidate(const QJsonObject& inputs,bool hideSource) const {
     auto arguments=extrudeExtentParameters(inputs);arguments["sketchId"]=inputs.value("sketchId");
-    if(inputs.contains("profileSelection"))arguments["profileSelection"]=inputs["profileSelection"];
+    if(inputs.contains("sourceEntityId")) {
+        arguments["sourceEntityId"]=inputs.value("sourceEntityId");arguments["wallThicknessMm"]=CadDocument::millimeters(inputs.value("wallThickness").toDouble(),inputs.value("units").toString());arguments["wallLocation"]=inputs.value("wallLocation").toString("side1");
+    } else if(inputs.contains("profileSelection"))arguments["profileSelection"]=inputs["profileSelection"];
     else if(inputs.contains("profileIds"))arguments["profileIds"]=inputs["profileIds"];
     else arguments["profileId"]=inputs.value("profileId");
     if((inputs.value("operation")=="cut" || inputs.value("operation")=="join" || inputs.value("operation")=="intersect")){
@@ -8373,6 +8407,11 @@ QJsonObject AlloyWindow::beginExtrude(const QJsonObject& overrides) {
         QJsonObject saved;for(const auto& entry:document_->authored()["features"].toArray())if(entry.toObject()["id"]==id){saved=entry.toObject();break;}
         if(saved["type"]!="extrude")return failure("stale_entity","Extrusion feature does not exist","featureId");
         const auto savedParameters=saved["parameters"].toObject();
+        if(savedParameters.contains("sourceEntityId")) {
+            if(!overrides.contains("sourceEntityId") && !overrides.contains("profileId") && !overrides.contains("profileIds"))inputs["sourceEntityId"]=savedParameters.value("sourceEntityId");
+            if(!overrides.contains("wallThickness"))inputs["wallThickness"]=savedParameters.value("wallThicknessMm").toDouble()/(units=="in" ? 25.4 : 1);
+            if(!overrides.contains("wallLocation"))inputs["wallLocation"]=savedParameters.value("wallLocation");
+        }
         if(!overrides.contains("taperAngleDeg") && savedParameters.contains("taperAngleDeg"))inputs["taperAngleDeg"]=savedParameters.value("taperAngleDeg");
         const auto savedOperation=savedParameters.value("operation").toString("newBody");
         if(!overrides.contains("direction") && savedParameters.contains("direction"))inputs["direction"]=savedParameters.value("direction");
@@ -8404,21 +8443,21 @@ QJsonObject AlloyWindow::beginExtrude(const QJsonObject& overrides) {
         if(savedOperation!="newBody" && !overrides.contains("targetBodyIds"))inputs["targetBodyIds"]=savedParameters["targetBodyIds"];
         if(!overrides.contains("sketchId"))inputs["sketchId"]=savedParameters["sketchId"];
         if((!overrides.contains("sketchId") || overrides.value("sketchId")==savedParameters.value("sketchId"))
-            && !overrides.contains("profileId") && !overrides.contains("profileIds") && !overrides.contains("profileSelection")) {
+            && !inputs.contains("sourceEntityId") && !overrides.contains("profileId") && !overrides.contains("profileIds") && !overrides.contains("profileSelection")) {
             if(savedParameters.contains("profileSelection"))inputs["profileSelection"]=savedParameters["profileSelection"];
             else if(savedParameters.contains("profileIds"))inputs["profileIds"]=savedParameters["profileIds"];
             else if(savedParameters.contains("profileId"))inputs["profileId"]=savedParameters["profileId"];
         }
     }
     if(inputs.value("start")=="offset" && !inputs.contains("startOffset"))inputs["startOffset"]=0;
-    if(int(inputs.contains("profileId"))+int(inputs.contains("profileIds"))+int(inputs.contains("profileSelection"))>1)
+    if(int(inputs.contains("sourceEntityId"))+int(inputs.contains("profileId"))+int(inputs.contains("profileIds"))+int(inputs.contains("profileSelection"))>1)
         return failure("invalid_arguments","Choose ordinary regions or Offset loop union, never both");
     if(inputs.value("sketchId").toString().isEmpty() && !selectedSketch_.isEmpty())inputs["sketchId"]=selectedSketch_;
-    if(!inputs.contains("profileId") && !inputs.contains("profileIds") && !inputs.contains("profileSelection") && !selectedProfileIds_.isEmpty() && inputs.value("sketchId")==selectedSketch_) {
+    if(!inputs.contains("sourceEntityId") && !inputs.contains("profileId") && !inputs.contains("profileIds") && !inputs.contains("profileSelection") && !selectedProfileIds_.isEmpty() && inputs.value("sketchId")==selectedSketch_) {
         if(selectedProfileIds_.size()==1)inputs["profileId"]=selectedProfileIds_.first();
         else inputs["profileIds"]=selectedProfileIds_;
     }
-    if(!inputs.contains("profileId") && !inputs.contains("profileIds") && !inputs.contains("profileSelection")) {
+    if(!inputs.contains("sourceEntityId") && !inputs.contains("profileId") && !inputs.contains("profileIds") && !inputs.contains("profileSelection")) {
         std::vector<EvaluatedProfile> candidates;
         for(const auto& sketch:document_->sketches())if(inputs.value("sketchId").toString().isEmpty() ? sketch.visible : sketch.featureId==inputs["sketchId"].toString())
             candidates.insert(candidates.end(),sketch.profiles.begin(),sketch.profiles.end());
@@ -8429,7 +8468,8 @@ QJsonObject AlloyWindow::beginExtrude(const QJsonObject& overrides) {
     }
     const auto error=validateExtrudeInputs(inputs);if(!error.isEmpty())return failure("invalid_arguments",error);
     QJsonObject source{{"sketchId",inputs.value("sketchId")}};
-    if(inputs.contains("profileSelection"))source["profileSelection"]=inputs["profileSelection"];
+    if(inputs.contains("sourceEntityId"))source["sourceEntityId"]=inputs.value("sourceEntityId");
+    else if(inputs.contains("profileSelection"))source["profileSelection"]=inputs["profileSelection"];
     else if(inputs.contains("profileIds"))source["profileIds"]=inputs["profileIds"];
     else source["profileId"]=inputs.value("profileId");
     session_={{"id",CadDocument::newId()},{"command","solid.extrude"},{"status","active"},{"inputs",inputs},
@@ -8456,7 +8496,7 @@ QJsonObject AlloyWindow::previewExtrude() {
     if(!inputs.value("featureId").toString().isEmpty())for(const auto& body:document_->bodies())if(body.featureId==inputs["featureId"].toString())hidden.append(body.bodyId);
     view_->setEditDisplay(inputs.value("sketchId").toString(),hidden);
     QJsonArray profileIds=inputs.contains("profileIds") ? inputs["profileIds"].toArray() : inputs.value("profileId").toString().isEmpty() ? QJsonArray{} : QJsonArray{inputs["profileId"]};
-    if(inputs.value("sketchId").toString().isEmpty() || (profileIds.isEmpty() && !inputs.contains("profileSelection")))return reject(failure("profile_required","Select a closed sketch region or Offset loop union","profileIds"));
+    if(inputs.value("sketchId").toString().isEmpty() || (profileIds.isEmpty() && !inputs.contains("sourceEntityId") && !inputs.contains("profileSelection")))return reject(failure("profile_required",extrudePanel_ && extrudePanel_->findChild<QComboBox*>("extrude.type") && extrudePanel_->findChild<QComboBox*>("extrude.type")->currentData()=="thin" ? "Select one open straight Line" : "Select a closed sketch region or Offset loop union","profileIds"));
     const auto featureId=inputs.value("featureId").toString(session_.value("newFeatureId").toString());
     const auto editId=inputs.value("featureId").toString();
     const auto history=editId.isEmpty() ? document_->evaluation() : document_->evaluationBefore(editId);
@@ -8469,7 +8509,12 @@ QJsonObject AlloyWindow::previewExtrude() {
         }catch(const std::exception& error){return reject(failure("offset_union_unavailable",QString::fromUtf8(error.what())));}
         for(const auto& profile:profiles)profileIds.append(profile.profileId);
     }
-    if(!inputs.contains("profileSelection"))for(const auto& id:profileIds)for(const auto& sketch:history.sketches)if(sketch.featureId==inputs["sketchId"].toString())
+    if(inputs.contains("sourceEntityId")) {
+        try {for(const auto& sketch:history.sketches)if(sketch.featureId==inputs.value("sketchId"))profiles.push_back(GeometryKernel::thinLineProfile(sketch,inputs.value("sourceEntityId").toString(),CadDocument::millimeters(inputs.value("wallThickness").toDouble(),inputs.value("units").toString()),inputs.value("wallLocation").toString("side1")));}
+        catch(const std::exception& error){return reject(failure("invalid_thin_profile",QString::fromUtf8(error.what())));}
+        profileIds=QJsonArray{inputs.value("sourceEntityId")};
+    }
+    if(!inputs.contains("sourceEntityId") && !inputs.contains("profileSelection"))for(const auto& id:profileIds)for(const auto& sketch:history.sketches)if(sketch.featureId==inputs["sketchId"].toString())
         for(const auto& item:sketch.profiles)if(item.profileId==id.toString())profiles.push_back(item);
     if(profiles.empty() || profiles.size()!=static_cast<std::size_t>(profileIds.size()))return reject(failure("profile_unavailable","Selected sketch regions are unavailable at this history stage"));
     if(session_.value("invalidEndOffset").toBool())return reject(failure("invalid_arguments","Enter a signed end offset or existing user length name"));
@@ -8624,6 +8669,21 @@ void AlloyWindow::showExtrude() {
     auto* contents=new QWidget;scroll->setWidget(contents);panelLayout->addWidget(scroll,1);
     auto* layout=new QVBoxLayout(contents);layout->setContentsMargins(14,14,14,0);layout->setSpacing(8);
     auto* form=new QFormLayout;form->setVerticalSpacing(8);form->setRowWrapPolicy(QFormLayout::WrapLongRows);
+    auto* type=new QComboBox;type->setObjectName("extrude.type");type->addItem("Extrude","solid");type->addItem("Thin Extrude","thin");type->setCurrentIndex(session_.value("inputs").toObject().contains("sourceEntityId") ? 1 : 0);form->addRow("Type",type);
+    connect(type,qOverload<int>(&QComboBox::currentIndexChanged),this,[this,type](int){
+        auto inputs=session_.value("inputs").toObject();
+        if(type->currentData()=="thin" && !inputs.value("featureId").toString().isEmpty() && inputs.value("operation").toString("newBody")!="newBody") {
+            const QSignalBlocker blocker(type);type->setCurrentIndex(0);extrudeError_->setText("Thin Extrude requires New Body; this feature retains its operation.");return;
+        }
+        for(const auto& key:{"sourceEntityId","profileId","profileIds","profileSelection","wallThickness","wallLocation"})inputs.remove(key);
+        if(type->currentData()=="thin") {
+            for(const auto& key:{"measurement","negativeDistance","startOffset","startOffsetParameter","endSupport","endOffset","endOffsetParameter","flip","targetBodyIds","distanceExpression","distanceParameter"})inputs.remove(key);
+            inputs["direction"]="oneSide";inputs["start"]="profilePlane";inputs["extent"]="distance";inputs["operation"]="newBody";inputs["taperAngleDeg"]=0;
+            inputs["distance"]=std::abs(inputs.value("distance").toDouble());
+        }
+        session_["inputs"]=inputs;
+        updateExtrude(inputs);
+    });
     extrudeProfile_=new QComboBox;extrudeProfile_->setObjectName("extrude.profile");form->addRow("Profiles",extrudeProfile_);
     extrudeStart_=new QComboBox;extrudeStart_->setObjectName("extrude.start");
     extrudeStart_->addItem("Profile Plane","profilePlane");extrudeStart_->addItem("Offset","offset");form->addRow("Start",extrudeStart_);
@@ -8688,6 +8748,11 @@ void AlloyWindow::showExtrude() {
     taper->setToolTip("Negative narrows the far end; positive widens it. Strictly between −90° and +90°; collapsing geometry is refused.");
     form->addRow("Taper Angle",taper);
     connect(taper,qOverload<double>(&QDoubleSpinBox::valueChanged),this,[this](double value){updateExtrude({{"taperAngleDeg",value}});});
+    auto* wall=new QDoubleSpinBox;wall->setObjectName("extrude.wallThickness");wall->setRange(0.001,100000);wall->setDecimals(6);wall->setValue(session_.value("inputs").toObject().value("wallThickness").toDouble(1));wall->setKeyboardTracking(false);auto* wallLabel=new QLabel("Wall Thickness");wallLabel->setObjectName("extrude.wallThicknessLabel");form->addRow(wallLabel,wall);
+    auto* location=new QComboBox;location->setObjectName("extrude.wallLocation");location->addItem("Side 1","side1");location->addItem("Side 2","side2");location->addItem("Center","center");auto* locationLabel=new QLabel("Wall Location");locationLabel->setObjectName("extrude.wallLocationLabel");form->addRow(locationLabel,location);
+    auto* sideHint=new QLabel("One open Line. Side 1 = normal × directed tangent (+Y for +X on XY). Center splits thickness.");sideHint->setObjectName("extrude.wallHint");sideHint->setWordWrap(true);form->addRow(sideHint);
+    connect(wall,qOverload<double>(&QDoubleSpinBox::valueChanged),this,[this](double value){updateExtrude({{"wallThickness",value}});});
+    connect(location,qOverload<int>(&QComboBox::currentIndexChanged),this,[this,location](int i){updateExtrude({{"wallLocation",location->itemData(i).toString()}});});
     extrudeOperation_=new QComboBox;extrudeOperation_->setObjectName("extrude.operation");
     extrudeOperation_->addItem("New Body","newBody");extrudeOperation_->addItem("Join","join");extrudeOperation_->addItem("Cut","cut");extrudeOperation_->addItem("Intersect","intersect");form->addRow("Operation",extrudeOperation_);
     extrudeTarget_=new QComboBox;extrudeTarget_->setObjectName("extrude.targetBody");
@@ -8762,7 +8827,8 @@ void AlloyWindow::showExtrude() {
     });
     connect(extrudeProfile_,qOverload<int>(&QComboBox::currentIndexChanged),this,[this](int index){
         const auto selected=extrudeProfile_->itemData(index).toJsonObject();
-        if(selected.contains("profileSelection"))updateExtrude(selected);
+        if(selected.contains("sourceEntityId")) {auto choice=selected;choice["wallThickness"]=extrudePanel_->findChild<QDoubleSpinBox*>("extrude.wallThickness")->value();choice["wallLocation"]=extrudePanel_->findChild<QComboBox*>("extrude.wallLocation")->currentData().toString();updateExtrude(choice);}
+        else if(selected.contains("profileSelection"))updateExtrude(selected);
         else if(!selected.isEmpty())execute("selection.profileSet",selected);
         else if(index==0)updateExtrude({{"profileIds",QJsonArray{}}});
     });
@@ -8779,6 +8845,11 @@ void AlloyWindow::showExtrude() {
 void AlloyWindow::refreshExtrudeControls() {
     if(!extrudePanel_ || session_.value("command")!="solid.extrude")return;
     const auto inputs=session_.value("inputs").toObject();
+    const bool thin=extrudePanel_->findChild<QComboBox*>("extrude.type")->currentData()=="thin";
+
+    for(const auto& name:{"extrude.wallThickness","extrude.wallLocation","extrude.wallHint","extrude.wallThicknessLabel","extrude.wallLocationLabel"})if(auto* widget=extrudePanel_->findChild<QWidget*>(name)){widget->setVisible(thin);if(auto* form=qobject_cast<QFormLayout*>(widget->parentWidget()->layout()))if(auto* label=form->labelForField(widget))label->setVisible(thin);}
+    if(auto* wall=extrudePanel_->findChild<QDoubleSpinBox*>("extrude.wallThickness");inputs.contains("wallThickness") && wall){const QSignalBlocker block(wall);wall->setValue(inputs.value("wallThickness").toDouble());wall->setSuffix(" "+inputs.value("units").toString());}
+    if(auto* location=extrudePanel_->findChild<QComboBox*>("extrude.wallLocation")){const QSignalBlocker block(location);location->setCurrentIndex(location->findData(inputs.value("wallLocation").toString("side1")));}
     selectedSketch_=inputs.value("sketchId").toString();
     selectedProfileIds_=inputs.contains("profileSelection") ? session_.value("resolvedProfileIds").toArray()
         : inputs.contains("profileIds") ? inputs["profileIds"].toArray() : inputs.value("profileId").toString().isEmpty() ? QJsonArray{} : QJsonArray{inputs["profileId"]};
@@ -8799,7 +8870,13 @@ void AlloyWindow::refreshExtrudeControls() {
         }
         const bool inches = inputs.value("units") == "in";
         const double areaScale = inches ? 25.4 * 25.4 : 1.0;
-        for(const auto& sketch:document_->sketches())if(sketch.visible || sketch.featureId==selectedSketch_)for(const auto& profile:sketch.profiles) {
+        if(thin)for(const auto& sketch:document_->sketches())if(sketch.visible || sketch.featureId==selectedSketch_)for(const auto& row:sketch.summary.value("entities").toArray()) {
+            const auto entity=row.toObject();if(entity.value("type")!="line" || entity.value("construction").toBool())continue;
+            bool closed=false;for(const auto& profile:sketch.profiles)closed|=profile.summary.value("sourceEntityIds").toArray().contains(entity.value("id"));if(closed)continue;
+            rows.append({sketch.name+" · open Line",{{"sketchId",sketch.featureId},{"sourceEntityId",entity.value("id")}}});
+            if(inputs.value("sourceEntityId")==entity.value("id") && inputs.value("sketchId")==sketch.featureId)selected=rows.size()-1;
+        }
+        if(!thin)for(const auto& sketch:document_->sketches())if(sketch.visible || sketch.featureId==selectedSketch_)for(const auto& profile:sketch.profiles) {
             rows.append({sketch.name+" · "+QString::number(profile.summary.value("areaMm2").toDouble()/areaScale,'g',6)+(inches ? " in²" : " mm²"),
                 {{"sketchId",sketch.featureId},{"profileId",profile.profileId}}});
             if(selectedProfileIds_.size()==1 && profile.profileId==selectedProfile_ && sketch.featureId==selectedSketch_)selected=rows.size()-1;
@@ -8828,7 +8905,7 @@ void AlloyWindow::refreshExtrudeControls() {
     {const QSignalBlocker block(taper);taper->setValue(inputs.value("taperAngleDeg").toDouble());}
     taper->setEnabled(oneSide && inputs.value("operation").toString("newBody")=="newBody" && inputs.value("start").toString("profilePlane")=="profilePlane" && inputs.value("extent").toString("distance")=="distance");
     const bool toObject=inputs.value("extent")=="toObject",all=inputs.value("extent")=="all";
-    extrudePanel_->findChild<QLabel*>("extrude.hint")->setText(all ? "Cut one selected body through all material in the chosen direction. Flip changes direction."
+    extrudePanel_->findChild<QLabel*>("extrude.hint")->setText(thin ? "Open Line · positive Distance · New Body." : all ? "Cut one selected body through all material in the chosen direction. Flip changes direction."
         : toObject
         ? "Select an end face. Positive offset leaves clearance; negative offset extends past it."
         : symmetric ? (inputs.value("measurement")=="wholeLength" ? "Whole Length is the total distance, split equally across the profile plane." : "Half Length is the distance on each side of the profile plane.")
@@ -8884,6 +8961,9 @@ void AlloyWindow::refreshExtrudeControls() {
         while(extrudeTarget_->count()>rows.size())extrudeTarget_->removeItem(extrudeTarget_->count()-1);
         extrudeTarget_->setCurrentIndex(std::max(0,extrudeTarget_->findData(targetIds)));
     }
+    // Collapsing a hidden form row removes its reserved vertical spacing too.
+    if(auto* form=extrudePanel_->findChild<QFormLayout*>())for(int row=0;row<form->rowCount();++row)
+        if(auto* item=form->itemAt(row,QFormLayout::FieldRole);item && item->widget())form->setRowVisible(row,!item->widget()->isHidden());
     extrudeOk_->setEnabled(session_.value("previewed").toBool() && session_.value("baseDocumentRevision").toInteger()==static_cast<qint64>(document_->revision()));
 }
 void AlloyWindow::updateExtrude(const QJsonObject& inputs) {

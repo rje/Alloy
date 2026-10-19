@@ -114,6 +114,7 @@ public:
     // Offset groups to current disjoint cells. Cell IDs are never authored.
     static std::vector<EvaluatedProfile> closedRectOffsetUnionCells(const EvaluatedSketch& sketch,
         const QJsonObject& sketchFeature, const QJsonArray& groupIds);
+    static EvaluatedProfile thinLineProfile(const EvaluatedSketch& sketch, const QString& entityId, double thicknessMm, const QString& location);
     static double extrusionDistance(const QJsonObject& parameters, const EvaluatedProfile& profile, const EvaluatedDocument& prior);
     static double extrusionStart(const QJsonObject& parameters);
     static double extrusionSpan(const QJsonObject& parameters);

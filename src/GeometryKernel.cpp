@@ -42,6 +42,9 @@
 #include <BRepAlgoAPI_Fuse.hxx>
 #include <BRepAlgoAPI_Common.hxx>
 #include <BRepBuilderAPI_MakeWire.hxx>
+#include <BRepBuilderAPI_MakeEdge.hxx>
+#include <array>
+
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepCheck_Analyzer.hxx>
 #include <ShapeUpgrade_UnifySameDomain.hxx>
@@ -722,6 +725,31 @@ double GeometryKernel::extrusionStart(const QJsonObject& p) {
     if(p.value("direction")=="symmetric")return -extrusionSpan(p)/2;
     if(p.value("direction")=="twoSides")return -p.value("negativeDistanceMm").toDouble();
     return p.value("startOffsetMm").toDouble();
+}
+EvaluatedProfile GeometryKernel::thinLineProfile(const EvaluatedSketch& sketch,const QString& entityId,double thickness,const QString& location) {
+    const auto reject=[](const QString& message){throw EvaluationError({{"code","invalid_thin_profile"},{"message",message}});};
+    if(!std::isfinite(thickness) || thickness<0.001 || thickness>100000 || (location!="side1" && location!="side2" && location!="center"))reject("Enter a positive Wall Thickness and supported Wall Location");
+    QJsonObject entity;
+    for(const auto& row:sketch.summary.value("entities").toArray())if(row.toObject().value("id")==entityId)entity=row.toObject();
+    if(entity.value("type")!="line" || entity.value("construction").toBool() || !sketch.entityEdges.contains(entityId))reject("Thin Extrude requires one nonconstruction open straight Line");
+    for(const auto& profile:sketch.profiles)if(profile.summary.value("sourceEntityIds").toArray().contains(entityId))reject("Thin Extrude requires an open Line, outside a closed profile");
+    QMap<QString,gp_Pnt> points;
+    for(const auto& row:sketch.summary.value("worldPoints").toArray()){const auto point=row.toObject();const auto xyz=point.value("positionMm").toArray();if(xyz.size()==3)points.insert(point.value("id").toString(),gp_Pnt(xyz[0].toDouble(),xyz[1].toDouble(),xyz[2].toDouble()));}
+    const auto aId=entity.value("startPointId").toString(),bId=entity.value("endPointId").toString();
+    if(!points.contains(aId) || !points.contains(bId))reject("Thin Line endpoints are unavailable");
+    const auto a=points.value(aId),b=points.value(bId);gp_Vec tangent(a,b);
+    const auto n=sketch.resolvedFrame.value("normal").toArray();if(n.size()!=3 || tangent.Magnitude()<1e-6)reject("Thin Line is collapsed or has no plane");
+    gp_Vec side=gp_Vec(n[0].toDouble(),n[1].toDouble(),n[2].toDouble()).Crossed(tangent);if(side.Magnitude()<1e-8)reject("Thin Line has a degenerate plane");side.Normalize();
+    // Directed side 1 is sketch normal cross tangent; +X in XY therefore means +Y.
+    const double low=location=="side1" ? 0 : location=="side2" ? -thickness : -thickness/2;
+    const double high=low+thickness;
+    const std::array<gp_Pnt,4> corners{a.Translated(side*low),b.Translated(side*low),b.Translated(side*high),a.Translated(side*high)};
+    BRepBuilderAPI_MakeWire wire;for(int i=0;i<4;++i)wire.Add(BRepBuilderAPI_MakeEdge(corners[i],corners[(i+1)%4]).Edge());
+    if(!wire.IsDone())reject("Thin Line strip could not be closed");BRepBuilderAPI_MakeFace face(wire.Wire());
+    if(!face.IsDone() || !BRepCheck_Analyzer(face.Face()).IsValid())reject("Thin Line strip is invalid");
+    // Derived strip and boundaries are disposable. Only the authored Line ID persists.
+    EvaluatedProfile result;result.profileId=entityId;result.sketchId=sketch.featureId;result.plane=sketch.plane;result.face=face.Face();
+    result.summary={{"frame",sketch.resolvedFrame},{"areaMm2",tangent.Magnitude()*thickness},{"sourceEntityIds",QJsonArray{entityId}}};return result;
 }
 double GeometryKernel::extrusionSpan(const QJsonObject& p) {
     const double d=p.value("distanceMm").toDouble();
@@ -1460,7 +1488,8 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                         for(const auto& cell:selected)profileIds.append(cell.profileId);
                         context["profileSelection"]=parameters.value("profileSelection");
                     }
-                    if(!aggregate)for(const auto& requested:profileIds){const auto found=std::find_if(source.profiles.begin(),source.profiles.end(),[&](const auto& profile){return profile.profileId==requested.toString();});
+                    if(parameters.contains("sourceEntityId"))selected.push_back(thinLineProfile(source,parameters.value("sourceEntityId").toString(),parameters.value("wallThicknessMm").toDouble(),parameters.value("wallLocation").toString()));
+                    if(!aggregate && !parameters.contains("sourceEntityId"))for(const auto& requested:profileIds){const auto found=std::find_if(source.profiles.begin(),source.profiles.end(),[&](const auto& profile){return profile.profileId==requested.toString();});
                         if(found==source.profiles.end()) {context["code"]="profile_unavailable";context["message"]="The referenced profile no longer exists; repair the sketch or select a current closed profile";
                             context["missingProfileId"]=requested;context["profileDiagnostics"]=source.summary["profileDiagnostics"];throw EvaluationError(context);}
                         selected.push_back(*found);}
@@ -1559,7 +1588,7 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                     const double taper=parameters.value("taperAngleDeg").toDouble();
                     // Draft history qualifies only the far cap; do not reuse prism side/edge lineage.
                     shape=taper!=0 ? taperedExtrusion(united,distance,taper,&cap)
-                        : extrusion(united,distance,&cap,&solidEdges,id,&supportFaces,start);summary=summarize(shape);
+                        : extrusion(united,distance,&cap,parameters.contains("sourceEntityId") ? nullptr : &solidEdges,id,parameters.contains("sourceEntityId") ? nullptr : &supportFaces,start);summary=summarize(shape);
                     summary["taperAngleDeg"]=taper;
                     summary["solidEdges"]=SolidFillet::descriptors(solidEdges);
                     if(!cap.face.IsNull()) {
@@ -1573,6 +1602,7 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                     summary["operation"]="extrude";summary["distanceMm"]=distance;summary["startOffsetMm"]=start;summary["sourceSketchId"]=sketchId;
                     if(aggregate)summary["sourceProfileSelection"]=parameters["profileSelection"];
                     else if(plural)summary["sourceProfileIds"]=profileIds;else summary["sourceProfileId"]=parameters["profileId"];
+                    if(parameters.contains("sourceEntityId")){summary["sourceEntityId"]=parameters.value("sourceEntityId");summary["wallThicknessMm"]=parameters.value("wallThicknessMm");summary["wallLocation"]=parameters.value("wallLocation");summary.remove("sourceProfileId");}
                     summary["sourceEntityIds"]=united.summary["sourceEntityIds"];summary["sourceAreaMm2"]=united.summary["areaMm2"];
                     if(taper==0)summary["analyticVolumeMm3"]=united.summary["areaMm2"].toDouble()*std::abs(distance);
                 } else {
