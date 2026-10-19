@@ -1,6 +1,7 @@
 # Ordinary bracket modal gate: native readiness prerequisite
 
-2026-10-18, REL-052/#587, macOS arm64 Release `build-preview-release`, Qt
+2026-10-18 diagnosis; 2026-10-19 FND-028/#589 native prerequisite accepted
+locally pending independent review. REL-052/#587, macOS arm64 Release `build-preview-release`, Qt
 6.11.2. This is a bounded harness diagnosis, with no application source change
 and no accepted modal or OS chooser workflow.
 
@@ -63,3 +64,47 @@ editor is launched. Its external `native-session-preflight01` receipt contains
 the exact observation and strict-gate restart command. Once the session owner
 unlocks the Mac, rerun the preflight; an exit 0 only admits the subsequent
 AppKit/Qt activation check and does not by itself accept modal input.
+
+## Unlocked-session first-input qualification, 2026-10-19
+
+The current console now reports `IOConsoleLocked=false`, Aqua, logged-in and
+on-console. macOS omits the session-specific lock keys in this unlocked state.
+The preflight now accepts that combination; an explicit lock at either level
+still blocks, and a missing root Boolean or malformed session lock remains
+unknown. Four focused Python checks cover those decisions.
+
+The unchanged strict binary passed initial readiness and the native bracket
+prefix in this session. It reached the later export modal and failed at
+Tab-to-Format; that remains REL-052 and is not accepted by this prerequisite.
+This changed environment supports the earlier locked-session diagnosis without
+proving every historical launch experiment had the same cause. No application,
+bundle metadata, permission or event-loop fix was needed.
+
+The bounded strict first-input mode then passed 3/3 Qt checks in 2.766 seconds.
+It observes AppKit directly rather than setting Qt's active-window bookkeeping:
+PID 18380/window 78834 had `NSApplication.isActive=true`, the editor was the
+actual key window with a first responder, and Qt reported ApplicationActive
+with the same focus window. The actual-hit timeline pointer opened the sketch,
+naturally focused the viewport, and C selected Circle. No focus or selection
+repair occurs between these steps. The native WindowServer capture and separate
+GPU framebuffer capture show the resulting Circle state and were inspected.
+Qt delivers the tested pointer/key events; physical OS event injection and the
+later modal/chooser workflow are separate qualification.
+
+Finite restart from the repository root, with the sole private GUI lease:
+
+```sh
+python3 tools/native_input_preflight.py && \
+ALLOY_ORDINARY_INPUT_REQUIRE_MODAL=1 \
+ALLOY_ORDINARY_INPUT_INITIAL_ONLY=1 \
+ALLOY_ORDINARY_INPUT_MODEL="$PWD/../Alloy-reference-records/validation/rel012-ordinary-input-2026-10-18/fullsize-failed-repro.alloy" \
+ALLOY_ORDINARY_INPUT_EVIDENCE="$PWD/../Alloy-reference-records/validation/fnd028-native-readiness-2026-10-19/next-first-input" \
+./build-preview-release/ordinary_bracket_input_controls_test bracketGate
+```
+
+Preflight exit 1/2 must stop the launch. Without INITIAL_ONLY, the strict route
+continues into REL-052. The incremental target build passed at `-j4`; no CI ran.
+The private editor closed after evidence capture; no user-owned editor was
+running or modified. Exact observations, build/run logs, both captures and the
+unchanged strict modal failure are external under
+`../Alloy-reference-records/validation/fnd028-native-readiness-2026-10-19/`.

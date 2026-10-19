@@ -10,6 +10,10 @@ dependency keys with issue numbers.
 The current local backlog contains **603 issues**: **476 implementation, 24 research,
 3 research/design, 22 epics, and 78 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
+FND-028/#589 accepts the [unlocked macOS native first-input prerequisite](../validation/ordinary-bracket-modal-readiness.md):
+AppKit key-window and Qt focus agree, an actual-hit click followed by C works,
+and a native window capture is inspected. REL-052/#587 retains the later
+export-dialog Tab/Format failure and system chooser workflow.
 NAV-005/#411 accepts the [cumulative visible-navigation workflow](../validation/navigation-cumulative.md):
 the shared controls, placed-assembly-face Look At, camera invariants, save/reopen
 and GPU captures pass in a real-app API run. Physical mouse/trackpad and native

@@ -22,6 +22,9 @@
 #include <QToolButton>
 #include <QWindow>
 #include <stdexcept>
+#ifdef Q_OS_MACOS
+#include <dlfcn.h>
+#endif
 
 // Cumulative ordinary-input gate. API calls below only load, frame and observe;
 // user steps must use the actual pointer hit widget or naturally focused widget.
@@ -29,6 +32,25 @@ class OrdinaryBracketInputControls final : public QObject {
  Q_OBJECT
  AlloyWindow* window_=nullptr; ReferenceView* view_=nullptr; QString output_,step_;
  QJsonArray steps_;
+ QJsonObject nativeReadiness(){
+  QJsonObject result{{"processId",QCoreApplication::applicationPid()}};
+#ifdef Q_OS_MACOS
+  // Observation only. Do not replace native activation with Qt bookkeeping.
+  auto selector=reinterpret_cast<void*(*)(const char*)>(dlsym(RTLD_DEFAULT,"sel_registerName"));
+  auto send=reinterpret_cast<void*(*)(void*,void*)>(dlsym(RTLD_DEFAULT,"objc_msgSend"));
+  auto boolean=reinterpret_cast<bool(*)(void*,void*)>(dlsym(RTLD_DEFAULT,"objc_msgSend"));
+  auto integer=reinterpret_cast<long(*)(void*,void*)>(dlsym(RTLD_DEFAULT,"objc_msgSend"));
+  auto cls=reinterpret_cast<void*(*)(const char*)>(dlsym(RTLD_DEFAULT,"objc_getClass"));
+  auto app=send(cls("NSApplication"),selector("sharedApplication"));
+  auto native=send(reinterpret_cast<void*>(window_->winId()),selector("window"));
+  result.insert("applicationActive",boolean(app,selector("isActive")));
+  result.insert("keyWindowMatchesEditor",send(app,selector("keyWindow"))==native);
+  result.insert("editorIsKeyWindow",boolean(native,selector("isKeyWindow")));
+  result.insert("firstResponderPresent",send(native,selector("firstResponder"))!=nullptr);
+  result.insert("windowNumber",static_cast<qint64>(integer(native,selector("windowNumber"))));
+#endif
+  return result;
+ }
  void require(bool ok,const QString& message){if(!ok)throw std::runtime_error((step_+": "+message).toStdString());}
  QJsonObject call(const QString& command,const QJsonObject& args={}){
   auto response=window_->executeApi(command,args);
@@ -41,7 +63,7 @@ class OrdinaryBracketInputControls final : public QObject {
   return response.value("result").toObject();
  }
  QJsonObject session(){return window_->state().value("activeSession").toObject();}
- void mark(const QString& name){step_=name;qInfo().noquote()<<name;steps_.append(QJsonObject{{"step",name},{"state",window_->state()}});}
+ void mark(const QString& name){step_=name;qInfo().noquote()<<name;steps_.append(QJsonObject{{"step",name},{"state",window_->state()},{"appKit",nativeReadiness()}});}
  void click(QWidget* target){require(target&&target->isVisible(),"visible pointer target");
   auto* hit=QApplication::widgetAt(target->mapToGlobal(target->rect().center()));
   require(hit&&(hit==target||target->isAncestorOf(hit)),"actual hit belongs to pointer target");
@@ -51,7 +73,7 @@ class OrdinaryBracketInputControls final : public QObject {
   QTest::keyClick(focus,key);QTest::qWait(80);}
  void saveReceipt(const QString& status,const QString& error={}){
   QFile file(output_+"/receipt.json");if(file.open(QIODevice::WriteOnly))file.write(QJsonDocument(QJsonObject{
-   {"applicationActive",QGuiApplication::applicationState()==Qt::ApplicationActive},{"nativeFocusWindow",QGuiApplication::focusWindow()?QGuiApplication::focusWindow()->objectName():"none"},{"qtActiveWindow",QApplication::activeWindow()?QApplication::activeWindow()->objectName():"none"},
+   {"appKit",nativeReadiness()},{"applicationActive",QGuiApplication::applicationState()==Qt::ApplicationActive},{"nativeFocusWindowMatchesEditor",QGuiApplication::focusWindow()==window_->windowHandle()},{"nativeFocusWindow",QGuiApplication::focusWindow()?QGuiApplication::focusWindow()->objectName():"none"},{"qtActiveWindow",QApplication::activeWindow()?QApplication::activeWindow()->objectName():"none"},
    {"focusClass",QApplication::focusWidget()?QApplication::focusWidget()->metaObject()->className():"none"},{"focusObject",QApplication::focusWidget()?QApplication::focusWidget()->objectName():"none"},{"status",status},{"step",step_},{"error",error},{"steps",steps_},{"state",window_->state()},
    {"inputRoute","Qt delivered pointer/keyboard; initial activation only; no interstep focus or selection repair"},
    {"limits",QJsonArray{"Not physical OS input or packaged qualification","Full-route native readiness is required before modal qualification; OS Save chooser remains unexercised; default final STL uses shared API export"}}}).toJson());
@@ -77,7 +99,12 @@ private slots:
    if(requireModal){
     mark("Initial native application/window readiness before user steps");
     require(QTest::qWaitFor([&]{return QGuiApplication::applicationState()==Qt::ApplicationActive
-      && QGuiApplication::focusWindow()==window.windowHandle() && window.isActiveWindow();},3000),
+      && QGuiApplication::focusWindow()==window.windowHandle() && window.isActiveWindow()
+#ifdef Q_OS_MACOS
+      && nativeReadiness().value("applicationActive").toBool()
+      && nativeReadiness().value("keyWindowMatchesEditor").toBool()
+#endif
+      ;},3000),
       "native application and top-level window activate without Qt bookkeeping repair");
    }
    call("document.open",{{"path",input},{"discard",true}});QTest::qWait(150);
@@ -88,6 +115,16 @@ private slots:
    call("sketch.lookAt");call("view.fit");call("view.zoom",{{"factor",0.8}}); // Initial camera setup only.
    mark("Sketch activation produces viewport keyboard focus");require(QApplication::focusWidget()==view_,"viewport owns natural focus before C");
    key(Qt::Key_C);require(session().value("tool")=="circle","C activates Circle");
+   if(requireModal&&qEnvironmentVariableIntValue("ALLOY_ORDINARY_INPUT_INITIAL_ONLY")){
+    mark("Strict native readiness and first pointer/key input passed");
+    call("capture.screenshot",{{"path",output_+"/first-input-framebuffer.png"}});
+#ifdef Q_OS_MACOS
+    QProcess capture;capture.start("/usr/sbin/screencapture",{"-x","-l",QString::number(nativeReadiness().value("windowNumber").toInteger()),output_+"/first-input-native.png"});
+    require(capture.waitForFinished(5000)&&capture.exitCode()==0,"native WindowServer window capture succeeds");
+#endif
+    saveReceipt("strict-native-first-input-passed");
+    call("document.new",{{"discard",true}});window.close();return;
+   }
    auto point=call("view.projectSketchPoint",{{"sketchId",sketch},{"uMm",300},{"vMm",200}});
    const QPoint local(qRound(point.value("x").toDouble()),qRound(point.value("y").toDouble()));
    require(view_->rect().contains(local),"pending-circle center is visible");

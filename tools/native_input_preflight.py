@@ -51,8 +51,12 @@ def assess(root, uid, manager):
         blockers.append("The current user has no logged-in on-console session.")
     if not isinstance(root.get("IOConsoleLocked"), bool):
         unknowns.append("IOConsoleLocked was not reported as a Boolean.")
-    if any(not isinstance(s["CGSSessionScreenIsLocked"], bool) for s in sessions):
-        unknowns.append("A current-user session lock state is unknown.")
+    # WindowServer omits the per-session lock keys after unlocking. The root
+    # Boolean remains the authoritative observation in that ordinary state;
+    # an explicitly malformed session value still cannot establish readiness.
+    if any(s["CGSSessionScreenIsLocked"] is not None
+           and not isinstance(s["CGSSessionScreenIsLocked"], bool) for s in sessions):
+        unknowns.append("A current-user session lock state has an invalid type.")
     return {
         "status": "blocked" if blockers else "unknown" if unknowns else "session-ready",
         "consoleLocked": root.get("IOConsoleLocked"),
