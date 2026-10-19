@@ -3108,19 +3108,28 @@
       "label": "OBJ mesh export",
       "category": "Import/export",
       "scope": "proposed-v1",
-      "implementation": "missing",
-      "nativeEvidence": "unknown",
-      "gap": "Product format target includes OBJ output; no OBJ export command is registered.",
-      "apiIds": [],
+      "implementation": "partial",
+      "nativeEvidence": "partial",
+      "gap": "One-file material-free closed-solid OBJ mm/in output and Blender readback pass. Native system chooser/Cancel, broader units, one-body-per-file, surface/mesh bodies and material semantics remain open.",
+      "apiIds": [
+        "document.exportObj",
+        "document.exportMeshDialog"
+      ],
       "issueKeys": [
         "XCH-004",
-        "XCH-010"
+        "XCH-010",
+        "XCH-012",
+        "XCH-013"
       ],
       "sourceFiles": [
+        "src/MeshExport.cpp",
+        "src/ExportControls.cpp",
         "docs/backlog/issues.json"
       ],
-      "receipts": [],
-      "planningStatus": "Existing scope owners; verify accepted subset before pulling"
+      "receipts": [
+        "docs/validation/obj-export.md"
+      ],
+      "planningStatus": "XCH-010 bounded output accepted; XCH-012 native chooser and XCH-013 broader options Todo"
     },
     {
       "id": "sketch.polygon",

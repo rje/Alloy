@@ -8860,7 +8860,7 @@
       "labels": [
         "area:xch"
       ],
-      "body": "## Bounded result\nOwn the remaining proposed-v1 `exchange.obj-output` gap as a finishable feature slice; existing related tools and broader family coverage remain separate.\n\n## Acceptance\nExport a selected committed solid or visible-body scope to local OBJ using documented units and axis convention; write a deterministic material-free mesh subset first. Verify native chooser/Cancel and shared command, independent OBJ parser bounds/topology and a second consumer when practical, unchanged authored/undo state and source edit/re-export. Research public workflow/settings before implementation; retain broader materials and assembly semantics as explicit later work.\n\n## Ownership\nInventory row `exchange.obj-output`. Start with a dated public workflow contract in `../Alloy-reference-records/knowledge`; keep references and images outside the repository. Native input, authored history, geometry/output and visual evidence must be distinguished."
+      "body": "## Bounded result\nOwn the remaining proposed-v1 `exchange.obj-output` gap as a finishable feature slice; existing related tools and broader family coverage remain separate.\n\n## Acceptance\nExport a selected committed solid or visible-body scope to local OBJ using documented units and axis convention; write a deterministic material-free mesh subset first. Verify native chooser/Cancel and shared command, independent OBJ parser bounds/topology and a second consumer when practical, unchanged authored/undo state and source edit/re-export. Research public workflow/settings before implementation; retain broader materials and assembly semantics as explicit later work.\n\n## Ownership\nInventory row `exchange.obj-output`. Start with a dated public workflow contract in `../Alloy-reference-records/knowledge`; keep references and images outside the repository. Native input, authored history, geometry/output and visual evidence must be distinguished.\n\n## Bounded accepted implementation, 2026-10-19\nCommit 5ba2b00 adds one-file material-free grouped OBJ from selected committed closed solids, mm/in, Z-up, with shared Save As Mesh dialog state, async publication and atomic cancellation. Focused core, real-app API geometry/history/edit, Blender 5.1.1 readback and Qt dialog-state/publication tests pass. Native system chooser/Cancel could not be qualified in the locked/remote macOS UI session and is explicit Todo XCH-012/#604. Broader public unit, structure and body/material options are Todo XCH-013/#605. Evidence: docs/validation/obj-export.md and external validation/obj-export-2026-10-19.\n"
     },
     {
       "key": "REL-048",
@@ -10079,6 +10079,34 @@
         "area:sol"
       ],
       "body": "<!-- alloy-backlog:SOL-076 -->\n**Backlog key:** `SOL-076` \u00b7 **Phase:** `P3 Shape/import/print breadth` \u00b7 **Priority:** `P2` \u00b7 **Kind:** `implementation`\n\n## Bounded result\nQualify native Qt pointer selection of a full circular rim after planar Offset Face while Fillet is active. A real hit in the GPU viewport must populate the edge selection and show a responsive preview without hanging the event loop.\n\n## Observed gap\nIn SOL-074/#600, a native `QTest::mouseClick` on the actual viewport hit of the offset circular rim returned, but the test process then stalled while waiting for the Fillet session edge selection. The API `selection.pick` route selected the same ID and completed R1 Fillet/commit. The native diagnostic slot was removed after two timed attempts; physical user input has not been qualified. This is an observed test-path stall, not yet a proven end-user lockup.\n\n## Acceptance\n- Reproduce with the round-stock Sketch \u2192 Extrude \u2192 Offset Face +5 \u2192 Fillet command at 1280\u00d7860 on the accepted Mac build; capture event/session state immediately before and after the actual hit without depending on repeated event-loop waits.\n- Identify whether the stall is a queued modal popup, input dispatch, asynchronous preview or test-harness focus problem; fix the actual cause if application-owned.\n- Complete a bounded native pointer test that selects the circular rim, previews R1, cancels and leaves authored state unchanged. Record GPU capture and app responsiveness. Keep the already-passing API replay as a separate check.\n\n## Dependency\nDepends on SOL-074/#600. Do not infer physical OS-input parity from Qt's synthetic event alone.\n\n## Accepted result, 2026-10-19\nThe earlier apparent stall was the test harness closing a dirty document without discard; the native viewport click already selected the exact rim. Corrected Qt actual-hit test now enters R1, observes a visible GPU fillet preview, captures it, cancels with unchanged authored state, discards the test document and closes normally. Focused test and full face-offset controls suite pass. Physical OS input remains unqualified.\n"
+    },
+    {
+      "key": "XCH-012",
+      "title": "Qualify native Save As Mesh OBJ chooser and Cancel",
+      "kind": "validation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P2",
+      "depends_on": [
+        "XCH-010"
+      ],
+      "labels": [
+        "area:xch"
+      ],
+      "body": "<!-- alloy-backlog:XCH-012 -->\n**Backlog key:** `XCH-012` \u00b7 **Phase:** `P3 Shape/import/print breadth` \u00b7 **Priority:** `P2` \u00b7 **Kind:** `validation gate`\n\n## Bounded result\nQualify the native Save As Mesh \u2192 OBJ route and macOS system save chooser with physical or trusted desktop input. The OBJ command, dialog format state and publication cancellation are implemented under XCH-010/#522; this issue owns the remaining native input observation.\n\n## Acceptance\n- In the accepted Mac build, open an ordinary committed solid, use the Browser Save As Mesh entry, select OBJ through actual native input, observe mm/in field and one-file note, click Save, inspect the OS chooser and Cancel it. Confirm no output and unchanged authored/undo state.\n- Repeat with Save to a local OBJ file, independently read its bounds and body groups, and capture the native dialog/chooser evidence. Do not repair focus or selection between demonstrated user steps.\n- Distinguish Qt synthetic input from physical OS input. If computer control cannot address the window, record that tool limitation without claiming the path passed. Keep one private editor open and close it after evidence.\n\n## Dependency\nXCH-010/#522. Public workflow contract: external `../Alloy-reference-records/knowledge/specs/xch010-obj-output-2026-10-19.md`. The initial independent desktop-control attempt returned `cgWindowNotFound`; it did not expose an app defect.\n"
+    },
+    {
+      "key": "XCH-013",
+      "title": "Complete OBJ units, multi-file and body-type options",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P3",
+      "depends_on": [
+        "XCH-010"
+      ],
+      "labels": [
+        "area:xch"
+      ],
+      "body": "<!-- alloy-backlog:XCH-013 -->\n**Backlog key:** `XCH-013` \u00b7 **Phase:** `P3 Shape/import/print breadth` \u00b7 **Priority:** `P3` \u00b7 **Kind:** `implementation`\n\n## Bounded result\nComplete publicly documented Save As Mesh OBJ options beyond XCH-010/#522's material-free closed-solid, one-file mm/in subset, without regressing printable output.\n\n## Acceptance\n- Research and implement centimeter, meter and foot unit choices and One Body Per File structure with an explicit multi-file publication/cancellation policy. Verify independent readback, naming/collision behavior, selected body/component scope and unchanged authored state.\n- Track surface/mesh bodies, material/color/texture semantics and exact reference defaults as separate bounded children if public evidence or architecture requires splitting; preserve these requirements rather than silently claiming parity from triangle-only solids.\n- Keep documented versus inferred behavior and native versus API evidence separate.\n\n## Dependency\nXCH-010/#522. Public source and unknowns: external `../Alloy-reference-records/knowledge/specs/xch010-obj-output-2026-10-19.md`.\n"
     }
   ]
 }

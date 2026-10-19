@@ -7,8 +7,8 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **600 issues**: **475 implementation, 24 research,
-3 research/design, 22 epics, and 76 validation gates**. Counts describe decomposition, not coverage.
+The current local backlog contains **602 issues**: **476 implementation, 24 research,
+3 research/design, 22 epics, and 77 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 DOC-034/#496 accepts the [active design-unit workflow](../validation/display-units.md)
 through sketch, Extrude and independently read mesh bounds. DOC-038/#597 accepts
@@ -37,7 +37,9 @@ project board. Their public workflow contracts and real-object fixtures remain
 to be researched and implemented; REL-030/#469 still owns final v1 scope review.
 The subsequent ownership audit added six narrow Todo implementation issues
 [#518–#523](github.md) for sketch deletion/diagnosis/intersection, interference
-inspection, OBJ output and active-preview visibility responsiveness. Other
+inspection, OBJ output and active-preview visibility responsiveness. XCH-010/#522
+now accepts the bounded OBJ command and independent Blender readback; XCH-012/#604
+retains native chooser qualification and XCH-013/#605 retains broader options. Other
 broader parent issues must be split when pulled; see
 [the ownership audit](../v1/ownership-audit.md).
 The [partial-row disposition](../v1/partial-row-disposition.md) names the

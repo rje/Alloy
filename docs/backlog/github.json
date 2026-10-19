@@ -2596,7 +2596,7 @@
     "XCH-010": {
       "number": 522,
       "url": "https://github.com/rje/Alloy/issues/522",
-      "state": "open"
+      "state": "closed"
     },
     "REL-048": {
       "number": 523,
@@ -3001,6 +3001,16 @@
     "SOL-076": {
       "number": 603,
       "url": "https://github.com/rje/Alloy/issues/603",
+      "state": "closed"
+    },
+    "XCH-012": {
+      "number": 604,
+      "url": "https://github.com/rje/Alloy/issues/604",
+      "state": "open"
+    },
+    "XCH-013": {
+      "number": 605,
+      "url": "https://github.com/rje/Alloy/issues/605",
       "state": "open"
     }
   }
