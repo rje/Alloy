@@ -2300,7 +2300,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Bounded exact analytic Measure and local API/GPU panel are accepted for named edge, point-line, right-angle, planar and cylindrical fixtures. Native actual-hit controls, overlap ambiguity and source-edit lifecycle remain required under DOC-040/042; wider fields and visual parity remain DOC-041.",
+      "gap": "Bounded exact analytic Measure and local API/GPU panel pass, including overlap/duplicate refusal and source-edit/placed-occurrence lifecycle. Native actual-hit controls remain required under DOC-040; wider fields and visual parity remain DOC-041.",
       "apiIds": [
         "inspect.measure",
         "inspect.measureResult",
@@ -2322,9 +2322,10 @@
         "src/ReferenceView.cpp"
       ],
       "receipts": [
-        "docs/validation/measure.md"
+        "docs/validation/measure.md",
+        "docs/validation/measure-references.md"
       ],
-      "planningStatus": "Bounded analytic core accepted; required native and source-integrity children open"
+      "planningStatus": "Analytic core and source integrity accepted; required native controls open"
     },
     {
       "id": "selection.general",

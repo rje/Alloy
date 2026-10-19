@@ -1,7 +1,7 @@
 # Measure source integrity (DOC-042)
 
-Status: focused implementation and real-application qualification candidate;
-independent compatibility review pending. Native actual-hit controls remain
+Status: bounded implementation and real-application qualification accepted after
+independent Sol review. Native actual-hit controls remain
 DOC-040; the broader Measure modes remain DOC-041/DOC-014.
 
 The existing public-source contract is external at
@@ -64,4 +64,4 @@ retained editable fixtures and a native framebuffer capture. The capture is a
 semantic Alloy layout check only; public matched-state/pixel comparison and
 native input are outside this child. No Windows/Linux or packaged-platform
 runtime, topology repair or broader geometry-family claim follows from this
-fixture. One private validation application is used at a time and exits.
+fixture. One private validation application is used at a time and exits. Independent Sol review found no material blocker for this named scope.
