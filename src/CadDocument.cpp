@@ -2071,7 +2071,7 @@ QJsonObject CadDocument::threadCandidate(const QJsonObject& authored,const QJson
 }
 QJsonObject CadDocument::holeCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
     const QSet<QString> allowed{"sourceSketchId","sourceEntityId","sourcePointId","targetBodyId","placement","holeType","extent",
-        "boreDiameterMm","sinkDiameterMm","includedAngleDeg","name","featureId","newFeatureId","ownerId"};
+        "boreDiameterMm","sinkDiameterMm","includedAngleDeg","distanceMm","name","featureId","newFeatureId","ownerId"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Hole argument");
     if(arguments.contains("featureId") && arguments.contains("newFeatureId"))throw std::invalid_argument("Choose an existing or new Hole identity");
     auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
@@ -2082,10 +2082,12 @@ QJsonObject CadDocument::holeCandidate(const QJsonObject& authored,const QJsonOb
         {"type","hole"},{"name","Hole"},{"visible",true}};
     auto p=feature["parameters"].toObject();
     for(const auto& key:{"sourceSketchId","sourceEntityId","sourcePointId","targetBodyId","placement","holeType","extent",
-        "boreDiameterMm","sinkDiameterMm","includedAngleDeg"})if(arguments.contains(key))p[key]=arguments[key];
+        "boreDiameterMm","sinkDiameterMm","includedAngleDeg","distanceMm"})if(arguments.contains(key))p[key]=arguments[key];
     if(!p.contains("placement"))p["placement"]="fromSketch";
     if(!p.contains("holeType"))p["holeType"]="countersink";
     if(!p.contains("extent"))p["extent"]="all";
+    if(p["holeType"]=="simple") {p.remove("sinkDiameterMm");p.remove("includedAngleDeg");}
+    if(p["extent"]=="all")p.remove("distanceMm");
     feature["parameters"]=p;if(arguments.contains("name"))feature["name"]=arguments["name"];
     if(index<0)features.append(feature);else features[index]=feature;candidate["features"]=features;
     const auto error=validate(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
@@ -2556,16 +2558,27 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             continue;
         }
         if(type=="hole") {
-            if(feature.contains("bodyId") || p.size()!=10 || !validId(p["sourceSketchId"].toString()) || !validId(p["sourceEntityId"].toString())
+            const bool simple=p["holeType"]=="simple",distance=p["extent"]=="distance";
+            if(feature.contains("bodyId") || p.size()!=(simple ? (distance ? 9 : 8) : 10)
+                || !validId(p["sourceSketchId"].toString()) || !validId(p["sourceEntityId"].toString())
                 || !validId(p["sourcePointId"].toString()) || !validId(p["targetBodyId"].toString())
-                || p["placement"]!="fromSketch" || p["holeType"]!="countersink" || p["extent"]!="all")
-                return "Hole requires one retained sketch point, one target and From Sketch Countersink All";
-            for(const auto& key:{"boreDiameterMm","sinkDiameterMm","includedAngleDeg"})if(!p[key].isDouble() || !std::isfinite(p[key].toDouble()))return "Hole dimensions must be finite";
-            const auto bore=p["boreDiameterMm"].toDouble(),sink=p["sinkDiameterMm"].toDouble(),angle=p["includedAngleDeg"].toDouble();
-            if(bore<0.001 || bore>100000 || sink<=bore || sink>100000 || angle<=1 || angle>=179)
-                return "Hole requires positive bore, larger sink and included angle within (1,179) degrees";
-            const auto depth=(sink-bore)/(2*std::tan(angle*std::numbers::pi/360));
-            if(!std::isfinite(depth) || depth<0.001 || depth>100000)return "Hole countersink depth is outside supported bounds";
+                || p["placement"]!="fromSketch" || (!simple && p["holeType"]!="countersink")
+                || (p["extent"]!="all" && !(simple && distance)))
+                return "Hole requires one retained sketch point and target; Simple Distance/All or Countersink All";
+            const auto bore=p["boreDiameterMm"].toDouble();
+            if(!p["boreDiameterMm"].isDouble() || !std::isfinite(bore) || bore<0.001 || bore>100000)
+                return "Hole diameter must be 0.001..100000 mm";
+            if(simple) {
+                if(p.contains("sinkDiameterMm") || p.contains("includedAngleDeg"))return "Simple Hole has no countersink dimensions";
+                if(distance && (!p["distanceMm"].isDouble() || !std::isfinite(p["distanceMm"].toDouble())
+                    || p["distanceMm"].toDouble()<0.001 || p["distanceMm"].toDouble()>100000))return "Hole Distance must be 0.001..100000 mm";
+            } else {
+                for(const auto& key:{"sinkDiameterMm","includedAngleDeg"})if(!p[key].isDouble() || !std::isfinite(p[key].toDouble()))return "Hole dimensions must be finite";
+                const auto sink=p["sinkDiameterMm"].toDouble(),angle=p["includedAngleDeg"].toDouble();
+                if(sink<=bore || sink>100000 || angle<=1 || angle>=179)return "Hole requires larger sink and included angle within (1,179) degrees";
+                const auto depth=(sink-bore)/(2*std::tan(angle*std::numbers::pi/360));
+                if(!std::isfinite(depth) || depth<0.001 || depth>100000)return "Hole countersink depth is outside supported bounds";
+            }
             continue;
         }
         if(type=="chamfer") {

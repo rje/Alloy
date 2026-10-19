@@ -26,14 +26,19 @@ gp_Pnt point(const QJsonArray& values) {
 }
 
 TopoDS_Shape SolidHole::tool(const TopoDS_Shape& target,const gp_Pnt& entry,const gp_Dir& outward,
-    double boreDiameterMm,double sinkDiameterMm,double includedAngleDeg,double* sinkDepthMm) {
-    if(target.IsNull() || !std::isfinite(boreDiameterMm) || !std::isfinite(sinkDiameterMm) || !std::isfinite(includedAngleDeg)
-        || boreDiameterMm<0.001 || sinkDiameterMm<=boreDiameterMm || sinkDiameterMm>100000
-        || includedAngleDeg<=1 || includedAngleDeg>=179)
-        fail("invalid_hole_dimensions","The Countersink dimensions are outside supported bounds");
-    const auto depth=(sinkDiameterMm-boreDiameterMm)/(2*std::tan(includedAngleDeg*std::numbers::pi/360));
-    if(!std::isfinite(depth) || depth<0.001 || depth>100000)
-        fail("invalid_hole_dimensions","The Countersink depth is outside supported bounds");
+    double boreDiameterMm,double sinkDiameterMm,double includedAngleDeg,double* sinkDepthMm,bool simple,double distanceMm) {
+    if(target.IsNull() || !std::isfinite(boreDiameterMm) || boreDiameterMm<0.001 || boreDiameterMm>100000
+        || !std::isfinite(distanceMm) || distanceMm<0 || distanceMm>100000)
+        fail("invalid_hole_dimensions","The Hole dimensions are outside supported bounds");
+    double depth=0;
+    if(!simple) {
+        if(!std::isfinite(sinkDiameterMm) || !std::isfinite(includedAngleDeg) || sinkDiameterMm<=boreDiameterMm
+            || sinkDiameterMm>100000 || includedAngleDeg<=1 || includedAngleDeg>=179)
+            fail("invalid_hole_dimensions","The Countersink dimensions are outside supported bounds");
+        depth=(sinkDiameterMm-boreDiameterMm)/(2*std::tan(includedAngleDeg*std::numbers::pi/360));
+        if(!std::isfinite(depth) || depth<0.001 || depth>100000)
+            fail("invalid_hole_dimensions","The Countersink depth is outside supported bounds");
+    }
     if(sinkDepthMm)*sinkDepthMm=depth;
     const gp_Dir inward=outward.Reversed();
     // An occurrence must still begin on material and enter it in the supported
@@ -51,12 +56,13 @@ TopoDS_Shape SolidHole::tool(const TopoDS_Shape& target,const gp_Pnt& entry,cons
     for(const double x:xs)for(const double y:ys)for(const double z:zs)
         furthest=std::max(furthest,gp_Vec(entry,gp_Pnt(x,y,z)).Dot(gp_Vec(inward)));
     const auto margin=std::max(1.0,0.01*std::hypot(std::hypot(x1-x0,y1-y0),z1-z0));
-    const auto boreLength=furthest+margin;
+    const auto boreLength=distanceMm>0 ? distanceMm : furthest+margin;
     if(!std::isfinite(boreLength) || boreLength<0.001 || boreLength>200000)
         fail("hole_target_unavailable","The Hole target bounds exceed supported All reach");
     const auto start=entry.Translated(gp_Vec(inward)*-1e-3);
     const gp_Ax2 boreAxis(start,inward),sinkAxis(entry,inward);
     const auto bore=BRepPrimAPI_MakeCylinder(boreAxis,boreDiameterMm/2,boreLength+1e-3).Shape();
+    if(simple)return bore;
     const auto sink=BRepPrimAPI_MakeCone(sinkAxis,sinkDiameterMm/2,boreDiameterMm/2,depth).Shape();
     return GeometryKernel::booleanOperation("join",bore,{sink});
 }
@@ -86,7 +92,8 @@ TopoDS_Shape SolidHole::cutter(const EvaluatedDocument& document,const QJsonObje
     const auto n=frame["normal"].toArray();if(n.size()!=3)fail("hole_support_unavailable","The retained support has no normal");
     const gp_Dir outward(n[0].toDouble(),n[1].toDouble(),n[2].toDouble());
     double depth=0;const auto shape=tool(target->shape,entry,outward,p["boreDiameterMm"].toDouble(),
-        p["sinkDiameterMm"].toDouble(),p["includedAngleDeg"].toDouble(),&depth);
+        p["sinkDiameterMm"].toDouble(),p["includedAngleDeg"].toDouble(),&depth,
+        p["holeType"]=="simple",p["extent"]=="distance" ? p["distanceMm"].toDouble() : 0);
     if(details)*details={{"entryMm",chosen["positionMm"]},{"sinkDepthMm",depth}};
     return shape;
 }
@@ -103,6 +110,8 @@ void SolidHole::evaluate(EvaluatedDocument& document,const QJsonObject& feature,
     summary["operation"]="hole";summary["lastModifierFeatureId"]=feature["id"];
     summary["sourceSketchId"]=p["sourceSketchId"];summary["sourceEntityId"]=p["sourceEntityId"];
     summary["sourcePointId"]=p["sourcePointId"];summary["targetBodyId"]=p["targetBodyId"];
+    summary["holeType"]=p["holeType"];summary["extent"]=p["extent"];
+    if(p.contains("distanceMm"))summary["distanceMm"]=p["distanceMm"];
     summary["boreDiameterMm"]=p["boreDiameterMm"];summary["sinkDiameterMm"]=p["sinkDiameterMm"];
     summary["includedAngleDeg"]=p["includedAngleDeg"];summary["sinkDepthMm"]=details["sinkDepthMm"];
     summary["removedVolumeMm3"]=removed;summary["entryMm"]=details["entryMm"];

@@ -27,6 +27,7 @@ fresh blank-document creation, exact saved-model rim continuation, two checked
 printable halves, nominal connector clearance and independent Astra review.
 Exact creator-board fit, physical snaps and native gesture parity remain open
 product quality concerns rather than evidence claimed by this gate.
+SOL-078/#608 accepts [retained Simple Hole](../validation/simple-hole.md) on a supported sketch Point with explicit target and Distance/All, including native controls, upstream edit, downstream Chamfer and independent STL. SOL-079/#609 retains Counterbore; wider placements and thread subtypes stay SOL-007/#52.
 SOL-062/#507 accepts [Cone and Torus New Body primitives](../validation/cone-torus.md)
 through real-app API/GPU, retained editing and independent STL checks.
 SOL-077/#606 accepts native Qt actual-hit Create/Edit controls and readable

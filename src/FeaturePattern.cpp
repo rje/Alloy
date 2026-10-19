@@ -26,7 +26,8 @@ gp_Pnt point(const QJsonArray& values) {
 }
 void evaluateHole(EvaluatedBody& target,const QJsonObject& feature,const QJsonObject& seed,const EvaluatedDocument& prior) {
     const auto p=feature["parameters"].toObject(),source=seed["parameters"].toObject();
-    if(source["targetBodyId"]!=target.bodyId || p["targetBodyId"]!=target.bodyId
+    if(source["holeType"]!="countersink" || source["extent"]!="all"
+        || source["targetBodyId"]!=target.bodyId || p["targetBodyId"]!=target.bodyId
         || p["distribution"]!="spacing" || p["computeType"]!="adjust")
         holeFailure("unsupported_pattern_seed","Hole Pattern requires its retained target, Spacing and Adjust");
     const EvaluatedSketch* sketch=nullptr;
