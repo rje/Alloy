@@ -97,8 +97,8 @@
     },
     "byImplementation": {
       "present": 27,
-      "partial": 77,
-      "missing": 46
+      "partial": 78,
+      "missing": 45
     }
   },
   "tools": [
@@ -1406,7 +1406,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "One Side, Distance/planar To Object/Cut All and offset start are bounded. Symmetric/Two Sides solid, taper, thin-wall and broader extent/support combinations are missing.",
+      "gap": "One Side, Distance/planar To Object/Cut All and offset start are bounded. Symmetric Half/Whole and independent Two Sides Distance New Body now pass bounded Mac fixtures. Taper, thin-wall and broader extent/support/operation combinations remain open.",
       "apiIds": [
         "solid.extrude",
         "solid.extrudeDialog",
@@ -1439,7 +1439,8 @@
         "docs/validation/extrude-to-object.md",
         "docs/validation/extrude-through-all.md",
         "docs/validation/extrude-distance-expression.md",
-        "docs/validation/face-supported-cut-all.md"
+        "docs/validation/face-supported-cut-all.md",
+        "docs/validation/extrude-symmetric-two-sides.md"
       ],
       "options": [
         "One Side",
@@ -1450,7 +1451,9 @@
         "New Body",
         "Join",
         "Cut",
-        "Intersect"
+        "Intersect",
+        "Symmetric Half/Whole Length (Distance, New Body)",
+        "Two Sides independent distances (New Body)"
       ],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },
@@ -3421,9 +3424,9 @@
       "label": "Two Sides/Symmetric, taper and Thin Extrude",
       "category": "Solid create",
       "scope": "proposed-v1",
-      "implementation": "missing",
-      "nativeEvidence": "unknown",
-      "gap": "One-sided solid Extrude lacks these options; surface Two Sides does not fulfill them.",
+      "implementation": "partial",
+      "nativeEvidence": "partial",
+      "gap": "Symmetric Half/Whole and independent Two Sides Distance New Body pass bounded Mac fixtures. Taper, Thin Extrude and broader combinations remain open.",
       "apiIds": [],
       "issueKeys": [
         "SOL-010",
@@ -3432,9 +3435,14 @@
         "SOL-082"
       ],
       "sourceFiles": [
-        "docs/backlog/issues.json"
+        "docs/backlog/issues.json",
+        "src/CadDocument.cpp",
+        "src/GeometryKernel.cpp",
+        "src/AlloyWindow.cpp"
       ],
-      "receipts": [],
+      "receipts": [
+        "docs/validation/extrude-symmetric-two-sides.md"
+      ],
       "planningStatus": "Existing scope owners; verify accepted subset before pulling"
     },
     {

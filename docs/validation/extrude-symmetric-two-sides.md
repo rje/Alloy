@@ -1,8 +1,8 @@
 # Symmetric and Two Sides solid Extrude
 
-SOL-080/#618 local candidate, 2026-10-19. Bounded supported closed-profile
-New Body, Distance, Profile Plane modes. Independent source/API/GPU review found no material implementation blocker;
-final native evidence review is pending acceptance. [Command contract](../research/commands/extrude-symmetric-two-sides.md).
+SOL-080/#618 accepted bounded Mac slice, 2026-10-19. Supported closed-profile
+New Body, Distance, Profile Plane modes. Independent Sol source, API, GPU and
+final native evidence review found no material blocker. [Command contract](../research/commands/extrude-symmetric-two-sides.md).
 
 Implementation preserves authored profile/feature/body IDs and positive cap
 lineage. The evaluator and preview normalize Half Length `d` to `[-d,d]`,
