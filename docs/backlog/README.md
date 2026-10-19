@@ -10,6 +10,11 @@ dependency keys with issue numbers.
 The current local backlog contains **602 issues**: **476 implementation, 24 research,
 3 research/design, 22 epics, and 77 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
+TUT-016/#299 accepts the [cumulative adapted enclosure tutorial](../validation/enclosure-cumulative-gate.md):
+fresh blank-document creation, exact saved-model rim continuation, two checked
+printable halves, nominal connector clearance and independent Astra review.
+Exact creator-board fit, physical snaps and native gesture parity remain open
+product quality concerns rather than evidence claimed by this gate.
 DOC-034/#496 accepts the [active design-unit workflow](../validation/display-units.md)
 through sketch, Extrude and independently read mesh bounds. DOC-038/#597 accepts
 [selected-solid Properties](../validation/body-properties.md) with active-unit

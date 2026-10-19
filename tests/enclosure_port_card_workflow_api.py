@@ -28,6 +28,8 @@ parser.add_argument('--step-tool', required=True)
 parser.add_argument('--record-video', type=Path)
 parser.add_argument('--through-snaps', action='store_true',
                     help='Continue the same from-blank Case through retained snap features.')
+parser.add_argument('--connector-end-offset-mm', type=float, default=0,
+                    help='Signed retained To Object port-cut end offset; -1.5 is the approved nominal-connector clearance adaptation.')
 args = parser.parse_args()
 out = Path(args.output).resolve()
 out.mkdir(parents=True, exist_ok=True)
@@ -361,10 +363,12 @@ with application(args.app, out, command_timeout=120) as (raw, ledger), ExitStack
     close(sum(p['areaMm2'] for p in port_sketch['profiles']), 973.5)
     before_port_cut = next(b for b in inspect()['evaluation']['bodies']
                            if b['bodyId'] == case_body_id)['volumeMm3']
-    stage('Cut all four union cells To Object, inner port wall; Case target only')
+    stage(f'Cut all four union cells To Object, inner port wall; Case target only; end offset {args.connector_end_offset_mm:g} mm')
     call('solid.extrude', {'sketchId': port_sketch_id,
         'profileIds': port_profiles, 'extent': 'toObject',
-        'endSupport': ref(port_inner), 'operation': 'cut',
+        'endSupport': ref(port_inner), 'endOffset': args.connector_end_offset_mm,
+        'units': 'mm',
+        'operation': 'cut',
         'targetBodyIds': [case_body_id]})
     current_case = next(b for b in inspect()['evaluation']['bodies']
                         if b['bodyId'] == case_body_id)
@@ -515,7 +519,8 @@ with application(args.app, out, command_timeout=120) as (raw, ledger), ExitStack
         stop_recording()
         recording = False
     (out / 'enclosure-port-card-receipt.json').write_text(json.dumps({
-        'fixtureSha256': fixture_hash, 'stages': stages, 'referenceFeatureId': reference_id,
+        'fixtureSha256': fixture_hash, 'connectorEndOffsetMm': args.connector_end_offset_mm,
+        'stages': stages, 'referenceFeatureId': reference_id,
         'boardOccurrenceId': board_occurrence, 'caseComponent': case,
         'caseBodyId': case_body_id, 'projectedCircles': peg_sketch['projectedCircles'],
         'pegProfileIds': peg_profiles, 'portOffsetGroupIds': [g['id'] for g in offset_groups],

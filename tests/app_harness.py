@@ -52,7 +52,9 @@ def application(app, output, *, command_timeout=30):
                 call.discovery = json.loads(ready.read_text())
                 yield call, transcript
                 call('app.quit', {'discard':True})
-                assert process.wait(timeout=5) == 0
+                # Closing a large imported assembly can outlast the command
+                # response while Qt drains its native window and worker state.
+                assert process.wait(timeout=20) == 0
             finally:
                 if process.poll() is None:
                     process.terminate()

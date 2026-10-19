@@ -21,7 +21,11 @@ with application(a.app, out, command_timeout=180) as (call, transcript):
         assert state['authored'] == saved
         features = saved['features']
         assert len(features) == 33
-        port = next(f for f in features if f['id'] == '305a8352-674c-4568-bf72-da34ec14c45c')
+        port_sketch = next(f for f in features if f['type'] == 'sketch'
+                           and f['name'] == 'Three linked port clearances')
+        port = next(f for f in features if f['type'] == 'extrude'
+                    and f['parameters'].get('sketchId') == port_sketch['id']
+                    and f['parameters'].get('operation') == 'cut')
         assert port['parameters']['endOffsetMm'] == -1.5
         rim = next(f for f in features if f['type'] == 'fillet' and f['name'] == 'Paired rim round')
         assert rim['parameters']['radiusMm'] == .4

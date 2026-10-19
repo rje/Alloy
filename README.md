@@ -1,6 +1,6 @@
 # Alloy
 
-Current direction: [printable-part v1 plan](https://alloy-v1-review.rjevans1.chatgpt.site) and [versioned inventory](docs/v1/README.md). The user reviewed the design as a reasonable working direction; individual gaps still require bounded completion and verification. The corrected iron tutorial is accepted; the full enclosure remains open.
+Current direction: [printable-part v1 plan](https://alloy-v1-review.rjevans1.chatgpt.site) and [versioned inventory](docs/v1/README.md). The user reviewed the design as a reasonable working direction; individual gaps still require bounded completion and verification. The corrected iron and the [cumulative adapted enclosure tutorial](docs/validation/enclosure-cumulative-gate.md) are accepted, with their documented limits.
 
 [Bounded OBJ export](docs/validation/obj-export.md) now writes selected committed solids as deterministic material-free groups with mm/in coordinates and independent Blender readback. Native chooser input and broader options remain Todo.
 [Core 3MF export](docs/validation/3mf-export.md) now saves separate placed

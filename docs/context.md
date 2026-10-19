@@ -1249,6 +1249,21 @@ history/reopen and GPU clipping pass. A bisected side face refuses ambiguity.
 See [the receipt](validation/section-split-support.md). Historical movie still
 shows the old unavailable section; new separate capture records the fix.
 
+## Cumulative enclosure tutorial gate (2026-10-19)
+
+TUT-016/#299 has fresh from-blank real-app creation footage through the saved
+29-feature snapped Case and a separate continuation from that exact model to
+the final 33-feature rim/fit Case. The final adapted model reopens; both halves
+are valid closed solids, 24 independent half/reference BRep pairs show no
+positive intersection, the nominal connector is 0.5 mm clear of each half,
+and separate STL/STEP exports pass independent readback. The creation runner's
+teardown timed out after completed save/exports; its process then exited and the
+later continuation/reopen runners exited normally. The full stage ledger,
+gallery links and explicit parity/physical-fit limits are in
+[the gate receipt](validation/enclosure-cumulative-gate.md). Historical context
+below describes earlier partial stages and must not override this accepted
+cumulative result.
+
 ## Accepted enclosure recompute improvement (2026-10-14)
 
 REL-009/#356 uses invocation-local solved-history prefixes to remove repeated
