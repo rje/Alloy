@@ -672,7 +672,14 @@ AlloyWindow::AlloyWindow() {
     };
     auto* document = new QTreeWidgetItem(tree_, {"◇  Untitled"});
     auto* settings = new QTreeWidgetItem(document, {"Document Settings"});
-    new QTreeWidgetItem(settings, {"Units: mm"});
+    auto* unitsRow = new QTreeWidgetItem(settings, {"Units: mm"});
+    unitsBrowserButton_ = new QToolButton(tree_);
+    unitsBrowserButton_->setObjectName("browser.documentUnits.change");
+    unitsBrowserButton_->setText("Units: mm  ✎");
+    unitsBrowserButton_->setToolTip("Change active document units");
+    unitsBrowserButton_->setAutoRaise(true);
+    tree_->setItemWidget(unitsRow, 0, unitsBrowserButton_);
+    connect(unitsBrowserButton_, &QToolButton::clicked, this, [this] { execute("document.settings"); });
     upAxisNode_=new QTreeWidgetItem(settings,{"Up: Z"});upAxisNode_->setData(0,Qt::UserRole+4,"viewUp");
     auto* views = new QTreeWidgetItem(document, {"Named Views"});namedViewsNode_=views;
     views->setData(0,Qt::UserRole+4,"namedViews");
@@ -6967,7 +6974,9 @@ void AlloyWindow::refresh() {
         menu->setText(selectionPriority_=="auto" ? "SELECT" : "SELECT · "+selectionPriority_.toUpper());
     refreshSection();
     browser_->setVisible(browserVisible_); timeline_->setVisible(timelineVisible_); navigation_->setVisible(navigationVisible_);
-    tree_->topLevelItem(0)->child(0)->child(0)->setText(0, "Units: " + document_->authored()["displayUnits"].toString());
+    const auto displayUnits = document_->authored()["displayUnits"].toString();
+    tree_->topLevelItem(0)->child(0)->child(0)->setText(0, "Units: " + displayUnits);
+    if (unitsBrowserButton_) unitsBrowserButton_->setText("Units: " + displayUnits + "  ✎");
     const auto label=document_->label();
     const auto title=label+(tabHasUnsavedWork(activeTabId_) ? " *" : "");
     setWindowTitle(title+" — Alloy");documentTitle_->setText("◇   "+title);tree_->topLevelItem(0)->setText(0,"◇  "+label);
@@ -8411,8 +8420,10 @@ void AlloyWindow::refreshExtrudeControls() {
             rows.append({QString("Offset union · %1 loops").arg(ids.size()),choice});
             if(inputs.value("sketchId")==feature.value("id") && inputs.value("profileSelection")==choice.value("profileSelection"))selected=rows.size()-1;
         }
+        const bool inches = inputs.value("units") == "in";
+        const double areaScale = inches ? 25.4 * 25.4 : 1.0;
         for(const auto& sketch:document_->sketches())if(sketch.visible || sketch.featureId==selectedSketch_)for(const auto& profile:sketch.profiles) {
-            rows.append({sketch.name+" · "+QString::number(profile.summary.value("areaMm2").toDouble(),'g',6)+" mm²",
+            rows.append({sketch.name+" · "+QString::number(profile.summary.value("areaMm2").toDouble()/areaScale,'g',6)+(inches ? " in²" : " mm²"),
                 {{"sketchId",sketch.featureId},{"profileId",profile.profileId}}});
             if(selectedProfileIds_.size()==1 && profile.profileId==selectedProfile_ && sketch.featureId==selectedSketch_)selected=rows.size()-1;
         }

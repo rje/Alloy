@@ -233,6 +233,14 @@ Manual Windows run `39195359696` at `c376d5f` was canceled early after a
 second private `near`/`far` pair was found in `SketchSolver.cpp`; it has no
 qualification result. Those locals were renamed without changing the
 calculation at `089bd55`, and local Mac Release Alloy compiled. Windows-only
-[run 39195713105](https://github.com/rje/Alloy/actions/runs/39195713105) is
-the pending native compiler/link gate at that exact commit. No other platform
-matrix was dispatched for this correction.
+[run 39195713105](https://github.com/rje/Alloy/actions/runs/39195713105)
+finished after about 165 minutes. The Windows compile reached Ninja action
+904/935, then MSVC rejected `src/AlloyWindow.cpp` with C1128 (object-file
+section limit; compiler explicitly requested `/bigobj`). This confirms the
+earlier `near`/`far` corrections passed compilation at this pinned commit,
+but Alloy did not link or package. The bounded CMake correction adds `/bigobj`
+to `alloy_application` only for MSVC. Local macOS Release configure/build and
+focused tests are separate evidence; the Windows correction has no native
+compile proof until a future approved run. The user allowed this one run to
+finish and requires fresh approval before any further manual dispatch or
+CI-triggering tag push. No other platform matrix was dispatched.

@@ -725,6 +725,7 @@ private:
     QString geometryWorkLabel(const QString& command,const QJsonObject& args) const;
     QDialog* search_ = nullptr;
     QDialog* unitsDialog_ = nullptr;
+    QToolButton* unitsBrowserButton_ = nullptr;
     QPointer<QDialog> lengthParametersDialog_;
     QComboBox* unitsInput_ = nullptr;
     QLineEdit* searchInput_ = nullptr;

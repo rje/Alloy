@@ -2466,7 +2466,7 @@
     "DOC-034": {
       "number": 496,
       "url": "https://github.com/rje/Alloy/issues/496",
-      "state": "open"
+      "state": "closed"
     },
     "PAR-009": {
       "number": 497,
@@ -2967,6 +2967,11 @@
       "number": 596,
       "url": "https://github.com/rje/Alloy/issues/596",
       "state": "closed"
+    },
+    "DOC-038": {
+      "number": 597,
+      "url": "https://github.com/rje/Alloy/issues/597",
+      "state": "open"
     }
   }
 }

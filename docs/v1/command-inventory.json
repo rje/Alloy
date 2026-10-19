@@ -145,27 +145,29 @@
       "scope": "proposed-v1",
       "implementation": "present",
       "nativeEvidence": "partial",
-      "gap": "Display units mm/in preserve canonical authored millimeters; mixed-unit workflow and full field consistency need release review.",
+      "gap": "Active mm/in sketch dimensions and feature distances preserve canonical geometry; selected-solid Properties readout remains DOC-038, with physical native and other-platform qualification separate.",
       "apiIds": [
         "document.settings",
         "document.units"
       ],
       "issueKeys": [
         "DOC-002",
-        "DOC-034"
+        "DOC-034",
+        "DOC-038"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json",
         "src/AlloyWindow.cpp"
       ],
       "receipts": [
-        "docs/validation/authored-document.md"
+        "docs/validation/authored-document.md",
+        "docs/validation/display-units.md"
       ],
       "options": [
         "mm",
         "in"
       ],
-      "planningStatus": "Existing scope owners; verify accepted subset before pulling"
+      "planningStatus": "DOC-034 accepted for active-unit sketch, feature and mesh workflow; DOC-038 owns selected-solid Properties"
     },
     {
       "id": "document.recovery",

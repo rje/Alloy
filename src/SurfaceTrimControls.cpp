@@ -200,12 +200,15 @@ QJsonObject AlloyWindow::previewSurfaceTrim(bool asynchronous,std::shared_ptr<co
         surfaceTrimPickBodies_.push_back(std::move(staged));
         const auto regionRows=SurfaceTrim::descriptors(split);session_["regions"]=regionRows;
         if(surfaceTrimDock_)if(auto* list=surfaceTrimDock_->findChild<QListWidget*>("surfaceTrim.regions")){
+            const bool inches = document_->authored().value("displayUnits") == "in";
+            const double areaScale = inches ? 25.4 * 25.4 : 1.0;
             int regionIndex=0;
             for(const auto& row:regionRows){const auto item=row.toObject();
                 if(item["removable"].toBool()){
                     ++regionIndex;
-                    list->addItem(QString("%1 region · %2 mm² · %3").arg(item["side"].toString().isEmpty()?QString("Inner %1").arg(regionIndex):item["side"]=="portion"?QString("Portion %1").arg(regionIndex):item["side"].toString())
-                        .arg(item["areaMm2"].toDouble(),0,'f',2)
+                    list->addItem(QString("%1 region · %2 %3 · %4").arg(item["side"].toString().isEmpty()?QString("Inner %1").arg(regionIndex):item["side"]=="portion"?QString("Portion %1").arg(regionIndex):item["side"].toString())
+                        .arg(item["areaMm2"].toDouble()/areaScale,0,'f',2)
+                        .arg(inches ? "in²" : "mm²")
                         .arg(inputs["removedRegionIds"].toArray().contains(item["regionId"])?"remove":"keep"));
                     list->item(list->count()-1)->setToolTip(item["regionId"].toString());
                     list->item(list->count()-1)->setData(Qt::UserRole,item["regionId"]);

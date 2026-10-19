@@ -57,7 +57,7 @@ These are proposed child definitions, **not allocated keys or existing Todo issu
 | PAR-001 / HIS-004 / PRT-002 / XCH-005 | Fix minimum expression grammar/units/field list, then one dependency-refusal/recompute child; split export refinement from per-body batch naming/atomic output when needed; explicitly decide bounded 3MF import versus accepted export-only first-v1 minimum. Preserve import/extensions in later roadmap if deferred. |
 | GATE-050 / REL-018: required exchange composition | Acceptance and dependency amendments are complete in the local/live gates. Keep execution evidence open. Only if execution requires a narrower child: **Qualify edited/reopened printable model through native STEP/STL/3MF export on release packages**. Reuse one accepted bracket/thread plus one two-object 3MF fixture, compare source/export geometry and transforms independently on each supported platform, record archive/revision and failure/Cancel invariants. Stop after this composition; no new thread standards or slicer farm. |
 
-The narrow SOL-059–070, SKT-093–101, DOC-034/037, XCH-010/011 and REL-048 owners remain useful; do not duplicate them merely to make more issues. Research can split a child further only when its existing contract is not finishable.
+The narrow SOL-059–070, SKT-093–101, DOC-034/037/038, XCH-010/011 and REL-048 owners remain useful; do not duplicate them merely to make more issues. Research can split a child further only when its existing contract is not finishable.
 
 ## All-row ownership ledger
 
@@ -68,7 +68,7 @@ Issue suffixes reflect only `github.json`: `o` open, `c` closed, `?` missing. Th
 | # | Inventory row | Scope / disposition | Mapped keys (mirror state) | Action / acceptance remainder |
 | --- | --- | --- | --- | --- |
 | 001 | `document.lifecycle` | proposed-v1 / S | DOC-004(c), DOC-013(c), DOC-015(c), REL-002(o) | REL-002: split migration and interrupted-save remainder; local file slice accepted. |
-| 002 | `document.units` | proposed-v1 / O | DOC-002(c), DOC-034(o) | Existing bounded owner; finalize declared subset and real-workflow evidence before release. |
+| 002 | `document.units` | proposed-v1 / O | DOC-002(c), DOC-034(c), DOC-038(o) | DOC-034 accepts Browser mm/in, sketch/feature display and unchanged printable geometry. DOC-038 retains selected-solid Properties in active units. Physical and packaged runtime remain separate. |
 | 003 | `document.recovery` | proposed-v1 / S | REL-014(c), REL-002(o) | REL-014 committed recovery accepted; split REL-002 migration/large-save remainder. |
 | 004 | `parameter.user` | proposed-v1 / S | PAR-001(o), PAR-003(c), PAR-006(c) | PAR-001 still bundles expression language, units, rename and dependency behavior; fix a minimum contract first. |
 | 005 | `parameter.model` | proposed-v1 / O | PAR-002(c), PAR-004(c), PAR-005(c), PAR-007(c), PAR-008(c), PAR-009(o), PAR-001(o) | PAR-009 bounds angle/length bindings; PAR-001 wider expression language remains a scope decision. |
