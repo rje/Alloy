@@ -3113,6 +3113,25 @@ void ReferenceView::clearExtrusionCue() {
     extrusionCue_.clear();extrusionCueState_={};
     if(!context_.IsNull())context_->UpdateCurrentViewer();
 }
+QJsonObject ReferenceView::faceOffsetCueState() const {
+    if(extrusionCueState_.value("command")!="solid.faceOffset")return {};
+    auto state=extrusionCueState_;state["dragActive"]=extrusionDragActive_;return state;
+}
+void ReferenceView::showFaceOffsetCue(const EvaluatedSupportFace& sourceFace,double distanceMm,const QString& units) {
+    // This baseline always comes from the source history stage, never the moved
+    // candidate face. Presentation replacement must not restart an active drag.
+    GProp_GProps properties;BRepGProp::SurfaceProperties(sourceFace.face,properties);
+    const auto start=properties.CentreOfMass();
+    const auto frame=sourceFace.frame;const auto n=frame.value("normal").toArray();
+    if(n.size()!=3){clearExtrusionCue();return;}
+    const gp_Vec normal(n[0].toDouble(),n[1].toDouble(),n[2].toDouble());
+    const auto end=start.Translated(normal*distanceMm);
+    extrusionCueState_={{"command","solid.faceOffset"},{"distanceMm",distanceMm},{"units",units},
+        {"sourceFace",QJsonObject{{"producerFeatureId",sourceFace.producerFeatureId},{"bodyId",sourceFace.bodyId},{"faceId",sourceFace.faceId}}},
+        {"frame",frame},{"label",QString::number(units=="in"?distanceMm/25.4:distanceMm,'f',2)+" "+units},
+        {"startMm",QJsonArray{start.X(),start.Y(),start.Z()}},{"endMm",QJsonArray{end.X(),end.Y(),end.Z()}}};
+    refreshExtrusionCue();if(!context_.IsNull())context_->UpdateCurrentViewer();
+}
 void ReferenceView::showExtrudeHandle(const EvaluatedProfile& profile,const QJsonArray& sourceProfileIds,const QString& units,const QString& operation,double distanceMm,double startOffsetMm) {
     clearPreviewPresentation();
     if(context_.IsNull())return;
@@ -3130,7 +3149,7 @@ void ReferenceView::setExtrusionCue(const EvaluatedProfile& profile,double dista
     const auto end=start.Translated(direction*std::abs(distanceMm));
     const double displayDistance=units=="in" ? distanceMm/25.4 : distanceMm;
     const QString label=QString::number(displayDistance,'f',2)+" "+units;
-    extrusionCueState_={{"sketchId",profile.sketchId},{"profileId",profile.profileId},{"profileIds",previewProfileIds_},{"distanceMm",distanceMm},{"startOffsetMm",startOffsetMm},
+    extrusionCueState_={{"command","solid.extrude"},{"sketchId",profile.sketchId},{"profileId",profile.profileId},{"profileIds",previewProfileIds_},{"distanceMm",distanceMm},{"startOffsetMm",startOffsetMm},
         {"operation",operation},
         {"units",units},{"label",label},{"plane",profile.plane},{"frame",frame},
         {"startMm",QJsonArray{start.X(),start.Y(),start.Z()}},{"endMm",QJsonArray{end.X(),end.Y(),end.Z()}}};
@@ -3140,16 +3159,39 @@ void ReferenceView::refreshExtrusionCue() {
     if(context_.IsNull() || view_.IsNull() || extrusionCueState_.isEmpty())return;
     for(const auto& cue:extrusionCue_)context_->Remove(cue,false);
     extrusionCue_.clear();
+    // Clear all projected hit data before any projection failure. A normal
+    // pointing into the camera has no meaningful normal-axis pointer mapping.
+    for(const auto* key:{"startScreen","endScreen","axisPixelsPerMm","labelScreen","arrowHeadPixels"})extrusionCueState_.remove(key);
+    extrusionCueState_["visible"]=false;extrusionCueState_["dragAvailable"]=false;
+    extrusionCueState_["unavailableReason"]="projection_unavailable";
     const auto startArray=extrusionCueState_.value("startMm").toArray(),endArray=extrusionCueState_.value("endMm").toArray();
     if(startArray.size()!=3 || endArray.size()!=3)return;
     const gp_Pnt start(startArray[0].toDouble(),startArray[1].toDouble(),startArray[2].toDouble());
     const auto frame=extrusionCueState_.value("frame").toObject();const auto u=frame.value("uAxis").toArray(),n=frame.value("normal").toArray();
+    if(n.size()!=3 || u.size()!=3)return;
     gp_Vec normal(n[0].toDouble(),n[1].toDouble(),n[2].toDouble());if(normal.Magnitude()<1e-9)return;normal.Normalize();
     const auto scale=windowScale();int startX,startY,axisX,axisY;
     view_->Convert(start.X(),start.Y(),start.Z(),startX,startY);
     const auto axisPoint=start.Translated(normal*100.0);view_->Convert(axisPoint.X(),axisPoint.Y(),axisPoint.Z(),axisX,axisY);
     const QPointF axisPixels((axisX-startX)/scale.x()/100.0,(axisY-startY)/scale.y()/100.0);
-    const double axisPixelsPerMm=std::hypot(axisPixels.x(),axisPixels.y());if(axisPixelsPerMm<1e-5)return;
+    const double axisPixelsPerMm=std::hypot(axisPixels.x(),axisPixels.y());
+    if(axisPixelsPerMm<1e-5){
+        extrusionCueState_["unavailableReason"]="normal_aligned_with_view";
+        if(extrusionCueState_.value("command")=="solid.faceOffset"){
+            // Exact numeric entry remains available; do not invent a screen-space
+            // drag direction when the face normal projects to a point.
+            Handle(AIS_TextLabel) label=new AIS_TextLabel;
+            const auto text=extrusionCueState_.value("label").toString()+" · Rotate view to drag";
+            label->SetText(TCollection_ExtendedString(text.toUtf8().constData(),true));label->SetPosition(start);
+            label->SetHeight(14);label->SetFont("Arial");label->SetZoomable(false);
+            label->SetDisplayType(Aspect_TODT_SUBTITLE);label->SetColor(Quantity_Color(.04,.29,.72,Quantity_TOC_sRGB));
+            label->SetColorSubTitle(Quantity_Color(1,1,1,Quantity_TOC_sRGB));label->SetZLayer(Graphic3d_ZLayerId_Topmost);
+            context_->Display(label,0,-1,false);context_->Deactivate(label);extrusionCue_.push_back(label);
+            extrusionCueState_["visible"]=true;
+            extrusionCueState_["labelScreen"]=QJsonObject{{"x",startX/scale.x()},{"y",startY/scale.y()}};
+        }
+        return;
+    }
     const double actualDistance=extrusionCueState_.value("distanceMm").toDouble();
     const double displayDistance=std::abs(actualDistance)*axisPixelsPerMm<30.0
         ? (actualDistance<0 ? -30.0 : 30.0)/axisPixelsPerMm : actualDistance;
@@ -3160,8 +3202,19 @@ void ReferenceView::refreshExtrusionCue() {
     view_->Convert(end.X(),end.Y(),end.Z(),endX,endY);
     const auto sidePoint=end.Translated(side*100.0);view_->Convert(sidePoint.X(),sidePoint.Y(),sidePoint.Z(),sideX,sideY);
     const double alongPixels=std::hypot((endX-startX)/scale.x(),(endY-startY)/scale.y())/length;
-    const double sidePixels=std::hypot((sideX-endX)/scale.x(),(sideY-endY)/scale.y())/100.0;
-    if(alongPixels<1e-5 || sidePixels<1e-5)return;
+    double sidePixels=std::hypot((sideX-endX)/scale.x(),(sideY-endY)/scale.y())/100.0;
+    // Choose the tangent with greater projected width across the normal. A
+    // long tangent projected along the arrow would still collapse its face.
+    auto acrossPixels=[&](int x,int y){return std::abs(axisPixels.x()*(y-endY)/scale.y()/100.0-axisPixels.y()*(x-endX)/scale.x()/100.0)/axisPixelsPerMm;};
+    auto alternate=normal.Crossed(side);
+    if(alternate.Magnitude()>1e-9){
+        alternate.Normalize();const auto point=end.Translated(alternate*100.0);int x,y;view_->Convert(point.X(),point.Y(),point.Z(),x,y);
+        if(acrossPixels(x,y)>acrossPixels(sideX,sideY)){
+            side=alternate;sideX=x;sideY=y;
+            sidePixels=std::hypot((sideX-endX)/scale.x(),(sideY-endY)/scale.y())/100.0;
+        }
+    }
+    if(alongPixels<1e-5 || sidePixels<1e-5 || acrossPixels(sideX,sideY)<1e-5)return;
     const double head=std::min(length*0.36,14.0/alongPixels),wing=6.0/sidePixels;
     const Quantity_Color color(0.04,0.29,0.72,Quantity_TOC_sRGB);
     // Filled geometry keeps the handle legible on drivers that clamp GL lines
@@ -3191,6 +3244,7 @@ void ReferenceView::refreshExtrusionCue() {
     label->SetZoomable(false);label->SetDisplayType(Aspect_TODT_SUBTITLE);label->SetColor(color);
     label->SetColorSubTitle(Quantity_Color(1.0,1.0,1.0,Quantity_TOC_sRGB));
     label->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(label,0,-1,false);context_->Deactivate(label);extrusionCue_.push_back(label);
+    extrusionCueState_["visible"]=true;extrusionCueState_["dragAvailable"]=true;extrusionCueState_.remove("unavailableReason");
     extrusionCueState_["arrowHeadPixels"]=head*alongPixels;extrusionCueState_["labelHeightPixels"]=14;
     extrusionCueState_["startScreen"]=QJsonObject{{"x",startX/scale.x()},{"y",startY/scale.y()}};
     extrusionCueState_["endScreen"]=QJsonObject{{"x",endX/scale.x()},{"y",endY/scale.y()}};
@@ -3214,12 +3268,11 @@ void ReferenceView::clearPreview() {
     applyEditDisplay();
 }
 void ReferenceView::updateExtrusionDrag(const QPointF& position,const QString& phase) {
-    const auto axis=extrusionCueState_.value("axisPixelsPerMm").toObject();
-    const QPointF pixelsPerMm(axis["x"].toDouble(),axis["y"].toDouble());
+    const QPointF pixelsPerMm=extrusionDragAxisPixelsPerMm_;
     const double length2=QPointF::dotProduct(pixelsPerMm,pixelsPerMm);if(length2<1e-10)return;
     const double deltaMm=QPointF::dotProduct(position-extrusionDragPress_,pixelsPerMm)/length2;
     const double distance=std::clamp(extrusionDragInitialMm_+deltaMm,-100000.0,100000.0);
-    dispatch("solid.extrudeDrag",{{"distanceMm",distance},{"x",position.x()},{"y",position.y()},{"phase",phase}});
+    dispatch(extrusionDragCommand_,{{"distanceMm",distance},{"x",position.x()},{"y",position.y()},{"phase",phase}});
     if(!extrusionCueState_.isEmpty())extrusionCueState_["dragActive"]=phase!="end";
 }
 QJsonObject ReferenceView::diagnostics() const {
@@ -3346,7 +3399,8 @@ QJsonObject ReferenceView::diagnostics() const {
     result.insert("editDisplay",QJsonObject{{"sourceSketchId",editSourceSketch_},{"hiddenBodyIds",hiddenBodyIds_}});
     result.insert("combineInputs",QJsonObject{{"targetBodyId",combineTargetId_},{"toolBodyIds",combineToolIds_},
         {"targetColor","blue"},{"toolColor","orange"},{"hiddenSelectedInputsTemporarilyRevealed",true}});
-    result.insert("extrusionCue",extrusionCueState_);
+    result.insert("extrusionCue",extrusionCueState_.value("command")=="solid.faceOffset" ? QJsonObject{} : extrusionCueState_);
+    result.insert("faceOffsetCue",faceOffsetCueState());
     result.insert("cutPreviewToolCount",static_cast<int>(cutTools_.size()));
     result.insert("cutPreviewSelectedProfileCount",static_cast<int>(cutProfileOverlays_.size()));
     result.insert("selectedSupportFace",selectedSupportFace_);
@@ -3582,7 +3636,7 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
             dispatch("sketch.projectPick",{{"x",e->position().x()},{"y",e->position().y()}});
             e->accept();return;
         }
-        if(sketchPlane_.isEmpty() && !extrusionCueState_.isEmpty()) {
+        if(sketchPlane_.isEmpty() && extrusionCueState_.value("dragAvailable").toBool() && !e->modifiers().testFlag(Qt::AltModifier)) {
             const auto start=extrusionCueState_.value("startScreen").toObject(),end=extrusionCueState_.value("endScreen").toObject();
             const QPointF a(start["x"].toDouble(),start["y"].toDouble()),b(end["x"].toDouble(),end["y"].toDouble());
             const auto direction=b-a;const double length2=QPointF::dotProduct(direction,direction);
@@ -3591,6 +3645,10 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
                 if(QLineF(e->position(),a+direction*t).length()<=10.0) {
                     extrusionDragActive_=true;extrusionDragPress_=e->position();
                     extrusionDragInitialMm_=extrusionCueState_.value("distanceMm").toDouble();
+                    const auto axis=extrusionCueState_.value("axisPixelsPerMm").toObject();
+                    extrusionDragAxisPixelsPerMm_=QPointF(axis.value("x").toDouble(),axis.value("y").toDouble());
+                    extrusionDragCommand_=extrusionCueState_.value("command")=="solid.faceOffset" ? "solid.faceOffsetDrag" : "solid.extrudeDrag";
+                    setFocus(Qt::MouseFocusReason);
                     extrusionCueState_["dragActive"]=true;e->accept();return;
                 }
             }

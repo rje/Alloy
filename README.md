@@ -135,6 +135,8 @@ Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,
 alongside completion of the advanced modeling tutorials.
 
+[Retained planar Offset Face](docs/validation/face-offset.md) now supports signed numeric entry and an in-canvas normal drag handle through one editable feature session. Exact edge-reference preservation remains open.
+
 The [Surface Extrude responsiveness gate](docs/validation/surface-extrude-responsive-preview.md)
 now keeps the corrected iron's long edit previews off the UI thread, with
 independently checked navigation, status, geometry, history and reopen evidence.

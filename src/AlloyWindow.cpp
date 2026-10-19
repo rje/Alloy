@@ -2944,6 +2944,26 @@ void AlloyWindow::registerCommands() {
         return document_->state();
     });
     add("solid.faceOffsetDialog","Offset Face","Select one planar solid face and preview a signed retained offset.",faceOffsetSchema,[this](const auto& a){return beginFaceOffset(a);});
+    auto faceOffsetDragDistance=parameter("number","Signed canonical millimeters derived from the face-normal canvas handle.");
+    faceOffsetDragDistance["minimum"]=-100000;faceOffsetDragDistance["maximum"]=100000;
+    auto faceOffsetDragPixel=optional(parameter("number","Viewport-local logical pixel coordinate."));
+    faceOffsetDragPixel["minimum"]=0;faceOffsetDragPixel["maximum"]=10000;
+    auto faceOffsetDragPhase=parameter("string","Handle drag phase.");faceOffsetDragPhase["enum"]=QJsonArray{"move","end"};
+    add("solid.faceOffsetDrag","Drag Offset Face normal","Update the same signed distance and disposable preview through the canvas handle.",
+        {{"distanceMm",faceOffsetDragDistance},{"x",faceOffsetDragPixel},{"y",faceOffsetDragPixel},{"phase",optional(faceOffsetDragPhase)}},[this](const auto& a){
+            if(session_.value("command")!="solid.faceOffset")return failure("no_active_face_offset","Open Offset Face first");
+            if(session_.value("inputs").toObject().value("face").toObject().isEmpty())return failure("face_required","Select one planar solid face first");
+            const auto distance=a.value("distanceMm").toDouble();
+            if(!std::isfinite(distance))return failure("invalid_arguments","Handle distance must be finite","distanceMm");
+            updatingFaceOffsetPreview_=true;
+            const auto updated=execute("command.update",{{"session",session_.value("id")},{"inputs",QJsonObject{{"distanceMm",distance}}}});
+            if(!updated.value("ok").toBool()){updatingFaceOffsetPreview_=false;return updated;}
+            const auto preview=execute("command.preview",{{"session",session_.value("id")}});
+            updatingFaceOffsetPreview_=false;
+            session_["lastArrowDrag"]=QJsonObject{{"distanceMm",distance},{"phase",a.value("phase").toString("move")},
+                {"x",a.value("x")},{"y",a.value("y")},{"source",a.contains("x")&&a.contains("y")?"canvas":"api"}};
+            return preview;
+        });
     auto circularQuantity=parameter("number","Total body occurrences including the original.");circularQuantity["minimum"]=2;circularQuantity["maximum"]=128;
     auto circularExtent=parameter("string","Full 360 degree distribution.");circularExtent["enum"]=QJsonArray{"full"};
     QJsonObject circularSchema{{"sourceBodyId",optional(parameter("string","Active seed body UUID."))},{"axis",optional(parameter("object","Retained {kind:originAxis,axis:Z} reference."))},{"extent",optional(circularExtent)},{"quantity",optional(circularQuantity)},{"featureId",optional(featureId)},{"name",optional(parameter("string","Pattern feature name."))}};
@@ -6179,7 +6199,8 @@ void AlloyWindow::registerCommands() {
             session_["source"]=source;
         }
         if(target=="solid.thread")return previewThread();
-        session_["previewed"] = false;if(target!="solid.extrude" || !updatingExtrudePreview_)view_->clearPreview();
+        session_["previewed"] = false;if((target!="solid.extrude" || !updatingExtrudePreview_)
+            && (target!="solid.faceOffset" || !updatingFaceOffsetPreview_))view_->clearPreview();
         if(target=="solid.faceOffset" || target=="inspect.section" || target=="solid.hole" || target=="solid.sweep" || target=="solid.revolve" || target=="solid.loft") {session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");session_.remove("previewError");}
         if(target=="solid.circularPattern") {session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");session_.remove("previewError");view_->clearPatternAxes();refreshCircularControls();}
         if(target=="solid.rectangularPattern") {session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");view_->clearPatternAxes();}
@@ -13132,6 +13153,8 @@ QJsonObject AlloyWindow::beginFaceOffset(const QJsonObject& overrides) {
         if(!found)return failure("stale_entity","Offset Face feature unavailable");
     }
     for(auto it=overrides.begin();it!=overrides.end();++it)inputs[it.key()]=it.value();
+    if(inputs.value("targetBodyId").toString().isEmpty())
+        inputs["targetBodyId"]=inputs.value("face").toObject().value("bodyId");
     session_={{"id",CadDocument::newId()},{"command","solid.faceOffset"},{"status","active"},{"inputs",inputs},
         {"newFeatureId",inputs.value("newFeatureId").toString(CadDocument::newId())},{"previousFace",selectedFace_},
         {"baseDocumentRevision",static_cast<qint64>(document_->revision())},{"previewed",false},{"geometryEvaluated",false},
@@ -13160,36 +13183,56 @@ QJsonObject AlloyWindow::selectFaceOffsetFace(const QJsonObject& face) {
 
 QJsonObject AlloyWindow::previewFaceOffset() {
     if(faceOffsetDock_)if(auto* buttons=faceOffsetDock_->findChild<QDialogButtonBox*>())buttons->button(QDialogButtonBox::Ok)->setEnabled(false);
-    session_["previewed"]=false;session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");session_.remove("previewError");session_.remove("movedFace");view_->clearPreview();
+    session_["previewed"]=false;session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");session_.remove("previewError");session_.remove("movedFace");
     auto reject=[this](const QString& code,const QString& message,const QJsonObject& diagnostics=QJsonObject{}){
         auto result=failure(code,message);auto details=result.value("error").toObject();details["diagnostics"]=diagnostics;result["error"]=details;session_["previewError"]=details;
         if(faceOffsetDock_)if(auto* label=faceOffsetDock_->findChild<QLabel*>("faceOffsetError"))label->setText(message);return result;
     };
-    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision()))return reject("stale_session","The document changed; cancel and restart Offset Face");
+    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision())){view_->clearPreview();return reject("stale_session","The document changed; cancel and restart Offset Face");}
     const auto inputs=session_.value("inputs").toObject();const auto face=inputs.value("face").toObject();
     if(faceOffsetDock_){
         if(auto* label=faceOffsetDock_->findChild<QLabel*>("faceOffsetSelection"))label->setText(face.isEmpty()?"0 selected": "1 planar face selected");
         if(auto* spin=faceOffsetDock_->findChild<QDoubleSpinBox*>("faceOffsetDistance")){const QSignalBlocker blocker(spin);spin->setValue(inputs.value("distanceMm").toDouble()/(document_->authored().value("displayUnits")=="in"?25.4:1));}
     }
-    if(face.isEmpty())return reject("face_required","Select one planar solid face in the canvas");
-    if(inputs.value("distanceMm").toDouble()==0)return reject("distance_required","Enter a nonzero signed distance; positive follows the outward face normal");
-    QJsonObject candidate;try{candidate=faceOffsetCandidate(inputs);}catch(const std::exception& error){return reject("invalid_arguments",QString::fromUtf8(error.what()));}
-    const auto evaluated=CadDocument::evaluateCandidate(candidate);if(!evaluated.ok)return reject("evaluation_failed",evaluated.error,evaluated.diagnostics);
-    auto stage=evaluated.evaluation;const auto edit=inputs.value("featureId").toString();
+    if(face.isEmpty()){view_->clearPreview();return reject("face_required","Select one planar solid face in the canvas");}
+    const auto edit=inputs.value("featureId").toString();
+    const auto source=edit.isEmpty()?document_->evaluation():document_->evaluationBefore(edit);
+    EvaluatedSupportFace sourceFace;
+    try{sourceFace=GeometryKernel::resolveSketchSupport(source,face);}
+    catch(const std::exception& error){view_->clearPreview();return reject("unsupported_face",QString::fromUtf8(error.what()));}
+    const auto units=document_->authored().value("displayUnits")=="in"?QStringLiteral("in"):QStringLiteral("mm");
+    auto showSource=[&](double distance){
+        for(const auto& body:source.bodies)if(body.bodyId==sourceFace.bodyId){
+            view_->showPreview(body.shape,body.bodyId,true);
+            view_->showFaceOffsetCue(sourceFace,distance,units);
+            view_->selectSupportFace(face,sourceFace.face);
+            return true;
+        }
+        return false;
+    };
+    if(inputs.value("distanceMm").toDouble()==0){
+        if(!showSource(0)){view_->clearPreview();return reject("body_unavailable","Offset Face target solid is unavailable");}
+        return reject("distance_required","Drag the handle or enter a distance.");
+    }
+    QJsonObject candidate;try{candidate=faceOffsetCandidate(inputs);}catch(const std::exception& error){showSource(inputs.value("distanceMm").toDouble());return reject("invalid_arguments",QString::fromUtf8(error.what()));}
+    const auto evaluated=CadDocument::evaluateCandidate(candidate);if(!evaluated.ok){showSource(inputs.value("distanceMm").toDouble());return reject("evaluation_failed",evaluated.error,evaluated.diagnostics);}
+    auto stage=evaluated.evaluation;
     if(!edit.isEmpty()){
         QJsonArray features;for(const auto& entry:candidate.value("features").toArray()){features.append(entry);if(entry.toObject().value("id")==edit)break;}
         auto prefix=candidate;prefix["features"]=features;const auto early=CadDocument::evaluateCandidate(prefix);
-        if(!early.ok)return reject("evaluation_failed",early.error,early.diagnostics);stage=early.evaluation;
+        if(!early.ok){showSource(inputs.value("distanceMm").toDouble());return reject("evaluation_failed",early.error,early.diagnostics);}stage=early.evaluation;
     }
     bool found=false;for(const auto& body:stage->bodies)if(body.bodyId==inputs.value("targetBodyId").toString()){
-        view_->showPreview(body.shape,body.bodyId,true);session_["geometry"]=body.summary;found=true;
+        view_->showPreview(body.shape,body.bodyId,true);
+        view_->showFaceOffsetCue(sourceFace,inputs.value("distanceMm").toDouble(),units);
+        session_["geometry"]=body.summary;found=true;
         const auto id=edit.isEmpty()?session_.value("newFeatureId").toString():edit;
         for(const auto& support:body.supportFaces)if(support.role=="faceOffset.end" && support.producerFeatureId==id){
             QJsonObject moved{{"producerFeatureId",id},{"bodyId",body.bodyId},{"faceId",support.faceId}};view_->selectSupportFace(moved,support.face);session_["movedFace"]=moved;break;
         }
         break;
     }
-    if(!found)return reject("body_unavailable","Offset Face target solid is unavailable");
+    if(!found){showSource(inputs.value("distanceMm").toDouble());return reject("body_unavailable","Offset Face target solid is unavailable");}
     session_["documentDraft"]=candidate;session_["previewed"]=true;session_["geometryEvaluated"]=true;
     if(faceOffsetDock_){if(auto* buttons=faceOffsetDock_->findChild<QDialogButtonBox*>())buttons->button(QDialogButtonBox::Ok)->setEnabled(true);if(auto* label=faceOffsetDock_->findChild<QLabel*>("faceOffsetError"))label->clear();}
     return session_;
@@ -13199,7 +13242,7 @@ void AlloyWindow::showFaceOffset() {
     if(faceOffsetDock_){canvasWindow_->removeDockWidget(faceOffsetDock_);delete faceOffsetDock_;}
     faceOffsetDock_=new QDockWidget("Offset Face",canvasWindow_);faceOffsetDock_->setObjectName("faceOffsetDock");faceOffsetDock_->setFeatures(QDockWidget::DockWidgetMovable|QDockWidget::DockWidgetFloatable);
     auto* panel=new QWidget(faceOffsetDock_);faceOffsetDock_->setWidget(panel);auto* form=new QFormLayout(panel);
-    auto* help=new QLabel("Select one planar solid face. Positive Distance moves along its outward normal; negative moves inward. Preview is discarded by Cancel.",panel);help->setWordWrap(true);form->addRow(help);
+    auto* help=new QLabel("Select one planar face. Positive moves outward; negative moves inward.",panel);help->setWordWrap(true);form->addRow(help);
     auto* selection=new QLabel(panel);selection->setObjectName("faceOffsetSelection");form->addRow("Faces",selection);
     form->addRow("Offset Type",new QLabel("New Offset",panel));
     auto* clear=new QPushButton("Clear",panel);clear->setObjectName("faceOffsetClear");form->addRow(clear);

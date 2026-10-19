@@ -249,6 +249,7 @@ private:
     void refreshExtrudeControls();
     void updateExtrude(const QJsonObject& inputs);
     bool updatingExtrudePreview_ = false;
+    bool updatingFaceOffsetPreview_ = false;
     QString pendingBrowserVisibility_;
     QJsonObject trimPointerInput(const QJsonObject& pixels) const;
     QJsonObject previewTrim(const QJsonObject& inputs);
