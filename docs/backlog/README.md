@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **605 issues**: **478 implementation, 24 research,
+The current local backlog contains **606 issues**: **479 implementation, 24 research,
 3 research/design, 22 epics, and 78 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 REL-052/#587 accepts the [native Save As Mesh sheet keyboard and return slice](../validation/mesh-export-keyboard.md);

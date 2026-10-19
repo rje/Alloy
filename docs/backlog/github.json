@@ -3027,6 +3027,11 @@
       "number": 608,
       "url": "https://github.com/rje/Alloy/issues/608",
       "state": "open"
+    },
+    "SOL-079": {
+      "number": 609,
+      "url": "https://github.com/rje/Alloy/issues/609",
+      "state": "open"
     }
   }
 }
