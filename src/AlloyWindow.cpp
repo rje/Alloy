@@ -2450,7 +2450,7 @@ void AlloyWindow::registerCommands() {
         return response["ok"].toBool() ? response["result"].toObject() : response;
     });
     add("history.failedEditInspect","Inspect Failed Edit","Inspect the transient failed candidate, exact support diagnostic and valid prefix; committed authored state remains valid.",{},[this](const auto&){return failedEditRepair_;});
-    add("history.failedEditBegin","Inspect failed Combine edit","Inspect cached sketch geometry after a missing-support Combine preview.",{},[this](const auto&){
+    add("history.failedEditBegin","Inspect failed Combine edit","Inspect cached sketch geometry after a missing-support or changed-boundary Combine preview.",{},[this](const auto&){
         if(session_.value("command")!="solid.combine")return failure("invalid_session","A failed Combine preview is required");
         const auto diagnostics=session_.value("previewError").toObject().value("diagnostics").toObject();
         const auto inputs=session_.value("inputs").toObject();
