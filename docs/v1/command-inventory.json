@@ -3576,7 +3576,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "accepted-bounded-macos",
-      "gap": "One retained planar face with signed in-canvas normal dragging is accepted; exact edge-reference continuation remains Todo. Multi-face, tangent chain and source-feature modification remain broader scope.",
+      "gap": "One retained planar face with signed in-canvas dragging and qualified straight-edge references is accepted. Rebuilt curved edges, multi-face, tangent chain and source-feature modification remain broader scope.",
       "apiIds": ["solid.faceOffset", "solid.faceOffsetDialog", "solid.faceOffsetDrag"],
       "issueKeys": [
         "ADV-001",
@@ -3589,7 +3589,7 @@
         "docs/backlog/issues.json"
       ],
       "receipts": ["docs/validation/face-offset.md"],
-      "planningStatus": "SOL-067 accepts one retained planar face; SOL-072 accepts drag; SOL-073 retains exact edge references"
+      "planningStatus": "SOL-067 accepts one retained planar face; SOL-072 accepts drag; SOL-073 accepts qualified straight planar edge continuation"
     },
     {
       "id": "solid.face-edit",

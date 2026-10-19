@@ -15,7 +15,8 @@ and shared inspection command.
 [Planar Offset Face](docs/validation/face-offset.md) now creates an editable
 single-face solid modification with live native preview, exact moved-face
 support for a later Hole, signed edit/refusal, history/reopen and checked STL
-bounds. Its in-canvas drag and edge-reference follow-ups remain open.
+bounds. A native in-canvas drag and qualified straight-edge references now
+support a downstream Fillet and linked Project through an Offset edit.
 [Regular sketch polygons](docs/validation/sketch-regular-polygons.md) now have
 three retained creation modes, editable size/count, and a verified extrusion
 and STL path. [Canvas size annotations](docs/validation/sketch-polygon-annotations.md)
@@ -135,7 +136,7 @@ Current priority: [initial-build readiness](docs/initial-build-readiness.md)—
 familiar navigation, reliable everyday controls, recovery and installable packages,
 alongside completion of the advanced modeling tutorials.
 
-[Retained planar Offset Face](docs/validation/face-offset.md) now supports signed numeric entry and an in-canvas normal drag handle through one editable feature session. Exact edge-reference preservation remains open.
+[Retained planar Offset Face](docs/validation/face-offset.md) now supports signed numeric entry, an in-canvas normal drag handle and qualified straight-edge references through one editable feature session. A downstream Fillet and linked Project survive a source edit.
 
 The [Surface Extrude responsiveness gate](docs/validation/surface-extrude-responsive-preview.md)
 now keeps the corrected iron's long edit previews off the UI thread, with

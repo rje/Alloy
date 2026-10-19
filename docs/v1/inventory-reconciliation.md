@@ -178,7 +178,7 @@ Issue suffixes reflect only `github.json`: `o` open, `c` closed, `?` missing. Th
 | 109 | `solid.scale` | proposed-v1 / S | SOL-013(o) | SOL-013: separate uniform Scale child. |
 | 110 | `solid.align` | proposed-v1 / S | SOL-008(o) | SOL-008: separate geometry Align child with source/target/frame/flip policy. |
 | 111 | `solid.body-copy` | proposed-v1 / S | SOL-008(o) | SOL-008: separate retained copy identity child; linked component copy is not body Copy. |
-| 112 | `solid.face-offset` | proposed-v1 / S | ADV-001(o), SOL-016(o), SOL-067(c), SOL-072(c), SOL-073(o) | SOL-067 accepts one retained planar face with native/API, downstream Hole and STL evidence; SOL-072 adds the in-canvas signed handle. Exact edge references remain Todo; multi-face/tangent/source-edit modes remain broader scope. |
+| 112 | `solid.face-offset` | proposed-v1 / S | ADV-001(o), SOL-016(o), SOL-067(c), SOL-072(c), SOL-073(c) | SOL-067 accepts one retained planar face with native/API, downstream Hole and STL evidence; SOL-072 adds the in-canvas signed handle; SOL-073 preserves qualified straight edges for Fillet and linked Project. Rebuilt curves and multi-face/tangent/source-edit modes remain broader scope. |
 | 113 | `solid.face-edit` | proposed-v1 / O | ADV-001(o), SOL-068(o), SOL-069(o), SOL-070(o) | Existing bounded owner; finalize declared subset and real-workflow evidence before release. |
 | 114 | `solid.advanced-fillet` | proposed-v1 / O | SOL-003(o), ADV-005(o), SOL-064(o) | SOL-064 says one advanced mode first; choose variable-radius or chordal. The unchosen mode needs explicit later disposition/owner. |
 | 115 | `solid.advanced-chamfer` | proposed-v1 / S | SOL-005(o) | SOL-005 separate Two Distance and Distance And Angle children. |

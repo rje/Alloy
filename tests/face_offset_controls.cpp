@@ -25,6 +25,68 @@ class FaceOffsetControlsTest final : public QObject {
     QJsonObject inspect(AlloyWindow& window) { return call(window, "document.inspect"); }
     QJsonObject session(AlloyWindow& window) { return window.state().value("activeSession").toObject(); }
 private slots:
+    void offsetEdgeFeedsNativeFilletSelection() {
+        AlloyTheme::apply(*qApp);
+        AlloyWindow window;
+        window.resize(1280, 860);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        ReferenceView* view = nullptr;
+        for (auto* widget : window.findChildren<QWidget*>())
+            if (auto* candidate = dynamic_cast<ReferenceView*>(widget)) view = candidate;
+        QVERIFY(view);
+        call(window, "solid.box", {{"width", 40}, {"depth", 30}, {"height", 20}, {"units", "mm"}});
+        const auto source = inspect(window).value("evaluation").toObject().value("bodies").toArray().first().toObject();
+        QJsonObject top;
+        for (const auto& item : source.value("supportFaces").toArray())
+            if (item.toObject().value("role") == "box.z1") top = item.toObject();
+        QVERIFY(!top.isEmpty());
+        const QJsonObject support{{"producerFeatureId", top.value("producerFeatureId")},
+            {"bodyId", top.value("bodyId")}, {"faceId", top.value("faceId")}};
+        call(window, "solid.faceOffset", {{"targetBodyId", source.value("bodyId")},
+            {"face", support}, {"distanceMm", 5}});
+        const auto offset = inspect(window);
+        const auto body = offset.value("evaluation").toObject().value("bodies").toArray().first().toObject();
+        QString edgeId;
+        for (const auto& item : body.value("solidEdges").toArray()) {
+            const auto edge = item.toObject();
+            if (edge.value("provenance").toObject().value("boxEdge") == "x*y0z1" && edge.value("available").toBool())
+                edgeId = edge.value("edgeId").toString();
+        }
+        QVERIFY(!edgeId.isEmpty());
+        call(window, "view.orientation", {{"name", "isometric"}});
+        call(window, "view.fit");
+        QApplication::setActiveWindow(&window);
+        view->setFocus();
+        QTRY_VERIFY(view->hasFocus());
+        call(window, "solid.filletDialog", {{"targetBodyId", body.value("bodyId")}});
+        QTRY_VERIFY(view->hasFocus());
+        const auto pixel = call(window, "view.projectEdge", {{"bodyId", body.value("bodyId")}, {"edgeId", edgeId}});
+        const QPoint hit(qRound(pixel.value("x").toDouble()), qRound(pixel.value("y").toDouble()));
+        QCOMPARE(QApplication::widgetAt(view->mapToGlobal(hit)), static_cast<QWidget*>(view));
+        QTest::mouseClick(view, Qt::LeftButton, Qt::NoModifier, hit);
+        QTRY_VERIFY(session(window).value("inputs").toObject().value("edgeIds").toArray().contains(edgeId));
+        auto* radius = window.findChild<QDoubleSpinBox*>("filletRadius");
+        QVERIFY(radius && radius->isVisible());
+        QTest::mouseClick(radius, Qt::LeftButton);
+        QTest::keyClick(radius, Qt::Key_A, Qt::ControlModifier);
+        QTest::keyClicks(radius, "1");
+        QTest::keyClick(radius, Qt::Key_Return);
+        QTRY_VERIFY(session(window).value("previewed").toBool());
+        QCOMPARE(inspect(window).value("authored").toObject(), offset.value("authored").toObject());
+        const auto evidence = qEnvironmentVariable("ALLOY_FACE_OFFSET_EVIDENCE");
+        if (!evidence.isEmpty()) call(window, "capture.screenshot", {{"path", evidence + "/native-offset-edge-fillet.png"}});
+        auto* dock = window.findChild<QDockWidget*>("filletDock");
+        QVERIFY(dock);
+        auto* buttons = dock->findChild<QDialogButtonBox*>();
+        QVERIFY(buttons && buttons->button(QDialogButtonBox::Cancel));
+        QTest::mouseClick(buttons->button(QDialogButtonBox::Cancel), Qt::LeftButton);
+        QVERIFY(session(window).isEmpty());
+        QCOMPARE(inspect(window).value("authored").toObject(), offset.value("authored").toObject());
+        call(window, "document.new", {{"discard", true}});
+        window.close();
+    }
+
     void canvasHandleDragKeepsSessionAndCancels() {
         AlloyTheme::apply(*qApp);
         AlloyWindow window;

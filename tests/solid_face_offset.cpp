@@ -6,12 +6,16 @@
 #include <BRepBuilderAPI_MakePolygon.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepAdaptor_Surface.hxx>
+#include <BRepAdaptor_Curve.hxx>
+#include <BRep_Tool.hxx>
+#include <TopExp.hxx>
 #include <TopExp_Explorer.hxx>
 #include <TopoDS.hxx>
 #include <QCoreApplication>
 #include <QTemporaryDir>
 #include <iostream>
 #include <cmath>
+#include <algorithm>
 static void check(bool b,const char* m){if(!b)throw std::runtime_error(m);}
 static void commit(CadDocument& d,const QJsonObject& a){auto e=d.commit(a,"Offset Face fixture");if(!e.isEmpty())throw std::runtime_error(e.toStdString());}
 static QJsonObject ref(const EvaluatedSupportFace& f){return {{"bodyId",f.bodyId},{"producerFeatureId",f.producerFeatureId},{"faceId",f.faceId}};}
@@ -28,21 +32,63 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
             {{"origin",QJsonArray{0,0,10}},{"normal",QJsonArray{0,0,1}},{"uAxis",QJsonArray{1,0,0}},{"vAxis",QJsonArray{0,1,0}}},{},{}});
  }
  check(angled.supportFaces.size()==1,"Angled top identity");
+ QString slopedRimId;
+ for(TopExp_Explorer it(angled.supportFaces[0].face,TopAbs_EDGE);it.More();it.Next()){
+    const auto edge=TopoDS::Edge(it.Current());const BRepAdaptor_Curve curve(edge);
+    if(curve.GetType()!=GeomAbs_Line)continue;
+    const auto start=curve.Value(curve.FirstParameter()),end=curve.Value(curve.LastParameter());
+    if(std::abs(start.X()-15)>1e-6||std::abs(end.X()-15)>1e-6||
+        std::abs(start.Z()-10)>1e-6||std::abs(end.Z()-10)>1e-6)continue;
+    check(slopedRimId.isEmpty(),"Unique sloped top rim");slopedRimId=CadDocument::newId();
+    const QJsonObject provenance{{"endpointProvenance","currentKernelBoundary"},
+        {"startMm",QJsonArray{start.X(),start.Y(),start.Z()}},{"endMm",QJsonArray{end.X(),end.Y(),end.Z()}}};
+    angled.solidEdges.push_back({slopedRimId,edge,provenance});
+    angled.supportFaces[0].boundaryEdges.push_back({slopedRimId,"line",edge,provenance});
+ }
+ check(!slopedRimId.isEmpty(),"Sloped source rim");
  for(double distance:{2.,-2.}){auto result=angled;
     SolidFaceOffset::evaluate(result,{{"face",ref(angled.supportFaces[0])},{"targetBodyId",angled.bodyId},{"distanceMm",distance}},CadDocument::newId());
     check(std::abs(result.summary["volumeMm3"].toDouble()-(distance>0?4080:2880))<1e-5,"Angled-adjacent true offset volume");
     check(result.supportFaces.size()==1&&std::abs(result.supportFaces[0].frame["origin"].toArray()[2].toDouble()-10-distance)<1e-6,"Angled exact moved support");
+    auto named=std::find_if(result.solidEdges.begin(),result.solidEdges.end(),[&](const auto& edge){return edge.edgeId==slopedRimId;});
+    check(named!=result.solidEdges.end()&&!named->edge.IsNull(),"Sloped rim exact descendant");
+    const BRepAdaptor_Curve current(named->edge);
+    for(const auto& point:{current.Value(current.FirstParameter()),current.Value(current.LastParameter())})
+        check(std::abs(point.X()-(distance>0?14:16))<1e-5&&std::abs(point.Z()-10-distance)<1e-5,"Sloped rim true retrimmed coordinates");
+    const auto start=named->provenance["startMm"].toArray(),end=named->provenance["endMm"].toArray();
+    check(start.size()==3&&end.size()==3&&std::abs(start[0].toDouble()-(distance>0?14:16))<1e-5
+        &&std::abs(end[0].toDouble()-(distance>0?14:16))<1e-5,"Sloped rim refreshed endpoint metadata");
+    check(result.supportFaces[0].boundaryEdges.size()==1&&result.supportFaces[0].boundaryEdges[0].edgeId==slopedRimId,
+        "Sloped top boundary retains exact rim identity");
  }
  CadDocument d;auto a=d.authored();QJsonObject box{{"id",CadDocument::newId()},{"bodyId",CadDocument::newId()},{"ownerId",a["documentId"]},{"type","box"},{"name","Box"},{"visible",true},{"parameters",QJsonObject{{"xMm",0},{"yMm",0},{"zMm",0},{"widthMm",20},{"depthMm",20},{"heightMm",10}}}};
  a["features"]=QJsonArray{box};commit(d,a);QJsonObject selected;
+ QString boxTopRimId,boxBottomRimId;
+ for(const auto& edge:d.bodies()[0].solidEdges){
+    if(edge.provenance["boxEdge"]=="x*y0z1")boxTopRimId=edge.edgeId;
+    if(edge.provenance["boxEdge"]=="x*y0z0")boxBottomRimId=edge.edgeId;
+ }
+ check(!boxTopRimId.isEmpty()&&!boxBottomRimId.isEmpty(),"Box source rim identities");
  for(const auto& f:d.bodies()[0].supportFaces)if(f.frame["normal"].toArray()[2].toDouble()>.99)selected=ref(f);
  check(!selected.isEmpty(),"Top support");
  auto candidate=CadDocument::faceOffsetCandidate(a,{{"targetBodyId",box["bodyId"]},{"face",selected},{"distanceMm",2}});commit(d,candidate);
  const auto id=d.authored()["features"].toArray().last().toObject().value("id");
  check(std::abs(d.bodies()[0].summary["volumeMm3"].toDouble()-4800)<1e-5,"Positive offset volume");
+ auto rim=[&](const QString& edgeId){const auto& edges=d.bodies()[0].solidEdges;
+    return std::find_if(edges.begin(),edges.end(),[&](const auto& edge){return edge.edgeId==edgeId;});};
+ check(rim(boxTopRimId)!=d.bodies()[0].solidEdges.end()&&!rim(boxTopRimId)->edge.IsNull(),"Top rim retained");
+ check(rim(boxBottomRimId)!=d.bodies()[0].solidEdges.end()&&!rim(boxBottomRimId)->edge.IsNull(),"Bottom rim retained");
+ check(std::abs(rim(boxTopRimId)->provenance["startMm"].toArray()[2].toDouble()-12)<1e-6,"Top rim endpoint moved");
+ check(std::abs(rim(boxBottomRimId)->provenance["startMm"].toArray()[2].toDouble())<1e-6,"Bottom rim endpoint unchanged");
+ bool capHasRim=false;for(const auto& face:d.bodies()[0].supportFaces)if(face.role=="faceOffset.end")
+    for(const auto& edge:face.boundaryEdges)if(edge.edgeId==boxTopRimId)capHasRim=true;
+ check(capHasRim,"Moved cap boundary retains top rim identity");
  const auto created=d.authored();d.history().undo();check(d.authored()==a,"Undo");d.history().redo();check(d.authored()==created,"Redo");
  commit(d,CadDocument::faceOffsetCandidate(d.authored(),{{"featureId",id},{"distanceMm",-2}}));
  check(std::abs(d.bodies()[0].summary["volumeMm3"].toDouble()-3200)<1e-5,"Negative offset volume");
+ check(rim(boxTopRimId)!=d.bodies()[0].solidEdges.end()&&!rim(boxTopRimId)->edge.IsNull()
+    &&std::abs(rim(boxTopRimId)->provenance["startMm"].toArray()[2].toDouble()-8)<1e-6,
+    "Top rim stable on negative edit");
  commit(d,CadDocument::faceOffsetCandidate(d.authored(),{{"featureId",id},{"distanceMm",2}}));
  EvaluatedSupportFace moved;for(const auto& f:d.bodies()[0].supportFaces)if(f.role=="faceOffset.end")moved=f;
  check(!moved.face.IsNull()&&moved.producerFeatureId==id.toString(),"Exact retained moved support");
