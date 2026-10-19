@@ -36,7 +36,11 @@ void AlloyWindow::registerMeasureCommands(){
         auto* results=dialog->findChild<QLabel*>("measure.Results");
         results->setTextInteractionFlags(Qt::LinksAccessibleByMouse);
         connect(results,&QLabel::linkActivated,this,[](const QString& value){QApplication::clipboard()->setText(value);});
-        connect(dialog,&QDialog::finished,this,[this]{measureDialog_=nullptr;measureSources_={};measureDocument_=nullptr;view_->clearSweepPath();view_->clearSolidEdgeHighlights();view_->selectSupportFace({},{});view_->selectFinishedPoint({});});refreshMeasure();dialog->show();dialog->move(mapToGlobal(QPoint(std::max(0,width()-dialog->width()-24),220)));view_->setFocus();return QJsonObject{{"dialog","measure.dialog"}};
+        connect(dialog,&QDialog::finished,this,[this]{measureDialog_=nullptr;measureSources_={};measureDocument_=nullptr;view_->clearSweepPath();view_->clearSolidEdgeHighlights();view_->selectSupportFace({},{});view_->selectFinishedPoint({});
+            // Closing the modeless inspector must return keyboard commands to
+            // the canvas. A modeling session that closed it owns its own focus.
+            if(session_.isEmpty()){activateWindow();view_->setFocus();}
+        });refreshMeasure();dialog->show();dialog->move(mapToGlobal(QPoint(std::max(0,width()-dialog->width()-24),220)));view_->setFocus();return QJsonObject{{"dialog","measure.dialog"}};
     }});
     auto* shortcut=new QShortcut(QKeySequence("I"),this);connect(shortcut,&QShortcut::activated,this,[this]{if(session_.isEmpty())execute("inspect.measure");});
 }
