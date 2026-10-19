@@ -1,7 +1,7 @@
 # Native Measure selection and controls (DOC-040)
 
-Status: implementation and bounded macOS Qt-delivered native qualification pass;
-independent compatibility review is pending. Physical OS input, Windows/Linux
+Status: bounded macOS Qt-delivered native qualification accepted after independent
+Sol review and a corrected result-label layout. Physical OS input, Windows/Linux
 runtime and packaged-release qualification are separate. No full visual-parity
 claim follows from this receipt.
 
@@ -65,7 +65,13 @@ viewport picking passing at both. `QT_SCALE_FACTOR=0.5` obtains the 1× backing
 ratio on this Retina desktop; this is not a physical monitor-switch test.
 `point-line.png`, `right-angle.png`, `planar.png`, `body-edge.png` and
 `cylindrical.png` combine native QWidget chrome and the OCCT GPU framebuffer.
-Inspected captures have readable names/results and visible selected geometry;
+The independent review found `right-angle.png` clipped its second result at
+both scales despite passing text assertions. The result label now reserves
+height for each displayed line and the dialog layout honors that minimum.
+The focused native sequence was rerun at 1× and 2×; its updated label-height
+assertion passes, and both refreshed `layout-fix/native-*/right-angle.png`
+captures visibly show `Angle: 90.0000 deg` above Clear Selection. Other
+inspected captures have readable names/results and visible selected geometry;
 1×/2× use the same logical fixture. No post-build resize, physical display move
 or other-platform GPU evidence is claimed.
 
@@ -89,5 +95,5 @@ fields and wider geometry pairs. The external visual provenance/check is
 `knowledge/visuals/doc040-measure-2026-10-19/provenance.md`.
 
 All private editor/test processes exit between runs. No CI, tag, publication or
-other-platform runtime was performed. DOC-040's issue disposition belongs to the
-independent reviewer/root; this receipt does not close backlog items.
+other-platform runtime was performed. This accepts the bounded native control
+gate; cumulative candidate-package qualification remains open.

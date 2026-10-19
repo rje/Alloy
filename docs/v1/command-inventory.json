@@ -2316,7 +2316,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "Bounded exact analytic Measure and local API/GPU panel pass, including overlap/duplicate refusal and source-edit/placed-occurrence lifecycle. Native actual-hit controls remain required under DOC-040; wider fields and visual parity remain DOC-041.",
+      "gap": "Bounded exact analytic Measure, source integrity and native actual-hit Mac controls pass, including 1\u00d7/2\u00d7 GPU captures and unchanged authored state. Wider fields/visual parity remain DOC-041; physical input and packaged platform runtime remain release gates.",
       "apiIds": [
         "inspect.measure",
         "inspect.measureResult",
@@ -2339,9 +2339,10 @@
       ],
       "receipts": [
         "docs/validation/measure.md",
-        "docs/validation/measure-references.md"
+        "docs/validation/measure-references.md",
+        "docs/validation/measure-native.md"
       ],
-      "planningStatus": "Analytic core and source integrity accepted; required native controls open"
+      "planningStatus": "First-v1 bounded Measure minimum accepted; cumulative release qualification open"
     },
     {
       "id": "selection.general",

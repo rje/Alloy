@@ -91,6 +91,7 @@ private slots:
   call(w,"capture.screenshot",{{"path",output+"/point-line.png"}});
   QCOMPARE(call(w,"document.inspect"),savedBefore);
   clear();click(view,pixel(42.5,0));click(view,pixel(45,2.5));QTRY_VERIFY(results()->text().contains("90.0000 deg"));
+  QVERIFY(results()->height()>=results()->fontMetrics().lineSpacing()*2+4);
   call(w,"capture.screenshot",{{"path",output+"/right-angle.png"}});
   clear();filter("Face");const auto fp=call(w,"view.projectSketchPoint",{{"plane","XY"},{"uMm",70},{"vMm",5}});
   click(view,QPoint(qRound(fp.value("x").toDouble()),qRound(fp.value("y").toDouble())));QTRY_VERIFY(results()->text().contains("200.0000 mm"));

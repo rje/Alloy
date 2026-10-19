@@ -28,7 +28,7 @@ void AlloyWindow::registerMeasureCommands(){
         if(measureDialog_){measureDialog_->raise();return QJsonObject{{"dialog","measure.dialog"}};}
         measureSources_={};measureDocument_=document_;auto* dialog=new QDialog(this);measureDialog_=dialog;
         dialog->setObjectName("measure.dialog");dialog->setWindowTitle("Measure");dialog->setAttribute(Qt::WA_DeleteOnClose);dialog->resize(340,320);
-        auto* layout=new QVBoxLayout(dialog);layout->addWidget(new QLabel("Select geometry in the canvas",dialog));
+        auto* layout=new QVBoxLayout(dialog);layout->setSizeConstraint(QLayout::SetMinimumSize);layout->addWidget(new QLabel("Select geometry in the canvas",dialog));
         auto* filter=new QComboBox(dialog);filter->setObjectName("measure.filter");filter->addItems({"Edge","Face","Point"});layout->addWidget(filter);
         for(const auto* name:{"Selection 1","Selection 2","Results"}){layout->addWidget(new QLabel(name,dialog));auto* label=new QLabel(dialog);label->setWordWrap(true);label->setObjectName(QString("measure.")+name);layout->addWidget(label);}
         auto* clear=new QPushButton("Clear Selection",dialog);clear->setObjectName("measure.clear");layout->addWidget(clear);connect(clear,&QPushButton::clicked,this,[this]{execute("inspect.measureClear");});
@@ -62,6 +62,11 @@ void AlloyWindow::refreshMeasure(){
     for(const auto& entry:result.value("measurements").toArray()){const auto m=entry.toObject();const auto text=QString::number(m.value("value").toDouble(),'f',4)+" "+m.value("unit").toString();lines.append(m.value("name").toString()+": <a href=\""+text.toHtmlEscaped()+"\">"+text.toHtmlEscaped()+"</a>");}
     if(lines.isEmpty())lines.append(result.value("error").toObject().value("message").toString());
     auto* label=measureDialog_->findChild<QLabel*>("measure.Results");label->setText(lines.join("<br>"));
+    // Rich-text QLabel can keep its one-line height after a second result is
+    // added. Reserve enough space for every displayed measurement before the
+    // layout places the Clear and Close controls below it.
+    label->setMinimumHeight(std::max(label->sizeHint().height(),label->fontMetrics().lineSpacing()*int(lines.size())+4));
+    measureDialog_->layout()->activate();
 }
 QJsonObject AlloyWindow::pickMeasure(double x,double y){
     const auto filter=measureDialog_->findChild<QComboBox*>("measure.filter")->currentText();QJsonObject source;
