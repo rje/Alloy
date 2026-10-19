@@ -247,7 +247,7 @@ CoreMesh coreMesh(const EvaluatedBody& body,const gp_Trsf& placement,double devi
         reject("solid_required","Each selected export body must be one valid closed solid: "+body.bodyId);
     BRepBuilderAPI_Copy copy(body.shape,true,false);auto detached=copy.Shape();
     BRepMesh_IncrementalMesh mesher(detached,deviation,false,angle*std::numbers::pi/180.0,false);
-    if(!mesher.IsDone())reject("mesh_failed","3MF export tessellation did not complete");
+    if(!mesher.IsDone())reject("mesh_failed","Indexed export tessellation did not complete");
     CoreMesh result;result.status=mesher.GetStatusFlags();
     // A fixed sub-micron weld joins shared BRep face seams, including analytic
     // poles. It never grows with mesh deviation; final indexed manifold checks
@@ -263,7 +263,7 @@ CoreMesh coreMesh(const EvaluatedBody& body,const gp_Trsf& placement,double devi
         for(int axis=0;axis<3;++axis) {
             const double value=encoded.m_Coordinates[axis];
             if(!std::isfinite(value) || std::abs(value/weldMm)>double(std::numeric_limits<qint64>::max())-4)
-                reject("mesh_failed","3MF vertex exceeds supported finite coordinate range");
+                reject("mesh_failed","Indexed mesh vertex exceeds supported finite coordinate range");
             cell[axis]=qint64(std::floor(value/weldMm));
         }
         for(int x=-1;x<=1;++x)for(int y=-1;y<=1;++y)for(int z=-1;z<=1;++z) {
@@ -275,7 +275,7 @@ CoreMesh coreMesh(const EvaluatedBody& body,const gp_Trsf& placement,double devi
                 if(distance2<=weldMm*weldMm)return index;
             }
         }
-        if(result.vertices.size()>=std::numeric_limits<quint32>::max())reject("mesh_failed","3MF vertex count exceeds Core index range");
+        if(result.vertices.size()>=std::numeric_limits<quint32>::max())reject("mesh_failed","Indexed mesh vertex count exceeds Core index range");
         const auto index=quint32(result.vertices.size());result.vertices.push_back(encoded);cells[cell].push_back(index);return index;
     };
     for(TopExp_Explorer it(detached,TopAbs_FACE);it.More();it.Next()) {
@@ -295,7 +295,7 @@ CoreMesh coreMesh(const EvaluatedBody& body,const gp_Trsf& placement,double devi
             result.triangles.push_back(triangle);
         }
     }
-    if(result.triangles.empty())reject("mesh_failed","3MF export tessellation is empty");
+    if(result.triangles.empty())reject("mesh_failed","Indexed export tessellation is empty");
     struct Edge {int count=0,balance=0;};std::map<std::pair<quint32,quint32>,Edge> edges;
     // Signed volume relative to a nearby origin avoids cancellation for bodies
     // placed far from the document origin. Cavity shell orientation is retained.
@@ -310,8 +310,8 @@ CoreMesh coreMesh(const EvaluatedBody& body,const gp_Trsf& placement,double devi
         volume6+=points[0].Dot(points[1].Crossed(points[2]));
     }
     for(const auto& [key,edge]:edges)if(edge.count!=2 || edge.balance!=0)
-        reject("mesh_failed","3MF tessellation is not a consistently oriented watertight indexed mesh: "+body.bodyId);
-    if(!std::isfinite(volume6) || volume6==0)reject("mesh_failed","3MF mesh has no finite enclosed volume");
+        reject("mesh_failed","Indexed mesh tessellation is not a consistently oriented watertight indexed mesh: "+body.bodyId);
+    if(!std::isfinite(volume6) || volume6==0)reject("mesh_failed","Indexed export mesh has no finite enclosed volume");
     if(volume6<0)for(auto& triangle:result.triangles)std::swap(triangle.m_Indices[1],triangle.m_Indices[2]);
     return result;
 }
@@ -378,6 +378,65 @@ QJsonObject MeshExport::write3mf(const std::vector<EvaluatedBody>& bodies,
         {"units","mm"},{"unitsEmbedded",true},{"surfaceDeviationMm",surfaceDeviationMm},{"normalDeviationDeg",normalDeviationDeg},
         {"triangles",triangles},{"vertices",vertices},{"collapsedTrianglesRemoved",collapsed},{"faces",faces},
         {"bytes",qint64(bytes.size())},{"mesherStatus",mesherStatus},{"authoredChanged",false}};
+    if(bodies.size()==1)result["bodyId"]=bodies.front().bodyId;
+    return result;
+}
+
+QJsonObject MeshExport::writeObj(const std::vector<EvaluatedBody>& bodies,const QString& path,
+    const QString& units,double surfaceDeviationMm,double normalDeviationDeg,
+    const std::function<bool()>& approvePublication) {
+    if(units!="mm" && units!="in")reject("invalid_units","OBJ output units must be mm or in");
+    if(!std::isfinite(surfaceDeviationMm) || surfaceDeviationMm<0.001 || surfaceDeviationMm>10
+        || !std::isfinite(normalDeviationDeg) || normalDeviationDeg<1 || normalDeviationDeg>45)
+        reject("invalid_mesh_settings","Surface deviation must be 0.001–10 mm and normal deviation 1–45 degrees");
+    const QFileInfo destination(path);
+    if(!destination.isAbsolute() || destination.fileName().isEmpty() || !destination.dir().exists())
+        reject("invalid_path","Choose an absolute OBJ path in an existing directory");
+    if(bodies.empty())reject("solid_required","Select at least one valid closed solid");
+    QSaveFile output(path);output.setDirectWriteFallback(false);
+    if(!output.open(QIODevice::WriteOnly))reject("export_failed",output.errorString());
+    const auto write=[&](const QByteArray& bytes){if(output.write(bytes)!=bytes.size())reject("export_failed",output.errorString());};
+    write("# Alloy triangle mesh\n# Coordinates: "+units.toLatin1()+"; world axes, Z up\n");
+    QSet<QString> distinct;QJsonArray bodyIds,instances;
+    qint64 triangles=0,vertices=0,collapsed=0;int faces=0,status=0;
+    const double scale=units=="in" ? 1.0/25.4 : 1.0;
+    try {
+        for(size_t index=0;index<bodies.size();++index) {
+            const auto& body=bodies[index];const auto key=body.occurrenceId+":"+body.bodyId;
+            if(body.bodyId.isEmpty() || distinct.contains(key))reject("invalid_body_selection","Select distinct body instances");
+            distinct.insert(key);bodyIds.append(body.bodyId);
+            // Reuse the validated indexed mesh and fixed sub-micron seam weld.
+            // Identity placement retains world coordinates; groups never weld
+            // across separate bodies. Generated ASCII identifiers cannot inject
+            // OBJ records through user-authored names.
+            const auto mesh=coreMesh(body,gp_Trsf(),surfaceDeviationMm,normalDeviationDeg);
+            const auto group=QByteArray("body_")+QByteArray::number(index+1);
+            write("g "+group+"\n");
+            for(const auto& vertex:mesh.vertices) {
+                QByteArray line="v";
+                for(int axis=0;axis<3;++axis)line+=' '+QByteArray::number(double(vertex.m_Coordinates[axis])*scale,'g',17);
+                write(line+'\n');
+            }
+            for(const auto& triangle:mesh.triangles) {
+                QByteArray line="f";
+                for(int axis=0;axis<3;++axis)line+=' '+QByteArray::number(vertices+triangle.m_Indices[axis]+1);
+                write(line+'\n');
+            }
+            instances.append(QJsonObject{{"occurrenceId",body.occurrenceId},{"definitionId",body.definitionId},{"bodyId",body.bodyId},
+                {"group",QString::fromLatin1(group)},{"boundsMm",body.summary.value("boundsMm")},
+                {"triangles",qint64(mesh.triangles.size())},{"vertices",qint64(mesh.vertices.size())}});
+            vertices+=qint64(mesh.vertices.size());triangles+=qint64(mesh.triangles.size());collapsed+=mesh.collapsed;
+            faces+=mesh.faces;status|=mesh.status;
+        }
+    } catch(const Standard_Failure& error){reject("mesh_failed","OBJ tessellation: "+QString::fromUtf8(error.GetMessageString()));}
+    const auto bytes=output.size();
+    if(approvePublication && !approvePublication())reject("export_cancelled","OBJ publication cancelled; destination preserved");
+    if(!output.commit())reject("export_failed",output.errorString());
+    QJsonObject result{{"path",destination.absoluteFilePath()},{"format","obj"},{"units",units},{"unitsEmbedded",false},
+        {"axisConvention","worldZUp"},{"materials",false},{"groupCount",int(bodies.size())},{"bodyCount",int(bodies.size())},
+        {"bodyIds",bodyIds},{"instances",instances},{"surfaceDeviationMm",surfaceDeviationMm},{"normalDeviationDeg",normalDeviationDeg},
+        {"vertices",vertices},{"triangles",triangles},{"faces",faces},{"mesherStatus",status},
+        {"collapsedTrianglesRemoved",collapsed},{"bytes",bytes},{"authoredChanged",false}};
     if(bodies.size()==1)result["bodyId"]=bodies.front().bodyId;
     return result;
 }

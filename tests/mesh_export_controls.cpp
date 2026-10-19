@@ -108,6 +108,29 @@ private slots:
   drain(w);QCOMPARE(bytes(path),QByteArray("preserve"));QCOMPARE(call(w,"document.inspect"),before);
   QCOMPARE(status(w,op).value("error").toObject().value("code").toString(),QString("export_cancelled"));
  }
+ void objDialogStateAndPublication(){
+  QTemporaryDir dir;QVERIFY(dir.isValid());AlloyWindow w;
+  call(w,"solid.box",{{"width",20},{"depth",10},{"height",5},{"units","mm"}});
+  const auto before=call(w,"document.inspect");const auto path=dir.filePath("protected.obj");sentinel(path);
+  call(w,"document.exportMeshDialog");QPointer<QDialog> dialog=w.findChild<QDialog*>("mesh.export.dialog");QVERIFY(dialog);
+  auto* format=dialog->findChild<QComboBox*>("mesh.export.format");QVERIFY(format);
+  // State coverage only: native chooser/input is verified separately.
+  format->setCurrentIndex(format->findData("obj"));
+  QCOMPARE(format->currentData().toString(),QString("obj"));
+  QVERIFY(!dialog->findChild<QComboBox*>("mesh.export.units")->isHidden());
+  QVERIFY(dialog->findChild<QLabel*>("mesh.export.note")->text().contains("Z-up"));
+  dialog->reject();QApplication::processEvents();QCOMPARE(call(w,"document.inspect"),before);
+  const auto response=w.execute("document.exportObj",{{"path",path},{"allVisible",true},{"units","in"},
+      {"surfaceDeviationMm",.1},{"normalDeviationDeg",10}});
+  QCOMPARE(response.value("completion").toString(),QString("pending"));
+  const auto op=response.value("result").toObject();w.geometryEvaluationPoll_->stop();
+  waitForApproval(w.geometryEvaluationRunning_);QCOMPARE(bytes(path),QByteArray("preserve"));
+  QCOMPARE(w.execute("history.undo").value("error").toObject().value("code").toString(),QString("evaluation_busy"));
+  QVERIFY(call(w,"command.cancel",{{"session",op.value("id")}}).value("resultDiscarded").toBool());
+  drain(w);QCOMPARE(bytes(path),QByteArray("preserve"));QCOMPARE(call(w,"document.inspect"),before);
+  QCOMPARE(status(w,op).value("error").toObject().value("code").toString(),QString("export_cancelled"));
+  call(w,"document.new",{{"discard",true}});w.close();
+ }
  void staleAndTeardownReleaseAuthorization(){
   QTemporaryDir dir;QVERIFY(dir.isValid());const auto path=dir.filePath("protected.stl");sentinel(path);
   auto w=std::make_unique<AlloyWindow>();call(*w,"solid.box",{{"width",20},{"depth",10},{"height",15},{"units","mm"}});const auto before=call(*w,"document.inspect");

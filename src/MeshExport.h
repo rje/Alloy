@@ -40,6 +40,10 @@ public:
         const std::vector<gp_Trsf>& buildTransforms, const QString& path,
         double surfaceDeviationMm, double normalDeviationDeg,
         const std::function<bool()>& approvePublication = {});
+    // Deterministic material-free triangles, separate groups, world Z-up.
+    static QJsonObject writeObj(const std::vector<EvaluatedBody>& bodies, const QString& path,
+        const QString& units, double surfaceDeviationMm, double normalDeviationDeg,
+        const std::function<bool()>& approvePublication = {});
     static QJsonObject writeStl(const std::vector<EvaluatedBody>& bodies, const QString& path,
         const QString& units, bool binary, double surfaceDeviationMm,
         double normalDeviationDeg, const std::function<bool()>& approvePublication = {});

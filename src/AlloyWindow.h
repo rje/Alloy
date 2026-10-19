@@ -418,7 +418,7 @@ private:
     QJsonObject meshExportOperation_; // One terminal result, until next request/session/document mutation.
     QList<QPointer<QWidget>> meshExportFrozenControls_;
     QPushButton* meshExportCancel_ = nullptr;
-    QJsonObject beginMeshExport(const std::vector<EvaluatedBody>& bodies,const QJsonObject& inputs,const QString& label,bool threeMf=false);
+    QJsonObject beginMeshExport(const std::vector<EvaluatedBody>& bodies,const QJsonObject& inputs,const QString& label,const QString& format="stl");
     static void evaluateMeshExport(GeometryEvaluation& task);
     bool meshExportCurrent(const GeometryEvaluation& task) const;
     QJsonObject cancelMeshExport();

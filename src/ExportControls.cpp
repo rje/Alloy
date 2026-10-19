@@ -71,7 +71,7 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
     connect(bodies,&QComboBox::currentIndexChanged,dialog,[=]{selected->setVisible(bodies->currentData()=="selected");});
     auto* format=new QComboBox;format->setObjectName("mesh.export.format");
     format->addItem("STL (Binary)","binary");format->addItem("STL (ASCII)","ascii");
-    format->addItem("3MF","3mf");form->addRow("Format",format);
+    format->addItem("3MF","3mf");format->addItem("OBJ","obj");form->addRow("Format",format);
     auto* units=new QComboBox;units->setObjectName("mesh.export.units");
     units->addItem("Millimeters","mm");units->addItem("Inches","in");form->addRow("Unit Type",units);
     auto* surface=new QDoubleSpinBox;surface->setObjectName("mesh.export.surfaceDeviation");
@@ -86,6 +86,7 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
         if(auto* label=form->labelForField(units))label->setVisible(!threeMf);
         note->setText(threeMf
             ? "3MF uses millimeters and keeps selected bodies as separate placed objects.\nComponent selections include visible bodies."
+            : format->currentData()=="obj" ? "One file · separate body groups · no materials.\nZ-up world coordinates; OBJ does not store units. Use matching import units."
             : "Custom refinement · separate bodies retain their placement.\nComponent selections include visible bodies.\nSTL files do not store units. Use the same units when importing.");
     };
     connect(format,&QComboBox::currentIndexChanged,dialog,updateFormat);updateFormat();
@@ -106,18 +107,19 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
         } else if(bodies->currentData().toString().startsWith("occurrence:"))selection["occurrenceId"]=bodies->currentData().toString().sliced(11);
         else selection["bodyId"]=bodies->currentData().toString();
         const bool threeMf=format->currentData()=="3mf";
-        const QString suffix=threeMf ? ".3mf" : ".stl";
+        const bool obj=format->currentData()=="obj";
+        const QString suffix=threeMf ? ".3mf" : obj ? ".obj" : ".stl";
         auto path=QFileDialog::getSaveFileName(dialog,"Save As Mesh",bodies->currentText()+suffix,
-            threeMf ? "3MF mesh (*.3mf)" : "STL mesh (*.stl)");
+            threeMf ? "3MF mesh (*.3mf)" : obj ? "OBJ mesh (*.obj)" : "STL mesh (*.stl)");
         if(path.isEmpty())return;
         if(document_->authored().value("documentId").toString()!=documentId || document_->revision()!=revision) {
             status->setText("The design changed. Close this window and restart Save As Mesh.");return;
         }
         if(!path.endsWith(suffix,Qt::CaseInsensitive))path+=suffix;
         selection["path"]=QFileInfo(path).absoluteFilePath();
-        if(!threeMf){selection["units"]=units->currentData().toString();selection["format"]=format->currentData().toString();}
+        if(!threeMf){selection["units"]=units->currentData().toString();if(!obj)selection["format"]=format->currentData().toString();}
         selection["surfaceDeviationMm"]=surface->value();selection["normalDeviationDeg"]=normal->value();
-        const auto result=execute(threeMf ? "document.export3mf" : "document.exportStl",selection);
+        const auto result=execute(threeMf ? "document.export3mf" : obj ? "document.exportObj" : "document.exportStl",selection);
         if(!result["ok"].toBool()){status->setText(result["error"].toObject()["message"].toString());return;}
         if(result.value("completion")=="pending"){
             dialog->setProperty("exportOperation",result.value("result").toObject().value("id").toString());
@@ -134,8 +136,8 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
     return state;
 }
 
-QJsonObject AlloyWindow::beginMeshExport(const std::vector<EvaluatedBody>& bodies,const QJsonObject& inputs,const QString& label,bool threeMf) {
-    auto task=std::make_shared<GeometryEvaluation>();task->command=threeMf ? "document.export3mf" : "document.exportStl";task->phase="export";
+QJsonObject AlloyWindow::beginMeshExport(const std::vector<EvaluatedBody>& bodies,const QJsonObject& inputs,const QString& label,const QString& format) {
+    auto task=std::make_shared<GeometryEvaluation>();task->command=format=="3mf" ? "document.export3mf" : format=="obj" ? "document.exportObj" : "document.exportStl";task->phase="export";
     task->document=document_;task->documentId=document_->authored().value("documentId").toString();
     task->revision=document_->revision();task->base=document_->authored();task->retainedSession=session_;
     task->tabId=activeTabId_;task->sessionId=CadDocument::newId();task->inputs=inputs;
@@ -174,8 +176,7 @@ QJsonObject AlloyWindow::beginMeshExport(const std::vector<EvaluatedBody>& bodie
     meshExportCancel_=new QPushButton("Cancel Export",statusBar());meshExportCancel_->setObjectName("mesh.cancelExport");
     statusBar()->addPermanentWidget(meshExportCancel_);
     connect(meshExportCancel_,&QPushButton::clicked,this,[this]{execute("command.cancel",{{"session",meshExportOperation_.value("id")}});});
-    status_->hide();statusBar()->showMessage(threeMf ? "Preparing 3MF… You can navigate or Cancel Export before publication."
-        : "Preparing STL… You can navigate or Cancel Export before publication.");
+    status_->hide();statusBar()->showMessage("Preparing "+format.toUpper()+"… You can navigate or Cancel Export before publication.");
     geometryEvaluationQueued_=task;startGeometryEvaluation();return meshExportOperation_;
 }
 
@@ -184,8 +185,9 @@ void AlloyWindow::evaluateMeshExport(GeometryEvaluation& task) {
     try {
         const auto gate=task.exportPublication;
         const bool threeMf=task.command=="document.export3mf";
+        const bool obj=task.command=="document.exportObj";
         if(gate->state()==MeshExport::PublicationGate::State::Denied)
-            task.exportError={{"code","export_cancelled"},{"message",threeMf ? "3MF export cancelled; destination preserved" : "STL export cancelled; destination preserved"}};
+            task.exportError={{"code","export_cancelled"},{"message","Mesh export cancelled; destination preserved"}};
         else {
             const auto approve=[&]{
                 task.sourceMs=timer.elapsed();
@@ -195,6 +197,8 @@ void AlloyWindow::evaluateMeshExport(GeometryEvaluation& task) {
             };
             task.exportResult=threeMf
                 ? MeshExport::write3mf(task.exportBodies,task.exportTransforms,task.inputs.value("path").toString(),
+                    task.inputs.value("surfaceDeviationMm").toDouble(),task.inputs.value("normalDeviationDeg").toDouble(),approve)
+                : obj ? MeshExport::writeObj(task.exportBodies,task.inputs.value("path").toString(),task.inputs.value("units").toString(),
                     task.inputs.value("surfaceDeviationMm").toDouble(),task.inputs.value("normalDeviationDeg").toDouble(),approve)
                 : MeshExport::writeStl(task.exportBodies,task.inputs.value("path").toString(),"mm",true,
                     task.inputs.value("surfaceDeviationMm").toDouble(),task.inputs.value("normalDeviationDeg").toDouble(),approve);
@@ -213,8 +217,8 @@ bool AlloyWindow::meshExportCurrent(const GeometryEvaluation& task) const {
 
 QJsonObject AlloyWindow::cancelMeshExport() {
     const auto task=geometryEvaluationRunning_;
-    if(!task || (task->command!="document.exportStl" && task->command!="document.export3mf"))return {{"ok",false},{"error",QJsonObject{{"code","invalid_session"},{"message","Export is no longer running"}}}};
-    const QString label=task->command=="document.export3mf" ? "3MF" : "STL";
+    if(!task || (task->command!="document.exportStl" && task->command!="document.export3mf" && task->command!="document.exportObj"))return {{"ok",false},{"error",QJsonObject{{"code","invalid_session"},{"message","Export is no longer running"}}}};
+    const QString label=task->command=="document.export3mf" ? "3MF" : task->command=="document.exportObj" ? "OBJ" : "STL";
     if(!task->exportPublication->deny())return {{"ok",false},{"completion","failed"},{"error",QJsonObject{{"code","export_publication_started"},
         {"message",label+" publication was approved; wait for its final result"}}}};
     meshExportOperation_["evaluationStatus"]="failed";meshExportOperation_["evaluationPhase"]="draining";
@@ -227,8 +231,8 @@ QJsonObject AlloyWindow::cancelMeshExport() {
 }
 
 void AlloyWindow::pollMeshExport() {
-    const auto task=geometryEvaluationRunning_;if(!task || (task->command!="document.exportStl" && task->command!="document.export3mf"))return;
-    const QString label=task->command=="document.export3mf" ? "3MF" : "STL";
+    const auto task=geometryEvaluationRunning_;if(!task || (task->command!="document.exportStl" && task->command!="document.export3mf" && task->command!="document.exportObj"))return;
+    const QString label=task->command=="document.export3mf" ? "3MF" : task->command=="document.exportObj" ? "OBJ" : "STL";
     auto heartbeat=meshExportOperation_.value("evaluationHeartbeat").toObject();const auto now=QDateTime::currentMSecsSinceEpoch();
     heartbeat["ticks"]=heartbeat.value("ticks").toInteger()+1;
     heartbeat["maxGapMs"]=std::max(heartbeat.value("maxGapMs").toInteger(),now-heartbeat.value("lastMs").toInteger());
@@ -257,7 +261,7 @@ void AlloyWindow::completeMeshExport(const std::shared_ptr<GeometryEvaluation>& 
     // After approval the worker's actual atomic file commit decides success.
     // Before approval stale requests are denied, including on owner teardown.
     if(meshExportOperation_.value("id")==task->sessionId){
-        const QString label=task->command=="document.export3mf" ? "3MF" : "STL";
+        const QString label=task->command=="document.export3mf" ? "3MF" : task->command=="document.exportObj" ? "OBJ" : "STL";
         auto timing=meshExportOperation_.value("evaluationTimingMs").toObject();timing["workerAndApprovalWait"]=task->fullMs;
         timing["workerPreparation"]=task->sourceMs;timing["workerPublication"]=task->stageMs;
         meshExportOperation_["evaluationTimingMs"]=timing;
@@ -277,7 +281,7 @@ void AlloyWindow::completeMeshExport(const std::shared_ptr<GeometryEvaluation>& 
     for(const auto& widget:meshExportFrozenControls_)if(widget)widget->setEnabled(true);meshExportFrozenControls_.clear();
     if(meshExportCancel_){statusBar()->removeWidget(meshExportCancel_);meshExportCancel_->deleteLater();meshExportCancel_=nullptr;}
     status_->show();statusBar()->showMessage(meshExportOperation_.value("evaluationStatus")=="completed"
-        ? (task->command=="document.export3mf" ? "3MF saved." : "STL saved.") :
+        ? (task->command=="document.export3mf" ? "3MF saved." : task->command=="document.exportObj" ? "OBJ saved." : "STL saved.") :
         meshExportOperation_.value("previewError").toObject().value("message").toString(),6000);
     refreshMeshExportDialog();
 }
@@ -286,8 +290,8 @@ void AlloyWindow::refreshMeshExportDialog() {
     auto* dialog=dynamic_cast<MeshExportDialog*>(findChild<QDialog*>("mesh.export.dialog"));
     if(!dialog || dialog->property("exportOperation").toString()!=meshExportOperation_.value("id").toString())return;
     const bool running=geometryEvaluationRunning_ &&
-        (geometryEvaluationRunning_->command=="document.exportStl" || geometryEvaluationRunning_->command=="document.export3mf");
-    const QString formatLabel=meshExportOperation_.value("command")=="document.export3mf" ? "3MF" : "STL";
+        (geometryEvaluationRunning_->command=="document.exportStl" || geometryEvaluationRunning_->command=="document.export3mf" || geometryEvaluationRunning_->command=="document.exportObj");
+    const QString formatLabel=meshExportOperation_.value("command")=="document.export3mf" ? "3MF" : meshExportOperation_.value("command")=="document.exportObj" ? "OBJ" : "STL";
     const bool pending=meshExportOperation_.value("evaluationStatus")=="pending";
     for(auto* widget:dialog->findChildren<QWidget*>())
         if(qobject_cast<QComboBox*>(widget) || qobject_cast<QListWidget*>(widget) || qobject_cast<QDoubleSpinBox*>(widget))widget->setEnabled(!running);
