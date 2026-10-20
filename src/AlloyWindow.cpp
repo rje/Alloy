@@ -13394,6 +13394,7 @@ void AlloyWindow::refreshSketchControls() {
     const auto patternPreview=session_.value("pendingSketchPattern").toObject();
     presentationSelection["patternInteraction"]=session_.value("patternInteraction");
     if(!patternPreview.isEmpty())presentationSelection["entityIds"]=QJsonArray{patternPreview["draft"].toObject()["parameters"].toObject()["patternGroups"].toArray().first().toObject()["sourceEntityId"]};
+    for(const auto& id:session_["patternInteraction"].toObject()["pickedPointIds"].toArray()){auto ids=presentationSelection["pointIds"].toArray();if(!ids.contains(id))ids.append(id);presentationSelection["pointIds"]=ids;}
     for(const auto& id:session_["patternInteraction"].toObject()["pickedEntityIds"].toArray()){auto ids=presentationSelection["entityIds"].toArray();if(!ids.contains(id))ids.append(id);presentationSelection["entityIds"]=ids;}
     view_->decorateSketch(!patternPreview.isEmpty() ? patternPreview["draft"].toObject() : !projectPreview.isEmpty() ? projectPreview["previewDraft"].toObject()
             : loopPreview["valid"].toBool() ? loopPreview["previewDraft"].toObject() : draft,

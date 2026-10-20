@@ -2147,11 +2147,12 @@ void ReferenceView::decorateSketch(const QJsonObject& sourceFeature,const QJsonO
         bool selected=selection["pointIds"].toArray().contains(id);
         for(const auto& e:parameters["entities"].toArray())if(e.toObject()["type"]=="point" && e.toObject()["pointId"]==id && selection["entityIds"].toArray().contains(e.toObject()["id"]))selected=true;
         if(coincidentPoints.contains(id) && !selected)continue;
-        const Quantity_Color color=selected ? Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB)
+        const bool patternHover=selection["patternInteraction"].toObject()["hoveredPointId"]==id;
+        const Quantity_Color color=patternHover ? Quantity_Color(.98,.62,.08,Quantity_TOC_sRGB) : selected ? Quantity_Color(0.98,0.43,0.08,Quantity_TOC_RGB)
             : fixed.contains(id) ? Quantity_Color(0.10,0.52,0.24,Quantity_TOC_RGB)
             : solvedPoint(diagnostics,id) ? Quantity_Color(0.12,0.14,0.16,Quantity_TOC_sRGB) : Quantity_Color(0.10,0.34,0.84,Quantity_TOC_RGB);
         Handle(AIS_Point) marker=new AIS_Point(new Geom_CartesianPoint(sketchWorld(plane,point["uMm"].toDouble(),point["vMm"].toDouble())));
-        marker->Attributes()->SetPointAspect(new Prs3d_PointAspect(Aspect_TOM_O_POINT,color,selected ? 3 : 2));
+        marker->Attributes()->SetPointAspect(new Prs3d_PointAspect(Aspect_TOM_O_POINT,color,patternHover ? 5 : selected ? 3 : 2));
         marker->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(marker,0,-1,false);context_->Deactivate(marker);sketchDecorations_.push_back(marker);
     }
     QSet<QString> markedProjectedPoints;
@@ -2489,6 +2490,31 @@ void ReferenceView::decorateSketch(const QJsonObject& sourceFeature,const QJsonO
                 Handle(AIS_TextLabel) label=new AIS_TextLabel;label->SetText(TCollection_ExtendedString(QString("%1%2 · %3").arg(count ? "N" : "D").arg(axis).arg(count ? QString::number(quantity) : QString::number(spacing,'g',6)+" mm").toUtf8().constData(),true));const auto labelPoint=anchor+normal*((count ? -1 : 1)*(axis==2 && !count ? 60 : 12)*size);const auto labelScreen=projectSketchPoint(labelPoint.x(),labelPoint.y(),plane);const double labelDx=labelScreen["x"].toDouble()-screen["x"].toDouble();label->SetHJustification(std::abs(labelDx)<2 ? Graphic3d_HTA_CENTER : labelDx<0 ? Graphic3d_HTA_RIGHT : Graphic3d_HTA_LEFT);label->SetPosition(sketchWorld(plane,labelPoint.x(),labelPoint.y()));label->SetHeight(12);label->SetColor(Quantity_Color(.2,.25,.3,Quantity_TOC_sRGB));label->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(label,false);context_->Deactivate(label);sketchDecorations_.push_back(label);
                 patternHandles_.append(QJsonObject{{"key",QString(count ? "quantity%1" : "spacing%1Mm").arg(axis)},{"kind",count ? "quantity" : "distance"},{"axis",axis},{"value",count ? double(quantity) : spacing},{"spacingMm",spacing},{"uMm",anchor.x()},{"vMm",anchor.y()},{"unitU",direction.x()},{"unitV",direction.y()},{"x",screen["x"]},{"y",screen["y"]},{"hitRadius",12},{"viewportLocal",true}});
             }
+        }
+    }
+    if(selection["patternInteraction"].toObject()["active"].toBool() && !selection["patternInteraction"].toObject()["invalid"].toBool() && selection["patternInteraction"].toObject()["role"]=="values")for(const auto& row:parameters["patternGroups"].toArray()){
+        const auto group=row.toObject();if(group["type"]!="circular")continue;
+        const auto seed=entities.value(group["sourceEntityId"].toString()),seedPoint=points.value(seed["centerPointId"].toString()),pivot=points.value(group["centerPointId"].toString());
+        const QPointF center(pivot["uMm"].toDouble(),pivot["vMm"].toDouble()),source(seedPoint["uMm"].toDouble(),seedPoint["vMm"].toDouble());
+        const auto offset=source-center;const double radius=std::hypot(offset.x(),offset.y()),start=std::atan2(offset.y(),offset.x()),sweep=group["totalAngleDeg"].toDouble()*std::numbers::pi/180.;if(radius<.001)continue;
+        const auto a=projectSketchPoint(center.x(),center.y(),plane),b=projectSketchPoint(center.x()+100,center.y(),plane);const double pixels=std::hypot(b["x"].toDouble()-a["x"].toDouble(),b["y"].toDouble()-a["y"].toDouble());if(pixels<1e-6)continue;const double size=100/pixels,ringRadius=radius+28*size;
+        auto at=[&](double angle,double r){return center+QPointF(std::cos(angle),std::sin(angle))*r;};
+        TopoDS_Compound strokes;BRep_Builder builder;builder.MakeCompound(strokes);
+        auto edge=[&](const QPointF& p,const QPointF& q){builder.Add(strokes,BRepBuilderAPI_MakeEdge(sketchWorld(plane,p.x(),p.y()),sketchWorld(plane,q.x(),q.y())).Edge());};
+        for(int i=0;i<96;++i)edge(at(start+sweep*i/96,ringRadius),at(start+sweep*(i+1)/96,ringRadius));
+        // The two radial witnesses make positive sketch-UV sweep explicit.
+        edge(center,at(start,ringRadius));if(group["mode"]=="angle")edge(center,at(start+sweep,ringRadius));
+        auto graphic=sketchPresentation(strokes);graphic->SetColor(Quantity_Color(.32,.48,.65,Quantity_TOC_sRGB));graphic->SetWidth(1.2*devicePixelRatioF());graphic->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(graphic,AIS_WireFrame,-1,false);context_->Deactivate(graphic);sketchDecorations_.push_back(graphic);
+        for(const bool count:{false,true}){
+            const double angle=count ? (group["mode"]=="angle" ? start+sweep*.5 : start-std::numbers::pi/4) : start+sweep;const auto anchor=at(angle,ringRadius),radial=QPointF(std::cos(angle),std::sin(angle)),tangent=QPointF(-radial.y(),radial.x());const auto screen=projectSketchPoint(anchor.x(),anchor.y(),plane);
+            const bool draggable=count || group["mode"]=="angle";
+            if(draggable){TopoDS_Compound grip;builder.MakeCompound(grip);auto stroke=[&](double x1,double y1,double x2,double y2){const auto p=anchor+(tangent*x1+radial*y1)*size,q=anchor+(tangent*x2+radial*y2)*size;builder.Add(grip,BRepBuilderAPI_MakeEdge(sketchWorld(plane,p.x(),p.y()),sketchWorld(plane,q.x(),q.y())).Edge());};
+                if(count){stroke(-5,-5,5,-5);stroke(5,-5,5,5);stroke(5,5,-5,5);stroke(-5,5,-5,-5);stroke(-2,0,2,0);stroke(0,-2,0,2);}else{stroke(-8,0,8,0);stroke(8,0,3,4);stroke(8,0,3,-4);}
+                auto handle=sketchPresentation(grip);handle->SetColor(count ? Quantity_Color(.77,.3,.1,Quantity_TOC_sRGB) : Quantity_Color(.1,.43,.81,Quantity_TOC_sRGB));handle->SetWidth(2.2*devicePixelRatioF());handle->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(handle,AIS_WireFrame,-1,false);context_->Deactivate(handle);sketchDecorations_.push_back(handle);
+                patternHandles_.append(QJsonObject{{"key",count ? "quantity" : "totalAngleDeg"},{"kind",count ? "quantity" : "angle"},{"value",count ? group["quantity"].toDouble() : group["totalAngleDeg"].toDouble()},{"spacingMm",radius*.3},{"uMm",anchor.x()},{"vMm",anchor.y()},{"centerU",center.x()},{"centerV",center.y()},{"unitU",tangent.x()},{"unitV",tangent.y()},{"x",screen["x"]},{"y",screen["y"]},{"hitRadius",12},{"viewportLocal",true}});
+            }
+            const auto labelPoint=at(angle,ringRadius+14*size);const auto labelScreen=projectSketchPoint(labelPoint.x(),labelPoint.y(),plane);const double dx=labelScreen["x"].toDouble()-screen["x"].toDouble();
+            Handle(AIS_TextLabel) label=new AIS_TextLabel;const auto text=count ? QString("N · %1").arg(group["quantity"].toInt()) : group["mode"]=="full" ? QString("Full · 360°") : QString("A · %1°").arg(group["totalAngleDeg"].toDouble());label->SetText(TCollection_ExtendedString(text.toUtf8().constData(),true));label->SetHJustification(std::abs(dx)<2 ? Graphic3d_HTA_CENTER : dx<0 ? Graphic3d_HTA_RIGHT : Graphic3d_HTA_LEFT);label->SetPosition(sketchWorld(plane,labelPoint.x(),labelPoint.y()));label->SetHeight(12);label->SetColor(Quantity_Color(.2,.25,.3,Quantity_TOC_sRGB));label->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(label,false);context_->Deactivate(label);sketchDecorations_.push_back(label);
         }
     }
     QMap<QString,QJsonObject> measurements;
@@ -3956,7 +3982,10 @@ void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
 
     if(!patternHandleDrag_.isEmpty() && e->buttons().testFlag(Qt::LeftButton)){
         const auto point=sketchPoint(e->position().x(),e->position().y(),sketchPlane_,sketchFrame_);const double delta=(point["uMm"].toDouble()-patternHandleDrag_["pressU"].toDouble())*patternHandleDrag_["unitU"].toDouble()+(point["vMm"].toDouble()-patternHandleDrag_["pressV"].toDouble())*patternHandleDrag_["unitV"].toDouble();
-        const double value=patternHandleDrag_["kind"]=="quantity" ? patternHandleDrag_["value"].toDouble()+std::round(delta/patternHandleDrag_["spacingMm"].toDouble()) : std::round((patternHandleDrag_["value"].toDouble()+delta)*10)/10;
+        double value=patternHandleDrag_["kind"]=="quantity" ? patternHandleDrag_["value"].toDouble()+std::round(delta/patternHandleDrag_["spacingMm"].toDouble()) : std::round((patternHandleDrag_["value"].toDouble()+delta)*10)/10;
+        if(patternHandleDrag_["kind"]=="angle"){
+            const double u=patternHandleDrag_["centerU"].toDouble(),v=patternHandleDrag_["centerV"].toDouble();const double start=std::atan2(patternHandleDrag_["pressV"].toDouble()-v,patternHandleDrag_["pressU"].toDouble()-u),now=std::atan2(point["vMm"].toDouble()-v,point["uMm"].toDouble()-u);const double accumulated=patternHandleDrag_["angleDeltaRad"].toDouble()+std::remainder(now-patternHandleDrag_.value("lastAngleRad").toDouble(start),2*std::numbers::pi);patternHandleDrag_["lastAngleRad"]=now;patternHandleDrag_["angleDeltaRad"]=accumulated;value=std::round(patternHandleDrag_["value"].toDouble()+accumulated*180/std::numbers::pi);
+        }
         dispatch("sketch.patternHandle",{{"phase","move"},{"value",value}});e->accept();return;
     }
     if(decorationSelection_["patternInteraction"].toObject()["active"].toBool() && decorationSelection_["patternInteraction"].toObject()["role"]!="values"){dispatch("sketch.patternHover",{{"x",e->position().x()},{"y",e->position().y()}});e->accept();return;}

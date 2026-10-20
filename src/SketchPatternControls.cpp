@@ -86,11 +86,12 @@ void AlloyWindow::showSketchPatternControls(){
  q1->setValue(group["quantity1"].toInt(2));q2->setValue(group["quantity2"].toInt(3));s1->setValue(group["spacing1Mm"].toDouble(14));s2->setValue(group["spacing2Mm"].toDouble(11));
  if(circular){q1->setObjectName("sketch.pattern.quantity");q1->setValue(group["quantity"].toInt(6));s1->setObjectName("sketch.pattern.angle");s1->setRange(.001,360);s1->setSuffix(QString::fromUtf8(" °"));s1->setValue(group["totalAngleDeg"].toDouble(360));s1->setEnabled(mode->currentData()=="angle");form->addRow("Quantity",q1);form->addRow("Total Angle",s1);}else{form->addRow("Quantity 1",q1);form->addRow("Distance 1",s1);form->addRow("Quantity 2",q2);form->addRow("Distance 2",s2);}
  if(circular){delete d1;delete d2;d1=nullptr;d2=nullptr;delete q2;delete s2;q2=nullptr;s2=nullptr;}else{delete center;delete mode;center=nullptr;mode=nullptr;}
- if(!circular){
+ {
   auto* roles=new QHBoxLayout;
-  for(const auto& entry:{std::pair{QString("objects"),QString("Objects")},std::pair{QString("direction1"),QString("Direction 1")},std::pair{QString("direction2"),QString("Direction 2")},std::pair{QString("values"),QString("Handles")}}){auto* button=new QPushButton(entry.second);button->setCheckable(true);button->setObjectName("sketch.pattern.role."+entry.first);roles->addWidget(button);connect(button,&QPushButton::clicked,this,[this,role=entry.first]{execute("sketch.patternRole",{{"role",role}});});}
+  const QList<std::pair<QString,QString>> roleLabels=circular ? QList<std::pair<QString,QString>>{{"objects","Objects"},{"center","Center Point"},{"values","Handles"}} : QList<std::pair<QString,QString>>{{"objects","Objects"},{"direction1","Direction 1"},{"direction2","Direction 2"},{"values","Handles"}};
+  for(const auto& entry:roleLabels){auto* button=new QPushButton(entry.second);button->setCheckable(true);button->setObjectName("sketch.pattern.role."+entry.first);roles->addWidget(button);connect(button,&QPushButton::clicked,this,[this,role=entry.first]{execute("sketch.patternRole",{{"role",role}});});}
   layout->addLayout(roles);auto* prompt=new QLabel;prompt->setObjectName("sketch.pattern.selectionPrompt");prompt->setWordWrap(true);layout->addWidget(prompt);
-  session_["patternInteraction"]=QJsonObject{{"active",true},{"role",group.isEmpty() ? "objects" : "values"},{"pickedEntityIds",QJsonArray{}},{"hoveredEntityId",""}};
+  session_["patternInteraction"]=QJsonObject{{"active",true},{"type",circular ? "circular" : "rectangular"},{"role",group.isEmpty() ? "objects" : "values"},{"pickedEntityIds",QJsonArray{}},{"hoveredEntityId",""}};
  }
  auto* status=new QLabel;status->setObjectName("sketch.pattern.status");status->setWordWrap(true);layout->addWidget(status);auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel);layout->addWidget(buttons);buttons->button(QDialogButtonBox::Ok)->setEnabled(false);
  const auto sessionId=session_["id"].toString();
@@ -99,8 +100,8 @@ void AlloyWindow::showSketchPatternControls(){
   QJsonObject a{{"sourceEntityId",source->currentData().toString()}};
   if(circular){a["type"]="circular";a["centerPointId"]=center->currentData().toString();a["quantity"]=q1->value();a["mode"]=mode->currentData().toString();a["totalAngleDeg"]=s1->value();}
   else{a["direction1EntityId"]=d1->currentData().toString();a["direction2EntityId"]=d2->currentData().toString();a["quantity1"]=q1->value();a["quantity2"]=q2->value();a["spacing1Mm"]=s1->value();a["spacing2Mm"]=s2->value();}if(!group.isEmpty())a["groupId"]=group["id"];
-  if(!circular){auto interaction=session_["patternInteraction"].toObject();interaction["inputs"]=a;session_["patternInteraction"]=interaction;}
-  const auto result=execute("sketch.patternPreview",a);const bool ok=!result.contains("error");buttons->button(QDialogButtonBox::Ok)->setEnabled(ok);status->setText(ok ? "Preview · source and derived circles" : result["error"].toObject()["message"].toString());if(!circular)syncSketchPatternInteractionControls({},ok ? QString{} : result["error"].toObject()["message"].toString());
+  {auto interaction=session_["patternInteraction"].toObject();interaction["inputs"]=a;session_["patternInteraction"]=interaction;}
+  const auto result=execute("sketch.patternPreview",a);const bool ok=!result.contains("error");buttons->button(QDialogButtonBox::Ok)->setEnabled(ok);status->setText(ok ? "Preview · source and derived circles" : result["error"].toObject()["message"].toString());syncSketchPatternInteractionControls({},ok ? QString{} : result["error"].toObject()["message"].toString());
  };
  for(auto* combo:{source,d1,d2,center})if(combo)connect(combo,&QComboBox::currentIndexChanged,dialog,preview);
  for(auto* q:{q1,q2})if(q)connect(q,&QSpinBox::valueChanged,dialog,preview);for(auto* s:{s1,s2})if(s)connect(s,&QDoubleSpinBox::valueChanged,dialog,preview);
