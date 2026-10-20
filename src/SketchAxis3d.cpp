@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include "SketchAxis3d.h"
+#include "SketchRotate.h"
 #include <QJsonArray>
 #include <QUuid>
 #include <cmath>
@@ -25,8 +26,8 @@ QString validate(const QJsonObject& p){try{
 bool referenced(const QJsonObject& p,const QString& id){QSet<QString> owned;for(const auto& row:p["constructionLines3d"].toArray()){const auto a=row.toObject();if(a["id"]==id)owned={id,a["start"].toObject()["id"].toString(),a["end"].toObject()["id"].toString()};}for(auto it=p.begin();it!=p.end();++it)if(it.key()!="constructionLines3d" && mentions(it.value(),owned))return true;return false;}
 QJsonObject upsert(const QJsonObject& p,double u,double v,double h,const QString& id){need(validate(p).isEmpty(),"Existing 3D construction Line is invalid");const auto old=p["constructionLines3d"].toArray();QJsonObject a;
  if(id.isEmpty()){need(old.isEmpty(),"This sketch already has its normal 3D Line; edit that identity");a={{"id",uuid()},{"type","line"},{"construction",true},{"start",QJsonObject{{"id",uuid()}}},{"end",QJsonObject{{"id",uuid()}}}};}
- else{need(old.size()==1 && old.first().toObject()["id"]==id,"3D construction Line ID is unavailable in this sketch");need(!referenced(p,id),"3D construction Line is referenced; edit its owner before changing the axis");a=old.first().toObject();}
- auto start=a["start"].toObject(),end=a["end"].toObject();start["uMm"]=u;start["vMm"]=v;start["wMm"]=0;end["uMm"]=u;end["vMm"]=v;end["wMm"]=h;a["start"]=start;a["end"]=end;auto result=p;result["constructionLines3d"]=QJsonArray{a};const auto error=validate(result);need(error.isEmpty(),qPrintable(error));return result;
+ else{need(old.size()==1 && old.first().toObject()["id"]==id,"3D construction Line ID is unavailable in this sketch");auto unrelated=p;unrelated.remove("rotateGroups");need(!referenced(unrelated,id),"3D construction Line is referenced; edit its owner before changing the axis");a=old.first().toObject();}
+ auto start=a["start"].toObject(),end=a["end"].toObject();start["uMm"]=u;start["vMm"]=v;start["wMm"]=0;end["uMm"]=u;end["vMm"]=v;end["wMm"]=h;a["start"]=start;a["end"]=end;auto result=p;result["constructionLines3d"]=QJsonArray{a};const auto error=validate(result);need(error.isEmpty(),qPrintable(error));return SketchRotate::materialize(result,p["rotateGroups"].toArray());
 }
 QJsonObject erase(const QJsonObject& p,const QString& id){const auto rows=p["constructionLines3d"].toArray();need(rows.size()==1 && rows.first().toObject()["id"]==id,"3D construction Line ID is unavailable in this sketch");need(!referenced(p,id),"3D construction Line is referenced; remove its dependent owner first");auto result=p;result.remove("constructionLines3d");return result;}
 QJsonArray inspect(const QJsonObject& p){QJsonArray result;for(const auto& row:p["constructionLines3d"].toArray()){auto a=row.toObject();a["direction"]=QJsonArray{0,0,1};a["lengthMm"]=a["end"].toObject()["wMm"];a["referenceOnly"]=true;a["solverVariables"]=0;a["profileBoundary"]=false;result.append(a);}return result;}

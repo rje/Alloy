@@ -1799,9 +1799,15 @@ void ReferenceView::clearSketchDecorations() {
     annotationLayouts_={};chamferHandles_={};
     constraintGlyphs_={};patternGlyphs_={};patternHandles_={};
 }
-QJsonObject ReferenceView::dimensionLayout(const QJsonObject& feature,const QJsonObject& dimension,double valueMm,const QString& units) const {
+QJsonObject ReferenceView::dimensionLayout(const QJsonObject& feature,const QJsonObject& inputDimension,double valueMm,const QString& units) const {
+    auto dimension=inputDimension;
     if(view_.IsNull())return {};
     const auto parameters=feature.value("parameters").toObject();const auto plane=parameters.value("plane").toString();
+    // Rotate keeps source annotation coordinates authored; only presentation follows its owner.
+    if(dimension["annotation"].isObject())for(const auto& value:parameters["rotateGroups"].toArray()){
+        const auto g=value.toObject();bool owned=false;for(const auto& d:g["dimensions"].toArray())owned |= d.toObject()["id"]==dimension["id"];if(!owned)continue;
+        for(const auto& value:parameters["constructionLines3d"].toArray()){const auto a=value.toObject();if(a["id"]!=g["axisLineId"])continue;const auto pivot=a["start"].toObject(),annotation=dimension["annotation"].toObject();const double x=pivot["uMm"].toDouble(),y=pivot["vMm"].toDouble(),u=annotation["uMm"].toDouble()-x,v=annotation["vMm"].toDouble()-y,t=g["angleDeg"].toDouble()*std::numbers::pi/180;dimension["annotation"]=QJsonObject{{"uMm",x+u*std::cos(t)-v*std::sin(t)},{"vMm",y+u*std::sin(t)+v*std::cos(t)}};}
+    }
     if(dimension["kind"]=="polygonSize") {
         QJsonObject group;for(const auto& row:parameters["polygonGroups"].toArray())
             if(row.toObject()["id"]==dimension["id"]){group=row.toObject();break;}
@@ -3723,6 +3729,7 @@ QImage ReferenceView::framebuffer() {
     return image;
 }
 void ReferenceView::mousePressEvent(QMouseEvent* e) {
+    if(e->button()==Qt::LeftButton && e->modifiers()==Qt::NoModifier && decorationSelection_["moveInteraction"].toObject()["mode"]=="rotate"){axis3dSuppressRelease_=true;dispatch("sketch.rotatePick",{{"x",e->position().x()},{"y",e->position().y()}});setFocus(Qt::MouseFocusReason);e->accept();return;}
     if(e->button()==Qt::LeftButton && e->modifiers()==Qt::NoModifier && decorationSelection_.value("axis3dInteraction").toObject().value("active").toBool()){axis3dSuppressRelease_=true;dispatch("sketch.axis3dPivot",{{"x",e->position().x()},{"y",e->position().y()}});setFocus(Qt::MouseFocusReason);e->accept();return;}
     if(e->button()==Qt::LeftButton && e->modifiers()==Qt::NoModifier && decorationSelection_.value("sketch3dEnabled").toBool() && !pickSketchAxis3d(e->position().x(),e->position().y()).isEmpty()){axis3dSuppressRelease_=true;dispatch("sketch.axis3dPick",{{"x",e->position().x()},{"y",e->position().y()}});setFocus(Qt::MouseFocusReason);e->accept();return;}
     const bool alternate=inputPreset_=="shiftAlt";

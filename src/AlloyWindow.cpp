@@ -660,6 +660,7 @@ AlloyWindow::AlloyWindow() {
     auto* sketchMoveAction=modify->addAction("Move/Copy\tM");sketchMoveAction->setObjectName("sketch.action.moveCopy");
     connect(sketchMoveAction,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.moveStart"));});
     auto* sketchMoveKey=new QShortcut(QKeySequence(Qt::Key_M),view_);sketchMoveKey->setContext(Qt::WidgetShortcut);connect(sketchMoveKey,&QShortcut::activated,this,[this]{if(session_["command"]=="sketch.edit")sketchResponse(execute("sketch.moveStart"));});
+    auto* editSketchRotate=modify->addAction("Edit Rotate");editSketchRotate->setObjectName("sketch.action.editRotate");connect(editSketchRotate,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.rotateEdit"));});
     auto* editSketchMove=modify->addAction("Edit Move");editSketchMove->setObjectName("sketch.action.editMove");connect(editSketchMove,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.moveEdit"));});
     auto* sketchMirrorAction=modify->addAction("Mirror");sketchMirrorAction->setObjectName("sketch.action.mirror");
     connect(sketchMirrorAction,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.mirrorStart"));});
@@ -4077,6 +4078,7 @@ void AlloyWindow::registerCommands() {
     add("sketch.addArc","Create analytic arc","Append an exact center/radius/sweep or three-point arc; through point follows start/end.",arcSchema,
         [this](const auto& a){return appendSketchCurve(a["mode"]=="center" ? "centerArc" : "threePointArc",a);});
     registerSketchMoveCommands();
+    registerSketchRotateCommands();
     registerSketchCopyCommands();
     registerSketchAxis3dCommands();
     registerSketchPatternCommands();
@@ -5767,6 +5769,7 @@ void AlloyWindow::registerCommands() {
             auto candidate=document_->authored();auto features=candidate["features"].toArray();bool found=false,isSketch=false;
             for(int i=0;i<features.size();++i) {auto feature=features[i].toObject();if(feature["id"]!=a["featureId"]) continue;
                 auto parameters=feature["parameters"].toObject();const auto edits=a["parameters"].toObject();
+                if(parameters.contains("rotateGroups") && edits.contains("rotateGroups"))return failure("rotate_owned","Edit retained Rotate through its sketch command");
                 if(parameters.contains("constructionLines3d") && edits.contains("constructionLines3d"))return failure("axis3d_owned","Edit or delete the normal construction Line through its dedicated sketch command");
                 if(!parameters["moveGroups"].toArray().isEmpty())for(const auto& key:{"points","entities","constraints","dimensions","moveGroups"})if(edits.contains(key))return failure("retained_move_owned","Edit retained Move displacement or source size through sketch commands");
                 for(auto it=edits.begin();it!=edits.end();++it) parameters[it.key()]=it.value();
@@ -12102,6 +12105,7 @@ double AlloyWindow::sketchDimensionMeasure(const QJsonObject& targets,const QStr
 }
 
 QJsonObject AlloyWindow::publishSketchSolve(const SketchGeometry::SolveResult& solved,const QString& journalGroup) {
+    if(session_.value("pendingSketchMove").toObject().value("rotate").toBool() && solved.feature!=session_.value("pendingSketchMove").toObject().value("draft"))return failure("pending_rotate","Accept or cancel Rotate before editing other sketch geometry");
     if(session_.value("pasteInteraction").toObject().value("active").toBool() && solved.feature!=session_.value("pendingSketchPaste").toObject().value("draft"))return failure("pending_paste","Accept or cancel Paste before editing other sketch geometry");
     if(session_.contains("pendingSlotDrag"))cancelSlotDrag();
     if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
@@ -13354,6 +13358,7 @@ void AlloyWindow::dimensionSelectionChanged() {
 void AlloyWindow::refreshSketchControls() {
     if(auto* box=findChild<QCheckBox*>("sketch.3dMode")){QSignalBlocker block(box);box->setChecked(session_.value("sketch3dEnabled").toBool());box->setEnabled(session_.value("command")=="sketch.edit" && session_.value("draftSketch").toObject()["parameters"].toObject()["plane"]=="XY");}
     if(auto* action=findChild<QAction*>("sketch.action.axis3d"))action->setEnabled(session_.value("command")=="sketch.edit" && session_.value("sketch3dEnabled").toBool());
+    if(auto* action=findChild<QAction*>("sketch.action.editRotate"))action->setEnabled(session_.value("command")=="sketch.edit" && !session_["draftSketch"].toObject()["parameters"].toObject()["rotateGroups"].toArray().isEmpty());
     if(auto* action=findChild<QAction*>("sketch.action.editMove"))action->setEnabled(session_.value("command")=="sketch.edit" && !session_["draftSketch"].toObject()["parameters"].toObject()["moveGroups"].toArray().isEmpty());
     if(session_.value("tool")!="twoTangentCircle" && tangentCircleRadius_)tangentCircleRadius_->hide();
     if(!sketchSelectionTree_ || session_.value("command")!="sketch.edit")return;
@@ -13431,6 +13436,7 @@ void AlloyWindow::refreshSketchControls() {
     if(!pastePreview.isEmpty())presentationSelection["entityIds"]=pastePreview["diagnostics"].toObject()["copiedEntityIds"];
     presentationSelection["sketch3dEnabled"]=session_.value("sketch3dEnabled");presentationSelection["axis3dInteraction"]=session_.value("axis3dInteraction");
     presentationSelection["moveInteraction"]=session_.value("moveInteraction");
+    if(session_["moveInteraction"].toObject()["mode"]=="rotate" && !session_["moveInteraction"].toObject()["axisLineId"].toString().isEmpty())presentationSelection["axis3dId"]=session_["moveInteraction"].toObject()["axisLineId"];
     if(movePreview.value("createCopy").toBool()){presentationSelection["entityIds"]=movePreview["sourceEntityIds"];presentationSelection["createCopyPreviewEntityIds"]=movePreview["diagnostics"].toObject()["copiedEntityIds"];}
     if(session_["moveInteraction"].toObject()["active"].toBool())presentationSelection["entityIds"]=session_["moveInteraction"].toObject()["entityIds"];
     for(const auto& id:presentationSelection.value("createCopyPreviewEntityIds").toArray()){auto ids=presentationSelection["entityIds"].toArray();ids.append(id);presentationSelection["entityIds"]=ids;}

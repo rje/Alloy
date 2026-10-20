@@ -72,6 +72,9 @@ private:
     QPointer<QDialog> sketchPasteDialog_;
     QJsonObject sketchClipboard_;
     void registerSketchMoveCommands();
+    void registerSketchRotateCommands();
+    void showSketchRotateControls();
+    void syncSketchRotateControls(const QString& message = {});
     void closeSketchMoveControls();
     void showSketchMoveControls();
     void syncSketchMoveControls(const QString& message = {});
