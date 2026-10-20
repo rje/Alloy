@@ -1,5 +1,7 @@
 # Alloy
 
+[Planar Patch](docs/validation/surface-patch.md) now creates an editable one-face sheet from a simple retained closed sketch loop, with exact area/normal/boundary and real-app history/GPU checks. Native canvas profile picking remains SRF-039.
+
 [Open-line Surface Sweep](docs/validation/surface-sweep.md) now creates editable non-solid sheets along retained Line and Arc paths, with exact endpoint/area checks, saved history and inspected GPU captures. Native canvas Profile/Path selection and interactive acceptance remain SRF-038.
 
 [Open-line Surface Revolve](docs/validation/surface-revolve.md) now creates an editable uncapped sheet with retained section/axis references and independently checked real-app geometry, history and GPU capture. Canvas selection, angular drag and actual-hit native acceptance remain SRF-036; connected multi-curve sections remain SRF-037.

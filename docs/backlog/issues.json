@@ -3705,7 +3705,8 @@
         "SOL-096",
         "SRF-036",
         "SRF-037",
-        "SRF-038"
+        "SRF-038",
+        "SRF-039"
       ],
       "labels": [
         "kind:validation",
@@ -10696,7 +10697,7 @@
         "priority:P1",
         "area:srf"
       ],
-      "body": "## Bounded result\nCreate an editable planar sheet cap from one supported closed planar boundary loop.\n\nThis is a finishable child of SRF-003; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Accept one closed planar loop and produce a single planar face with retained boundary references.\n- Verify boundary deviation, face normal, and area against an analytic fixture.\n- Refuse open, disconnected, self-intersecting, or nonplanar loops without adding history.\n- Verify undo/redo and save/reopen.\n\n## Preserved remainder\nNonplanar fills, larger boundary networks, additional continuity classes, and multi-face repair remain under SRF-003.\n"
+      "body": "## Bounded result\nCreate an editable planar sheet cap from one supported closed planar boundary loop.\n\nThis is a finishable child of SRF-003; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Accept one closed planar loop and produce a single planar face with retained boundary references.\n- Verify boundary deviation, face normal, and area against an analytic fixture.\n- Refuse open, disconnected, self-intersecting, or nonplanar loops without adding history.\n- Verify undo/redo and save/reopen.\n\n## Preserved remainder\nNonplanar fills, larger boundary networks, additional continuity classes, and multi-face repair remain under SRF-003.\n\n## Accepted bounded core and native split \u2014 2026-10-20\nCommit deeb35d accepts one simple closed ordinary-Line sketch profile as a retained planar Patch New Body with one exact face, one closed boundary loop, stable source-entity edge/face/body IDs and no solid. Focused Patch plus unchanged Surface Revolve/Sweep regressions pass. Independent 93-response real-app fixture checks 40\u00d730 mm area 1200 mm2/perimeter 140 mm, +Z normal, zero boundary deviation, 40\u219250 source edit to 1500 mm2/perimeter 160 mm, atomic open/self-crossing/disconnected/missing/plural refusal, preview/Cancel, Undo/Redo, save/reopen and inspected Apple M4 DPR2 GPU captures. See docs/validation/surface-patch.md. Public canvas closed-profile picking and actual-hit native/1x/2x acceptance remain linked first-v1 Todo SRF-039 because the Mac console is locked. Nonplanar filling and broader boundary/continuity modes remain SRF-028/SRF-003. Closing SRF-027 accepts bounded core/API and compiled basic dock only, not native or packaged parity.\n"
     },
     {
       "key": "SRF-028",
@@ -10868,6 +10869,23 @@
         "area:srf"
       ],
       "body": "## Bounded first-v1 native workflow\nComplete the one-Line-section, Line/Arc-path Surface Sweep UI after SRF-026 core/API acceptance. The current selector dock compiles and actual-app API geometry passes, but public help uses canvas Profile/Path picks and the Mac console was locked on 2026-10-20.\n\n## Acceptance criteria\n- Implement actual canvas sketch-curve Profile and Path selection for the supported single-entity line/arc families, with visible role and retained start-end direction feedback. Selecting a wrong or misaligned source gives actionable refusal without selection/focus repair between user steps.\n- Show a live open-sheet preview at a useful camera angle, with clear uncapped boundaries, retained Full/100%/Perpendicular/New Body state, Cancel and OK. Reopen the Timeline feature and edit selection through the same authoritative command/session.\n- On an unlocked Mac run strict actual-hit checks against receiving widgets/popup readiness, including both line and arc paths, same-session invalid/retry, Undo/Redo and saved reopen state. Inspect whole-app GPU captures at 1x and 2x and compare only dated/matched public evidence. Close the private editor afterward.\n\n## Preserved remainder\nGuide rails/surfaces, multi-entity sections/paths, partial extents, alternate orientation/continuity, exact pixel/key parity and Windows/Linux packaged runtime remain SRF-002 and release owners. The home isometric camera is partly edge-on for the quarter-cylinder; choose an informative verification view rather than treating its projection as a disconnected sheet.\n"
+    },
+    {
+      "key": "SRF-039",
+      "title": "Qualify native planar Patch canvas profile selection and preview",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "SRF-027"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P1",
+        "area:srf"
+      ],
+      "body": "## Bounded first-v1 native workflow\nComplete and qualify user-facing selection for the retained one-loop planar Patch after SRF-027 core acceptance. A basic Sketch/Boundary Profile selector dock compiles and the real-app API geometry passes, but public Patch help describes canvas closed-profile selection. The Mac console is locked on 2026-10-20.\n\n## Acceptance criteria\n- Pick one supported simple closed ordinary-Line sketch profile by actual canvas hit, keeping the stable profile and constituent boundary IDs visible. Reject open/self-crossing/disconnected selections with actionable feedback and valid retry without inter-step focus or selection repair.\n- Inspect live one-face planar sheet preview, readable boundary/normal cue, Cancel/OK, Timeline reopen/edit, Undo/Redo and save/reopen through actual user-facing controls and shared state. Do not create a solid or infer unspecified continuity controls for sketch-curve input.\n- On an unlocked Mac run strict actual-hit receiving-widget/popup checks, inspect whole-app GPU captures at 1x and 2x against dated comparable public evidence, and close the private editor. Record physical-device input separately.\n\n## Preserved remainder\nNonplanar fill, model-edge G0/G1/G2 attachment, curved/compound loops, holes, boundary networks, exact pixel/key parity and Windows/Linux packaged runtime remain SRF-003/SRF-028 and release owners.\n"
     },
     {
       "key": "GEO-025",
