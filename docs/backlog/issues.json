@@ -3719,7 +3719,8 @@
         "SRF-050",
         "SRF-054",
         "GEO-031",
-        "GEO-035"
+        "GEO-035",
+        "PRT-014"
       ],
       "labels": [
         "kind:validation",
@@ -11028,7 +11029,7 @@
         "priority:P1",
         "area:prt"
       ],
-      "body": "## Bounded result\nOffer coarse, fine, and custom mesh tessellation preview with actual triangle counts for selected committed solids, producing STL or Core 3MF only.\n\nThis is a finishable child of PRT-002; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Show coarse/fine presets and custom tolerance inputs with documented units/defaults.\n- Report triangle counts from the produced meshes and verify finer settings increase or preserve detail on a curved fixture.\n- Preview and Cancel leave authored geometry, history, and existing export files unchanged.\n- Verify chosen settings produce independently readable STL and Core 3MF outputs with correct units and bounds.\n\n## Preserved remainder\nSTEP export remains under the existing exchange/export owners and release gates. Advanced presets, physical chooser qualification, and platform-specific export input remain under PRT-002/release gates.\n"
+      "body": "## Bounded result\nOffer Low (Coarse), Medium, High (Fine) and Custom STL/Core 3MF export-mesh refinement preview for one selected committed solid. Show the actual final serialized artifact's triangle count and publish the same prepared bytes on Save. This is a finishable child of PRT-002; it preserves broader multi-body and documented option scope.\n\n## Acceptance criteria\n- Expose preset values and Custom surface deviation (mm) / normal deviation (degrees) with explicit Alloy numeric defaults, readable units and structured valid ranges. Public preset numeric values are not established; do not claim exact reference defaults. Editing either field enters Custom. Keep maximum edge length and aspect ratio under linked PRT-013.\n- Explicit Preview prepares STL (binary/ASCII, supported mm/in) or Core 3MF (embedded mm) in a private location off the main thread, reads the final serialized facets, renders a nonselectable GPU facet preview and reports their actual count. Pending/invalidated states must not show a stale count. On a curved fixture, finer settings increase or preserve detail and improve or preserve a declared geometric error measure.\n- Bind the prepared artifact to document/tab/revision, exact selected instance, format/encoding/units/tolerances and generation. Save publishes those same bytes atomically after rechecking identity, including after a native chooser returns; no remeshing. Preview and Cancel leave authored geometry/history/undo and user files unchanged; late work cannot publish. Failed publication preserves destination and permits safe retry.\n- Independently read saved STL and Core 3MF, verify preview count equals final artifact count, byte-hash identity, units/bounds/placement and one-solid scope. Inspect actual GPU captures and compiled controls. Native physical chooser/pointer acceptance remains linked PRT-014.\n\n## Linked remainders\nPRT-012 owns multi-body one-file/per-body structure and collisions. PRT-013 owns publicly documented Maximum Edge Length and Aspect Ratio controls. PRT-014 owns physical native Preview/Cancel/chooser and 1x/2x visual acceptance while the Mac console is locked. STEP, OBJ and advanced mesh settings remain existing exchange/PRT-002 scope.\n"
     },
     {
       "key": "PRT-012",
@@ -11679,6 +11680,40 @@
         "area:geo"
       ],
       "body": "## Public evidence conflict to resolve\nCurrent public UI help says Point Along Path can move past the end; a public API input page says over-length Physical values clamp to the endpoint. GEO-027 explicitly limits both modes to the finite selected Line. Resolve version/mode differences using permitted public documentation, dated screenshots or tutorials before selecting compatibility semantics.\n\n## Acceptance criteria\n- Record creator/URL/retrieval date/version and distinguish demonstrated past-end placement from API input constraints. Specify Proportional/Physical bounds, negative values, chaining and edit behavior, or mark remaining unknowns without an exact-match claim.\n- Implement the resolved first supported extension/clamp behavior on a retained Line with typed units, disposable preview, source length edits, Undo/Redo and save/reopen; independently verify exact coordinates and atomic invalid cases.\n- Preserve curved/connected path breadth under GEO-036 and physical native handle/1x/2x visual qualification under GEO-035.\n"
+    },
+    {
+      "key": "PRT-013",
+      "title": "Add maximum edge length and aspect-ratio mesh refinement controls",
+      "kind": "implementation",
+      "phase": "P4 Full replacement",
+      "priority": "P2",
+      "depends_on": [
+        "PRT-011"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P4",
+        "priority:P2",
+        "area:prt"
+      ],
+      "body": "## Preserved documented Custom options\nPublic mesh refinement help names Maximum Edge Length and Aspect Ratio in addition to surface and normal deviation. PRT-011 only qualifies the two tolerances supported by the existing export mesher. Numeric reference preset values/defaults are not established by permitted sources.\n\n## Acceptance criteria\n- Research field units, bounds and option interaction; implement retained session values with explicit Alloy defaults when reference numbers remain unknown. Editing any field enters Custom without silently ignoring it.\n- Carry maximum-edge/aspect controls into the same prepared-artifact generation for STL and Core 3MF; prove actual final artifact triangles and geometric checks respond appropriately on bounded curved/slender fixtures.\n- Verify exact preview-count/output byte identity, invalidation, Cancel/Save, history passivity and native readability. Preserve Low/Medium/High and two-tolerance Custom behavior.\n\n## Preserved remainder\nOther advanced meshing algorithms and cross-platform physical input remain PRT-002/PRT-014.\n"
+    },
+    {
+      "key": "PRT-014",
+      "title": "Qualify native mesh-refinement preview and save workflow",
+      "kind": "validation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [
+        "PRT-011"
+      ],
+      "labels": [
+        "kind:validation",
+        "phase:P4",
+        "priority:P1",
+        "area:prt"
+      ],
+      "body": "## First-v1 native export gate\nPRT-011 owns one-solid prepared-artifact preview and exact count through the shared API/compiled sheet. Qualify physical Save As Mesh interaction and visual quality, including transient GPU facets and native filename chooser.\n\n## Acceptance criteria\n- Physically select a committed curved solid, open Save As Mesh through the actual UI, switch Low/Medium/High/Custom and STL/Core 3MF, activate Preview, inspect distinct facet-density/count changes, and edit typed fields without focus or selection repair.\n- Cancel while preparing or previewing, cancel the native chooser, and save after a valid preview. Prove no file or authored/history mutation on Cancel, exact prepared/saved byte hash on Save, safe existing-file failure/retry and stale document/settings refusal after chooser return.\n- Inspect full-app 1x/2x GPU captures with vendor/renderer/version/framebuffer and matched public evidence where available. Record specific visual/input mismatches; close the private editor. Windows/Linux packaged runtime remains the release gate.\n\n## Preserved remainder\nMulti-body structure/collisions remain PRT-012, maximum edge/aspect PRT-013 and broader advanced options PRT-002.\n"
     }
   ]
 }
