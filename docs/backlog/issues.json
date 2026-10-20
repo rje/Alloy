@@ -3699,7 +3699,8 @@
         "SOL-090",
         "SOL-091",
         "SOL-092",
-        "SOL-093"
+        "SOL-093",
+        "SOL-094"
       ],
       "labels": [
         "kind:validation",
@@ -10615,7 +10616,7 @@
         "priority:P1",
         "area:sol"
       ],
-      "body": "## Bounded result\nUniformly scale one retained body around the document origin with an editable positive factor and preserved body identity.\n\nThis is a finishable child of SOL-013; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Expose a positive uniform factor and explicit origin in the retained feature inputs.\n- Verify resulting bounds and volume scale by the expected factor and factor cubed on an analytic fixture.\n- Edit the factor and preserve downstream references or refuse unsupported ones without partial mutation.\n- Verify undo/redo, save/reopen, and exported mesh bounds.\n\n## Preserved remainder\nNonuniform and multi-body scaling, selected-reference pivots, and copy-first semantics remain under SOL-013/SOL-008.\n"
+      "body": "## Bounded result\nUniformly scale one retained body around the document origin with an editable positive factor and preserved body identity.\n\nThis is a finishable child of SOL-013; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Expose a positive uniform factor and explicit origin in the retained feature inputs.\n- Verify resulting bounds and volume scale by the expected factor and factor cubed on an analytic fixture.\n- Edit the factor and preserve downstream references or refuse unsupported ones without partial mutation.\n- Verify undo/redo, save/reopen, and exported mesh bounds.\n\n## Preserved remainder\nNonuniform and multi-body scaling, selected-reference pivots, and copy-first semantics remain under SOL-013/SOL-008.\n\n## Accepted bounded core and native split \u2014 2026-10-20\nCommit ffb2cd4 accepts one active root body uniform Scale about explicit document origin with positive factor, preserved body/face/edge IDs, normalized frame axes, scaled positional provenance, factor-cubed volume and shared disposable preview/Cancel/commit/edit API. A downstream Offset Face keeps its exact reference through factor edits; incompatible shrink refuses atomically. Focused core plus Align/Draft regressions and a 65-response real-app fixture pass Undo/Redo/reopen and independently parsed watertight STL bounds/volume; independent Sol review found no blocker. See docs/validation/scale.md. Native Body/Origin selection, factor field, Timeline edit, actual-hit Cancel/OK and 1x/2x GPU acceptance remain linked first-v1 Todo SOL-094/#656 because the Mac console is locked. Nonuniform, custom-pivot, multi-body and copy-first modes remain SOL-013/SOL-008. Closing SOL-087 accepts bounded core only, not native or packaged parity.\n"
     },
     {
       "key": "SOL-088",
@@ -11096,6 +11097,23 @@
         "area:solid"
       ],
       "body": "## Bounded first-v1 native gate\nQualify actual-hit one-face Fixed Plane Draft on a supported prism after the SOL-086 core is accepted. The 2026-10-20 Mac console is locked, so API geometry evidence is separate from this native workflow.\n\n## Acceptance criteria\n- Run strict unlocked Mac preflight, then open Solid > Modify > Draft through actual UI hits. Select Fixed Plane, retained neutral/pull plane, one supported side face, One Side, explicit pull Flip and signed angle. Hit-test user-facing controls and observe popup/dialog readiness; do not repair focus or selection between steps.\n- Show legible selected face, fixed hinge, pull-direction arrow, signed-angle preview and error state. Cancel/Escape leaves committed authored state and Undo unchanged; repeat OK creates one editable Timeline feature.\n- Reopen Draft from Timeline, change angle and Flip, verify exact geometry and retained downstream face attachment through the shared API, Undo/Redo and save/reopen. Exercise native invalid-angle feedback and valid retry.\n- Capture/inspect whole-app GPU presentation at 1x and 2x backing scale against the dated public tutorial illustration where comparable; note unmatched theme/size and physical-input status. Close private editors after evidence.\n\n## Preserved remainder\nMulti-face/tangent-chain and parting-line Draft, alternate neutral references, broader topology, exact pixel/key parity and Windows/Linux packaged runtime remain SOL-013 and release owners.\n"
+    },
+    {
+      "key": "SOL-094",
+      "title": "Qualify native uniform body Scale about document origin",
+      "kind": "validation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-087"
+      ],
+      "labels": [
+        "kind:validation",
+        "phase:P3",
+        "priority:P1",
+        "area:solid"
+      ],
+      "body": "## Bounded first-v1 native gate\nQualify actual-hit uniform Scale for one body about the explicitly shown document origin after SOL-087 core acceptance. The Mac console is locked on 2026-10-20, so shared API geometry alone cannot close this native gate.\n\n## Acceptance criteria\n- Run strict unlocked Mac preflight, then open Solid > Modify > Scale through actual UI hits. Select one body through viewport/Browser; show Uniform mode, fixed Document Origin pivot and dimensionless positive factor. Hit-test user-facing widgets and observe popup/dialog readiness without inter-step focus or selection repair.\n- Enter a factor, inspect the live scaled preview and origin cue, Cancel/Escape with unchanged authored/Undo state; repeat OK commits one editable Timeline feature. Invalid zero/negative/nonfinite values show readable refusal and permit valid retry.\n- Reopen Scale from Timeline and edit the factor, verify exact bounds/volume/body identity, downstream supported references, Undo/Redo and save/reopen through the shared API after native input. Ordinary body selection resumes.\n- Capture/inspect whole-app GPU presentation at 1x and 2x backing scale against the dated public Scale dialog where comparable. Record physical-device input separately if tested; close private editors after evidence.\n\n## Preserved remainder\nNonuniform/multi-body scaling, selected pivots, copy-first variants, exact pixel/key parity and Windows/Linux packaged runtime remain SOL-013/SOL-008 and release owners.\n"
     }
   ]
 }
