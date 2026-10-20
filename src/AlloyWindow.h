@@ -329,6 +329,13 @@ private:
     void showPattern();
     QDockWidget* patternDock_=nullptr;
     QShortcut* patternEscape_=nullptr;
+    QJsonObject ribCandidate(const QJsonObject& inputs) const;
+    QJsonObject beginRib(const QJsonObject& inputs);
+    QJsonObject previewRib();
+    void showRib();
+    void refreshRibControls();
+    QDockWidget* ribDock_=nullptr;
+    QShortcut* ribEscape_=nullptr;
     QJsonObject pipeCandidate(const QJsonObject& inputs) const;
     QJsonObject beginPipe(const QJsonObject& inputs);
     QJsonObject previewPipe();

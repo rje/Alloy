@@ -648,6 +648,11 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
             const auto source=feature["parameters"].toObject()[field].toString();if(positions.contains(source) && positions.value(source)<i && features[positions.value(source)].toObject()["type"]=="sketch")continue;
             return QJsonObject{{"code",!positions.contains(source)?"missing_dependency":positions.value(source)>=i?"forward_dependency":"unsupported_dependency"},{"message","Sweep sources must be earlier retained sketches"},{"featureId",feature["id"]},{"featureType","sweep"},{"input",field},{"sketchId",source}};
         }
+        if(feature["type"]=="rib") {
+            const auto p=feature["parameters"].toObject();const auto source=p["sketchId"].toString(),target=p["targetBodyId"].toString();
+            if(!positions.contains(source) || positions.value(source)>=i || features[positions.value(source)].toObject()["type"]!="sketch" || !bodyPositions.contains(target) || bodyPositions.value(target)>=i || !activeBodies.contains(target))
+                return {{"code","rib_dependency_unavailable"},{"featureId",feature["id"]},{"message","Rib requires an earlier retained sketch and active target body"}};
+        }
         if(feature["type"]=="pipe")for(const auto& field:{"pathSketchId"}) {
             const auto source=feature["parameters"].toObject()[field].toString();if(positions.contains(source) && positions.value(source)<i && features[positions.value(source)].toObject()["type"]=="sketch")continue;
             return QJsonObject{{"code",!positions.contains(source)?"missing_dependency":positions.value(source)>=i?"forward_dependency":"unsupported_dependency"},{"message","Pipe sources must be earlier retained sketches"},{"featureId",feature["id"]},{"featureType","pipe"},{"input",field},{"sketchId",source}};
@@ -1919,6 +1924,29 @@ QJsonObject CadDocument::sweepCandidate(const QJsonObject& authored,const QJsonO
     if(arguments.contains("name"))feature["name"]=arguments["name"];if(index<0)features.append(feature);else features[index]=feature;candidate["features"]=features;const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
 }
 
+QJsonObject CadDocument::ribCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
+    const QSet<QString> allowed{"ownerId","sketchId","sourceEntityId","targetBodyId","thicknessMm","flip","extent","direction","operation","name","featureId","newFeatureId"};
+    for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Rib argument");
+    auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
+    if(arguments.contains("featureId")){for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}if(index<0 || feature["type"]!="rib")throw std::invalid_argument("Rib feature unavailable");}
+    else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","rib"},{"name","Rib"},{"visible",true}};
+    QJsonObject parameters;for(const auto& field:{"sketchId","sourceEntityId","targetBodyId","thicknessMm"})parameters[field]=arguments[field];
+    parameters["flip"]=(arguments.contains("flip")?arguments.value("flip"):QJsonValue(false));parameters["extent"]=(arguments.contains("extent")?arguments.value("extent"):QJsonValue("toNext"));parameters["direction"]=(arguments.contains("direction")?arguments.value("direction"):QJsonValue("symmetric"));parameters["operation"]=(arguments.contains("operation")?arguments.value("operation"):QJsonValue("join"));
+    // Pin the exact retained support identities after the first evaluation.
+    // Changing Profile/Target deliberately resolves a new pair; numeric edits retain them.
+    const auto old=feature["parameters"].toObject();
+    if(old["sketchId"]==parameters["sketchId"] && old["sourceEntityId"]==parameters["sourceEntityId"] && old["targetBodyId"]==parameters["targetBodyId"] && old["flip"]==parameters["flip"])
+        parameters["supportFaceIds"]=old.value("supportFaceIds").toArray();
+    else parameters["supportFaceIds"]=QJsonArray{};
+    feature["parameters"]=parameters;if(arguments.contains("name"))feature["name"]=arguments["name"];
+    if(index<0){index=features.size();features.append(feature);}else features[index]=feature;candidate["features"]=features;
+    const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());
+    if(parameters["supportFaceIds"].toArray().isEmpty()){
+        const auto evaluated=evaluateCandidate(candidate);
+        if(evaluated.ok)for(const auto& body:evaluated.evaluation->bodies)if(body.bodyId==parameters["targetBodyId"]){parameters["supportFaceIds"]=body.summary["ribSupportFaceIds"];feature["parameters"]=parameters;features[index]=feature;candidate["features"]=features;}
+    }return candidate;
+}
+
 QJsonObject CadDocument::pipeCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
     const QSet<QString> allowed{"ownerId","diameterMm","wallThicknessMm","pathSketchId","pathEntityIds","pathStartPointId","extent","orientation","operation","name","featureId","newFeatureId","newBodyId"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Pipe argument");
@@ -2980,6 +3008,16 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             QSet<QString> path;for(const auto& id:p["pathEntityIds"].toArray()){if(!id.isString() || !validId(id.toString()) || path.contains(id.toString()))return "Sweep path entities must be distinct UUIDs";path.insert(id.toString());}
             if(p["extent"]!="full" || p["orientation"]!="perpendicular" || p["operation"]!="newBody")return "Sweep supports Full Perpendicular New Body only";
             ids.insert(feature["bodyId"].toString());continue;
+        }
+        if(type=="rib") {
+            if(feature.contains("bodyId") || p.size()!=9)return "Rib modifies a target body with exact supported parameters";
+            for(const auto& key:{"sketchId","sourceEntityId","targetBodyId"})if(!validId(p[key].toString()))return "Rib requires retained sketch Line and target body identities";
+            const auto thickness=p["thicknessMm"].toDouble();
+            if(!p["thicknessMm"].isDouble() || !std::isfinite(thickness) || thickness<0.001 || thickness>100000 || !p["flip"].isBool())return "Rib requires thickness 0.001..100000 mm and a boolean Flip";
+            if(p["extent"]!="toNext" || p["direction"]!="symmetric" || p["operation"]!="join")return "Rib supports Symmetric, To Next, Join only";
+            if(!p["supportFaceIds"].isArray() || (p["supportFaceIds"].toArray().size()!=0 && p["supportFaceIds"].toArray().size()!=2))return "Rib requires its retained source-exit and stop support identities";
+            for(const auto& value:p["supportFaceIds"].toArray())if(!validId(value.toString()))return "Rib support identities must be UUIDs";
+            continue;
         }
         if(type=="pipe") {
             if(!validId(feature["bodyId"].toString()) || ids.contains(feature["bodyId"].toString()) || p.size()!=8)return "Pipe requires a distinct body and exact supported parameters";
