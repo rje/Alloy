@@ -1,5 +1,7 @@
 # Alloy
 
+[Two-solid interference and clearance inspection](docs/validation/interference.md) now reports transient overlap, touching or minimum gap for a selected body pair, with native GPU highlighting and independent geometry/history checks. Wider group analysis and release-package input remain open.
+
 [Retained hollow Pipe](docs/validation/solid-pipe.md) now creates an editable circular tube along a tangent Line/Arc sketch path, with a native preview and independent watertight STL readback. Broader Pipe modes and packaged-platform input remain tracked separately.
 
 [Per-body mesh destination](docs/validation/batch-destination.md) now has a native Browse control, a new-folder name field and a full computed path preview, with independent two-file export readback. Physical chooser input and sheet placement remain release gates.
