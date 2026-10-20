@@ -3720,7 +3720,8 @@
         "SRF-054",
         "GEO-031",
         "GEO-035",
-        "PRT-014"
+        "PRT-014",
+        "PRT-016"
       ],
       "labels": [
         "kind:validation",
@@ -11705,7 +11706,8 @@
       "phase": "P4 Initial release",
       "priority": "P1",
       "depends_on": [
-        "PRT-011"
+        "PRT-011",
+        "PRT-016"
       ],
       "labels": [
         "kind:validation",
@@ -11713,7 +11715,7 @@
         "priority:P1",
         "area:prt"
       ],
-      "body": "## First-v1 native export gate\nPRT-011 owns one-solid prepared-artifact preview and exact count through the shared API/compiled sheet. Qualify physical Save As Mesh interaction and visual quality, including transient GPU facets and native filename chooser.\n\n## Acceptance criteria\n- Physically select a committed curved solid, open Save As Mesh through the actual UI, switch Low/Medium/High/Custom and STL/Core 3MF, activate Preview, inspect distinct facet-density/count changes, and edit typed fields without focus or selection repair.\n- Cancel while preparing or previewing, cancel the native chooser, and save after a valid preview. Prove no file or authored/history mutation on Cancel, exact prepared/saved byte hash on Save, safe existing-file failure/retry and stale document/settings refusal after chooser return.\n- Fix the centered export sheet obscuring much of the selected part: preserve a useful viewport view of the changing facets while controls, count and Save/Cancel stay readable. Inspect full-app 1x/2x GPU captures with vendor/renderer/version/framebuffer and matched public evidence where available. Record specific visual/input mismatches; close the private editor. Windows/Linux packaged runtime remains the release gate.\n\n## Preserved remainder\nMulti-body structure/collisions remain PRT-012, maximum edge/aspect PRT-013 and broader advanced options PRT-002.\n"
+      "body": "## First-v1 native export gate\nPRT-011 owns one-solid prepared-artifact preview and exact count through the shared API/compiled sheet. Qualify physical Save As Mesh interaction and visual quality, including transient GPU facets, native filename chooser and the per-body destination chooser owned by PRT-016.\n\n## Acceptance criteria\n- Physically select a committed curved solid, open Save As Mesh through the actual UI, switch Low/Medium/High/Custom and STL/Core 3MF, activate Preview, inspect distinct facet-density/count changes, and edit typed fields without focus or selection repair.\n- Cancel while preparing or previewing, cancel the native chooser, and save after a valid preview. Prove no file or authored/history mutation on Cancel, exact prepared/saved byte hash on Save, safe existing-file failure/retry and stale document/settings refusal after chooser return.\n- Fix the centered export sheet obscuring much of the selected part: preserve a useful viewport view of the changing facets while controls, count and Save/Cancel stay readable. Inspect full-app 1x/2x GPU captures with vendor/renderer/version/framebuffer and matched public evidence where available. Record specific visual/input mismatches; close the private editor. Windows/Linux packaged runtime remains the release gate.\n\n## Preserved remainder\nMulti-body structure/collisions remain PRT-012, per-body destination Browse remains PRT-016, maximum edge/aspect PRT-013 and broader advanced options PRT-002.\n"
     },
     {
       "key": "PRT-015",
@@ -11731,6 +11733,23 @@
         "area:prt"
       ],
       "body": "## Preserved replacement workflow\nExtend the accepted PRT-012 new-directory per-body STL/Core 3MF export to an existing destination with an explicit conflict list and Replace All or Cancel choice. Public evidence does not establish an exact conflict prompt or replacement semantics; this is an Alloy safety and familiarity requirement.\n\n## Acceptance criteria\n- Show every generated path and existing conflict before publication; require explicit Replace All. Preserve deterministic path-to-instance mapping and refuse symlink/path traversal escapes.\n- Prepare all replacement bytes before any destination mutation. Use a cross-platform transaction/rollback design with bounded crash-recovery semantics and clear limits; no silent per-file skip or partial success. Failed or cancelled replacement preserves the previous complete file set byte-for-byte.\n- Independently read every replaced STL/Core 3MF and verify selected-body scope, units, bounds and transforms. Exercise a late publication failure, recovery/retry and existing-file conflicts on macOS, Windows and Linux runtime before claiming portable safety.\n- Inspect physical native conflict/chooser flow and readable user feedback without altering authored geometry, history or Undo.\n\n## Dependencies\n- PRT-012/#644 new-directory batch core.\n"
+    },
+    {
+      "key": "PRT-016",
+      "title": "Choose a per-body mesh batch destination through native UI",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [
+        "PRT-012"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P4",
+        "priority:P1",
+        "area:prt"
+      ],
+      "body": "## First-v1 native destination workflow\nPRT-012 accepts a typed absolute new-folder path for its atomic per-body STL/Core 3MF batch. Provide a familiar native destination chooser and visible folder-name control so a user can choose where the new output folder will be created without entering a long absolute path. Keep PRT-012's exclusive new-directory publication contract; existing-directory Replace All remains PRT-015.\n\n## Acceptance criteria\n- In One Body Per File, Browse opens a native location chooser, preserves or restores the sheet correctly on Cancel, and shows the selected parent and proposed new folder name before Save. The generated filenames remain previewed and readable.\n- Save targets exactly the visible planned new directory. Existing file/directory/symlink refusal is actionable; no folders or model edits appear on chooser Cancel. Selection, format and structure changes preserve consistent destination state.\n- Verify actual-hit click, focus and keyboard traversal through Browse, native chooser, new folder name, Save/Cancel, and inspect 1x/2x sheet/viewport captures. Use shared command/API and independently inspect the resulting two-file batch. Mac, Windows and Linux runtime are release gates.\n\n## Dependencies\n- PRT-012/#644 atomic new-directory batch core.\n"
     }
   ]
 }

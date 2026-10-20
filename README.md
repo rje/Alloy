@@ -1,5 +1,7 @@
 # Alloy
 
+[Selected-body STL/Core 3MF export](docs/validation/batch-mesh-export.md) now writes an explicit body set as one file or a new atomic per-body directory. Independent multi-body files, names, placement and preservation checks pass; native Browse and cross-platform runtime remain release work.
+
 [Selected-solid mesh refinement](docs/validation/mesh-refinement.md) now previews the final STL/Core 3MF triangles with Low/Medium/High/Custom settings and publishes the prepared bytes on Save. Independent curved-part readback, cancellation/retry and Apple M4 GPU captures pass; multi-body structure and native sheet placement remain tracked separately.
 
 [Retained datum Point](docs/validation/datum-point.md) now places an editable reference point at a semantic Box vertex or along an authored straight sketch Line with proportional or physical distance. Independent geometry/history/reopen and STL-isolation checks pass; physical picking and canvas distance manipulation remain GEO-035.
