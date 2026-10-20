@@ -1,6 +1,6 @@
-## 2026-10-20 SKT-175 bounded visual/access candidate
+## 2026-10-20 SKT-175 bounded visual/access acceptance
 
-[Menu receipt](validation/canvas-marking-menu.md#2026-10-20-skt-175-visualaccess-candidate)
+[Menu receipt](validation/canvas-marking-menu.md#2026-10-20-skt-175-bounded-visualaccess-acceptance)
 records original icons, transparent compact radial targets, screen clamping and
 explicit radial/list keyboard traversal. `build-preview-release` real-app fixture
 passes 4/4 in 19.3s after the review-requested direct Qt Key_Backtab correction; component actual-hit checks cover all command buttons/eight
@@ -9,8 +9,8 @@ five tool clicks and the full retained bracket route. External captures/receipt:
 `validation/skt175-2026-10-20/backtab/`. DPR2 Apple M4 and actual focus-state
 captures inspected; physical hover/input/VoiceOver and native DPR1 remain
 unqualified. Lower list still spans radial width, unlike the narrower centered
-public screenshot: explicit Todo remainder proposed. Independent review and
-issue scope reconciliation pending; no CI/push/release. Private windows closed.
+public screenshot: SKT-176/#699 retains that Todo remainder. Independent Sol
+review accepted the Backtab correction; no CI/release. Private windows closed.
 
 ## 2026-10-20 SKT-173 active-sketch menu acceptance
 

@@ -107,7 +107,7 @@ lifetime and focused evidence. It confirmed that gesture events are Qt-delivered
 keyboard and assistive-technology operation are unverified, and the captured
 AppKit state was inactive; no physical-input parity is inferred.
 
-## 2026-10-20 SKT-175 visual/access candidate
+## 2026-10-20 SKT-175 bounded visual/access acceptance
 
 This bounded refinement adds independently authored geometric icons to supported
 radial and context-list actions, a transparent radial field, compact 24px radial
@@ -163,7 +163,9 @@ and assistive-technology operation remain unqualified.
 | Exact public metrics/theme/hover | Unknown: archive does not identify platform/build/DPR. Physical hover was not observed. |
 | Lower-list silhouette | Mismatch: QMenu rows still occupy the full radial width, whereas the archived image has a narrower centered list. Proposed Todo follow-up must retain actual row hits, keyboard/accessibility and cancellation. |
 
-This is a candidate pending independent review and issue scope reconciliation.
+Independent Sol review accepted the bounded result after the Backtab correction.
+The narrower centered context-list silhouette remains SKT-176/#699 Todo; its
+actual row hit/accessibility and edge placement must still be qualified.
 No CI, tag, push or release was performed. All private validation windows closed.
 
 ### Independent-review Backtab correction
@@ -178,5 +180,5 @@ The affected `bracket_midpoint_controls_test` target rebuilt with `-j4`; the ful
 focused fixture passes **4/4 in 19.3 seconds**, preserving real-app input and
 bracket geometry/history/reopen coverage. Latest external receipt/captures/log:
 `validation/skt175-2026-10-20/backtab/`; build log: `backtab-build.log`.
-Independent re-review remains pending. The lower-list-width mismatch and physical
+Independent re-review accepted the corrected path. The lower-list-width mismatch and physical
 input/accessibility/platform limits above are unchanged. Private editor closed.

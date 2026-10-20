@@ -4,9 +4,10 @@
 bounded accepted active-sketch component with shared radial commands,
 click/gesture Line and Circle, and the selected-cap construction route. Qt
 actual-hit checks and independent review pass; physical activation, broader
-contexts remain separate acceptance work. A visual/access candidate adds original
-icons, transparent radial targets and keyboard traversal; its focused fixture passes
-4/4, with independent review and narrow lower-list refinement still pending.
+contexts remain separate acceptance work. The accepted visual/access increment
+adds original icons, transparent radial targets and keyboard traversal; its
+focused fixture passes 4/4 and independent review. Narrower lower-list layout
+remains SKT-176/#699.
 
 [Typed Angle and Cylinder Height parameters](docs/validation/typed-angle-cylinder-parameters.md)
 now bind a driving line-pair sketch Angle and primitive Height to stable typed
