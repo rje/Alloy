@@ -95,6 +95,8 @@ Circle, two nonparallel construction Lines, Spacing / One Direction and retained
 bounds. Extent, Symmetric, arbitrary multi-entity seeds and suppression remain
 ADV-005. Physical AppKit pointer/trackpad, DPR1 and packaged Windows/Linux runtime
 remain separate release gates. Public screenshots are unmatched in scale/state;
-exact visual parity is unknown. No CI, tag, release or push was run. Private
-fixture editors closed; user-owned PID 72618 preserved. Independent acceptance
-is pending.
+exact visual parity is unknown. No CI, tag or release was run. Private fixture
+editors closed; user-owned PID 72618 preserved. Independent Sol source/artifact
+review accepted `c778124` without a blocker after recomputing saved vector-sum
+centers, generated IDs and mesh topology, checking atomic refusals and the
+final `leader-clearance/handles.png` visual.

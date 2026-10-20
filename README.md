@@ -15,8 +15,9 @@ history and STL checks.
 [Retained rectangular sketch-circle Pattern](docs/validation/sketch-rectangular-pattern.md)
 has an independently accepted bounded source-only solver and shared native/local-control command, with
 indexed identities, owner-safe refusals and a six-hole printable Cut. Core, real-app
-STL and native actual-hit/glyph/GPU checks pass; nonorthogonal axes remain
-SKT-183/#706.
+STL and native actual-hit/glyph/GPU checks pass. [Skewed rectangular axes](docs/validation/sketch-skew-pattern.md)
+now follow two nonparallel construction Lines through native picks, edits and
+printable Cut, with independent exact-geometry and STL review.
 
 [Active-sketch canvas marking menu](docs/validation/canvas-marking-menu.md) has a
 bounded accepted active-sketch component with shared radial commands,

@@ -1,3 +1,21 @@
+## 2026-10-20 SKT-183 skewed rectangular Pattern acceptance
+
+[Bounded receipt](validation/sketch-skew-pattern.md) accepts two nonparallel,
+nonperpendicular authored construction Lines for the retained rectangular
+circle Pattern. Centers follow `c + i*s1*a + j*s2*b`; positive spacing follows
+each line's start→end orientation. Parallel/antiparallel, degenerate and
+overlapping results refuse atomically. Native orthogonal/skew actual-hit input
+passes 4/4. A real executable reopens its native-created skew grid, edits the
+source and both directions through a six-hole Cut, verifies indexed IDs,
+history/reopen/refusals and independently reads a watertight STL. Circular
+regression passes 3/3. Independent Sol review accepted `c778124` after
+recomputing vector sums, UUIDs, mesh topology and the final D2 leader capture.
+External evidence `../Alloy-reference-records/validation/skt183-2026-10-20/`,
+build `build-preview-release`, `-j4`. SKT-183/#706 is closed/Done. Sketch
+pattern proposed-v1 bounded minimum is accepted; cumulative package/physical
+qualification remains open. Extent, Symmetric, broader seeds and suppression
+stay ADV-005. No CI/release; private editors closed, user PID 72618 preserved.
+
 ## 2026-10-20 SKT-182 circular Pattern canvas acceptance
 
 [Bounded receipt](validation/sketch-circular-pattern-canvas.md) accepts real
@@ -11,7 +29,7 @@ accepted commit `f93ad4c` after recomputing identities/centers, STL topology and
 the final arc-attached Quantity grip. External evidence is under
 `../Alloy-reference-records/validation/skt182-2026-10-20/`; build is
 `build-preview-release` with `-j4`. SKT-182/#705 is closed/Done. Skewed
-rectangular axes remain SKT-183/#706 Todo; broader modes ADV-005. Positive
+rectangular axes are accepted under SKT-183/#706; broader modes ADV-005. Positive
 sketch-UV rotation is an Alloy policy; sign parity with a third-party clockwise
 description is unknown for unmatched plane/camera states. A native rectangular
 regression close-prompt stall was a test teardown issue and passes after explicit
@@ -32,7 +50,7 @@ commits `e650965` + `df72cef` after checking authored IDs, centers, meshes and
 the final D2 label-clearance capture. Build `build-preview-release`, `-j4`;
 external evidence `../Alloy-reference-records/validation/skt178-2026-10-20/`.
 SKT-178/#701 is closed/Done. Circular canvas input is accepted under SKT-182/#705;
-nonorthogonal rectangular axes are SKT-183/#706 Todo. Physical Mac pointer,
+nonorthogonal rectangular axes are accepted under SKT-183/#706. Physical Mac pointer,
 DPR1 and packaged Windows/Linux remain separate. No CI or release was run;
 private fixture editors are closed and user-owned PID 72618 was preserved.
 

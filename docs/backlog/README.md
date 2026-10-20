@@ -13,8 +13,8 @@ Use the live issue state for completion and readiness.
 SKT-097/#502 accepts a bounded retained rectangular sketch-circle pattern and
 shared ownership foundation; SKT-177/#700 accepts circular Full/Angle patterns.
 Familiar rectangular canvas picks/manipulators are accepted under SKT-178/#701;
-circular picks/manipulators are accepted under SKT-182/#705. Nonorthogonal rectangular axes,
-newly supported by public tutorial evidence, remain SKT-183/#706.
+circular picks/manipulators are accepted under SKT-182/#705. Nonorthogonal
+rectangular axes are accepted under SKT-183/#706 after public tutorial evidence.
 Both pattern modes are required for proposed-v1 sketch patterns, with the public
 contract and engineering note outside the repository. SKT-098/#503 now owns
 Move alone; Copy, Rotate and Scale remain linked Todo SKT-179–181/#702–704.
