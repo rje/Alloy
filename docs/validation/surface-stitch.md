@@ -52,6 +52,12 @@ SRF-057 acceptance work.
 
 ## Verification
 
+Independent Astra read-only review accepted commit `c6cc33e` for the bounded
+two-planar-sheet core. It checked source identity and consumption timing, private
+OCCT copies, selected-seam adjacency, input/output tolerance limits, retained
+history, the 163-call transcript, all 15 evidence-manifest hashes and the actual
+sub-tolerance capture. The visible striping remains SRF-057 work.
+
 Final local Release build and focused `surface_stitch` CTest pass (1/1).
 The final real-entrypoint fixture passes 163 calls: exact/sub-tolerance success,
 excessive-gap atomic refusal, isolated preview/Cancel/commit, retained tolerance

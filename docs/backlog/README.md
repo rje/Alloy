@@ -13,6 +13,9 @@ Use the live issue state for completion and readiness.
 [Connected-Line Surface Revolve](../validation/surface-revolve-chain.md) accepts
 the joined-Line first-v1 minimum under SRF-037/#660. Canvas selection and angle
 drag remain SRF-036/#659; later Line/Arc chains are SRF-055/#715.
+[Two-sheet Surface Stitch](../validation/surface-stitch.md) accepts the bounded
+open-shell core/API under SRF-056/#716; native actual-hit and sub-tolerance
+preview appearance remain SRF-057/#717.
 SKT-097/#502 accepts a bounded retained rectangular sketch-circle pattern and
 shared ownership foundation; SKT-177/#700 accepts circular Full/Angle patterns.
 Familiar rectangular canvas picks/manipulators are accepted under SKT-178/#701;
