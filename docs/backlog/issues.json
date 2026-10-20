@@ -11933,7 +11933,8 @@
       "phase": "P2 Parametric modeling",
       "priority": "P1",
       "depends_on": [
-        "SKT-008"
+        "SKT-008",
+        "SKT-187"
       ],
       "labels": [
         "kind:implementation",
@@ -11941,7 +11942,7 @@
         "priority:P1",
         "area:skt"
       ],
-      "body": "<!-- alloy-backlog:SKT-180 -->\n**Backlog key:** `SKT-180` · **Phase:** `P2 Parametric modeling` · **Priority:** `P1` · **Kind:** `implementation`\n\n## Preserved Rotate workflow\nComplete the Rotate portion split from SKT-098/#503 for connected sketch geometry. The public research at `../Alloy-reference-records/knowledge/specs/skt098-sketch-transform-2026-10-20.md` leaves coplanar pivot eligibility and sketch-specific history uncertain. Resolve the supported pivot/axis route with additional permitted public evidence before coding; do not infer a 2D pivot from a general 3D control.\n\n## Acceptance\n- Provide a researched, bounded active-sketch Rotate path with explicit selected group, pivot/axis, signed angle, preview, OK/Cancel and edit behavior through shared native/API authority. Define exact supported planar/3D scope and preserve other modes in ADV-005. Preserve compatible constraints; atomically refuse conflicts without silent relation deletion.\n- Rotate one asymmetric connected closed profile by an explicit nontrivial angle around a documented supported pivot. Verify analytic vertices, stable source/profile identity, downstream solid bounds/volume, edit, Undo/Redo, save/reopen and independent STL readback. Inspect actual GPU presentation and native actual-hit controls separately.\n- Keep Move, Copy and Scale under their own issues. State observed behavior versus Alloy policy/unknowns. No proprietary application operation.\n\n## Dependencies\n- SKT-008/#35 sketch solver foundation; shared transform/selection authority from SKT-098/#503 where applicable.\n"
+      "body": "<!-- alloy-backlog:SKT-180 -->\n**Backlog key:** `SKT-180` · **Phase:** `P2 Parametric modeling` · **Priority:** `P1` · **Kind:** `implementation`\n\n## Preserved Rotate workflow\nComplete the Rotate portion split from SKT-098/#503 for connected sketch geometry. The public research at `../Alloy-reference-records/knowledge/specs/skt098-sketch-transform-2026-10-20.md` leaves coplanar pivot eligibility and sketch-specific history uncertain. Resolve the supported pivot/axis route with additional permitted public evidence before coding; do not infer a 2D pivot from a general 3D control.\n\n## Acceptance\n- Provide a researched, bounded active-sketch Rotate path with explicit selected group, pivot/axis, signed angle, preview, OK/Cancel and edit behavior through shared native/API authority. Define exact supported planar/3D scope and preserve other modes in ADV-005. Preserve compatible constraints; atomically refuse conflicts without silent relation deletion.\n- Rotate one asymmetric connected closed profile by an explicit nontrivial angle around a documented supported pivot. Verify analytic vertices, stable source/profile identity, downstream solid bounds/volume, edit, Undo/Redo, save/reopen and independent STL readback. Inspect actual GPU presentation and native actual-hit controls separately.\n- Keep Move, Copy and Scale under their own issues. State observed behavior versus Alloy policy/unknowns. No proprietary application operation.\n\n## Dependencies\n- SKT-008/#35 sketch solver foundation; shared transform/selection authority from SKT-098/#503 where applicable.\n\n## Accepted scope split before implementation\n- SKT-187/#710 is the required authored same-sketch normal 3D construction-axis prerequisite. SKT-180 remains Todo until it is accepted.\n- SKT-188/#711 preserves retained Rotate composition with later source-size dimension edits. SKT-180 will support retained angle/eligible-axis edits first and atomically refuse unsupported source-size edits. No general 3D Sketch or exact Timeline parity is claimed.\n"
     },
     {
       "key": "SKT-181",
@@ -12046,6 +12047,40 @@
         "area:skt"
       ],
       "body": "<!-- alloy-backlog:SKT-186 -->\n**Backlog key:** `SKT-186` · **Phase:** `P2 Parametric modeling` · **Priority:** `P1` · **Kind:** `research/design`\n\n## Unresolved sketch Create Copy history semantics\nSKT-185/#708 offers an active-sketch Move/Copy > Sketch Objects > Create Copy command over independent authored Copy geometry. Public documentation states general Translate creates an editable Timeline Move, but the retrieved examples do not establish whether a Sketch Objects Create Copy result has a retained sketch definition, whether source edits propagate, or how copied constraints are owned. The dated evidence/uncertainty record is outside git at `../Alloy-reference-records/knowledge/specs/skt185-create-copy-2026-10-20.md`. Do not infer sketch-specific behavior from a generic mode description.\n\n## Acceptance\n- Search additional permitted public docs, screenshots and original tutorials/videos for an active-sketch Create Copy of selected sketch entities followed by Timeline or edit-route inspection and a later source edit. Record creator, URL, retrieval date and video timestamps; distinguish observed steps from inference and contradictory versions. Do not run or inspect proprietary software.\n- Produce a compact command/history/constraint/identity comparison against Alloy's #708 independent-copy policy. If evidence supports a different retained sketch behavior, specify a bounded source/output owner, edit/Undo/save requirements, candidate fixture and separate implementation issue. If evidence remains insufficient, record the unknown and an evidence trigger; do not claim exact parity or silently convert #708 into a retained feature.\n- Keep visual references outside git. No release or platform gate is satisfied by research alone.\n\n## Dependencies\n- SKT-185/#708 bounded Create Copy command route.\n"
+    },
+    {
+      "key": "SKT-187",
+      "title": "Author a normal construction line in an active sketch",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-008"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P1",
+        "area:skt"
+      ],
+      "body": "<!-- alloy-backlog:SKT-187 -->\n**Backlog key:** `SKT-187` · **Phase:** `P2 Parametric modeling` · **Priority:** `P1` · **Kind:** `implementation`\n\n## Bounded 3D sketch axis prerequisite\nPublic active-sketch Rotate instructions require a 3D sketch line as the rotation axis because a coplanar point is not eligible. Alloy has only planar sketch curves. Author one reference-only construction line normal to the active XY sketch at a selected pivot, with start `(u,v,0)` and end `(u,v,h)`, `h>0`. This is a deliberately restricted 3D Sketch line, not general 3D Sketch support. Public evidence and visual references are external in `../Alloy-reference-records/knowledge/specs/skt180-sketch-rotate-2026-10-20.md`.\n\n## Acceptance\n- In an active XY sketch, provide a visible 3D Sketch mode and native/API authoring of one normal construction Line with stable line/end-point IDs. Inspect its local `(u,v,w)` coordinates, direction, length and construction role. Show a real GPU segment and selectable end-on axis marker in normal view; actual-hit native picking returns its ID to the shared control path.\n- Keep the helper outside planar PlaneGCS, profile boundaries, extrusion regions and ordinary 2D curve selection. Edits/deletion have explicit ownership/refusal rules; Undo/Redo and authored save/reopen preserve it. Invalid zero/negative height, off-normal endpoint, duplicate/foreign IDs and out-of-bounds values refuse atomically with structured reasons.\n- Use one line through `(4,3,0)` toward +Z in the planned asymmetric Rotate fixture, then demonstrate downstream planar profile and 8 mm Extrude are unchanged by the helper. Inspect native GPU capture and separate API geometry/history evidence. General 3D sketch lines and tilted axes remain broader roadmap work; do not claim them or operate proprietary software.\n\n## Dependencies\n- SKT-008/#35 sketch solver/document foundation.\n"
+    },
+    {
+      "key": "SKT-188",
+      "title": "Compose retained sketch Rotate with later source-size edits",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-180"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P1",
+        "area:skt"
+      ],
+      "body": "<!-- alloy-backlog:SKT-188 -->\n**Backlog key:** `SKT-188` · **Phase:** `P2 Parametric modeling` · **Priority:** `P1` · **Kind:** `implementation`\n\n## Preserved source-edit composition for Rotate\nSKT-180/#703 owns a first retained planar Rotate whose same-ID output follows angle and eligible axis edits. This child preserves later edits to internal source size dimensions; a fixed source anchor alone leaves rotational freedom, so source orientation must be stabilized before deriving the rotated result. This is a separate solvable increment, not permission to drop source edits silently. Architecture review and public uncertainty are external in `../Alloy-reference-records/knowledge/specs/skt180-sketch-rotate-2026-10-20.md`.\n\n## Acceptance\n- Define an explicit source-frame orientation rule for the selected asymmetric four-Line loop and existing compatible internal size dimensions. Re-solve authoritative pre-Rotate source geometry after a permitted dimension edit, then derive rotated output exactly once with unchanged owner, entity, profile and downstream body IDs. Repeated evaluation must be idempotent.\n- Demonstrate a source dimension change with retained +30° angle and an axis-pivot edit, checking analytic vertices, valid 8 mm Extrude, Undo/Redo and exact authored save/reopen. Independently read watertight STL bounds/volume and inspect native/API edit and GPU state.\n- Refuse orientation ambiguity, external/fixed/placement conflicts and unsupported output edits atomically with structured reasons. Preserve broader 3D modes under ADV-005 and do not infer public Timeline semantics without evidence.\n\n## Dependencies\n- SKT-180/#703 retained planar Rotate owner.\n"
     }
   ]
 }

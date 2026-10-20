@@ -1,3 +1,17 @@
+## 2026-10-20 SKT-180 Rotate prerequisite split
+
+Public research at
+`../Alloy-reference-records/knowledge/specs/skt180-sketch-rotate-2026-10-20.md`
+found an active-sketch Rotate route requiring a 3D sketch Line axis rather than
+a coplanar point. Independent Astra architecture review found Alloy has only
+planar sketch Lines. SKT-187/#710 is the sole In Progress board item for one
+authored normal construction Line in an active XY sketch, including native/API
+authoring, picking, profile exclusion and save/history. SKT-180/#703 returned
+to Todo and now depends on #710; it will own retained planar Rotate with angle
+and axis edits. SKT-188/#711 preserves later source-size composition. General
+3D Sketch remains broader roadmap scope; no Rotate implementation or parity is
+claimed yet. The canonical backlog has 708 issues.
+
 ## 2026-10-20 SKT-185 Create Copy acceptance
 
 [Bounded receipt](validation/sketch-create-copy.md) accepts the general Solid

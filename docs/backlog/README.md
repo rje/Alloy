@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **706 issues**: **556 implementation, 24 research,
+The current local backlog contains **708 issues**: **558 implementation, 24 research,
 6 research/design, 22 epics, and 98 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 SKT-097/#502 accepts a bounded retained rectangular sketch-circle pattern and
@@ -21,6 +21,8 @@ authored Move and SKT-184/#707 owns retained editable Move. [Copy/Paste](../vali
 accepts SKT-179/#702. The [general Move/Copy Create Copy route](../validation/sketch-create-copy.md)
 accepts SKT-185/#708; its unresolved sketch-specific retained-history research
 is SKT-186/#709. Rotate and Scale remain Todo SKT-180–181/#703–704.
+SKT-187/#710 is the active normal 3D construction-line prerequisite for
+Rotate; SKT-188/#711 preserves later source-size composition.
 The [atomic Move receipt](../validation/sketch-move.md) accepts SKT-098/#503,
 and [Retained Edit Move](../validation/sketch-retained-move.md) accepts SKT-184/#707.
 The public transform contract is outside the repository.
