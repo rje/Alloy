@@ -114,3 +114,9 @@ This matches the documented limited axis prerequisite. Exact public control
 styling/defaults and general 3D Sketch remain unknown/unimplemented; tilted
 axes, multiple 3D Lines and Rotate are not claimed. Private validation editors
 were closed; the user-owned PID 72618 was preserved.
+
+Independent Sol review accepted `e6a8e6c` after checking the separate schema,
+solver/profile exclusion, native actual-hit controls and final captures. It
+independently re-read both binary STLs and confirmed unchanged geometry. The
+review was read-only and did not claim a new build or app run. Physical input,
+finished-sketch axis display, general 3D Sketch and Rotate remain open.

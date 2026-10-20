@@ -21,8 +21,9 @@ authored Move and SKT-184/#707 owns retained editable Move. [Copy/Paste](../vali
 accepts SKT-179/#702. The [general Move/Copy Create Copy route](../validation/sketch-create-copy.md)
 accepts SKT-185/#708; its unresolved sketch-specific retained-history research
 is SKT-186/#709. Rotate and Scale remain Todo SKT-180–181/#703–704.
-SKT-187/#710 is the active normal 3D construction-line prerequisite for
-Rotate; SKT-188/#711 preserves later source-size composition.
+[Normal 3D construction Line](../validation/sketch-normal-axis.md) accepts
+SKT-187/#710 as the Rotate prerequisite; SKT-188/#711 preserves later
+source-size composition.
 The [atomic Move receipt](../validation/sketch-move.md) accepts SKT-098/#503,
 and [Retained Edit Move](../validation/sketch-retained-move.md) accepts SKT-184/#707.
 The public transform contract is outside the repository.

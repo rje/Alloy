@@ -17,6 +17,12 @@ preview and untouched clipboard. Native input, mode switching, history and
 two checked solids pass independent review. Rotate and Scale remain Todo;
 sketch-specific Create Copy Timeline semantics are a research Todo.
 
+[Normal 3D sketch construction Line](docs/validation/sketch-normal-axis.md)
+now provides the researched axis prerequisite for sketch Rotate on an XY
+plane. It is authored, selectable and editable with stable IDs while remaining
+outside planar profiles and Extrude; native input and unchanged printable STL
+pass independent review. Rotate remains an open command task.
+
 [Retained circular sketch-circle Pattern](docs/validation/sketch-circular-pattern.md)
 now supports Full and Angle around an authored center Point through shared native
 numeric controls and local commands. An independent review accepted exact circle
