@@ -27,6 +27,8 @@
 #include <QLineEdit>
 #include <QDir>
 #include <QPushButton>
+#include <QHBoxLayout>
+#include <QRegularExpression>
 #include <QSet>
 #include <QVBoxLayout>
 
@@ -95,7 +97,41 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
     auto* structure=new QComboBox;structure->setObjectName("mesh.export.structure");structure->setFocusPolicy(Qt::StrongFocus);
     structure->addItem("One File","oneFile");structure->addItem("One Body Per File","oneBodyPerFile");form->addRow("Structure",structure);
     auto* selectionSummary=new QLabel;selectionSummary->setObjectName("mesh.export.selectionCount");selectionSummary->setWordWrap(true);layout->addWidget(selectionSummary);
-    auto* directory=new QLineEdit(QDir::home().filePath("mesh-batch"));directory->setObjectName("mesh.export.directory");form->addRow("New Output Folder",directory);
+    auto* parentRow=new QWidget;auto* parentLayout=new QHBoxLayout(parentRow);parentLayout->setContentsMargins(0,0,0,0);
+    auto* parentDirectory=new QLineEdit(QDir::homePath());parentDirectory->setObjectName("mesh.export.parentDirectory");
+    auto* browse=new QPushButton("Browse…");browse->setObjectName("mesh.export.browse");browse->setFocusPolicy(Qt::StrongFocus);
+    parentLayout->addWidget(parentDirectory,1);parentLayout->addWidget(browse);form->addRow("Parent Folder",parentRow);
+    auto* folderName=new QLineEdit("mesh-batch");folderName->setObjectName("mesh.export.folderName");form->addRow("New Folder Name",folderName);
+    auto* directory=new QLabel;directory->setObjectName("mesh.export.directory");directory->setWordWrap(true);
+    directory->setTextInteractionFlags(Qt::TextSelectableByMouse|Qt::TextSelectableByKeyboard);form->addRow("Destination",directory);
+    const auto destinationError=[=]() -> QString {
+        const auto name=folderName->text();
+        static const QRegularExpression forbidden(R"([<>:"/\\|?*\x{0000}-\x{001f}])");
+        static const QRegularExpression reserved(R"(^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\.|$))",QRegularExpression::CaseInsensitiveOption);
+        if(name.isEmpty())return "Enter a new folder name.";
+        if(name=="." || name==".." || name!=name.trimmed() || name.endsWith('.') || name.contains(forbidden) || reserved.match(name).hasMatch())
+            return "Use a folder name without path separators, reserved characters/names, or leading/trailing spaces or trailing dots.";
+        const QFileInfo parent(parentDirectory->text());
+        if(!parent.isAbsolute() || !parent.exists() || !parent.isDir())return "Choose an existing parent folder using Browse, or enter its absolute path.";
+        const QFileInfo target(directory->text());
+        if(target.isSymLink() || target.exists())return "The destination already exists (file, folder or symlink). Enter a different new folder name.";
+        return {};
+    };
+    connect(browse,&QPushButton::clicked,dialog,[=,this]{
+        if(dialog->findChild<QFileDialog*>("mesh.export.parentChooser"))return;
+        auto* chooser=new QFileDialog(dialog,"Choose Parent Folder",parentDirectory->text());
+        chooser->setObjectName("mesh.export.parentChooser");chooser->setAttribute(Qt::WA_DeleteOnClose);
+        chooser->setFileMode(QFileDialog::Directory);chooser->setOption(QFileDialog::ShowDirsOnly,true);
+        chooser->setWindowModality(Qt::WindowModal);
+        connect(chooser,&QFileDialog::fileSelected,dialog,[=](const QString& path){parentDirectory->setText(path);});
+        connect(chooser,&QDialog::finished,dialog,[=,this]{
+            if(dialog->isVisible() && findChild<QDialog*>("mesh.export.dialog")==dialog
+                && QGuiApplication::applicationState()==Qt::ApplicationActive){
+                dialog->raise();dialog->activateWindow();browse->setFocus(Qt::OtherFocusReason);
+            }
+        });
+        chooser->open();
+    });
     auto* names=new QLabel;names->setObjectName("mesh.export.filenames");names->setWordWrap(true);layout->addWidget(names);
     auto* units=new QComboBox;units->setObjectName("mesh.export.units");
     units->setFocusPolicy(Qt::StrongFocus);
@@ -148,15 +184,19 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
         const bool preview=!obj && size==1 && !perBody;
         dialog->setProperty("requiresMeshPreview",preview);
         previewButton->setVisible(preview);count->setVisible(preview);
-        directory->setVisible(perBody);if(auto* label=form->labelForField(directory))label->setVisible(perBody);
+        for(auto* field:QList<QWidget*>{parentRow,folderName,directory}){field->setVisible(perBody);if(auto* label=form->labelForField(field))label->setVisible(perBody);}
+        directory->setText(QDir::cleanPath(QDir(parentDirectory->text()).absoluteFilePath(folderName->text())));
         names->setVisible(perBody);
         if(perBody){QStringList files;try{for(const auto& value:MeshExport::batchPlan(chosen,directory->text(),format->currentData().toString()))files.append(value.toObject().value("filename").toString());}catch(const GeometryKernel::EvaluationError&){}
             names->setText("New folder only; its parent must exist. Existing files, folders and symlinks are refused.\n"+files.join("\n"));}
-        buttons->button(QDialogButtonBox::Save)->setEnabled(size>0 && !preview);
+        const auto invalidDestination=perBody ? destinationError() : QString{};
+        if(perBody)status->setText(invalidDestination);
+        buttons->button(QDialogButtonBox::Save)->setEnabled(size>0 && !preview && invalidDestination.isEmpty());
     };
     const auto invalidate=[=,this]{clearMeshPreview();dialog->setProperty("meshPreviewId",QString{});dialog->setProperty("meshPreviewPhase",QString{});count->setText("Triangle Count: —");updateScope();};
     connect(structure,&QComboBox::currentIndexChanged,dialog,invalidate);
-    connect(directory,&QLineEdit::textChanged,dialog,updateScope);
+    connect(parentDirectory,&QLineEdit::textChanged,dialog,updateScope);
+    connect(folderName,&QLineEdit::textChanged,dialog,updateScope);
     connect(refinement,&QComboBox::currentIndexChanged,dialog,[=]{
         const auto preset=refinement->currentData().toString();
         if(preset!="Custom"){const QSignalBlocker bs(surface),bn(normal);surface->setValue(preset=="Low" ? .5 : preset=="High" ? .02 : .1);normal->setValue(preset=="Low" ? 25 : preset=="High" ? 5 : 10);}
@@ -220,6 +260,7 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
         if(requiresPreview && (meshPreviewState().value("evaluationStatus")!="completed" || !meshPreviewWork_ || meshPreviewWork_->id!=previewId)){status->setText("Preview the current solid and settings before Save.");return;}
         const auto chosenSettings=settings();
 
+        if(perBody){const auto message=destinationError();if(!message.isEmpty()){status->setText(message);return;}}
         auto path=perBody ? directory->text() : QFileDialog::getSaveFileName(dialog,"Save As Mesh",bodies->currentText()+suffix,
             threeMf ? "3MF mesh (*.3mf)" : obj ? "OBJ mesh (*.obj)" : "STL mesh (*.stl)");
         if(path.isEmpty())return;
@@ -421,6 +462,7 @@ void AlloyWindow::refreshMeshExportDialog() {
     const bool pending=meshExportOperation_.value("evaluationStatus")=="pending";
     for(auto* widget:dialog->findChildren<QWidget*>())
         if(qobject_cast<QComboBox*>(widget) || qobject_cast<QListWidget*>(widget) || qobject_cast<QDoubleSpinBox*>(widget) || qobject_cast<QLineEdit*>(widget))widget->setEnabled(!running);
+    if(auto* browse=dialog->findChild<QPushButton*>("mesh.export.browse"))browse->setEnabled(!running);
     auto* buttons=dialog->findChild<QDialogButtonBox*>();buttons->button(QDialogButtonBox::Save)->setEnabled(!running);
     buttons->button(QDialogButtonBox::Cancel)->setEnabled(!running || (pending && meshExportOperation_.value("evaluationPhase")!="publishing"));
     auto* label=dialog->findChild<QLabel*>("mesh.export.status");

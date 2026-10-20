@@ -5,6 +5,7 @@
 #include <QTest>
 #include <QTemporaryDir>
 #include <QFile>
+#include <QFileDialog>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QPushButton>
@@ -83,10 +84,11 @@ private slots:
   QVERIFY(save->isEnabled());QVERIFY(dialog->findChild<QPushButton*>("mesh.export.preview")->isHidden());QVERIFY(dialog->findChild<QLabel*>("mesh.export.triangleCount")->isHidden());
   QVERIFY(dialog->findChild<QLabel*>("mesh.export.selectionCount")->text().startsWith("Selected bodies: 2"));
   structure->setCurrentIndex(structure->findData("oneBodyPerFile"));
-  dialog->findChild<QLineEdit*>("mesh.export.directory")->setText(dir.filePath("chosen-batch"));
+  dialog->findChild<QLineEdit*>("mesh.export.parentDirectory")->setText(dir.path());
+  dialog->findChild<QLineEdit*>("mesh.export.folderName")->setText("chosen-batch");
   QVERIFY(dialog->findChild<QLabel*>("mesh.export.note")->text().contains("separate STL file"));
   QVERIFY(dialog->findChild<QLabel*>("mesh.export.filenames")->text().contains("New folder only"));QTest::qWait(150);QVERIFY(save->isEnabled());
-  const auto evidence=qEnvironmentVariable("ALLOY_BATCH_MESH_CAPTURE");if(!evidence.isEmpty()){QVERIFY(dialog->grab().save(evidence+"-sheet.png"));QVERIFY(w.captureImage().save(evidence+"-viewport.png"));}
+  const auto evidence=qEnvironmentVariable("ALLOY_BATCH_MESH_CAPTURE");if(!evidence.isEmpty()){QVERIFY(dialog->grab().save(evidence+"-sheet.png"));QVERIFY(w.captureImage().save(evidence+"-full.png"));}
   QTest::mouseClick(dialog->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Cancel),Qt::LeftButton);QTRY_VERIFY(!dialog || !dialog->isVisible());
   QCOMPARE(call(w,"document.inspect"),before);
   for(const auto& fmt:QStringList{"binary","ascii","3mf"}){
@@ -103,6 +105,58 @@ private slots:
   const auto response=w.execute("document.exportStl",{{"path",dir.filePath("combined.stl")},{"bodyIds",ids},{"units","in"},{"format","ascii"},{"surfaceDeviationMm",.1},{"normalDeviationDeg",10}});
   QCOMPARE(response.value("completion").toString(),QString("pending"));const auto op=response.value("result").toObject();w.geometryEvaluationPoll_->stop();waitForApproval(w.geometryEvaluationRunning_);w.pollMeshExport();drain(w);
   QCOMPARE(status(w,op).value("result").toObject().value("triangles").toInt(),24);QVERIFY(bytes(dir.filePath("combined.stl")).startsWith("solid"));QCOMPARE(call(w,"document.inspect"),before);
+  call(w,"document.new",{{"discard",true}});w.close();
+ }
+ void batchDestinationBrowseAndSave(){
+  AlloyTheme::apply(*qApp);QTemporaryDir dir;QVERIFY(dir.isValid());AlloyWindow w;w.resize(1400,900);w.show();QVERIFY(QTest::qWaitForWindowExposed(&w));
+  for(int width:{20,30})call(w,"solid.box",{{"width",width},{"depth",10},{"height",15},{"units","mm"}});
+  const auto before=call(w,"document.inspect");
+  call(w,"document.exportMeshDialog");QPointer<QDialog> dialog=w.findChild<QDialog*>("mesh.export.dialog");QVERIFY(dialog);
+  auto* structure=dialog->findChild<QComboBox*>("mesh.export.structure");structure->setCurrentIndex(structure->findData("oneBodyPerFile"));
+  auto* parent=dialog->findChild<QLineEdit*>("mesh.export.parentDirectory");auto* name=dialog->findChild<QLineEdit*>("mesh.export.folderName");
+  auto* destination=dialog->findChild<QLabel*>("mesh.export.directory");auto* browse=dialog->findChild<QPushButton*>("mesh.export.browse");
+  auto* save=dialog->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Save);auto* message=dialog->findChild<QLabel*>("mesh.export.status");
+  QVERIFY(parent&&name&&destination&&browse);QVERIFY(destination->wordWrap());
+  QTest::qWait(100);QCOMPARE(dialog->childAt(browse->mapTo(dialog,browse->rect().center())),browse);
+  const auto initialParent=parent->text(),initialDestination=destination->text();
+  QTest::mouseClick(browse,Qt::LeftButton);
+  QPointer<QFileDialog> chooser;QTRY_VERIFY((chooser=dialog->findChild<QFileDialog*>("mesh.export.parentChooser"))&&chooser->isVisible());
+  QCOMPARE(chooser->fileMode(),QFileDialog::Directory);QVERIFY(!chooser->testOption(QFileDialog::DontUseNativeDialog));
+  qInfo()<<"Native directory chooser requested; compiled Qt rejection follows. Physical native input is not established.";
+  chooser->reject();QTRY_VERIFY(!chooser);
+  QTRY_COMPARE(dialog->focusWidget(),browse);QCOMPARE(parent->text(),initialParent);QCOMPARE(destination->text(),initialDestination);
+  QCOMPARE(call(w,"document.inspect"),before);QCOMPARE(QDir(dir.path()).entryList(QDir::AllEntries|QDir::Hidden|QDir::NoDotAndDotDot).size(),0);
+  const auto edit=[&](QLineEdit* field,const QString& text){
+   QCOMPARE(dialog->childAt(field->mapTo(dialog,field->rect().center())),field);
+   QTest::mouseClick(field,Qt::LeftButton);QCOMPARE(dialog->focusWidget(),field);
+   QTest::keyClick(field,Qt::Key_A,Qt::ControlModifier);QTest::keyClicks(field,text);
+  };
+  // Exercise the native adapter's result signal separately from physical chooser input.
+  QTest::mouseClick(browse,Qt::LeftButton);
+  QTRY_VERIFY((chooser=dialog->findChild<QFileDialog*>("mesh.export.parentChooser"))&&chooser->isVisible());
+  QVERIFY(QMetaObject::invokeMethod(chooser,"fileSelected",Qt::DirectConnection,Q_ARG(QString,dir.path())));
+  QCOMPARE(parent->text(),dir.path());QCOMPARE(destination->text(),dir.filePath("mesh-batch"));
+  chooser->reject();QTRY_VERIFY(!chooser);QTRY_COMPARE(dialog->focusWidget(),browse);
+  qInfo()<<"Parent chooser result signal verified separately; no physical directory selection claim.";
+  edit(parent,dir.path());edit(name,"chosen-batch");QCOMPARE(destination->text(),dir.filePath("chosen-batch"));QVERIFY(save->isEnabled());
+  for(const auto& invalid:QStringList{"", "..", "../escape", "bad/name", "bad\\name", "bad:", "CON", "trailing.", " trailing"}){
+   name->setText(invalid);QVERIFY(!save->isEnabled());QVERIFY(!message->text().isEmpty());
+  }
+  name->setText("chosen-batch");parent->setText(dir.filePath("missing"));QVERIFY(!save->isEnabled());QVERIFY(message->text().contains("existing parent"));parent->setText(dir.path());
+  sentinel(dir.filePath("file"));QVERIFY(QDir(dir.path()).mkdir("folder"));QVERIFY(QFile::link(dir.filePath("missing"),dir.filePath("link")));
+  for(const auto& existing:QStringList{"file","folder","link"}){name->setText(existing);QVERIFY(!save->isEnabled());QVERIFY(message->text().contains("already exists"));}
+  name->setText("chosen-batch");auto* format=dialog->findChild<QComboBox*>("mesh.export.format");
+  format->setCurrentIndex(format->findData("3mf"));QVERIFY(dialog->findChild<QLabel*>("mesh.export.filenames")->text().contains(".3mf"));
+  format->setCurrentIndex(format->findData("binary"));QVERIFY(dialog->findChild<QLabel*>("mesh.export.filenames")->text().contains(".stl"));
+  structure->setCurrentIndex(0);QVERIFY(destination->isHidden());structure->setCurrentIndex(1);QCOMPARE(destination->text(),dir.filePath("chosen-batch"));
+  const auto evidence=qEnvironmentVariable("ALLOY_DESTINATION_CAPTURE");if(!evidence.isEmpty()){
+   QTest::qWait(200);QVERIFY(w.captureImage().save(evidence+"-full.png"));QVERIFY(dialog->grab().save(evidence+"-sheet.png"));
+   qInfo()<<"capture DPR"<<w.devicePixelRatioF();
+  }
+  const auto exactPath=destination->text();QCOMPARE(dialog->childAt(save->mapTo(dialog,save->rect().center())),save);QTest::mouseClick(save,Qt::LeftButton);
+  QVERIFY(w.geometryEvaluationRunning_);QCOMPARE(w.geometryEvaluationRunning_->inputs.value("path").toString(),exactPath);
+  QTRY_VERIFY_WITH_TIMEOUT(!w.geometryEvaluationRunning_,15000);QTRY_VERIFY(!dialog||!dialog->isVisible());
+  QCOMPARE(QDir(exactPath).entryList(QDir::Files).size(),2);QCOMPARE(call(w,"document.inspect"),before);
   call(w,"document.new",{{"discard",true}});w.close();
  }
  void browserContextMeshCancel(){
