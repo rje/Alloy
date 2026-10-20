@@ -3718,7 +3718,8 @@
         "SRF-049",
         "SRF-050",
         "SRF-054",
-        "GEO-031"
+        "GEO-031",
+        "GEO-035"
       ],
       "labels": [
         "kind:validation",
@@ -10994,7 +10995,7 @@
         "priority:P1",
         "area:geo"
       ],
-      "body": "## Bounded result\nCreate a construction Point using exactly either a retained vertex or an explicit location on a supported curve.\n\nThis is a finishable child of GEO-001; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Document and implement the vertex and curve-location forms with an explicit location parameter; reject other forms explicitly.\n- Verify coordinates against analytic fixtures and keep source identity inspectable.\n- Update on source edit or refuse if the original reference becomes invalid or ambiguous.\n- Verify undo/redo and save/reopen.\n\n## Preserved remainder\nOther point constructors, inferred references, and broader derived-geometry classes remain under GEO-001.\n"
+      "body": "## Bounded result\nCreate one retained construction Point from either one exact semantic Box edge endpoint vertex or one explicit in-range location on an earlier authored straight sketch Line. This is a finishable supported-source slice of Point At Vertex and Point Along Path; broader GEO-001 requirements remain open.\n\n## Acceptance criteria\n- Vertex source retains {bodyId,edgeId,endpoint:0|1} only for Box edges with semantic ordered endpoint provenance. Verify exactly one current body/edge, current topology and unique endpoint correspondence. Reject other topology or ambiguous/changed provenance atomically, never rebind by XYZ/index/proximity.\n- Curve source retains exact authored Line sketch/entity/ordered endpoint IDs and one semantic mode: Proportional ratio in [0,1] or Physical in-segment distance with units. Evaluate from authored start toward end; prove analytic XYZ at endpoints/interior and different behavior after Line length edit. Refuse negative/out-of-range/nonfinite/wrong-class/stale values explicitly. This in-segment boundary is Alloy policy pending public help/API conflict on past-end placement.\n- Expose one shared construction.point UI/API session with At Vertex/Along Path method, typed mode/value, disposable GPU preview, Cancel/OK and Timeline/Browser edit. Authored reference, evaluated point and presentation must be inspectable separately; point creates no body or exported mesh.\n- Verify source-driven edit/refusal, history, Undo/Redo and save/reopen through the real app, compiled controls and readable hardware viewport captures.\n\n## Linked remainders\nGEO-035 owns physical native vertex/Line actual-hit selection, in-canvas distance handle, focus and 1x/2x visuals while the Mac console is locked. GEO-036 owns curved and connected paths. GEO-037 owns other retained vertex and snap-point classes. GEO-038 owns resolved past-end/clamp behavior. Other construction Point methods stay GEO-001. Public initial defaults, direction and exact glyph/layout remain unknown; distinguish Alloy policy.\n"
     },
     {
       "key": "DOC-039",
@@ -11610,6 +11611,74 @@
         "area:geo"
       ],
       "body": "## Preserved documented two-point source breadth\nPublic Two Points instructions permit vertices and snap points, including mixed picks. The first GEO-026 slice supports exact authored standalone sketch Points only. Add one source class at a time with stable identity, explicit behavior on topology changes and no coordinate-nearest rebinding.\n\n## Acceptance criteria\n- Research supported model vertices, sketch endpoints and snap/derived point classes. Implement at least one retained B-rep vertex and one documented snap-point class with exact owner/feature/topology identity, including a mixed valid pair.\n- Independently verify analytic axis incidence, coincident/wrong-type/ambiguous refusal, source edit, history, Undo/Redo and save/reopen. Qualify native picker/visuals separately.\n- Keep every deferred source class explicitly tracked under GEO-001 or a linked child.\n"
+    },
+    {
+      "key": "GEO-035",
+      "title": "Qualify native datum Point pick, distance handle and visual workflow",
+      "kind": "validation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "GEO-027"
+      ],
+      "labels": [
+        "kind:validation",
+        "phase:P3",
+        "priority:P1",
+        "area:geo"
+      ],
+      "body": "## Bounded first-v1 native workflow\nGEO-027 owns the exact Box-edge-endpoint vertex and straight-sketch-Line in-range proportional/physical core/API and compiled controls. Public instructions show one vertex or one path pick, exact Distance entry, a canvas manipulator and OK. Physical focus, hit and matched visual behavior remain unqualified.\n\n## Acceptance criteria\n- Start At Vertex and Along Path through Construct without preselection. Physically pick one supported Box vertex or authored straight Line via actual canvas hit targets; show distinct source, preview and committed point cues with stable IDs and no focus/selection repair between demonstrated steps.\n- Physically drag the along-path distance handle and type both Proportional and unit-aware Physical positions; exact displayed value, coordinate and Cancel/Escape/OK behavior agree with the shared API. Timeline/Browser Edit restores source/mode/value and supports invalid retry.\n- Verify source edit/refusal, Undo/Redo and save/reopen through native input. Inspect GPU captures at 1x/2x with vendor/renderer/version/framebuffer; compare only documented public facts and state unknown parity. Close the private editor.\n\n## Preserved remainder\nCurved/connected paths GEO-036, broader vertex/snap sources GEO-037, past-end contract GEO-038 and other constructors GEO-001.\n"
+    },
+    {
+      "key": "GEO-036",
+      "title": "Support retained curved and connected datum Point paths",
+      "kind": "implementation",
+      "phase": "P4 Full replacement",
+      "priority": "P2",
+      "depends_on": [
+        "GEO-027"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P4",
+        "priority:P2",
+        "area:geo"
+      ],
+      "body": "## Preserved documented path breadth\nPublic help permits edges, sketch lines, curves and connected edge chains for Point Along Path. Extend the initial authored straight-Line source incrementally to retained authored arcs and one stable B-rep curved edge or connected path class, with arc-length semantics rather than raw parameter fraction.\n\n## Acceptance criteria\n- Research exact public tangent-chain selection and direction controls. Retain ordered source identity and branch, explicit Proportional/Physical mode, and inspectable physical arc length; refuse ambiguous topology or unsupported chain changes atomically.\n- Independently verify a curved analytic fixture at endpoints/interior, positive and negative sweep, source edits, edit-in-place, Undo/Redo and save/reopen through the real app.\n- Qualify native path picking/handle and 1x/2x GPU presentation separately; preserve the original Line form.\n\n## Preserved remainder\nPast-end semantics remain GEO-038; other curve/point constructors remain GEO-001.\n"
+    },
+    {
+      "key": "GEO-037",
+      "title": "Support broader vertex and snap sources for datum Point",
+      "kind": "implementation",
+      "phase": "P4 Full replacement",
+      "priority": "P2",
+      "depends_on": [
+        "GEO-027"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P4",
+        "priority:P2",
+        "area:geo"
+      ],
+      "body": "## Preserved documented vertex/snap breadth\nPublic At Vertex help names model vertices, face/edge centers, edge and sketch points and tangent snap positions. GEO-027 initially retains only a Box edge endpoint with semantic provenance. Extend to one source class at a time with stable identity rather than reusing an observed XYZ.\n\n## Acceptance criteria\n- Add retained identity and source-edit behavior for at least one non-Box model vertex and one documented snap/derived point class, including a mixed-source downstream reference fixture.\n- Reject ambiguous split/merged/filleted topology without silent rebinding. Verify analytic XYZ, owner/occurrence identity, edit, atomic invalidation, Undo/Redo and save/reopen.\n- Qualify native pick and readable GPU cue separately; keep every deferred source class listed in GEO-001 or a child.\n\n## Preserved remainder\nOther construction Point methods and unproven topology classes stay GEO-001.\n"
+    },
+    {
+      "key": "GEO-038",
+      "title": "Resolve and implement past-end Point Along Path behavior",
+      "kind": "research/design",
+      "phase": "P4 Full replacement",
+      "priority": "P2",
+      "depends_on": [
+        "GEO-027"
+      ],
+      "labels": [
+        "kind:research/design",
+        "phase:P4",
+        "priority:P2",
+        "area:geo"
+      ],
+      "body": "## Public evidence conflict to resolve\nCurrent public UI help says Point Along Path can move past the end; a public API input page says over-length Physical values clamp to the endpoint. GEO-027 explicitly limits both modes to the finite selected Line. Resolve version/mode differences using permitted public documentation, dated screenshots or tutorials before selecting compatibility semantics.\n\n## Acceptance criteria\n- Record creator/URL/retrieval date/version and distinguish demonstrated past-end placement from API input constraints. Specify Proportional/Physical bounds, negative values, chaining and edit behavior, or mark remaining unknowns without an exact-match claim.\n- Implement the resolved first supported extension/clamp behavior on a retained Line with typed units, disposable preview, source length edits, Undo/Redo and save/reopen; independently verify exact coordinates and atomic invalid cases.\n- Preserve curved/connected path breadth under GEO-036 and physical native handle/1x/2x visual qualification under GEO-035.\n"
     }
   ]
 }
