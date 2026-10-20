@@ -1,0 +1,25 @@
+// SPDX-License-Identifier: MIT
+#include "CadDocument.h"
+#include "SketchGeometry.h"
+#include "SketchAxis3d.h"
+#include <BRepGProp.hxx>
+#include <GProp_GProps.hxx>
+#include <QCoreApplication>
+#include <QTemporaryDir>
+#include <QUuid>
+#include <cmath>
+#include <iostream>
+#include <stdexcept>
+void check(bool ok,const QString& why){if(!ok)throw std::runtime_error(why.toStdString());}
+int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
+ CadDocument doc;auto source=SketchGeometry::newFeature(doc.authored()["documentId"].toString(),"XY");const double xy[4][2]={{12,6},{32,10},{27,22},{9,18}};for(int i=0;i<4;++i)source=SketchGeometry::addLine(source,{{"u1Mm",xy[i][0]},{"v1Mm",xy[i][1]},{"u2Mm",xy[(i+1)%4][0]},{"v2Mm",xy[(i+1)%4][1]}});const auto baseline=SketchGeometry::solveDraft(source);check(baseline.ok,baseline.error);source=baseline.feature;const auto before=SketchGeometry::evaluateFeature(source);check(before.profiles.size()==1,"One asymmetric profile");GProp_GProps props;BRepGProp::SurfaceProperties(before.profiles[0].face,props);check(std::abs(props.Mass()-244)<1e-6,"Analytic asymmetric area");
+ auto withAxis=source;withAxis["parameters"]=SketchAxis3d::upsert(source["parameters"].toObject(),4,3,10);const auto axis=withAxis["parameters"].toObject()["constructionLines3d"].toArray().first().toObject();const auto result=SketchGeometry::solveDraft(withAxis);check(result.ok,result.error);withAxis=result.feature;check(result.diagnostics["dof"]==baseline.diagnostics["dof"],"No extra solver variables or DOF");for(const auto& key:{"points","entities","constraints","dimensions"})check(source["parameters"].toObject()[key]==withAxis["parameters"].toObject()[key],"Reference does not alter planar authored geometry");const auto after=SketchGeometry::evaluateFeature(withAxis);check(after.profiles.size()==1 && after.profiles[0].profileId==before.profiles[0].profileId,"No extra profile or lineage change");BRepGProp::SurfaceProperties(after.profiles[0].face,props);check(std::abs(props.Mass()-244)<1e-6,"Reference excluded from face area");
+ for(int n=0;n<2;++n){const auto again=SketchGeometry::solveDraft(withAxis);check(again.ok && again.feature==withAxis,"Repeated solve preserves reference exactly");}
+ const auto edited=SketchAxis3d::upsert(withAxis["parameters"].toObject(),5,-2,15,axis["id"].toString());const auto now=edited["constructionLines3d"].toArray().first().toObject();check(now["id"]==axis["id"] && now["start"].toObject()["id"]==axis["start"].toObject()["id"] && now["end"].toObject()["id"]==axis["end"].toObject()["id"],"All three identities survive edit");check(SketchAxis3d::inspect(edited).first().toObject()["lengthMm"]==15,"Inspect length/direction");check(SketchAxis3d::erase(withAxis["parameters"].toObject(),axis["id"].toString())==source["parameters"],"Dedicated deletion restores planar parameters");
+ for(double h:{0.,-1.,100001.}){bool refused=false;try{SketchAxis3d::upsert(source["parameters"].toObject(),4,3,h);}catch(const std::exception&){refused=true;}check(refused,"Invalid height refuses");}
+ bool foreign=false;try{SketchAxis3d::upsert(withAxis["parameters"].toObject(),4,3,10,QUuid::createUuid().toString(QUuid::WithoutBraces));}catch(const std::exception&){foreign=true;}check(foreign,"Foreign edit identity refuses");
+ for(int kind=0;kind<4;++kind){auto broken=withAxis,p=withAxis["parameters"].toObject(),a=axis;auto start=a["start"].toObject(),end=a["end"].toObject();if(kind==0)end["uMm"]=5;if(kind==1)start["wMm"]=1;if(kind==2)end["id"]=start["id"];if(kind==3)a["id"]=p["entities"].toArray().first().toObject()["id"];a["start"]=start;a["end"]=end;p["constructionLines3d"]=QJsonArray{a};broken["parameters"]=p;check(!SketchGeometry::solveDraft(broken).ok,"Off-normal/duplicate/foreign metadata refuses at public validation");}
+ const auto delete2d=SketchGeometry::deleteEntities(withAxis,QJsonArray{axis["id"]},{});check(!delete2d.ok && delete2d.feature==withAxis,"Ordinary 2D Delete excludes reference Line");const auto drag2d=SketchGeometry::movePoint(withAxis,{{"pointId",axis["start"].toObject()["id"]},{"uMm",10},{"vMm",10}});check(!drag2d.ok && drag2d.feature==withAxis,"3D endpoint is not a planar solver point");
+ auto referenced=withAxis["parameters"].toObject();referenced["futureOwner"]=QJsonObject{{"axisId",axis["id"]}};bool refused=false;try{SketchAxis3d::erase(referenced,axis["id"].toString());}catch(const std::exception&){refused=true;}check(refused,"Synthetic dependent-owner reference protects deletion (Rotate not implemented)");
+ check(doc.commit(SketchGeometry::replaceFeature(doc.authored(),withAxis),"Normal Line").isEmpty(),"Commit");const auto authored=doc.authored();doc.history().undo();doc.history().redo();check(doc.authored()==authored,"Exact history");QTemporaryDir dir;check(doc.save(dir.filePath("axis.alloy")).isEmpty(),"Save");CadDocument reopened;check(reopened.open(dir.filePath("axis.alloy")).isEmpty() && reopened.authored()==authored,"Exact authored reopen");std::cout<<"SKETCH_AXIS3D_CORE_OK\n";return 0;
+ }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

@@ -62,6 +62,10 @@ protected:
     void closeEvent(QCloseEvent*) override;
     bool eventFilter(QObject*, QEvent*) override;
 private:
+    void registerSketchAxis3dCommands();
+    void showSketchAxis3dControls(const QString& axisId = {});
+    void closeSketchAxis3dControls();
+    QPointer<QDialog> sketchAxis3dDialog_;
     void registerSketchCopyCommands();
     void showSketchPasteControls();
     void closeSketchPasteControls();

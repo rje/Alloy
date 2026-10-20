@@ -9,6 +9,7 @@
 #include "SketchMirror.h"
 #include "SketchPattern.h"
 #include "SketchMove.h"
+#include "SketchAxis3d.h"
 #include "SketchArcSlot.h"
 #include "SketchSplineOffset.h"
 #include "SketchOpenChainOffset.h"
@@ -1666,6 +1667,8 @@ SketchGeometry::SolveResult SketchGeometry::deleteEntities(const QJsonObject& dr
     try {
         validateDraft(draft);
         auto parameters=draft["parameters"].toObject();
+        for(const auto& id:entityIds)if(SketchAxis3d::ids(parameters).contains(id.toString()))reject("Use dedicated 3D construction Line Delete; ordinary 2D Delete cannot own this reference");
+        for(const auto& id:pointIds)if(SketchAxis3d::ids(parameters).contains(id.toString()))reject("Use dedicated 3D construction Line Delete; its endpoints are not planar points");
         if(SketchMove::touches(parameters,entityIds) || SketchMove::touches(parameters,pointIds))reject("Move owns this profile; edit its displacement or source size rather than Delete");
         for(const auto& row:parameters.value("patternGroups").toArray()){
             const auto group=row.toObject();QSet<QString> protectedEntities{group["sourceEntityId"].toString(),group["direction1EntityId"].toString(),group["direction2EntityId"].toString()};
@@ -2103,7 +2106,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
         try {return validateParameters(expandedProjectionFeature({{"parameters",parameters}},{{"lines",lines},{"circles",circles},{"points",resolvedPoints}})["parameters"].toObject(),authoredIds,referenceIds);}
         catch(const std::exception& error){return QString::fromUtf8(error.what());}
     }
-    const QSet<QString> allowed{"plane", "planeId", "originConvention", "points", "entities", "constraints", "dimensions", "nextDimensionNameIndex", "originPointId", "support", "texts", "loopOffsets", "openChainOffsets", "closedRectOffsets", "roundedRectangleIntent", "mirrorGroups", "slotGroups", "arcSlotGroups", "polygonGroups", "chamferGroups", "patternGroups", "moveGroups"};
+    const QSet<QString> allowed{"plane", "planeId", "originConvention", "points", "entities", "constraints", "dimensions", "nextDimensionNameIndex", "originPointId", "support", "texts", "loopOffsets", "openChainOffsets", "closedRectOffsets", "roundedRectangleIntent", "mirrorGroups", "slotGroups", "arcSlotGroups", "polygonGroups", "chamferGroups", "patternGroups", "moveGroups", "constructionLines3d"};
     for (auto it = parameters.begin(); it != parameters.end(); ++it)
         if (!allowed.contains(it.key())) return "Unknown sketch parameter: " + it.key();
     if (!parameters["points"].isArray() || !parameters["entities"].isArray()) return "Sketch requires points and entities";
@@ -2651,6 +2654,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                     return "Invalid line constraint references";
             } else return "Unsupported sketch constraint type";
         }
+        if(parameters.contains("constructionLines3d")){const auto error=SketchAxis3d::validate(parameters);if(!error.isEmpty())return error;for(const auto& id:SketchAxis3d::ids(parameters))if(!claimId(id))return "Duplicate or foreign 3D construction identity";}
         if(parameters.contains("moveGroups")){
             const auto error=SketchMove::validate(parameters);if(!error.isEmpty())return error;
             for(const auto& value:parameters["moveGroups"].toArray())if(!claimId(value.toObject()["id"].toString()))return "Invalid or duplicate Move group UUID";
@@ -2801,10 +2805,12 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& source
         if(!initialReferencePointId.isEmpty())lockedPoints.insert(initialReferencePointId);
         validateDraft(expanded,derivedPoints);
         lockedPoints.unite(SketchMove::anchors(draft["parameters"].toObject()));
-        const auto result=SketchSolver::solve(SketchPattern::sourceOnly(SketchMove::source(expanded["parameters"].toObject())),lockedPoints);
+        auto planar=SketchPattern::sourceOnly(SketchMove::source(expanded["parameters"].toObject()));planar.remove("constructionLines3d");
+        const auto result=SketchSolver::solve(planar,lockedPoints);
         if(!result.accepted)return {false,sourceDraft,result.diagnostics,result.error};
         auto solved=draft;auto parameters=SketchPattern::derive(deriveClosedRectOffsets(SketchOpenChainOffset::derive(result.parameters)));
         parameters=SketchMove::materialize(parameters,draft["parameters"].toObject()["moveGroups"].toArray());
+        if(draft["parameters"].toObject().contains("constructionLines3d"))parameters["constructionLines3d"]=draft["parameters"].toObject()["constructionLines3d"];
         QJsonArray points,entities,dimensions;
         for(const auto& value:parameters["points"].toArray())if(!externalLockedPoints.contains(value.toObject()["id"].toString()))points.append(value);
         for(const auto& value:parameters["entities"].toArray())if(!virtualEntities.contains(value.toObject()["id"].toString()))entities.append(value);
@@ -4398,6 +4404,7 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature, cons
     if(parameters.contains("mirrorGroups"))summary["mirrorGroups"]=parameters.value("mirrorGroups");
     if(parameters.contains("patternGroups"))summary["patternGroups"]=parameters.value("patternGroups");
     if(parameters.contains("moveGroups"))summary["moveGroups"]=parameters.value("moveGroups");
+    if(parameters.contains("constructionLines3d"))summary["constructionLines3d"]=SketchAxis3d::inspect(parameters);
     // Downstream chain topology needs authored contact identity, not proximity.
     summary["constraints"]=solution.feature.value("parameters").toObject().value("constraints").toArray();
     auto profileFeature=solution.feature;

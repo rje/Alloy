@@ -48,6 +48,7 @@ public:
     double zoom = 1.0;
     QPointF pan;
     std::function<void(const QString&, const QJsonObject&)> dispatch;
+    QJsonObject pickSketchAxis3d(double x,double y) const;
     void sync();
     void setCanvases(const QJsonArray& rows,const EvaluatedDocument& evaluation);
     void setCanvasPicking(bool active) { canvasPicking_=active; }
@@ -247,6 +248,8 @@ protected:
     bool event(QEvent*) override;
     bool eventFilter(QObject*,QEvent*) override;
 private:
+    QJsonArray sketchAxis3dMarkers_;
+    bool axis3dSuppressRelease_=false;
     bool pasteSuppressRelease_=false;
     QMap<QString,Handle(AIS_Shape)> canvasModels_;
     QJsonArray canvasState_;

@@ -6,6 +6,7 @@
 #include <TopoDS_Compound.hxx>
 #include <QWindow>
 #include "AlloyWindow.h"
+#include "SketchAxis3d.h"
 #include "FaceNormalInspector.h"
 #include "AssemblySlider.h"
 #include "LocalReference.h"
@@ -648,6 +649,7 @@ AlloyWindow::AlloyWindow() {
     connect(projectAction,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.projectBegin"));});
     auto* rectangularSketchPattern=create->addAction("Rectangular Pattern");rectangularSketchPattern->setObjectName("sketch.action.rectangularPattern");
     connect(rectangularSketchPattern,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.patternStart"));});
+    auto* normal3d=create->addAction("Normal Construction Line (3D)");normal3d->setObjectName("sketch.action.axis3d");connect(normal3d,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.axis3dStart"));});
     auto* circularSketchPattern=create->addAction("Circular Pattern");circularSketchPattern->setObjectName("sketch.action.circularPattern");
     connect(circularSketchPattern,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.circularPatternStart"));});
     create->addSeparator();toolAction(create,"Sketch Dimension\tD","dimension");
@@ -678,7 +680,7 @@ AlloyWindow::AlloyWindow() {
     auto* select=new QPushButton("Select");select->setObjectName("sketch.tool.select");sketchTools->addWidget(select);
     connect(select,&QPushButton::clicked,this,[this]{sketchResponse(execute("sketch.tool",{{"tool","select"}}));});
     auto* completeSpline=new QPushButton("✓");completeSpline->setObjectName("sketch.spline.complete");completeSpline->setToolTip("Complete Spline");completeSpline->hide();sketchTools->addWidget(completeSpline);connect(completeSpline,&QPushButton::clicked,this,[this]{sketchResponse(execute("sketch.splineComplete"));view_->setFocus();});
-    sketchTools->addWidget(commandButton("sketch.lookAt","Look At"));sketchTools->addStretch();
+    sketchTools->addWidget(commandButton("sketch.lookAt","Look At"));auto* sketch3d=new QCheckBox("3D Sketch");sketch3d->setObjectName("sketch.3dMode");sketch3d->setToolTip("Limited mode: one normal construction Line along +Z");sketchTools->addWidget(sketch3d);connect(sketch3d,&QCheckBox::toggled,this,[this](bool enabled){sketchResponse(execute("sketch.3dMode",{{"enabled",enabled}}));});sketchTools->addStretch();
     auto* finish=new QPushButton("Finish Sketch");finish->setObjectName("sketch.finish");
     finish->setStyleSheet("background: #bce5d4; border: 1px solid #77b79b; font-weight: 600;");sketchTools->addWidget(finish);
     connect(finish,&QPushButton::clicked,this,[this]{sketchResponse(execute("sketch.finish"));});
@@ -1344,6 +1346,7 @@ AlloyWindow::AlloyWindow() {
         if(!failedEditRepair_.isEmpty()){execute("sketch.cancel");return;}
         if(session_.value("command")=="sketch.plane")execute("sketch.cancel");
         else if(session_.value("command").toString()=="sketch.edit") {
+            if(session_.contains("axis3dInteraction")){execute("sketch.axis3dCancel");return;}
             if(session_.contains("pasteInteraction")){execute("sketch.pasteCancel");return;}
             if(session_["moveInteraction"].toObject()["active"].toBool()){execute("sketch.moveExit");return;}
             if(session_["patternInteraction"].toObject()["active"].toBool()){execute("sketch.patternExit");return;}
@@ -4075,6 +4078,7 @@ void AlloyWindow::registerCommands() {
         [this](const auto& a){return appendSketchCurve(a["mode"]=="center" ? "centerArc" : "threePointArc",a);});
     registerSketchMoveCommands();
     registerSketchCopyCommands();
+    registerSketchAxis3dCommands();
     registerSketchPatternCommands();
     const QJsonObject sketchMirrorSchema{{"sourceEntityIds",parameter("array","Distinct authored line, arc or open fit-spline UUIDs to reflect.")},
         {"axisEntityId",parameter("string","Authored straight line UUID used as Mirror Line.")},
@@ -5763,6 +5767,7 @@ void AlloyWindow::registerCommands() {
             auto candidate=document_->authored();auto features=candidate["features"].toArray();bool found=false,isSketch=false;
             for(int i=0;i<features.size();++i) {auto feature=features[i].toObject();if(feature["id"]!=a["featureId"]) continue;
                 auto parameters=feature["parameters"].toObject();const auto edits=a["parameters"].toObject();
+                if(parameters.contains("constructionLines3d") && edits.contains("constructionLines3d"))return failure("axis3d_owned","Edit or delete the normal construction Line through its dedicated sketch command");
                 if(!parameters["moveGroups"].toArray().isEmpty())for(const auto& key:{"points","entities","constraints","dimensions","moveGroups"})if(edits.contains(key))return failure("retained_move_owned","Edit retained Move displacement or source size through sketch commands");
                 for(auto it=edits.begin();it!=edits.end();++it) parameters[it.key()]=it.value();
                 feature["parameters"]=parameters;features[i]=feature;found=true;isSketch=feature.value("type")=="sketch";break;
@@ -9972,6 +9977,8 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     if(session_.value("command").toString().startsWith("canvas."))return finishCanvas(id,commit);
     if (session_.isEmpty() || session_.value("id").toString() != id) return failure("invalid_session", "Session is no longer active");
     if(session_.value("command")=="sketch.edit"){
+        if(commit && session_.contains("axis3dInteraction"))return failure("pending_axis3d","Accept or cancel Normal Construction Line before finishing the sketch");
+        if(!commit)closeSketchAxis3dControls();
         if(commit && session_.contains("pasteInteraction"))return failure("pending_paste","Accept or cancel Paste before finishing the sketch");
         if(!commit)closeSketchPasteControls();
         if(commit && (session_.contains("pendingSketchMove") || session_["moveInteraction"].toObject()["active"].toBool()))
@@ -12262,6 +12269,7 @@ QJsonObject AlloyWindow::traverseSketchHistory(int direction) {
         return failure("stale_session","The document changed; cancel and restart this sketch");
     cancelConicInput();
     cancelSlotDrag();
+    if(session_.contains("axis3dInteraction")){execute("sketch.axis3dCancel");return {{"action","cancelled_input"},{"changed",false},{"draftHistory",session_["draftHistory"]}};}
     if(session_.contains("pasteInteraction")){execute("sketch.pasteCancel");return {{"action","cancelled_input"},{"changed",false},{"draftHistory",session_["draftHistory"]}};}
     if(session_.contains("pendingSketchMove") || session_["moveInteraction"].toObject()["active"].toBool()){execute("sketch.moveExit");return {{"action","cancelled_input"},{"changed",false},{"draftHistory",session_["draftHistory"]}};}
     if(session_.contains("pendingSketchPattern")){execute("sketch.patternCancel");return {{"action","cancelled_input"},{"changed",false},{"draftHistory",session_["draftHistory"]}};}
@@ -13344,6 +13352,8 @@ void AlloyWindow::dimensionSelectionChanged() {
 }
 
 void AlloyWindow::refreshSketchControls() {
+    if(auto* box=findChild<QCheckBox*>("sketch.3dMode")){QSignalBlocker block(box);box->setChecked(session_.value("sketch3dEnabled").toBool());box->setEnabled(session_.value("command")=="sketch.edit" && session_.value("draftSketch").toObject()["parameters"].toObject()["plane"]=="XY");}
+    if(auto* action=findChild<QAction*>("sketch.action.axis3d"))action->setEnabled(session_.value("command")=="sketch.edit" && session_.value("sketch3dEnabled").toBool());
     if(auto* action=findChild<QAction*>("sketch.action.editMove"))action->setEnabled(session_.value("command")=="sketch.edit" && !session_["draftSketch"].toObject()["parameters"].toObject()["moveGroups"].toArray().isEmpty());
     if(session_.value("tool")!="twoTangentCircle" && tangentCircleRadius_)tangentCircleRadius_->hide();
     if(!sketchSelectionTree_ || session_.value("command")!="sketch.edit")return;
@@ -13419,6 +13429,7 @@ void AlloyWindow::refreshSketchControls() {
     const auto pastePreview=session_.value("pendingSketchPaste").toObject();
     presentationSelection["pasteInteraction"]=session_.value("pasteInteraction");
     if(!pastePreview.isEmpty())presentationSelection["entityIds"]=pastePreview["diagnostics"].toObject()["copiedEntityIds"];
+    presentationSelection["sketch3dEnabled"]=session_.value("sketch3dEnabled");presentationSelection["axis3dInteraction"]=session_.value("axis3dInteraction");
     presentationSelection["moveInteraction"]=session_.value("moveInteraction");
     if(movePreview.value("createCopy").toBool()){presentationSelection["entityIds"]=movePreview["sourceEntityIds"];presentationSelection["createCopyPreviewEntityIds"]=movePreview["diagnostics"].toObject()["copiedEntityIds"];}
     if(session_["moveInteraction"].toObject()["active"].toBool())presentationSelection["entityIds"]=session_["moveInteraction"].toObject()["entityIds"];

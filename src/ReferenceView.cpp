@@ -1793,6 +1793,7 @@ QJsonObject ReferenceView::selectSketchWindow(const QJsonObject& feature,double 
         {"curveCount",entityIds.size()},{"objectCount",pointIds.size()+entityIds.size()}};
 }
 void ReferenceView::clearSketchDecorations() {
+    sketchAxis3dMarkers_={};
     if(!context_.IsNull())for(const auto& decoration:sketchDecorations_)context_->Remove(decoration,false);
     sketchDecorations_.clear();splineHandleState_={};
     annotationLayouts_={};chamferHandles_={};
@@ -2121,6 +2122,14 @@ void ReferenceView::decorateSketch(const QJsonObject& sourceFeature,const QJsonO
         context_->Redisplay(i.value(),false);
     }
     const auto parameters=feature["parameters"].toObject();const auto plane=parameters["plane"].toString();
+    for(const auto& row:parameters["constructionLines3d"].toArray()){
+        const auto axis=row.toObject(),start=axis["start"].toObject(),end=axis["end"].toObject();const auto a=sketchWorld(plane,start["uMm"].toDouble(),start["vMm"].toDouble());const auto b=gp_Pnt(a.X(),a.Y(),a.Z()+end["wMm"].toDouble());const bool selected=selection.value("axis3dId")==axis["id"];const auto color=selected ? Quantity_Color(.86,.32,.04,Quantity_TOC_sRGB) : Quantity_Color(.55,.24,.72,Quantity_TOC_sRGB);
+        auto segment=sketchPresentation(BRepBuilderAPI_MakeEdge(a,b).Edge());segment->SetColor(color);segment->SetWidth(2.5*devicePixelRatioF());segment->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(segment,AIS_WireFrame,-1,false);context_->Deactivate(segment);sketchDecorations_.push_back(segment);
+        const double size=view_->Camera()->Scale()/qMax(1,height()),r=7*size;TopoDS_Compound strokes;BRep_Builder builder;builder.MakeCompound(strokes);builder.Add(strokes,BRepBuilderAPI_MakeEdge(gp_Circ(gp_Ax2(a,gp_Dir(0,0,1)),r)).Edge());builder.Add(strokes,BRepBuilderAPI_MakeEdge(gp_Pnt(a.X()-r,a.Y(),a.Z()),gp_Pnt(a.X()+r,a.Y(),a.Z())).Edge());builder.Add(strokes,BRepBuilderAPI_MakeEdge(gp_Pnt(a.X(),a.Y()-r,a.Z()),gp_Pnt(a.X(),a.Y()+r,a.Z())).Edge());auto marker=sketchPresentation(strokes);marker->SetColor(color);marker->SetWidth(2*devicePixelRatioF());marker->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(marker,AIS_WireFrame,-1,false);context_->Deactivate(marker);sketchDecorations_.push_back(marker);
+        Handle(AIS_TextLabel) label=new AIS_TextLabel;label->SetText(TCollection_ExtendedString("3D +Z"));label->SetPosition(gp_Pnt(a.X()+12*size,a.Y()+12*size,a.Z()));label->SetHeight(12);label->SetColor(color);label->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(label,false);context_->Deactivate(label);sketchDecorations_.push_back(label);
+        const auto screen=projectSketchPoint(start["uMm"].toDouble(),start["vMm"].toDouble(),plane);int ex,ey;view_->Convert(b.X(),b.Y(),b.Z(),ex,ey);const auto scale=windowScale();sketchAxis3dMarkers_.append(QJsonObject{{"id",axis["id"]},{"startPointId",start["id"]},{"endPointId",end["id"]},{"x",screen["x"]},{"y",screen["y"]},{"endX",ex/scale.x()},{"endY",ey/scale.y()},{"hitRadius",10},{"selected",selected},{"referenceOnly",true},{"role","normal construction Line"},{"endOn",std::hypot(ex/scale.x()-screen["x"].toDouble(),ey/scale.y()-screen["y"].toDouble())<3}});
+    }
+
     const bool fullyConstrained=diagnostics["dof"].toInt(-1)==0;
     if(!sketchDraft_.IsNull()){sketchDraft_->SetColor(insetPresentation ? Quantity_Color(0.08,0.35,0.86,Quantity_TOC_sRGB)
         : fullyConstrained ? Quantity_Color(0.12,0.14,0.16,Quantity_TOC_sRGB) : Quantity_Color(0.10,0.34,0.84,Quantity_TOC_RGB));
@@ -3648,6 +3657,7 @@ QJsonObject ReferenceView::diagnostics() const {
         descriptor["selected"]=selectedFinishedPoint_["sketchId"]==sketch.featureId && selectedFinishedPoint_["pointId"]==point["pointId"];
         standaloneMarkers.append(descriptor);
     }
+    result["sketchAxes3d"]=sketchAxis3dMarkers_;
     result["standalonePointMarkers"]=standaloneMarkers;result["selectedFinishedPoint"]=selectedFinishedPoint_;
     QJsonArray finishedProfiles;for(const auto& sketch:finishedSketches_)for(const auto& profile:sketch.profiles) {
         auto summary=profile.summary;TopLoc_Location location;const auto triangles=BRep_Tool::Triangulation(profile.face,location);
@@ -3713,6 +3723,8 @@ QImage ReferenceView::framebuffer() {
     return image;
 }
 void ReferenceView::mousePressEvent(QMouseEvent* e) {
+    if(e->button()==Qt::LeftButton && e->modifiers()==Qt::NoModifier && decorationSelection_.value("axis3dInteraction").toObject().value("active").toBool()){axis3dSuppressRelease_=true;dispatch("sketch.axis3dPivot",{{"x",e->position().x()},{"y",e->position().y()}});setFocus(Qt::MouseFocusReason);e->accept();return;}
+    if(e->button()==Qt::LeftButton && e->modifiers()==Qt::NoModifier && decorationSelection_.value("sketch3dEnabled").toBool() && !pickSketchAxis3d(e->position().x(),e->position().y()).isEmpty()){axis3dSuppressRelease_=true;dispatch("sketch.axis3dPick",{{"x",e->position().x()},{"y",e->position().y()}});setFocus(Qt::MouseFocusReason);e->accept();return;}
     const bool alternate=inputPreset_=="shiftAlt";
     const bool chord=e->modifiers()==(Qt::ShiftModifier|Qt::AltModifier);
     if(e->button()==Qt::RightButton)alternateRightContextSuppressed_=false;
@@ -4180,6 +4192,7 @@ void ReferenceView::keyReleaseEvent(QKeyEvent* e) {
     QWidget::keyReleaseEvent(e);
 }
 void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
+    if(e->button()==Qt::LeftButton && axis3dSuppressRelease_){axis3dSuppressRelease_=false;e->accept();return;}
     if(e->button()==Qt::LeftButton && pasteSuppressRelease_){pasteSuppressRelease_=false;e->accept();return;}
     if(e->button()==Qt::LeftButton && !patternHandleDrag_.isEmpty()){patternHandleDrag_={};dispatch("sketch.patternHandle",{{"phase","end"}});e->accept();return;}
     if(e->button()==Qt::LeftButton && decorationSelection_["pasteInteraction"].toObject()["active"].toBool()){e->accept();return;}
@@ -4595,3 +4608,5 @@ void ReferenceView::setMeshExportPreview(const std::vector<gp_Pnt>& facets,const
     applyEditDisplay(false);
     context_->UpdateCurrentViewer();
 }
+
+QJsonObject ReferenceView::pickSketchAxis3d(double x,double y) const {for(const auto& row:sketchAxis3dMarkers_){const auto marker=row.toObject();if(std::hypot(x-marker["x"].toDouble(),y-marker["y"].toDouble())<=marker["hitRadius"].toDouble())return marker;}return {};}
