@@ -1,3 +1,13 @@
+## 2026-10-20 SKT-165 native retry remains blocked
+
+The existing-dimension Toggle Driven/Driving candidate retains independent Sol
+source/evidence and prior core/API/GPU coverage. A bounded unchanged
+`directToggle` retry stopped at initial native activation before demonstrated
+input; read-only preflight again observed `consoleLocked=true`. No product
+change, rebuild or CI was needed. See [the retry receipt](validation/sketch-dimension-driving.md).
+Keep #611 open until an unlocked-session strict native replay passes. Private
+fixture exited; user-owned PID72618 was preserved.
+
 ## 2026-10-20 dense sketch dimension readability accepted
 
 [SKT-190/#713](validation/sketch-dense-dimensions.md) is independently accepted

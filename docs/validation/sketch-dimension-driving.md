@@ -1,7 +1,8 @@
 # Existing sketch dimension driving state — SKT-165 / #611
 
-Candidate, 2026-10-19. Direct Toggle Driven / Toggle Driving is implemented;
-independent review and native input acceptance remain pending.
+Candidate, 2026-10-19; native retry 2026-10-20. Direct Toggle Driven / Toggle
+Driving is implemented and has independent Sol source/evidence review; native
+input acceptance remains pending.
 
 ## Command and workflow contract
 
@@ -73,3 +74,22 @@ ALLOY_DRIVEN_OFFER_EVIDENCE=/Users/rje/src/cpp/Alloy-reference-records/validatio
 
 Physical OS input, independent compatibility acceptance and Windows/Linux runtime
 remain separate. Do not close #611 on the API/core evidence alone.
+
+## 2026-10-20 bounded native retry
+
+The current console prerequisite remains blocked. Read-only
+`tools/native_input_preflight.py` observed `consoleLocked=true` at
+2026-10-20T22:46:54Z. The unchanged compiled `directToggle` fixture exited 1
+at `window.isActiveWindow()` (line 37), before sketch setup or demonstrated
+input: 2 harness cases passed, 1 feature case failed. The earlier SKT-190 native
+success does not establish readiness for this later session. No inter-step
+focus/selection repair, product change, rebuild, CI or release was performed.
+
+The accepted cache still identifies Release, the main source directory and
+private Qt 6.11.2; the compiled fixture reports macOS 26.5.1. Evidence is external
+under `../Alloy-reference-records/validation/skt165-2026-10-20/`: session
+preflight, native log and retry receipt. No new menu/action/label/editor, GPU
+capture or saved-model evidence was produced by the blocked native run. The
+previous 57-call API/core/GPU evidence remains separate and unchanged. The
+private fixture exited; user-owned editor PID72618 was preserved. Keep #611
+open until the same strict fixture passes under an unlocked active session.
