@@ -1,7 +1,7 @@
 # Canvas marking/context menu
 
-SKT-173/#696 bounded candidate, 2026-10-20. Independent compatibility review is
-pending. This increment implements the active-sketch Select context; it does
+SKT-173/#696 bounded increment accepted 2026-10-20 after independent Astra
+source/evidence review. This increment implements the active-sketch Select context; it does
 not establish complete menu parity across workspaces or active commands.
 
 ## Contract and source boundary
@@ -90,16 +90,19 @@ OpenGL 4.1 Metal – 90.5, macOS 26.5.1. Public crop platform/version/scale and
 matched viewport dimensions are unknown; compare semantic arrangement and
 readability only. No CI, tag, push or release was performed.
 
-Before closing the broad parent acceptance, preserve these proposed Todo splits
-as actual linked issues (keys are proposals until root bookkeeping):
+The original broad menu acceptance was explicitly split before closure:
 
-- **SKT-174 proposed:** expand the shared radial component to non-sketch canvas
+- **SKT-174/#697 Todo:** expand the shared radial component to non-sketch canvas
   and active-command contexts, researching context-dependent availability and
   Repeat/PressPull/Hole/Move/Copy routes before exposing them.
-- **SKT-175 proposed:** bounded public-style icon, compact metrics and hover/hit
+- **SKT-175/#698 Todo:** bounded public-style icon, compact metrics and hover/hit
   region refinement, with matched-state popup comparisons and remaining gesture
   direction/keyboard-accessibility verification. Preserve unsupported/unknown
   public context-list membership explicitly.
 
 SKT-171/#694 continues to own strict native activation, physical right-click and
 uninterrupted physical artist-route acceptance. This increment does not close it.
+The reviewer accepted the bounded Qt active-sketch component, shared-command
+lifetime and focused evidence. It confirmed that gesture events are Qt-delivered,
+keyboard and assistive-technology operation are unverified, and the captured
+AppKit state was inactive; no physical-input parity is inferred.

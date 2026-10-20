@@ -1,4 +1,4 @@
-## 2026-10-20 SKT-173 active-sketch menu candidate
+## 2026-10-20 SKT-173 active-sketch menu acceptance
 
 [Canvas marking-menu receipt](validation/canvas-marking-menu.md) records a
 canvas-owned radial/context surface for active-sketch Select: existing geometry
@@ -8,9 +8,10 @@ Qt fixture passes without test-injected context events or interstep focus repair
 original bracket geometry/history/reopen remain covered. Native AppKit activation
 was false and remains SKT-171/#694, with the initial failed receipt preserved.
 Build is `build-preview-release`; external evidence is
-`validation/skt173-2026-10-20/qt-final/`. Independent review is pending; broader
-contexts and styling remain proposed SKT-174/SKT-175 Todo splits in the receipt.
-No CI, push or release.
+`validation/skt173-2026-10-20/qt-final/`. Independent Astra review accepted
+the bounded Qt component. Broader contexts remain SKT-174/#697 Todo and
+visual/access refinement SKT-175/#698 Todo; the illustrated TUT-003 gate depends
+on SKT-175 and SKT-171. No CI or release.
 
 ## 2026-10-20 SKT-172 bounded visual acceptance
 

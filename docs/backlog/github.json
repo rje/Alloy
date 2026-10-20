@@ -3466,6 +3466,16 @@
     "SKT-173": {
       "number": 696,
       "url": "https://github.com/rje/Alloy/issues/696",
+      "state": "closed"
+    },
+    "SKT-174": {
+      "number": 697,
+      "url": "https://github.com/rje/Alloy/issues/697",
+      "state": "open"
+    },
+    "SKT-175": {
+      "number": 698,
+      "url": "https://github.com/rje/Alloy/issues/698",
       "state": "open"
     }
   }

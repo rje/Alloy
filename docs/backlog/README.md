@@ -7,10 +7,10 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **693 issues**: **544 implementation, 24 research,
+The current local backlog contains **695 issues**: **546 implementation, 24 research,
 5 research/design, 22 epics, and 98 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
-SKT-172/#695 accepts the [bounded illustrated-bracket visual checkpoint](../validation/bracket-visual.md); full canvas marking/context-menu structure remains SKT-173/#696 and native input SKT-171/#694. TUT-003/#155 depends on both.
+SKT-172/#695 accepts the [bounded illustrated-bracket visual checkpoint](../validation/bracket-visual.md). SKT-173/#696 accepts the [active-sketch canvas menu component](../validation/canvas-marking-menu.md); native input remains SKT-171/#694, menu visual/access refinement SKT-175/#698 and broader contexts SKT-174/#697. TUT-003/#155 depends on the native and visual children.
 REL-052/#587 accepts the [native Save As Mesh sheet keyboard and return slice](../validation/mesh-export-keyboard.md);
 REL-053/#607 retains actual OS chooser Cancel/Save and independent STL readback,
 and blocks the cumulative REL-012 gate. A [bounded native chooser diagnosis](../validation/native-mesh-chooser-investigation.md) reached a real NSSavePanel but not usable key-window return after Cancel; both draft fixes were reverted and the issue is Todo.
