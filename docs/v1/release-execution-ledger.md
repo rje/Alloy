@@ -113,7 +113,7 @@ Status codes follow the 2026-10-19 independent audit: **S** minimum/owner bounda
 | 103 | `solid.coil` | O — Plausible open owner; finalize required subset and wider boundary. | `ADV-005 (o), SOL-060 (o)` | — receipt needed |
 | 104 | `solid.pipe` | E — Retained hollow circular Line/Arc Pipe accepted; wider family and release input/platform gates remain. | `ADV-005 (o), SOL-061 (c)` | [SOL-061](../validation/solid-pipe.md) geometry/native/STL receipt |
 | 105 | `solid.cone-torus` | O — Plausible open owner; finalize required subset and wider boundary. JSON accepted-slice text is stale. | `ADV-005 (o), SOL-062 (c), SOL-077 (c)` | [cone-torus.md](../../docs/validation/cone-torus.md) |
-| 106 | `solid.rib-web` | O — Plausible open owner; finalize required subset and wider boundary. | `ADV-006 (o), SOL-066 (o)` | — receipt needed |
+| 106 | `solid.rib-web` | S — Bounded retained symmetric To Next Rib accepted; native canvas input and broader modes remain open. | `ADV-006 (o), SOL-066 (c), SOL-097 (o)` | [solid-rib.md](../validation/solid-rib.md) |
 | 107 | `solid.emboss` | O — Plausible open owner; finalize required subset and wider boundary. | `ADV-005 (o), SOL-063 (o)` | — receipt needed |
 | 108 | `solid.draft` | S — One-face rectangular-prism core/API accepted with downstream face attachment; native controls and visual gate remain Todo. | `SOL-013 (o), SOL-086 (c), SOL-093 (o)` | [solid-draft.md](../../docs/validation/solid-draft.md) |
 | 109 | `solid.scale` | S — One-body document-origin uniform core/API accepted with exact lineage; native controls and visual gate remain Todo. | `SOL-013 (o), SOL-087 (c), SOL-094 (o)` | [scale.md](../../docs/validation/scale.md) |

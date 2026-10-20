@@ -697,3 +697,4 @@ This is a publication snapshot. Use `python3 tools/backlog.py ready` for the liv
 | [#688 GEO-038: Resolve and implement past-end Point Along Path behavior](https://github.com/rje/Alloy/issues/688) | P4 Full replacement | research/design | P2 | [#641](https://github.com/rje/Alloy/issues/641) |
 | [#690 PRT-013: Add maximum edge length and aspect-ratio mesh refinement controls](https://github.com/rje/Alloy/issues/690) | P4 Full replacement | implementation | P2 | [#643](https://github.com/rje/Alloy/issues/643) |
 | [#691 PRT-015: Replace an existing per-body mesh batch safely](https://github.com/rje/Alloy/issues/691) | P4 Full replacement | implementation | P2 | [#644](https://github.com/rje/Alloy/issues/644) |
+| [#693 SOL-097: Qualify native canvas Rib picking and thickness handle](https://github.com/rje/Alloy/issues/693) | P3 Shape/import/print breadth | validation | P1 | [#511](https://github.com/rje/Alloy/issues/511) |
