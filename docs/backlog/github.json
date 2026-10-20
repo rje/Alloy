@@ -3482,6 +3482,11 @@
       "number": 699,
       "url": "https://github.com/rje/Alloy/issues/699",
       "state": "closed"
+    },
+    "SKT-177": {
+      "number": 700,
+      "url": "https://github.com/rje/Alloy/issues/700",
+      "state": "open"
     }
   }
 }

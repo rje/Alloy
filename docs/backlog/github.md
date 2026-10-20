@@ -442,7 +442,7 @@ This is a publication snapshot. Use `python3 tools/backlog.py ready` for the liv
 | [#499 SKT-094: Author three-point Rectangle sketch mode](https://github.com/rje/Alloy/issues/499) | P2 Parametric modeling | implementation | P1 | [#35](https://github.com/rje/Alloy/issues/35) |
 | [#501 SKT-096: Add retained Equal Distance sketch Chamfer](https://github.com/rje/Alloy/issues/501) | P2 Parametric modeling | implementation | P1 | [#35](https://github.com/rje/Alloy/issues/35) |
 | [#535 SKT-111: Add retained Distance And Angle sketch Chamfer](https://github.com/rje/Alloy/issues/535) | P2 Parametric modeling | implementation | P2 | [#501](https://github.com/rje/Alloy/issues/501) |
-| [#502 SKT-097: Add retained rectangular and circular sketch patterns](https://github.com/rje/Alloy/issues/502) | P2 Parametric modeling | implementation | P1 | [#35](https://github.com/rje/Alloy/issues/35) |
+| [#502 SKT-097: Retain rectangular sketch pattern and shared ownership](https://github.com/rje/Alloy/issues/502) | P2 Parametric modeling | implementation | P1 | [#35](https://github.com/rje/Alloy/issues/35) |
 | [#503 SKT-098: Move, copy, rotate and scale selected sketch geometry](https://github.com/rje/Alloy/issues/503) | P2 Parametric modeling | implementation | P1 | [#35](https://github.com/rje/Alloy/issues/35) |
 | [#520 SKT-101: Author retained sketch intersections on supported references](https://github.com/rje/Alloy/issues/520) | P2 Parametric modeling | implementation | P1 | [#46](https://github.com/rje/Alloy/issues/46), [#142](https://github.com/rje/Alloy/issues/142) |
 | [#505 SOL-060: Create an editable coil or spring solid](https://github.com/rje/Alloy/issues/505) | P3 Shape/import/print breadth | implementation | P2 | [#40](https://github.com/rje/Alloy/issues/40) |
@@ -704,3 +704,4 @@ This is a publication snapshot. Use `python3 tools/backlog.py ready` for the liv
 | [#697 SKT-174: Extend canvas marking menu to other contexts](https://github.com/rje/Alloy/issues/697) | P4 Full replacement | implementation | P1 | [#696](https://github.com/rje/Alloy/issues/696) |
 | [#698 SKT-175: Refine sketch marking menu visuals and accessibility](https://github.com/rje/Alloy/issues/698) | P2 Parametric modeling | implementation | P1 | [#696](https://github.com/rje/Alloy/issues/696) |
 | [#699 SKT-176: Center and size the sketch context list under radial controls](https://github.com/rje/Alloy/issues/699) | P2 Parametric modeling | implementation | P1 | [#698](https://github.com/rje/Alloy/issues/698) |
+| [#700 SKT-177: Retain circular sketch pattern for printable holes](https://github.com/rje/Alloy/issues/700) | P2 Parametric modeling | implementation | P1 | [#502](https://github.com/rje/Alloy/issues/502) |
