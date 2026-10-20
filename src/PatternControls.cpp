@@ -14,6 +14,8 @@
 #include <QSignalBlocker>
 #include <QScrollArea>
 #include <QComboBox>
+#include <BRep_Builder.hxx>
+#include <TopoDS_Compound.hxx>
 namespace {
 QJsonObject failure(const QString& code,const QString& message){return {{"ok",false},{"error",QJsonObject{{"code",code},{"message",message}}}};}
 }
@@ -27,13 +29,16 @@ std::vector<EvaluatedBody> AlloyWindow::patternInputBodies() const {
 QJsonObject AlloyWindow::beginPattern(const QJsonObject& overrides) {
     if(!session_.isEmpty())return failure("session_busy","Complete or cancel the active command first");
     QJsonObject inputs{{"sourceFeatureId",""},{"targetBodyId",""},{"axes",QJsonArray{}},{"name","Rectangular Pattern"}};
-    if(overrides.contains("featureId")){bool found=false;for(const auto& entry:document_->authored()["features"].toArray()){const auto f=entry.toObject();if(f["id"]!=overrides["featureId"])continue;if(f["type"]!="rectangularPattern")return failure("stale_entity","Pattern feature unavailable");inputs=f["parameters"].toObject();inputs["name"]=f["name"];inputs["featureId"]=f["id"];found=true;}if(!found)return failure("stale_entity","Pattern feature unavailable");}
+    if(overrides.contains("featureId")){bool found=false;for(const auto& entry:document_->authored()["features"].toArray()){const auto f=entry.toObject();if(f["id"]!=overrides["featureId"])continue;if(f["type"]!="rectangularPattern" && f["type"]!="rectangularBodyPattern")return failure("stale_entity","Pattern feature unavailable");inputs=f["parameters"].toObject();inputs["name"]=f["name"];inputs["featureId"]=f["id"];found=true;}if(!found)return failure("stale_entity","Pattern feature unavailable");}
     for(auto it=overrides.begin();it!=overrides.end();++it)inputs[it.key()]=it.value();
+    if(inputs.contains("sourceBodyId")){inputs.remove("sourceFeatureId");inputs.remove("targetBodyId");}
     const auto error=validateArguments(*findCommand("solid.rectangularPattern"),inputs);if(!error.isEmpty())return failure("invalid_arguments",error);
     session_={{"id",CadDocument::newId()},{"command","solid.rectangularPattern"},{"status","active"},{"inputs",inputs},{"activeAxis",0},{"newFeatureId",CadDocument::newId()},{"baseDocumentRevision",static_cast<qint64>(document_->revision())},{"previewed",false},{"geometryEvaluated",false},{"inputSchema",findCommand("solid.rectangularPattern")->parameters}};
     if(inputs.contains("featureId"))view_->setBodyStage(patternInputBodies(),"pattern-source:"+session_["id"].toString());
     selectedBody_.clear();selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};selectedFace_={};selectedPlane_.clear();view_->selectBody({});view_->selectProfile({},{});view_->selectSupportFace({},{});
-    showPattern();previewPattern();view_->setFocus();return session_;
+    if(!inputs.contains("sourceBodyId"))showPattern();
+    else if(patternDock_)patternDock_->hide();
+    previewPattern();view_->setFocus();return session_;
 }
 QJsonObject AlloyWindow::selectPatternFeature(const QString& featureId) {
     if(session_.value("command")!="solid.rectangularPattern")return failure("no_active_pattern","Start Rectangular Pattern before choosing a feature");
@@ -56,16 +61,21 @@ QJsonObject AlloyWindow::selectPatternAxis(const QString& edgeId,int index) {
 QJsonObject AlloyWindow::previewPattern() {
     session_["previewed"]=false;session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");view_->clearPreview();view_->clearPatternAxes();
     const auto inputs=session_["inputs"].toObject();const auto axes=inputs["axes"].toArray();QJsonArray edges;for(const auto& axis:axes)edges.append(axis.toObject()["edgeId"]);view_->highlightSolidEdges(patternInputBodies(),inputs["targetBodyId"].toString(),edges);
-    if(patternDock_){QString name="Select a Hole or Extrude Join from the timeline";for(const auto& f:document_->authored()["features"].toArray())if(f.toObject()["id"]==inputs["sourceFeatureId"]){name="1 selected · "+f.toObject()["name"].toString();break;}patternDock_->findChild<QLabel*>("patternSeed")->setText(name);const bool spacing=inputs.value("distribution")=="spacing";patternDock_->findChild<QComboBox*>("patternDistribution")->setCurrentIndex(spacing ? 1 : 0);patternDock_->findChild<QComboBox*>("patternCompute")->setCurrentIndex(spacing ? 1 : 0);patternDock_->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok)->setEnabled(false);
+    if(patternDock_ && !inputs.contains("sourceBodyId")){QString name="Select a Hole or Extrude Join from the timeline";for(const auto& f:document_->authored()["features"].toArray())if(f.toObject()["id"]==inputs["sourceFeatureId"]){name="1 selected · "+f.toObject()["name"].toString();break;}patternDock_->findChild<QLabel*>("patternSeed")->setText(name);const bool spacing=inputs.value("distribution")=="spacing";patternDock_->findChild<QComboBox*>("patternDistribution")->setCurrentIndex(spacing ? 1 : 0);patternDock_->findChild<QComboBox*>("patternCompute")->setCurrentIndex(spacing ? 1 : 0);patternDock_->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok)->setEnabled(false);
         for(int i=0;i<2;++i){auto* q=patternDock_->findChild<QSpinBox*>("patternQuantity"+QString::number(i));auto* e=patternDock_->findChild<QDoubleSpinBox*>("patternExtent"+QString::number(i));const QSignalBlocker qb(q),eb(e);q->setEnabled(i<axes.size());e->setEnabled(i<axes.size());patternDock_->findChild<QLabel*>("patternDistanceLabel"+QString::number(i))->setText((spacing ? "Spacing " : "Extent ")+QString::number(i+1));q->setValue(i<axes.size() ? axes[i].toObject()["quantity"].toInt() : 3);e->setValue(i<axes.size() ? axes[i].toObject()[spacing ? "spacingMm" : "extentMm"].toDouble() : 0);patternDock_->findChild<QPushButton*>("patternAxis"+QString::number(i))->setText(i<axes.size() ? "Change Axis "+QString::number(i+1) : "Select Axis "+QString::number(i+1));}
     }
     auto reject=[this](const QString& code,const QString& message,const QJsonObject& details=QJsonObject{}){auto r=failure(code,message);auto error=r["error"].toObject();error["diagnostics"]=details;r["error"]=error;session_["previewError"]=error;if(patternDock_)patternDock_->findChild<QLabel*>("patternError")->setText(message);return r;};
     if(session_["baseDocumentRevision"].toInteger()!=static_cast<qint64>(document_->revision()))return reject("stale_session","The design changed; cancel and restart Pattern");
-    if(inputs.value("sourceFeatureId").toString().isEmpty())return reject("pattern_seed_unavailable","Select a Hole or Extrude Join from the timeline");
-    if(axes.isEmpty() || (inputs.value("distribution")=="spacing" && axes.size()!=2))return reject("pattern_axis_unavailable",inputs.value("distribution")=="spacing" ? "Select two straight model edges" : "Select a straight model edge");
+    if(!inputs.contains("sourceBodyId") && inputs.value("sourceFeatureId").toString().isEmpty())return reject("pattern_seed_unavailable","Select a Hole or Extrude Join from the timeline");
+    if(axes.isEmpty() || (!inputs.contains("sourceBodyId") && inputs.value("distribution")=="spacing" && axes.size()!=2))return reject("pattern_axis_unavailable",inputs.value("distribution")=="spacing" ? "Select two straight model edges" : "Select a straight model edge");
     QJsonObject candidate;try{candidate=patternCandidate(inputs);}catch(const std::exception& e){return reject("invalid_arguments",QString::fromUtf8(e.what()));}const auto evaluated=CadDocument::evaluateCandidate(candidate);if(!evaluated.ok)return reject("evaluation_failed",evaluated.error,evaluated.diagnostics);
     auto stage=evaluated.evaluation;const auto id=inputs.value("featureId").toString(session_["newFeatureId"].toString());
     if(inputs.contains("featureId")){QJsonArray fs;for(const auto& f:candidate["features"].toArray()){fs.append(f);if(f.toObject()["id"]==id)break;}auto prefix=candidate;prefix["features"]=fs;const auto early=CadDocument::evaluateCandidate(prefix);if(!early.ok)return reject("evaluation_failed",early.error,early.diagnostics);stage=early.evaluation;}
+    if(inputs.contains("sourceBodyId")){
+        TopoDS_Compound copies;BRep_Builder builder;builder.MakeCompound(copies);QJsonArray occurrences;
+        for(const auto& body:stage->bodies)if(body.bodyId==inputs["sourceBodyId"] || body.summary["rectangularBodyPattern"].toObject()["featureId"]==id){auto summary=body.summary;summary["bodyId"]=body.bodyId;occurrences.append(summary);if(body.bodyId!=inputs["sourceBodyId"])builder.Add(copies,body.shape);}
+        view_->showPreview(copies,{},true);session_["geometry"]=QJsonObject{{"occurrences",occurrences},{"sourceBodyId",inputs["sourceBodyId"]}};
+    }
     for(const auto& body:stage->bodies)if(body.bodyId==inputs["targetBodyId"].toString()){view_->showPreview(body.shape,body.bodyId,true);view_->showPatternAxes(body.summary);session_["geometry"]=body.summary;session_["bodyId"]=body.bodyId;break;}
     session_["featureId"]=id;session_["documentDraft"]=candidate;session_["previewed"]=true;session_["geometryEvaluated"]=true;session_.remove("previewError");if(patternDock_){patternDock_->findChild<QLabel*>("patternError")->clear();patternDock_->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok)->setEnabled(true);}return session_;
 }

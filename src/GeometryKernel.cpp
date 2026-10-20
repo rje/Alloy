@@ -26,6 +26,7 @@
 #include "JoinRootEdges.h"
 #include "SolidMirror.h"
 #include "CircularPattern.h"
+#include "RectangularBodyPattern.h"
 #include <BRepBuilderAPI_Transform.hxx>
 #include <BRepBuilderAPI_Copy.hxx>
 #include <gp_Ax1.hxx>
@@ -1409,6 +1410,10 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                 auto halves=SolidSplit::evaluate(*target,plane->frame,id,feature["bodyId"].toString(),feature["name"].toString());
                 halves.second.visible=feature["visible"].toBool(true);
                 evaluated.bodies[index]=std::move(halves.first);evaluated.bodies.push_back(std::move(halves.second));
+            } else if(type=="rectangularBodyPattern"){
+                const auto source=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& b){return b.bodyId==parameters["sourceBodyId"].toString();});
+                if(source==evaluated.bodies.end())throw EvaluationError({{"code","pattern_body_unavailable"},{"featureId",id},{"message","Body Pattern source must be active earlier in history"}});
+                auto occurrences=RectangularBodyPattern::evaluate(feature,*source);for(size_t n=1;n<occurrences.size();++n)evaluated.bodies.push_back(std::move(occurrences[n]));
             } else if(type=="circularPattern"){
                 auto source=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& b){return b.bodyId==parameters["sourceBodyId"].toString();});
                 if(source==evaluated.bodies.end())throw EvaluationError({{"code","pattern_body_unavailable"},{"featureId",id},{"message","Circular Pattern source must be active earlier in history"}});

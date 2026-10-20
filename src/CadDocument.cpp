@@ -12,6 +12,7 @@
 #include <vector>
 #include "DocumentAppend.h"
 #include "CircularPattern.h"
+#include "RectangularBodyPattern.h"
 #include "SolidSplit.h"
 #include "SketchGeometry.h"
 #include "LengthExpression.h"
@@ -282,6 +283,7 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
                 return {{"featureId",feature["id"]},{"featureType","surfaceTrim"},
                     {"code","trim_dependency_unavailable"},{"message","Trim tool sketch and target sheet must precede the feature"}};
         }
+        if(feature["type"]=="rectangularBodyPattern")for(const auto& body:RectangularBodyPattern::generatedBodyIds(feature))bodyPositions[body]=i;
         if(feature["type"]=="circularPattern"){const auto p=feature["parameters"].toObject();for(int n=1;n<p["quantity"].toInt();++n)bodyPositions[CircularPattern::bodyId(feature["id"].toString(),p["sourceBodyId"].toString(),n)]=i;}
         if(feature["type"]=="stepAssemblyImport")
             for(const auto& value:feature["parameters"].toObject()["assembly"].toObject()["occurrences"].toArray())
@@ -298,6 +300,7 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
         if(f["type"]=="stepAssemblyImport")
             for(const auto& value:f["parameters"].toObject()["assembly"].toObject()["occurrences"].toArray())
                 if(const auto body=value.toObject()["bodyId"].toString();!body.isEmpty())referencedOwners[body]=owner;
+        if(f["type"]=="rectangularBodyPattern")for(const auto& body:RectangularBodyPattern::generatedBodyIds(f))referencedOwners[body]=owner;
         if(f["type"]=="circularPattern"){const auto p=f["parameters"].toObject();for(int n=1;n<p["quantity"].toInt();++n)referencedOwners[CircularPattern::bodyId(f["id"].toString(),p["sourceBodyId"].toString(),n)]=owner;}
         for(const auto& result:f["bodyResults"].toArray()){const auto body=result.toObject()["bodyId"].toString();if(!referencedOwners.contains(body))referencedOwners[body]=owner;}
     }
@@ -495,6 +498,11 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
             if (!bodyPositions.contains(body) || bodyPositions[body]>=i || !activeBodies.contains(body))
                 return {{"featureId",feature["id"]},{"featureType",feature["type"]},{"bodyId",body},{"code","body_unavailable"},{"message","Solid modifier requires an active earlier body"}};
             continue;
+        }
+        if(feature["type"]=="rectangularBodyPattern"){
+            const auto source=feature["parameters"].toObject()["sourceBodyId"].toString();
+            if(feature["ownerId"]!=candidate["documentId"] || referencedOwners[source]!=candidate["documentId"] || !bodyPositions.contains(source)||bodyPositions[source]>=i||!activeBodies.contains(source))return {{"featureId",feature["id"]},{"code","pattern_body_unavailable"},{"message","Body Pattern requires one active earlier root body"}};
+            for(const auto& body:RectangularBodyPattern::generatedBodyIds(feature))activeBodies.insert(body);continue;
         }
         if(feature["type"]=="circularPattern"){
             const auto p=feature["parameters"].toObject();const auto source=p["sourceBodyId"].toString();
@@ -1819,6 +1827,7 @@ QJsonObject CadDocument::chamferCandidate(const QJsonObject& authored,const QJso
     const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
 }
 QJsonObject CadDocument::patternCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
+    if(arguments.contains("sourceBodyId"))return rectangularBodyPatternCandidate(authored,arguments);
     const QSet<QString> allowed{"sourceFeatureId","targetBodyId","axes","distribution","computeType","name","featureId","newFeatureId","ownerId"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Pattern argument");
     if(arguments.contains("featureId") && arguments.contains("newFeatureId"))throw std::invalid_argument("Choose an existing or new Pattern identity");
@@ -2169,6 +2178,15 @@ QJsonObject CadDocument::splitBodyCandidate(const QJsonObject& authored,const QJ
     feature["parameters"]=QJsonObject{{"targetBodyId",arguments["targetBodyId"]},{"planeId",arguments["planeId"]}};
     if(index>=0)features[index]=feature;else features.append(feature);candidate["features"]=features;
     const auto error=validate(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
+}
+QJsonObject CadDocument::rectangularBodyPatternCandidate(const QJsonObject& authored,const QJsonObject& arguments){
+    const QSet<QString> allowed{"ownerId","sourceBodyId","axes","name","featureId","newFeatureId"};for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Body Pattern argument");
+    if(arguments.contains("featureId")&&arguments.contains("newFeatureId"))throw std::invalid_argument("Choose existing or new Pattern identity");
+    auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
+    if(arguments.contains("featureId")){for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}if(index<0||feature["type"]!="rectangularBodyPattern")throw std::invalid_argument("Body Pattern feature unavailable");}
+    else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","rectangularBodyPattern"},{"name","Rectangular Pattern"},{"visible",true}};
+    auto p=feature["parameters"].toObject();for(const auto& key:{"sourceBodyId","axes"})if(arguments.contains(key))p[key]=arguments[key];feature["parameters"]=p;
+    if(arguments.contains("name"))feature["name"]=arguments["name"];if(index<0)features.append(feature);else features[index]=feature;candidate["features"]=features;const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
 }
 QJsonObject CadDocument::circularPatternCandidate(const QJsonObject& authored,const QJsonObject& arguments){
     const QSet<QString> allowed{"ownerId","sourceBodyId","axis","extent","quantity","name","featureId","newFeatureId"};for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Circular Pattern argument");
@@ -2883,6 +2901,13 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
                 || body!=SolidSplit::positiveBodyId(id,p["targetBodyId"].toString()) || ids.contains(body))
                 return "Split Body requires one target, one retained plane and a source-derived output ID";
             ids.insert(body);continue;
+        }
+        if(type=="rectangularBodyPattern"){
+            const auto axes=p["axes"].toArray();if(feature.contains("bodyId")||p.size()!=2||!validId(p["sourceBodyId"].toString())||axes.size()<1||axes.size()>2)return "Body Pattern requires one retained body and one/two straight source-body edges";
+            int total=1;for(const auto& a:axes){const auto axis=a.toObject();const double q=axis["quantity"].toDouble(),spacing=axis["spacingMm"].toDouble();
+                if(axis.size()!=3||!validId(axis["edgeId"].toString())||!axis["quantity"].isDouble()||q!=axis["quantity"].toInt()||q<1||q>128||!axis["spacingMm"].isDouble()||!std::isfinite(spacing)||spacing<=0||spacing>100000)return "Body Pattern axes require edgeId, integer quantity1..128 and positive spacingMm<=100000";total*=int(q);}
+            if(total>128)return "Body Pattern supports at most128 total placements";
+            for(const auto& body:RectangularBodyPattern::generatedBodyIds(feature)){if(ids.contains(body))return "Duplicate rectangular occurrence UUID";ids.insert(body);}continue;
         }
         if(type=="circularPattern"){
             const auto axis=p["axis"].toObject();const double q=p["quantity"].toDouble();
