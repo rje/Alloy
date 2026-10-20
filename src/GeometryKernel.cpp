@@ -23,6 +23,7 @@
 #include "SurfaceExtrude.h"
 #include "SurfaceRevolve.h"
 #include "SurfaceOffset.h"
+#include "SurfaceStitch.h"
 #include "SurfaceRuled.h"
 #include "SurfaceExtend.h"
 #include "SurfaceSweep.h"
@@ -1395,6 +1396,11 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                 SurfaceExtend::evaluate(*target,feature,evaluated);
             } else if(type=="surfaceRuled") {
                 evaluated.bodies.push_back(SurfaceRuled::evaluate(feature,evaluated));
+            } else if(type=="surfaceStitch") {
+                auto result=SurfaceStitch::evaluate(feature,evaluated);
+                const auto refs=parameters.value("sourceFaces").toArray();
+                std::erase_if(evaluated.bodies,[&](const auto& body){return body.bodyId==refs[0].toObject().value("bodyId").toString() || body.bodyId==refs[1].toObject().value("bodyId").toString();});
+                evaluated.bodies.push_back(std::move(result));
             } else if(type=="surfaceOffset") {
                 evaluated.bodies.push_back(SurfaceOffset::evaluate(feature,evaluated));
             } else if(type=="surfaceRevolve") {

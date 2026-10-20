@@ -315,6 +315,15 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
             if(!positions.contains(sketch) || positions[sketch]>=i || features[positions[sketch]].toObject()["type"]!="sketch")
                 return {{"featureId",feature["id"]},{"featureType",feature["type"]},{"code","surface_source_unavailable"},{"message","Surface Sweep path sketch must precede the feature"}};
         }
+        if(feature.value("type")=="surfaceStitch") {
+            for(const auto& value:feature.value("parameters").toObject().value("sourceFaces").toArray()){
+                const auto ref=value.toObject();const auto producer=ref.value("producerFeatureId").toString(),body=ref.value("bodyId").toString();
+                if(!positions.contains(producer) || positions.value(producer)>=i || !bodyPositions.contains(body) || bodyPositions.value(body)>=i)
+                    return {{"featureId",feature.value("id")},{"featureType","surfaceStitch"},{"sourceFace",ref},{"code","surface_source_unavailable"},{"message","Stitch requires two earlier retained source faces"}};
+                if(features[positions.value(producer)].toObject().value("ownerId")!=feature.value("ownerId") || features[bodyPositions.value(body)].toObject().value("ownerId")!=feature.value("ownerId"))
+                    return {{"featureId",feature.value("id")},{"featureType","surfaceStitch"},{"sourceFace",ref},{"code","unsupported_instance_edit"},{"message","Stitch requires two same-owner local sheet bodies"}};
+            }
+        }
         if(feature["type"]=="surfaceUntrim") {
             const auto p=feature.value("parameters").toObject(),ref=p.value("sourceFace").toObject();
             const auto trim=p.value("trimFeatureId").toString(),body=ref.value("bodyId").toString();
@@ -2078,6 +2087,24 @@ QJsonObject CadDocument::surfaceRuledCandidate(const QJsonObject& authored,const
     const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
 }
 
+QJsonObject CadDocument::surfaceStitchCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
+    const QSet<QString> allowed{"sourceFaces","toleranceMm","featureId","newFeatureId","newBodyId","ownerId","name"};
+    for(auto i=arguments.begin();i!=arguments.end();++i)if(!allowed.contains(i.key()))throw std::invalid_argument("Unknown Stitch argument");
+    if(arguments.contains("featureId") && (arguments.contains("newFeatureId") || arguments.contains("newBodyId") || arguments.contains("ownerId")))
+        throw std::invalid_argument("Stitch edit retains feature, body and owner identities");
+    auto candidate=authored;auto rows=candidate["features"].toArray();QJsonObject feature;int index=-1;
+    if(arguments.contains("featureId")){
+        for(int i=0;i<rows.size();++i)if(rows[i].toObject()["id"]==arguments["featureId"]){feature=rows[i].toObject();index=i;break;}
+        if(index<0 || feature["type"]!="surfaceStitch")throw std::invalid_argument("Stitch feature unavailable");
+    }else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"bodyId",arguments.value("newBodyId").toString(newId())},
+        {"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","surfaceStitch"},{"name","Stitch"},{"visible",true}};
+    auto params=feature["parameters"].toObject();if(params.isEmpty())params={{"toleranceMm",0.01}};
+    for(const auto& key:{"sourceFaces","toleranceMm"})if(arguments.contains(key))params[key]=arguments[key];
+    feature["parameters"]=params;if(arguments.contains("name"))feature["name"]=arguments["name"];
+    if(index<0)rows.append(feature);else rows[index]=feature;candidate["features"]=rows;
+    const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
+}
+
 QJsonObject CadDocument::surfaceOffsetCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
     const QSet<QString> allowed{"sourceFace","distanceMm","featureId","newFeatureId","newBodyId","ownerId","name"};
     for(auto i=arguments.begin();i!=arguments.end();++i)if(!allowed.contains(i.key()))throw std::invalid_argument("Unknown Surface Offset argument");
@@ -3197,6 +3224,16 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
                 || !p.value("distanceMm").isDouble() || !std::isfinite(p.value("distanceMm").toDouble()) || p.value("distanceMm").toDouble()<=1e-7
                 || !p.value("angleDeg").isDouble() || !std::isfinite(p.value("angleDeg").toDouble()))
                 return "Ruled requires one exact retained face boundary edge, Normal, positive finite distance above kernel tolerance, finite signed degrees and non-solid New Body";
+            ids.insert(feature.value("bodyId").toString());continue;
+        }
+        if(type=="surfaceStitch") {
+            const auto refs=p.value("sourceFaces").toArray();
+            if(!validId(feature.value("bodyId").toString()) || ids.contains(feature.value("bodyId").toString()) || p.size()!=2
+                || !p.value("sourceFaces").isArray() || refs.size()!=2 || !p.value("toleranceMm").isDouble()
+                || !std::isfinite(p.value("toleranceMm").toDouble()) || p.value("toleranceMm").toDouble()<1e-7 || p.value("toleranceMm").toDouble()>1.)
+                return "Stitch requires two exact retained faces and a finite tolerance from 0.0000001 to 1 mm";
+            for(const auto& value:refs){const auto ref=value.toObject();if(ref.size()!=3 || !validId(ref.value("bodyId").toString()) || !validId(ref.value("producerFeatureId").toString()) || !validId(ref.value("faceId").toString()))return "Stitch face references require exact body, producer and face UUIDs";}
+            if(refs[0].toObject().value("bodyId")==refs[1].toObject().value("bodyId"))return "Stitch requires two different sheet bodies";
             ids.insert(feature.value("bodyId").toString());continue;
         }
         if(type=="surfaceOffset") {

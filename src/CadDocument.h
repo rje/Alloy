@@ -115,6 +115,7 @@ public:
     static QJsonObject surfaceSweepCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject surfaceExtendCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject surfaceRuledCandidate(const QJsonObject& authored,const QJsonObject& arguments);
+    static QJsonObject surfaceStitchCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject surfaceOffsetCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject surfaceRevolveCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject surfaceExtrudeCandidate(const QJsonObject& authored,const QJsonObject& arguments);

@@ -408,6 +408,14 @@ private:
     void refreshSurfaceRuledControls();
     QDockWidget* surfaceRuledDock_=nullptr;
     QShortcut* surfaceRuledEscape_=nullptr;
+    QJsonObject surfaceStitchCandidate(const QJsonObject& inputs) const;
+    QJsonObject beginSurfaceStitch(const QJsonObject& overrides={});
+    QJsonObject previewSurfaceStitch();
+    QJsonObject selectSurfaceStitchFace(const QJsonObject& face);
+    void showSurfaceStitch();
+    void refreshSurfaceStitchControls();
+    QDockWidget* surfaceStitchDock_=nullptr;
+    QShortcut* surfaceStitchEscape_=nullptr;
     QJsonObject surfaceOffsetCandidate(const QJsonObject& inputs) const;
     QJsonObject beginSurfaceOffset(const QJsonObject& overrides={});
     QJsonObject previewSurfaceOffset();
