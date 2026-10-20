@@ -4,7 +4,10 @@
 closed four-Line profile through native or local controls. Two relative edits,
 constraint-safe refusals, history/reopen and a downstream watertight STL pass;
 an independent review accepted the shared commit guard and panel lifecycle.
-Retained editable Move, Copy, Rotate and Scale remain separate Todo work.
+[Retained sketch Move](docs/validation/sketch-retained-move.md) now edits one
+Move definition on the same four-Line profile and composes a later source width
+edit once. Native Edit Move, identity/history/reopen, refusal and two checked
+STLs pass independent architecture review. Copy, Rotate and Scale remain Todo.
 
 [Retained circular sketch-circle Pattern](docs/validation/sketch-circular-pattern.md)
 now supports Full and Angle around an authored center Point through shared native

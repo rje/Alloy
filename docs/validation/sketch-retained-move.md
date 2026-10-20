@@ -130,3 +130,10 @@ against that owned profile. Session cancellation preserves the document.
 Build remains Release/private Qt/OCCT `-j4`; `api/report.json` and transcript
 record the actual calls. These focused checks do not repeat unchanged GPU/STL
 qualification. Private test editor closed; user PID 72618 preserved. No CI/push.
+
+Independent Astra review accepted `cd0e682` plus correction `5143acb` after
+checking source/cache authority, input/refusal paths, native/API receipts and
+captures. The review was read-only and did not claim a fresh application run.
+Bounded XY creation and same-definition editing are accepted; exact public
+Timeline parity, wider modes, physical input and other platform runtime remain
+open.

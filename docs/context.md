@@ -1,3 +1,19 @@
+## 2026-10-20 SKT-184 retained Move acceptance
+
+[Bounded receipt](validation/sketch-retained-move.md) accepts one retained XY
+Move owner on the isolated four-Line profile. Source points remain authoritative;
+same-ID output points are derived once and validated at public boundaries.
+Visible Edit Move changes the existing (+5,-3) definition to (+7,-2), and a
+later source width edit 20→24 recomputes the existing Extrude from 1,920 to
+2,304 mm³. Native actual-hit picks/editing, core idempotence and owner guards,
+real-app API/history/reopen and independent watertight STL bounds/volumes pass.
+Independent Astra review accepted `cd0e682` plus API input correction `5143acb`;
+external evidence is `../Alloy-reference-records/validation/skt184-2026-10-20/`.
+SKT-184/#707 is closed/Done. Copy/Rotate/Scale #702–704 and broader Move modes
+remain Todo. Exact reference Timeline/visual parity, physical input and packaged
+Windows/Linux runtime remain unqualified. No CI or release was run; private
+editors closed and user PID 72618 preserved.
+
 ## 2026-10-20 SKT-098 atomic Move acceptance
 
 [Bounded receipt](validation/sketch-move.md) accepts native and local-control
@@ -9,8 +25,8 @@ core checks. Native actual-hit input, two finish-route guards, API terminal-pane
 cleanup, Undo/Redo and save/reopen pass focused fixtures. Independent Sol review
 accepted `9952f07` and corrective `55628da`; external evidence is at
 `../Alloy-reference-records/validation/skt098-2026-10-20/`. SKT-098/#503 is
-closed/Done. Retained edit SKT-184/#707, Copy/Rotate/Scale #702–704 and broader
-multi-group/3D modes remain Todo. The #707 source/output architecture record is
+closed/Done. Retained edit SKT-184/#707 is accepted above; Copy/Rotate/Scale
+#702–704 and broader multi-group/3D modes remain Todo. The #707 source/output architecture record is
 external at `../Alloy-reference-records/knowledge/specs/skt184-retained-sketch-move-design-2026-10-20.md`.
 No CI, release or platform/physical qualification was run. Private editors
 closed; user PID 72618 preserved.
