@@ -3769,6 +3769,7 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
         } else setCursor(Qt::ClosedHandCursor);
         setFocus(Qt::MouseFocusReason);e->accept();return;
     }
+    if(e->button()==Qt::LeftButton && e->modifiers()==Qt::NoModifier && decorationSelection_["moveInteraction"].toObject()["active"].toBool()){dispatch("sketch.movePick",{{"x",e->position().x()},{"y",e->position().y()}});setFocus(Qt::MouseFocusReason);e->accept();return;}
     if(e->button()==Qt::LeftButton && e->modifiers()==Qt::NoModifier && decorationSelection_["patternInteraction"].toObject()["active"].toBool()){
         const auto role=decorationSelection_["patternInteraction"].toObject()["role"].toString();
         if(role!="values"){dispatch("sketch.patternPick",{{"x",e->position().x()},{"y",e->position().y()}});setFocus(Qt::MouseFocusReason);e->accept();return;}
@@ -4177,6 +4178,7 @@ void ReferenceView::keyReleaseEvent(QKeyEvent* e) {
 }
 void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
     if(e->button()==Qt::LeftButton && !patternHandleDrag_.isEmpty()){patternHandleDrag_={};dispatch("sketch.patternHandle",{{"phase","end"}});e->accept();return;}
+    if(e->button()==Qt::LeftButton && decorationSelection_["moveInteraction"].toObject()["active"].toBool()){e->accept();return;}
     if(e->button()==Qt::LeftButton && decorationSelection_["patternInteraction"].toObject()["active"].toBool()){e->accept();return;}
 
     if(e->button()==Qt::LeftButton && sketchSelectOtherPending_) {

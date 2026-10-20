@@ -4170,6 +4170,41 @@ SketchGeometry::SolveResult SketchGeometry::updateAnnotation(const QJsonObject& 
     } catch (const std::exception& error) { return invalidDraft(draft, QString::fromUtf8(error.what())); }
 }
 
+SketchGeometry::SolveResult SketchGeometry::translateProfile(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext) {
+    try {
+        validateDraft(draft);checkFields(arguments,{"entityIds","deltaUMm","deltaVMm"});
+        const double du=coordinate(arguments,"deltaUMm"),dv=coordinate(arguments,"deltaVMm");
+        if(std::abs(du)<1e-9 && std::abs(dv)<1e-9)reject("Enter a nonzero X or Y displacement");
+        const auto parameters=draft["parameters"].toObject();if(parameters["plane"]!="XY")reject("Move supports an active XY sketch in this slice");
+        const auto ids=arguments["entityIds"].toArray();QSet<QString> selected,vertices;QMap<QString,QJsonObject> entities,points;QMap<QString,QStringList> neighbors;
+        for(const auto& row:parameters["entities"].toArray())entities[row.toObject()["id"].toString()]=row.toObject();
+        for(const auto& row:parameters["points"].toArray())points[row.toObject()["id"].toString()]=row.toObject();
+        if(!arguments["entityIds"].isArray() || ids.size()!=4)reject("Select exactly four Lines of one isolated closed profile");
+        for(const auto& id:ids){const auto key=id.toString();const auto edge=entities.value(key);if(selected.contains(key) || edge["type"]!="line" || edge["construction"].toBool() || edge["centerline"].toBool())reject("Move requires four distinct ordinary authored Lines from this sketch; projected or mixed-sketch sources are unavailable");selected.insert(key);const auto a=edge["startPointId"].toString(),b=edge["endPointId"].toString();vertices.insert(a);vertices.insert(b);neighbors[a].append(b);neighbors[b].append(a);}
+        if(vertices.size()!=4)reject("Select one closed four-Line loop with four shared vertices");
+        for(const auto& v:vertices)if(neighbors[v].size()!=2)reject("Move selection is disconnected or open; select all four edges of one loop");
+        QSet<QString> visited;QString cursor=*vertices.begin(),previous;QStringList ordered;
+        for(int n=0;n<4;++n){if(visited.contains(cursor))reject("Move selection is disconnected");visited.insert(cursor);ordered.append(cursor);const auto next=neighbors[cursor][0]==previous ? neighbors[cursor][1] : neighbors[cursor][0];previous=cursor;cursor=next;}
+        if(cursor!=ordered[0])reject("Move selection is not closed");
+        auto touches=[&](const QJsonValue& value,auto&& self)->bool{if(value.isString())return selected.contains(value.toString()) || vertices.contains(value.toString());if(value.isArray()){for(const auto& v:value.toArray())if(self(v,self))return true;}if(value.isObject()){const auto object=value.toObject();for(auto it=object.begin();it!=object.end();++it)if(self(it.value(),self))return true;}return false;};
+        for(auto it=parameters.begin();it!=parameters.end();++it)if(it.key()!="entities" && it.key()!="points" && it.key()!="constraints" && it.key()!="dimensions" && it.value().isArray() && touches(it.value(),touches))reject("Move cannot transform derived or retained-owned geometry; edit its owning feature");
+        for(const auto& edge:entities)if(!selected.contains(edge["id"].toString()) && touches(edge,touches))reject("Move profile shares a vertex with unselected geometry; select an isolated loop");
+        // Reject self-crossing/zero-area loops before passing them to profile consumers.
+        auto cross=[](const QPointF& a,const QPointF& b){return a.x()*b.y()-a.y()*b.x();};QPointF xy[4];double area=0;
+        for(int n=0;n<4;++n){const auto p=points.value(ordered[n]);xy[n]={p["uMm"].toDouble(),p["vMm"].toDouble()};}
+        for(int n=0;n<4;++n)area+=cross(xy[n],xy[(n+1)%4]);if(std::abs(area)<1e-6)reject("Move requires one nondegenerate closed profile");
+        for(int n=0;n<2;++n){const auto a=xy[n],b=xy[n+1],c=xy[n+2],d=xy[(n+3)%4];if(cross(b-a,c-a)*cross(b-a,d-a)<=0 && cross(d-c,a-c)*cross(d-c,b-c)<=0)reject("Move requires a simple closed profile without crossing edges");}
+        auto candidate=draft,changed=parameters;auto rows=parameters["points"].toArray();QMap<QString,QJsonObject> expected;
+        for(int n=0;n<rows.size();++n){auto point=rows[n].toObject();if(vertices.contains(point["id"].toString())){point["uMm"]=point["uMm"].toDouble()+du;point["vMm"]=point["vMm"].toDouble()+dv;if(std::abs(point["uMm"].toDouble())>100000 || std::abs(point["vMm"].toDouble())>100000)reject("Move exceeds coordinate bounds");}expected[point["id"].toString()]=point;rows[n]=point;}
+        changed["points"]=rows;candidate["parameters"]=changed;auto solved=solveDraft(candidate,projectionContext);if(!solved.ok)return {false,draft,solved.diagnostics,solved.error};
+        auto actual=solved.feature["parameters"].toObject(),definitions=parameters;actual.remove("points");definitions.remove("points");
+        if(actual!=definitions)reject("Move would change unselected geometry or constraint definitions; resolve the conflicting relation first");
+        const auto solvedPoints=solved.feature["parameters"].toObject()["points"].toArray();if(solvedPoints.size()!=expected.size())reject("Move changed point membership");
+        for(const auto& row:solvedPoints){auto point=row.toObject();const auto wanted=expected.value(point["id"].toString());if(!vertices.contains(point["id"].toString()) && point!=wanted)reject("Move would alter an unselected point; resolve its relation first");if(wanted.isEmpty() || std::abs(point["uMm"].toDouble()-wanted["uMm"].toDouble())>1e-6 || std::abs(point["vMm"].toDouble()-wanted["vMm"].toDouble())>1e-6)reject("Move conflicts with a placement dimension or relation to unselected geometry; no geometry was moved");point["uMm"]=wanted["uMm"];point["vMm"]=wanted["vMm"];if(point!=wanted)reject("Move changed unselected point metadata");}
+        solved.diagnostics["movePolicy"]="Atomic rigid coordinate edit; displacement is relative to current position";solved.diagnostics["targetToleranceMm"]=1e-6;return solved;
+    }catch(const std::exception& error){return invalidDraft(draft,QString::fromUtf8(error.what()));}
+}
+
 SketchGeometry::SolveResult SketchGeometry::movePoint(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext) {
     try {
         validateDraft(draft);

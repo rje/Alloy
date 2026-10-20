@@ -62,6 +62,10 @@ protected:
     void closeEvent(QCloseEvent*) override;
     bool eventFilter(QObject*, QEvent*) override;
 private:
+    void registerSketchMoveCommands();
+    void showSketchMoveControls();
+    void syncSketchMoveControls(const QString& message = {});
+    QPointer<QDialog> sketchMoveDialog_;
     void registerSketchPatternCommands();
     void registerSketchPatternInteractionCommands();
     void syncSketchPatternInteractionControls(const QJsonObject& inputs,const QString& message = {});
