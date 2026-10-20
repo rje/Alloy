@@ -176,6 +176,10 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
                     return {{"featureId",feature["id"]},{"featureType",feature["type"]},{"code","plane_dependency_unavailable"},{"message","Plane source must be an earlier feature of the expected type"}};
             }
         }
+        if(feature["type"]=="draft") {
+            const auto plane=feature.value("parameters").toObject().value("neutralPlaneId").toString();
+            if(!positions.contains(plane) || positions.value(plane)>=i || features[positions.value(plane)].toObject().value("type")!="constructionPlane")return {{"featureId",feature.value("id")},{"featureType","draft"},{"code","plane_dependency_unavailable"},{"message","Draft neutral plane must be an earlier retained construction plane"}};
+        }
         if(feature["type"]=="rectangularPattern") {
             const auto p=feature["parameters"].toObject();const auto seed=p["sourceFeatureId"].toString();
             if(!positions.contains(seed) || positions[seed]>=i)
@@ -564,7 +568,7 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
             continue;
         }
         QJsonArray planeSupports;
-        if(feature["type"]=="faceOffset")planeSupports.append(feature["parameters"].toObject()["face"]);
+        if(feature["type"]=="draft" || feature["type"]=="faceOffset")planeSupports.append(feature["parameters"].toObject()["face"]);
         if(feature["type"]=="thread" || (feature["type"]=="sketch" && feature["parameters"].toObject()["plane"]=="face"))
             planeSupports.append(feature["parameters"].toObject()["support"]);
         if(feature["type"]=="constructionPlane"){
@@ -2092,6 +2096,22 @@ QJsonObject CadDocument::faceOffsetCandidate(const QJsonObject& authored,const Q
     if(index<0)features.append(feature);else features[index]=feature;candidate["features"]=features;
     const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
 }
+QJsonObject CadDocument::draftCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
+    const QSet<QString> allowed{"targetBodyId","face","neutralPlaneId","angleDeg","flipPullDirection","featureId","newFeatureId","ownerId","name"};
+    for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Draft argument");
+    if(arguments.contains("featureId")&&arguments.contains("newFeatureId"))throw std::invalid_argument("Choose existing or new Draft identity");
+    for(const auto& key:{"featureId","newFeatureId","ownerId"})if(arguments.contains(key)&&!validId(arguments[key].toString()))throw std::invalid_argument("Draft identities must be stable UUIDs");
+    auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
+    if(arguments.contains("featureId")){
+        for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}
+        if(index<0||feature["type"]!="draft")throw std::invalid_argument("Draft feature unavailable");
+    }else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","draft"},{"name","Draft"},{"visible",true}};
+    auto p=feature["parameters"].toObject();
+    for(const auto& key:{"targetBodyId","face","neutralPlaneId","angleDeg","flipPullDirection"})if(arguments.contains(key))p[key]=arguments[key];
+    feature["parameters"]=p;if(arguments.contains("name"))feature["name"]=arguments["name"];
+    if(index<0)features.append(feature);else features[index]=feature;candidate["features"]=features;
+    const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
+}
 QJsonObject CadDocument::threadCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
     const QSet<QString> allowed{"support","nominalDiameterMm","pitchMm","startOffsetMm","lengthMm","direction","modeled","fullLength","threadSide","standard","featureId","newFeatureId","ownerId","name"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Thread argument");
@@ -2620,6 +2640,13 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
                 for(const auto& edge:members){if(!edge.isString() || !validId(edge.toString()) || edges.contains(edge.toString()) || edges.size()>=100)return "Fillet edge references must be distinct stable UUIDs";edges.insert(edge.toString());}
                 if(!group["radiusMm"].isDouble() || !std::isfinite(group["radiusMm"].toDouble()) || group["radiusMm"].toDouble()<0.001 || group["radiusMm"].toDouble()>100000)return "Fillet radius must be 0.001..100000 mm";
             }
+            continue;
+        }
+        if(type=="draft") {
+            const auto face=p.value("face").toObject();
+            if(feature.contains("bodyId") || p.size()!=5 || !validId(p.value("targetBodyId").toString()) || !validId(p.value("neutralPlaneId").toString()) || face.size()!=3 || face.value("bodyId")!=p.value("targetBodyId"))return "Draft requires one retained solid face and neutral construction plane";
+            for(const auto& key:{"producerFeatureId","bodyId","faceId"})if(!validId(face.value(key).toString()))return "Draft requires stable face identities";
+            if(!p.value("flipPullDirection").isBool() || !p.value("angleDeg").isDouble() || !std::isfinite(p.value("angleDeg").toDouble()) || std::abs(p.value("angleDeg").toDouble())<.001 || std::abs(p.value("angleDeg").toDouble())>=89.9)return "Draft requires explicit pull flip and a signed nonzero angle below 89.9 degrees";
             continue;
         }
         if(type=="faceOffset") {

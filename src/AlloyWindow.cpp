@@ -3068,6 +3068,12 @@ void AlloyWindow::registerCommands() {
         const auto hit=view_->pickSolidEdge(a["x"].toDouble(),a["y"].toDouble(),presentationBodies());
         return hit.isEmpty() ? failure("edge_unavailable","No retained solid edge is at that viewport point") : hit;
     });
+    auto draftAngle=parameter("number","Explicit signed degrees; positive removes material on the pull side.");draftAngle["minimum"]=-89.9;draftAngle["maximum"]=89.9;
+    QJsonObject draftSchema{{"targetBodyId",optional(parameter("string","Retained local rectangular prism body UUID."))},{"face",optional(parameter("object","Exact planar side producerFeatureId/bodyId/faceId."))},{"neutralPlaneId",optional(parameter("string","Retained construction plane coincident with a prism cap."))},{"angleDeg",optional(draftAngle)},{"flipPullDirection",optional(parameter("boolean","Explicit false uses plane normal; true reverses pull."))},{"name",optional(parameter("string","Draft feature name."))},{"featureId",optional(featureId)}};
+    add("solid.draft","Draft","One retained rectangular-prism side face around a neutral construction plane. Native controls pending.",draftSchema,[this](const auto& a){
+        QJsonObject candidate;try{candidate=CadDocument::draftCandidate(document_->authored(),a);}catch(const std::exception& e){return failure("invalid_draft",QString::fromUtf8(e.what()));}
+        const auto error=document_->commit(candidate,"Draft");if(!error.isEmpty()){auto response=failure("evaluation_failed",error);response["diagnostics"]=document_->lastEvaluationError();return response;}return document_->state();
+    });
     QJsonObject alignSchema{{"sourceFace",optional(parameter("object","Exact moving root-solid planar face: producerFeatureId/bodyId/faceId."))},{"targetFace",optional(parameter("object","Exact stationary root-solid planar face."))},{"flip",optional(parameter("boolean","Alloy default false: normals parallel; true rotates 180 degrees about target U."))},{"frameRule",optional(parameter("string","Alloy policy retained-face-uv-v1 maps retained origins, U and normal; no free roll."))},{"name",optional(parameter("string","Align feature name."))},{"featureId",optional(featureId)}};
     add("solid.align","Align","Retained root-solid face alignment. Alloy rule: map exact face origins/U/normals; Flip reverses normal about target U. Native controls pending.",alignSchema,[this](const auto& a){
         QJsonObject candidate;try{candidate=CadDocument::alignCandidate(document_->authored(),a);}catch(const std::exception& e){return failure("invalid_align",QString::fromUtf8(e.what()));}
@@ -5598,6 +5604,7 @@ void AlloyWindow::registerCommands() {
             if(feature["type"]=="chamfer") {auto inputs=p;inputs["featureId"]=feature["id"];inputs["name"]=feature["name"];return beginChamfer(inputs);}
             if(feature["type"]=="sphere") {auto inputs=p;inputs["featureId"]=feature["id"];inputs["name"]=feature["name"];return beginSphere(inputs);}
             if(feature["type"]=="thread")return beginThread({{"featureId",feature["id"]}});
+            if(feature["type"]=="draft")return beginDraft({{"featureId",feature["id"]}});
             if(feature["type"]=="faceOffset")return beginFaceOffset({{"featureId",feature["id"]}});
             if(feature["type"]=="shell")return beginShell({{"featureId",feature["id"]}});
             if(feature["type"]=="splitBody")return beginSplitBody({{"featureId",feature["id"]}});
@@ -6059,7 +6066,7 @@ void AlloyWindow::registerCommands() {
         return failure("stale_entity","Body instance does not exist");
     });
     auto sessionTarget = parameter("string", "Implemented session target; modeling targets follow alongside their features.");
-    sessionTarget["enum"] = QJsonArray{"solid.align","canvas.set","document.units", "commands.search","solid.box","solid.cylinder","solid.cone","solid.torus","solid.extrude","solid.combine","solid.move","solid.fillet","solid.chamfer","solid.sphere","solid.thread","solid.shell","solid.faceOffset","solid.loft","solid.revolve","solid.sweep","solid.rectangularPattern","solid.circularPattern","solid.mirror","inspect.section","joint.slider","joint.revolute","joint.cylindrical","sketch.create","construction.midplane","construction.pathPlane","construction.tangentPlane","solid.splitBody"};
+    sessionTarget["enum"] = QJsonArray{"solid.draft","solid.align","canvas.set","document.units", "commands.search","solid.box","solid.cylinder","solid.cone","solid.torus","solid.extrude","solid.combine","solid.move","solid.fillet","solid.chamfer","solid.sphere","solid.thread","solid.shell","solid.faceOffset","solid.loft","solid.revolve","solid.sweep","solid.rectangularPattern","solid.circularPattern","solid.mirror","inspect.section","joint.slider","joint.revolute","joint.cylindrical","sketch.create","construction.midplane","construction.pathPlane","construction.tangentPlane","solid.splitBody"};
     add("command.begin", "Begin command session", "Begin a real editable dialog with disposable inputs.",
         {{"command", sessionTarget}, {"inputs", parameter("object", "Initial input overrides.")}},
         [this](const auto& a) { return beginSession(a["command"].toString(), a["inputs"].toObject()); });
@@ -6259,8 +6266,8 @@ void AlloyWindow::registerCommands() {
             if(updates.contains("featureId") && updates["featureId"]!=session_["inputs"].toObject()["featureId"])
                 return failure("invalid_arguments","Mirror edit identity cannot change");
             const auto error=validateArguments(*findCommand(target),inputs);if(!error.isEmpty())return failure("invalid_arguments",error);
-        } else if(target=="solid.align") {
-            if(updates.contains("featureId") && updates.value("featureId")!=session_.value("inputs").toObject().value("featureId"))return failure("invalid_arguments","Align edit identity cannot change");
+        } else if(target=="solid.align" || target=="solid.draft") {
+            if(updates.contains("featureId") && updates.value("featureId")!=session_.value("inputs").toObject().value("featureId"))return failure("invalid_arguments","Retained feature edit identity cannot change");
             const auto error=validateArguments(*findCommand(target),inputs);if(!error.isEmpty())return failure("invalid_arguments",error);
         } else if(target=="solid.combine") {
             auto reject=[this](const QString& code,const QString& message,const QString& field=QString{}) {
@@ -6303,7 +6310,7 @@ void AlloyWindow::registerCommands() {
             else source["profileId"]=inputs.value("profileId");
             session_["source"]=source;
         }
-        if(target=="solid.align"){session_["previewed"]=false;session_["geometryEvaluated"]=false;session_.remove("documentDraft");session_.remove("geometry");view_->clearBodyStage();return session_;}
+        if(target=="solid.align" || target=="solid.draft"){session_["previewed"]=false;session_["geometryEvaluated"]=false;session_.remove("documentDraft");session_.remove("geometry");view_->clearBodyStage();return session_;}
         if(target=="solid.thread")return previewThread();
         session_["previewed"] = false;if((target!="solid.extrude" || !updatingExtrudePreview_)
             && (target!="solid.faceOffset" || !updatingFaceOffsetPreview_))view_->clearPreview();
@@ -6372,6 +6379,7 @@ void AlloyWindow::registerCommands() {
         if(session_.value("command")=="solid.circularPattern")return previewCircularPattern();
         if(session_.value("command")=="solid.mirror")return previewMirror();
         if(session_.value("command")=="solid.featureMirror")return previewFeatureMirror();
+        if(session_.value("command")=="solid.draft")return previewDraft();
         if(session_.value("command")=="solid.align")return previewAlign();
         if(session_.value("command")=="solid.move")return previewMove();
         if(session_.value("command")=="solid.combine")return previewCombine();
@@ -7196,7 +7204,7 @@ QJsonObject AlloyWindow::state() const {
         : target=="solid.align" ? false
         : target.startsWith("solid.") ? bool(primitivePanel_ && primitivePanel_->isVisible())
         : target.startsWith("sketch.") ? bool(sketchPanel_ && sketchPanel_->isVisible()) : bool(unitsDialog_ && unitsDialog_->isVisible());
-    const auto dialogInputs=session_.isEmpty() ? QJsonObject{} : (target=="solid.align" || target=="construction.tangentPlane" || target=="solid.splitBody" || target=="joint.slider" || target=="joint.revolute" || target=="joint.cylindrical" || target=="inspect.section" || target=="solid.hole" || target=="solid.sweep" || target=="solid.revolve" || target=="solid.sphere" || target=="solid.chamfer" || target=="solid.fillet" || target=="solid.rectangularPattern" || target=="solid.loft" || target=="surface.extrude" || target=="surface.trim" || target=="surface.boundaryFill" || target=="body.remove" || target=="solid.thicken" || target=="solid.thread" || target=="solid.shell" || target=="solid.faceOffset" || target=="solid.circularPattern" || target=="solid.mirror" || target=="solid.featureMirror" || target=="component.copyPlacement" || target=="body.paste" || target=="solid.move" || target=="solid.extrude" || target=="solid.combine") ? session_.value("inputs").toObject() : target.startsWith("solid.") ? primitiveWidgetInputs()
+    const auto dialogInputs=session_.isEmpty() ? QJsonObject{} : (target=="solid.draft" || target=="solid.align" || target=="construction.tangentPlane" || target=="solid.splitBody" || target=="joint.slider" || target=="joint.revolute" || target=="joint.cylindrical" || target=="inspect.section" || target=="solid.hole" || target=="solid.sweep" || target=="solid.revolve" || target=="solid.sphere" || target=="solid.chamfer" || target=="solid.fillet" || target=="solid.rectangularPattern" || target=="solid.loft" || target=="surface.extrude" || target=="surface.trim" || target=="surface.boundaryFill" || target=="body.remove" || target=="solid.thicken" || target=="solid.thread" || target=="solid.shell" || target=="solid.faceOffset" || target=="solid.circularPattern" || target=="solid.mirror" || target=="solid.featureMirror" || target=="component.copyPlacement" || target=="body.paste" || target=="solid.move" || target=="solid.extrude" || target=="solid.combine") ? session_.value("inputs").toObject() : target.startsWith("solid.") ? primitiveWidgetInputs()
         : target.startsWith("sketch.") ? session_.value("inputs").toObject()
         : target=="commands.search" ? QJsonObject{{"query",searchInput_ ? searchInput_->text() : QString{}}}
         : QJsonObject{{"units",unitsInput_ ? unitsInput_->currentText() : QString{}}};
@@ -7370,7 +7378,7 @@ void AlloyWindow::refresh() {
     const auto historicalSketchId=session_.value("command")=="sketch.edit"
         && session_.value("baseDocumentRevision").toInteger()==static_cast<qint64>(document_->revision())
         ? session_.value("inputs").toObject().value("sketchId").toString() : QString{};
-    if(session_.value("command")!="solid.align" && session_.value("command")!="body.paste" && session_.value("command")!="solid.thread" && session_.value("command")!="component.copyPlacement" && session_.value("command")!="solid.splitBody" && session_.value("command")!="solid.sweep" && session_.value("command")!="solid.revolve" && session_.value("command")!="solid.sphere" && session_.value("command")!="solid.chamfer" && session_.value("command")!="solid.fillet" && session_.value("command")!="solid.rectangularPattern" && session_.value("command")!="solid.loft" && session_.value("command")!="solid.shell" && session_.value("command")!="solid.faceOffset" && session_.value("command")!="solid.circularPattern" && session_.value("command")!="solid.mirror" && session_.value("command")!="solid.move" && session_.value("command")!="solid.combine" && !(session_.value("command")=="solid.extrude" && !session_.value("inputs").toObject().value("featureId").toString().isEmpty()) && session_.value("command")!="surface.boundaryFill" && session_.value("command")!="surface.trim" && historicalSketchId.isEmpty())view_->clearBodyStage();
+    if(session_.value("command")!="solid.draft" && session_.value("command")!="solid.align" && session_.value("command")!="body.paste" && session_.value("command")!="solid.thread" && session_.value("command")!="component.copyPlacement" && session_.value("command")!="solid.splitBody" && session_.value("command")!="solid.sweep" && session_.value("command")!="solid.revolve" && session_.value("command")!="solid.sphere" && session_.value("command")!="solid.chamfer" && session_.value("command")!="solid.fillet" && session_.value("command")!="solid.rectangularPattern" && session_.value("command")!="solid.loft" && session_.value("command")!="solid.shell" && session_.value("command")!="solid.faceOffset" && session_.value("command")!="solid.circularPattern" && session_.value("command")!="solid.mirror" && session_.value("command")!="solid.move" && session_.value("command")!="solid.combine" && !(session_.value("command")=="solid.extrude" && !session_.value("inputs").toObject().value("featureId").toString().isEmpty()) && session_.value("command")!="surface.boundaryFill" && session_.value("command")!="surface.trim" && historicalSketchId.isEmpty())view_->clearBodyStage();
     if(displayedDocumentRevision_!=document_->revision()) {
         const QSignalBlocker block(tree_);
         // Keep Browser rows keyed by their stable IDs. Removing all children on
@@ -9034,6 +9042,7 @@ QJsonObject AlloyWindow::beginSession(const QString& command, const QJsonObject&
     if(command=="solid.circularPattern")return beginCircularPattern(inputs);
     if(command=="solid.mirror")return beginMirror(inputs);
     if(command=="solid.featureMirror")return beginFeatureMirror(inputs);
+    if(command=="solid.draft")return beginDraft(inputs);
     if(command=="solid.align")return beginAlign(inputs);
     if(command=="solid.move")return beginMove(inputs);
     if(command=="solid.combine")return beginCombine(inputs);
@@ -9398,6 +9407,10 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     if (session_.isEmpty() || session_.value("id").toString() != id) return failure("invalid_session", "Session is no longer active");
     if(commit && session_.value("invalidEndOffset").toBool())return failure("invalid_arguments","Resolve the end offset before committing");
     if(commit && session_.contains("invalidNamedInput"))return failure("unknown_parameter","Resolve the unavailable user length name before committing");
+    if(session_.value("command")=="solid.draft"){
+        if(commit){const auto preview=previewDraft();if(preview.value("ok").isBool() && !preview.value("ok").toBool())return preview;const auto error=document_->commit(session_.value("documentDraft").toObject(),"Draft");if(!error.isEmpty())return failure("evaluation_failed",error);}
+        session_={};view_->clearPreview();view_->clearBodyStage();return {{"sessionId",id},{"status",commit ? "committed" : "cancelled"}};
+    }
     if(session_.value("command")=="solid.align"){
         if(commit){const auto preview=previewAlign();if(preview.value("ok").isBool() && !preview.value("ok").toBool())return preview;const auto error=document_->commit(session_.value("documentDraft").toObject(),"Align body");if(!error.isEmpty())return failure("evaluation_failed",error);}
         session_={};view_->clearPreview();view_->clearBodyStage();return {{"sessionId",id},{"status",commit ? "committed" : "cancelled"}};

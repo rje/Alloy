@@ -532,6 +532,8 @@ private:
     QDockWidget* featureMirrorDock_ = nullptr;
     QShortcut* mirrorEscape_ = nullptr;
     QJsonObject beginMove(const QJsonObject& inputs);
+    QJsonObject beginDraft(const QJsonObject& inputs);
+    QJsonObject previewDraft();
     QJsonObject beginAlign(const QJsonObject& inputs);
     QJsonObject previewAlign();
     QJsonObject moveCandidate(const QJsonObject& inputs) const;
