@@ -82,7 +82,7 @@ proves the requested local source edit, not a new general point-drag gesture.
 
 Evidence root: `../Alloy-reference-records/validation/skt181-2026-10-20/`.
 Build uses existing `build-preview-release`, Release/private Qt 6.11.2,
-OCCT 7.9.3, Apple Clang and `-j4`. No new build tree, push or CI.
+OCCT 7.9.3, Apple Clang and `-j4`. No new build tree or CI.
 
 - `sketch_scale_test` and five existing core targets (Rotate, Rotate source-size,
   Copy, atomic Move, retained Move) pass: 6/6, 2.69 s. Scale covers exact vertices,
@@ -150,7 +150,15 @@ ALLOY_SCALE_EVIDENCE=/absolute/evidence/native ./build-preview-release/sketch_sc
 python3 tests/sketch_scale_api.py --app build-preview-release/alloy.app/Contents/MacOS/alloy --native-evidence /absolute/evidence/native --output /absolute/evidence/api
 ```
 
-Independent compatibility review is requested from root before integration.
+Independent Sol read-only review accepted `3569a46` after lifecycle correction
+`0c7a457`. The reviewer checked source/cache ownership, dimension/relation
+refusals, native hit delivery, history and mesh evidence, and independently
+reread both STL volumes. Its first pass found a competing Pattern interaction
+that could leave a stale Scale preview. The correction guards Pattern entry and
+requires a fresh successful preview before native OK/Enter; the reviewer
+accepted the focused 3/3 native and 188-call API lifecycle receipts. The review
+did not rerun the app. Exact reference visuals and physical/platform input
+remain unqualified.
 Private validation editors are closed and user PID 72618 is preserved.
 
 

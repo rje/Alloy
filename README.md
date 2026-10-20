@@ -28,6 +28,10 @@ the bounded native/API, history and printable solid evidence. [Source-size edits
 now compose an existing internal driving dimension with that retained Rotate,
 one source frame and same-ID output; native input, history, analytic solids and
 STL readback pass independent review. Broader 3D axes remain open.
+The [active-sketch Scale slice](docs/validation/sketch-scale.md) now accepts one
+constrained four-Line XY profile about a separate authored Point, with numeric
+preview, retained factor edit and intentional source-point edit. Native/API,
+history/reopen and two watertight printable STLs pass independent review.
 
 [Retained circular sketch-circle Pattern](docs/validation/sketch-circular-pattern.md)
 now supports Full and Angle around an authored center Point through shared native

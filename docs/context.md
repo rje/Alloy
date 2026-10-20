@@ -1,3 +1,16 @@
+## 2026-10-20 SKT-181 active-sketch Scale acceptance
+
+[Bounded receipt](validation/sketch-scale.md) accepts uniform factor Scale for
+one constrained four-Line XY profile about a separate authored Point. Native
+actual-hit controls pass 3/3, real-app API passes 188 calls, source/cache and
+same-owner edits keep identities/history stable, and independently read STLs
+are watertight at 3,762 and 3,510 mm³. Independent Sol read-only review found
+and verified the Pattern-input/Scale-accept lifecycle correction in `0c7a457`
+after initial candidate `3569a46`. SKT-181/#704 is closed/Done. SKT-189/#712
+is the sole In Progress transform integration item for Copy alongside retained
+Rotate; SKT-186/#709 remains research Todo for sketch Create Copy history.
+No CI/release; private editors closed, user PID72618 preserved.
+
 ## 2026-10-20 SKT-188 retained Rotate source-size acceptance
 
 [Bounded receipt](validation/sketch-rotate-source-size.md) accepts numeric edits
@@ -8,7 +21,7 @@ change in one transaction. Native actual-hit dimension input passes 3/3,
 98-call real-app API and exact history/reopen pass, and independently read
 watertight STLs agree with 2,003.0545 and 2,026.4775 mm³ analytic volumes.
 Independent Astra read-only review accepted `294ec4f`. SKT-188/#711 is
-closed/Done; Scale SKT-181/#704 is the sole In Progress transform item.
+closed/Done; Scale is accepted above.
 Unrelated Copy/Create Copy alongside an existing Rotate owner refuses and is
 preserved in Todo SKT-189/#712. The canonical backlog has 709 issues. No CI or
 release; private editors closed and user PID72618 preserved.

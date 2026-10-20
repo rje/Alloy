@@ -21,10 +21,12 @@ authored Move and SKT-184/#707 owns retained editable Move. [Copy/Paste](../vali
 accepts SKT-179/#702. The [general Move/Copy Create Copy route](../validation/sketch-create-copy.md)
 accepts SKT-185/#708; its unresolved sketch-specific retained-history research
 is SKT-186/#709. [Retained planar Rotate](../validation/sketch-rotate.md)
-accepts SKT-180/#703; Scale remains Todo SKT-181/#704.
+accepts SKT-180/#703; [bounded active-sketch Scale](../validation/sketch-scale.md)
+accepts SKT-181/#704.
 [Normal 3D construction Line](../validation/sketch-normal-axis.md) accepts
 SKT-187/#710 as the Rotate prerequisite; [source-size composition](../validation/sketch-rotate-source-size.md)
-accepts SKT-188/#711. Scale SKT-181/#704 is the sole active transform task.
+accepts SKT-188/#711. Copy/Rotate coexistence SKT-189/#712 is the sole active
+transform integration task.
 SKT-189/#712 preserves the Copy/Create Copy refusal with an unrelated retained
 Rotate owner found during source-size validation; it is Todo and separate from
 SKT-188/#711.
