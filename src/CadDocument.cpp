@@ -273,11 +273,16 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
                     return {{"featureId",feature["id"]},{"featureType","boundaryFill"},{"code","boundary_fill_cell_unavailable"},{"message","Cell contributors must belong to the selected earlier tools"}};
             }
         }
-        if(feature["type"]=="surfaceExtrude" || feature["type"]=="surfaceRevolve") {
+        if(feature["type"]=="surfaceExtrude" || feature["type"]=="surfaceRevolve" || feature["type"]=="surfaceSweep") {
             const auto sketch=feature["parameters"].toObject()["sketchId"].toString();
             if(!positions.contains(sketch) || positions[sketch]>=i || features[positions[sketch]].toObject()["type"]!="sketch")
                 return {{"featureId",feature["id"]},{"featureType",feature["type"]},
                     {"code","surface_source_unavailable"},{"message","Surface source sketch must precede the feature"}};
+        }
+        if(feature["type"]=="surfaceSweep") {
+            const auto sketch=feature["parameters"].toObject()["pathSketchId"].toString();
+            if(!positions.contains(sketch) || positions[sketch]>=i || features[positions[sketch]].toObject()["type"]!="sketch")
+                return {{"featureId",feature["id"]},{"featureType",feature["type"]},{"code","surface_source_unavailable"},{"message","Surface Sweep path sketch must precede the feature"}};
         }
         if(feature["type"]=="surfaceTrim") {
             const auto p=feature["parameters"].toObject();const auto sketch=p["toolSketchId"].toString();
@@ -1938,6 +1943,24 @@ QJsonObject CadDocument::surfaceRevolveCandidate(const QJsonObject& authored,con
     const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
 }
 
+QJsonObject CadDocument::surfaceSweepCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
+    const QSet<QString> allowed{"sketchId","entityId","pathSketchId","pathEntityId","pathStartPointId","featureId","newFeatureId","newBodyId","ownerId","name"};
+    for(auto i=arguments.begin();i!=arguments.end();++i)if(!allowed.contains(i.key()))throw std::invalid_argument("Unknown Surface Sweep argument");
+    if(arguments.contains("featureId") && (arguments.contains("newFeatureId") || arguments.contains("newBodyId") || arguments.contains("ownerId")))
+        throw std::invalid_argument("Surface Sweep edit retains feature, body and owner identities");
+    auto candidate=authored;auto rows=candidate["features"].toArray();QJsonObject feature;int index=-1;
+    if(arguments.contains("featureId")){
+        for(int i=0;i<rows.size();++i)if(rows[i].toObject()["id"]==arguments["featureId"]){feature=rows[i].toObject();index=i;break;}
+        if(index<0 || feature["type"]!="surfaceSweep")throw std::invalid_argument("Surface Sweep feature unavailable");
+    }else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"bodyId",arguments.value("newBodyId").toString(newId())},
+        {"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","surfaceSweep"},{"name","Sweep"},{"visible",true}};
+    auto params=feature["parameters"].toObject();if(params.isEmpty())params={{"extent","full"},{"orientation","perpendicular"},{"operation","newBody"},{"isSolid",false}};
+    for(const auto& key:{"sketchId","entityId","pathSketchId","pathEntityId","pathStartPointId"})if(arguments.contains(key))params[key]=arguments[key];
+    feature["parameters"]=params;if(arguments.contains("name"))feature["name"]=arguments["name"];
+    if(index<0)rows.append(feature);else rows[index]=feature;candidate["features"]=rows;
+    const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
+}
+
 QJsonObject CadDocument::surfaceExtrudeCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
     const QSet<QString> allowed{"sketchId","entityIds","resultMode","profiles","sideOneMm","sideTwoMm","featureId",
         "newFeatureId","newBodyId","ownerId","name"};
@@ -2877,6 +2900,14 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
                 const auto ref=value.toObject();const auto key=ref["bodyId"].toString()+"/"+ref["producerFeatureId"].toString()+"/"+ref["faceId"].toString();
                 if(!value.isObject() || ref.size()!=3 || !validId(ref["bodyId"].toString()) || !validId(ref["producerFeatureId"].toString()) || !validId(ref["faceId"].toString()) || faces.contains(key))return "Boundary Fill cell needs distinct retained body/producer/face UUID references";faces.insert(key);
             }
+            ids.insert(feature["bodyId"].toString());continue;
+        }
+        if(type=="surfaceSweep") {
+            if(!validId(feature["bodyId"].toString()) || ids.contains(feature["bodyId"].toString()) || p.size()!=9
+                || !validId(p["sketchId"].toString()) || !validId(p["entityId"].toString())
+                || !validId(p["pathSketchId"].toString()) || !validId(p["pathEntityId"].toString()) || !validId(p["pathStartPointId"].toString())
+                || p["entityId"]==p["pathEntityId"] || p["extent"]!="full" || p["orientation"]!="perpendicular" || p["operation"]!="newBody"
+                || !p["isSolid"].isBool() || p["isSolid"].toBool())return "Surface Sweep requires retained Line section, distinct Line/Arc path and endpoint, full Perpendicular non-solid New Body";
             ids.insert(feature["bodyId"].toString());continue;
         }
         if(type=="surfaceRevolve") {
