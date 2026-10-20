@@ -1,4 +1,4 @@
-# Move/Copy Create Copy candidate
+# Move/Copy Create Copy
 
 SKT-185/#708, 2026-10-20. This alternate active-sketch route uses the accepted
 independent Copy geometry authority from SKT-179/#702. It creates ordinary
@@ -128,5 +128,11 @@ sketch Timeline owner/editing, source association and visual parity. Wider
 planes/curves/groups, direct translation manipulators, direction-frame choices,
 cross-sketch copying and physical/packaged-platform input remain outside this
 bounded route. Retained sketch copy history is #709. No CI, push or release.
-Private fixture editors close after evidence; user PID72618 is preserved.
-Independent review is pending.
+Private fixture editors closed after evidence; user PID72618 is preserved.
+
+Independent Sol review accepted `ff93014` after checking the shared geometry
+authority, mode/clipboard/terminal paths and actual-hit native evidence. It
+independently re-read both saved binary STLs and inspected preview/solid
+captures. The review was read-only and did not claim a fresh build or app run.
+The bounded alternate command route is accepted; sketch-specific retained
+history remains Todo #709.

@@ -1,6 +1,22 @@
+## 2026-10-20 SKT-185 Create Copy acceptance
+
+[Bounded receipt](validation/sketch-create-copy.md) accepts the general Solid
+Modify > Move/Copy > Sketch Objects > Create Copy route in an active sketch.
+It shares the independent Copy geometry authority, preserves the user's
+clipboard and keeps Create Copy/Retain Move mutually exclusive. Native menu,
+four actual viewport picks, mode transitions, preview/Cancel/OK, history/reopen
+and real-app API pass. Independent binary STL readback yields two watertight
+solids totaling 3,840 mm³ initially and 4,224 mm³ after independent edits.
+Independent Sol review accepted `ff93014`; external evidence is
+`../Alloy-reference-records/validation/skt185-2026-10-20/`. SKT-185/#708 is
+closed/Done. Sketch-specific retained-history semantics remain unknown under
+SKT-186/#709; Rotate/Scale #703–704 remain Todo. Physical input, matched
+styling and packaged Windows/Linux runtime remain unqualified. No CI/release;
+private editors closed and user PID72618 preserved.
+
 ## 2026-10-20 SKT-185 Create Copy evidence boundary
 
-SKT-185/#708 is the sole In Progress issue for a second active-sketch Move/Copy
+SKT-185/#708 was the issue for a second active-sketch Move/Copy
 Create Copy route over the accepted independent Copy geometry authority. Public
 research in `../Alloy-reference-records/knowledge/specs/skt185-create-copy-2026-10-20.md`
 confirms Sketch Objects and Create Copy/Translate, but does not establish
@@ -8,8 +24,8 @@ sketch-specific retained Timeline/constraint/source semantics. Independent Astra
 architecture review recommends a command-local source capture and stable preview
 IDs, mutually exclusive with Retain Move; no new retained Copy owner without
 evidence. The unresolved retained-history question is linked Todo SKT-186/#709.
-The canonical backlog now has 706 issues. #708 implementation/verification is
-pending; no parity is claimed for the unknown history behavior.
+The canonical backlog now has 706 issues. The bounded route is accepted above;
+no parity is claimed for the unknown history behavior.
 
 ## 2026-10-20 SKT-179 sketch Copy/Paste acceptance
 

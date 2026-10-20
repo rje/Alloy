@@ -18,8 +18,8 @@ rectangular axes are accepted under SKT-183/#706 after public tutorial evidence.
 Both pattern modes are required for proposed-v1 sketch patterns, with the public
 contract and engineering note outside the repository. SKT-098/#503 owns atomic
 authored Move and SKT-184/#707 owns retained editable Move. [Copy/Paste](../validation/sketch-copy.md)
-accepts SKT-179/#702. The general Move/Copy Create Copy route is a separate
-Todo, SKT-185/#708; its unresolved sketch-specific retained-history research
+accepts SKT-179/#702. The [general Move/Copy Create Copy route](../validation/sketch-create-copy.md)
+accepts SKT-185/#708; its unresolved sketch-specific retained-history research
 is SKT-186/#709. Rotate and Scale remain Todo SKT-180–181/#703–704.
 The [atomic Move receipt](../validation/sketch-move.md) accepts SKT-098/#503,
 and [Retained Edit Move](../validation/sketch-retained-move.md) accepts SKT-184/#707.

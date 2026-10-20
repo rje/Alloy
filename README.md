@@ -11,7 +11,11 @@ STLs pass independent architecture review. [Sketch Copy/Paste](docs/validation/s
 now clones a selected four-Line profile with separate IDs and supported internal
 constraints, preserving independent source and copy edits. Native placement,
 history/reopen and two checked printable solids pass independent review.
-The general Create Copy route, Rotate and Scale remain Todo.
+The [general Move/Copy Create Copy route](docs/validation/sketch-create-copy.md)
+now uses the same independent Copy geometry with a separate command-local
+preview and untouched clipboard. Native input, mode switching, history and
+two checked solids pass independent review. Rotate and Scale remain Todo;
+sketch-specific Create Copy Timeline semantics are a research Todo.
 
 [Retained circular sketch-circle Pattern](docs/validation/sketch-circular-pattern.md)
 now supports Full and Angle around an authored center Point through shared native
