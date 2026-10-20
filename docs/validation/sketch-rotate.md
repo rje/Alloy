@@ -151,3 +151,9 @@ This accepts only the recorded normal-axis planar scope. Arbitrary 3D axes,
 source-size composition (#711), general 3D Sketch, angle grips and exact
 reference history/visual parity are not claimed. Private fixture editors are
 closed and user PID 72618 is preserved.
+
+Independent Astra read-only review accepted `34f36c6` for this bounded scope.
+It checked source/cache authority, same-owner replacement, axis identity and
+refusals, post-rotation relation validation, native/API lifecycle and the saved
+geometry/STL receipts. The reviewer did not rerun the application. Source-size
+composition remains explicitly owned by SKT-188/#711.

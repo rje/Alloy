@@ -1,3 +1,15 @@
+## 2026-10-20 SKT-180 retained Rotate acceptance
+
+[Bounded receipt](validation/sketch-rotate.md) accepts one closed four-Line XY
+profile rotated around its authored +Z normal construction Line, with signed
+angle and eligible axis edits on one retained owner. Native actual-hit input,
+143-call real-app API, exact source/derived vertices, history/reopen and
+independent watertight 1,952 mm³ STL readback pass. Independent Astra read-only
+review accepted `34f36c6`; its review did not rerun the app. SKT-180/#703 is
+closed/Done. SKT-188/#711 is the sole In Progress item and owns later
+source-size composition; Scale remains SKT-181/#704. General 3D axes, physical input and Windows/Linux runtime remain
+unqualified. No CI/release; private editors closed, user PID72618 preserved.
+
 ## 2026-10-20 SKT-187 normal-axis acceptance
 
 [Bounded receipt](validation/sketch-normal-axis.md) accepts one authored +Z
@@ -8,8 +20,8 @@ profiles and downstream Extrude exclude it; an asymmetric 244 mm² profile
 exports unchanged as a watertight 1,952 mm³ STL before/after axis edits.
 Independent Sol review accepted `e6a8e6c`; external evidence is
 `../Alloy-reference-records/validation/skt187-2026-10-20/`. SKT-187/#710 is
-closed/Done. SKT-180/#703 is the sole In Progress board item for retained planar Rotate; source
-size composition remains SKT-188/#711. General 3D Sketch and physical/platform
+closed/Done. Retained planar Rotate is accepted above; source size composition
+remains SKT-188/#711. General 3D Sketch and physical/platform
 input remain unqualified. No CI/release; private editors closed, user PID72618
 preserved.
 

@@ -20,7 +20,8 @@ contract and engineering note outside the repository. SKT-098/#503 owns atomic
 authored Move and SKT-184/#707 owns retained editable Move. [Copy/Paste](../validation/sketch-copy.md)
 accepts SKT-179/#702. The [general Move/Copy Create Copy route](../validation/sketch-create-copy.md)
 accepts SKT-185/#708; its unresolved sketch-specific retained-history research
-is SKT-186/#709. Rotate and Scale remain Todo SKT-180–181/#703–704.
+is SKT-186/#709. [Retained planar Rotate](../validation/sketch-rotate.md)
+accepts SKT-180/#703; Scale remains Todo SKT-181/#704.
 [Normal 3D construction Line](../validation/sketch-normal-axis.md) accepts
 SKT-187/#710 as the Rotate prerequisite; SKT-188/#711 preserves later
 source-size composition.

@@ -14,14 +14,18 @@ history/reopen and two checked printable solids pass independent review.
 The [general Move/Copy Create Copy route](docs/validation/sketch-create-copy.md)
 now uses the same independent Copy geometry with a separate command-local
 preview and untouched clipboard. Native input, mode switching, history and
-two checked solids pass independent review. Rotate and Scale remain Todo;
+two checked solids pass independent review. Scale remains Todo;
 sketch-specific Create Copy Timeline semantics are a research Todo.
 
 [Normal 3D sketch construction Line](docs/validation/sketch-normal-axis.md)
 now provides the researched axis prerequisite for sketch Rotate on an XY
 plane. It is authored, selectable and editable with stable IDs while remaining
 outside planar profiles and Extrude; native input and unchanged printable STL
-pass independent review. Rotate remains an open command task.
+pass independent review. [Retained planar Rotate](docs/validation/sketch-rotate.md)
+now accepts a selected closed four-Line XY profile around that authored +Z
+axis, with signed angle and eligible axis edits. Independent review accepted
+the bounded native/API, history and printable solid evidence; source-size
+composition remains SKT-188/#711 and broader 3D axes remain open.
 
 [Retained circular sketch-circle Pattern](docs/validation/sketch-circular-pattern.md)
 now supports Full and Angle around an authored center Point through shared native
