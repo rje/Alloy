@@ -11,6 +11,7 @@
 #include <QLabel>
 #include <QComboBox>
 #include <QDoubleSpinBox>
+#include <QLineEdit>
 #include <QCryptographicHash>
 #include <QTimer>
 #include <QJsonDocument>
@@ -70,6 +71,39 @@ private slots:
   const auto evidence=qEnvironmentVariable("ALLOY_MESH_PREVIEW_CAPTURE");if(!evidence.isEmpty())QVERIFY(w.captureImage().save(evidence));
   surface->setValue(.03);QCOMPARE(refinement->currentData().toString(),QString("Custom"));QCOMPARE(dialog->findChild<QLabel*>("mesh.export.triangleCount")->text(),QString("Triangle Count: —"));QVERIFY(!dialog->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Save)->isEnabled());
   QTest::mouseClick(dialog->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Cancel),Qt::LeftButton);QTRY_VERIFY(!dialog || !dialog->isVisible());QCOMPARE(call(w,"document.inspect"),before);
+ }
+ void batchSheetAndWorker(){
+  AlloyTheme::apply(*qApp);QTemporaryDir dir;QVERIFY(dir.isValid());AlloyWindow w;w.resize(1400,900);w.show();QVERIFY(QTest::qWaitForWindowExposed(&w));
+  for(int width:{20,30,40})call(w,"solid.box",{{"width",width},{"depth",10},{"height",15},{"units","mm"}});
+  const auto before=call(w,"document.inspect");const auto bodies=before.value("evaluation").toObject().value("bodies").toArray();QCOMPARE(bodies.size(),3);
+  const QJsonArray ids{bodies[0].toObject().value("bodyId"),bodies[1].toObject().value("bodyId")};
+  call(w,"document.exportMeshDialog",{{"bodyIds",ids}});QPointer<QDialog> dialog=w.findChild<QDialog*>("mesh.export.dialog");QVERIFY(dialog);
+  auto* structure=dialog->findChild<QComboBox*>("mesh.export.structure");QVERIFY(structure);QVERIFY(structure->isEnabled());
+  auto* save=dialog->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Save);
+  QVERIFY(save->isEnabled());QVERIFY(dialog->findChild<QPushButton*>("mesh.export.preview")->isHidden());QVERIFY(dialog->findChild<QLabel*>("mesh.export.triangleCount")->isHidden());
+  QVERIFY(dialog->findChild<QLabel*>("mesh.export.selectionCount")->text().startsWith("Selected bodies: 2"));
+  structure->setCurrentIndex(structure->findData("oneBodyPerFile"));
+  dialog->findChild<QLineEdit*>("mesh.export.directory")->setText(dir.filePath("chosen-batch"));
+  QVERIFY(dialog->findChild<QLabel*>("mesh.export.note")->text().contains("separate STL file"));
+  QVERIFY(dialog->findChild<QLabel*>("mesh.export.filenames")->text().contains("New folder only"));QTest::qWait(150);QVERIFY(save->isEnabled());
+  const auto evidence=qEnvironmentVariable("ALLOY_BATCH_MESH_CAPTURE");if(!evidence.isEmpty()){QVERIFY(dialog->grab().save(evidence+"-sheet.png"));QVERIFY(w.captureImage().save(evidence+"-viewport.png"));}
+  QTest::mouseClick(dialog->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Cancel),Qt::LeftButton);QTRY_VERIFY(!dialog || !dialog->isVisible());
+  QCOMPARE(call(w,"document.inspect"),before);
+  for(const auto& fmt:QStringList{"binary","ascii","3mf"}){
+   const auto path=dir.filePath("batch-"+fmt);QJsonObject args{{"path",path},{"bodyIds",ids},{"structure","oneBodyPerFile"},{"surfaceDeviationMm",.1},{"normalDeviationDeg",10}};
+   if(fmt!="3mf"){args["units"]="in";args["format"]=fmt;}
+   const auto response=w.execute(fmt=="3mf" ? "document.export3mf" : "document.exportStl",args);QCOMPARE(response.value("completion").toString(),QString("pending"));
+   const auto op=response.value("result").toObject();w.geometryEvaluationPoll_->stop();waitForApproval(w.geometryEvaluationRunning_);QVERIFY(!QFileInfo::exists(path));
+   w.pollMeshExport();drain(w);const auto result=status(w,op);QCOMPARE(result.value("completion").toString(),QString("completed"));
+   QCOMPARE(result.value("result").toObject().value("bodyCount").toInt(),2);QCOMPARE(QDir(path).entryList(QDir::Files).size(),2);QCOMPARE(call(w,"document.inspect"),before);
+   args["path"]=dir.filePath("cancel-"+fmt);
+   const auto cancelled=w.execute(fmt=="3mf" ? "document.export3mf" : "document.exportStl",args).value("result").toObject();w.geometryEvaluationPoll_->stop();waitForApproval(w.geometryEvaluationRunning_);
+   call(w,"command.cancel",{{"session",cancelled.value("id")}});drain(w);QVERIFY(!QFileInfo::exists(args.value("path").toString()));QCOMPARE(call(w,"document.inspect"),before);
+  }
+  const auto response=w.execute("document.exportStl",{{"path",dir.filePath("combined.stl")},{"bodyIds",ids},{"units","in"},{"format","ascii"},{"surfaceDeviationMm",.1},{"normalDeviationDeg",10}});
+  QCOMPARE(response.value("completion").toString(),QString("pending"));const auto op=response.value("result").toObject();w.geometryEvaluationPoll_->stop();waitForApproval(w.geometryEvaluationRunning_);w.pollMeshExport();drain(w);
+  QCOMPARE(status(w,op).value("result").toObject().value("triangles").toInt(),24);QVERIFY(bytes(dir.filePath("combined.stl")).startsWith("solid"));QCOMPARE(call(w,"document.inspect"),before);
+  call(w,"document.new",{{"discard",true}});w.close();
  }
  void browserContextMeshCancel(){
   AlloyTheme::apply(*qApp);AlloyWindow w;w.resize(1400,900);w.show();QVERIFY(QTest::qWaitForWindowExposed(&w));

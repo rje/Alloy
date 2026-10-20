@@ -24,6 +24,8 @@
 #include <QFormLayout>
 #include <QLabel>
 #include <QListWidget>
+#include <QLineEdit>
+#include <QDir>
 #include <QPushButton>
 #include <QSet>
 #include <QVBoxLayout>
@@ -90,6 +92,11 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
     format->setFocusPolicy(Qt::StrongFocus);
     format->addItem("STL (Binary)","binary");format->addItem("STL (ASCII)","ascii");
     format->addItem("3MF","3mf");format->addItem("OBJ","obj");form->addRow("Format",format);
+    auto* structure=new QComboBox;structure->setObjectName("mesh.export.structure");structure->setFocusPolicy(Qt::StrongFocus);
+    structure->addItem("One File","oneFile");structure->addItem("One Body Per File","oneBodyPerFile");form->addRow("Structure",structure);
+    auto* selectionSummary=new QLabel;selectionSummary->setObjectName("mesh.export.selectionCount");selectionSummary->setWordWrap(true);layout->addWidget(selectionSummary);
+    auto* directory=new QLineEdit(QDir::home().filePath("mesh-batch"));directory->setObjectName("mesh.export.directory");form->addRow("New Output Folder",directory);
+    auto* names=new QLabel;names->setObjectName("mesh.export.filenames");names->setWordWrap(true);layout->addWidget(names);
     auto* units=new QComboBox;units->setObjectName("mesh.export.units");
     units->setFocusPolicy(Qt::StrongFocus);
     units->addItem("Millimeters","mm");units->addItem("Inches","in");form->addRow("Unit Type",units);
@@ -106,9 +113,11 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
         units->setVisible(!threeMf);
         if(auto* label=form->labelForField(units))label->setVisible(!threeMf);
         note->setText(threeMf
-            ? "3MF uses millimeters. Preview supports one committed solid instance."
+            ? "3MF uses millimeters. Each selected body retains its placement."
             : format->currentData()=="obj" ? "One file · separate body groups · no materials.\nZ-up world coordinates; OBJ does not store units. Use matching import units."
-            : "Preview supports one committed solid. Alloy numeric presets are shown below.\nSTL files do not store units. Use matching import units.");
+            : structure->currentData()=="oneBodyPerFile"
+                ? "STL files do not store units. Use matching import units.\nEach selected body gets a separate STL file."
+                : "STL files do not store units. Use matching import units.\nOne File combines the selected bodies into one triangle file.");
     };
     connect(format,&QComboBox::currentIndexChanged,dialog,updateFormat);updateFormat();
     auto* previewButton=new QPushButton("Preview");previewButton->setObjectName("mesh.export.preview");layout->addWidget(previewButton);
@@ -117,7 +126,6 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
     auto* status=new QLabel;status->setObjectName("mesh.export.status");status->setWordWrap(true);layout->addWidget(status);
     auto* buttons=new QDialogButtonBox(QDialogButtonBox::Save|QDialogButtonBox::Cancel);layout->addWidget(buttons);
     connect(buttons,&QDialogButtonBox::rejected,dialog,&QDialog::reject);
-    const auto invalidate=[=,this]{clearMeshPreview();dialog->setProperty("meshPreviewId",QString{});dialog->setProperty("meshPreviewPhase",QString{});count->setText("Triangle Count: —");buttons->button(QDialogButtonBox::Save)->setEnabled(format->currentData()=="obj");};
     const auto settings=[=]{
         QJsonObject inputs{{"format",format->currentData().toString()},{"units",format->currentData()=="3mf" ? "mm" : units->currentData().toString()},
             {"preset",refinement->currentData().toString()},{"surfaceDeviationMm",surface->value()},{"normalDeviationDeg",normal->value()}};
@@ -128,6 +136,27 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
         else inputs["bodyId"]=source;
         return inputs;
     };
+    const auto updateScope=[=,this]{
+        const bool obj=format->currentData()=="obj";int size=0;QStringList bodyNames;std::vector<EvaluatedBody> chosen;
+        try{chosen=ExportScope::select(document_->authored(),presentationBodies(),settings()).bodies;size=int(chosen.size());for(const auto& body:chosen)bodyNames.append(body.name);}
+        catch(const GeometryKernel::EvaluationError& error){status->setText(error.diagnostics().value("message").toString());}
+        selectionSummary->setText(QString("Selected bodies: %1 · %2").arg(size).arg(bodyNames.join(", ")));
+        structure->setEnabled(!obj && size>1);
+        if((obj || size<=1) && structure->currentIndex()!=0){const QSignalBlocker blocker(structure);structure->setCurrentIndex(0);}
+        updateFormat();
+        const bool perBody=!obj && structure->currentData()=="oneBodyPerFile";
+        const bool preview=!obj && size==1 && !perBody;
+        dialog->setProperty("requiresMeshPreview",preview);
+        previewButton->setVisible(preview);count->setVisible(preview);
+        directory->setVisible(perBody);if(auto* label=form->labelForField(directory))label->setVisible(perBody);
+        names->setVisible(perBody);
+        if(perBody){QStringList files;try{for(const auto& value:MeshExport::batchPlan(chosen,directory->text(),format->currentData().toString()))files.append(value.toObject().value("filename").toString());}catch(const GeometryKernel::EvaluationError&){}
+            names->setText("New folder only; its parent must exist. Existing files, folders and symlinks are refused.\n"+files.join("\n"));}
+        buttons->button(QDialogButtonBox::Save)->setEnabled(size>0 && !preview);
+    };
+    const auto invalidate=[=,this]{clearMeshPreview();dialog->setProperty("meshPreviewId",QString{});dialog->setProperty("meshPreviewPhase",QString{});count->setText("Triangle Count: —");updateScope();};
+    connect(structure,&QComboBox::currentIndexChanged,dialog,invalidate);
+    connect(directory,&QLineEdit::textChanged,dialog,updateScope);
     connect(refinement,&QComboBox::currentIndexChanged,dialog,[=]{
         const auto preset=refinement->currentData().toString();
         if(preset!="Custom"){const QSignalBlocker bs(surface),bn(normal);surface->setValue(preset=="Low" ? .5 : preset=="High" ? .02 : .1);normal->setValue(preset=="Low" ? 25 : preset=="High" ? 5 : 10);}
@@ -137,7 +166,7 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
     connect(surface,&QDoubleSpinBox::valueChanged,dialog,custom);connect(normal,&QDoubleSpinBox::valueChanged,dialog,custom);
     connect(bodies,&QComboBox::currentIndexChanged,dialog,invalidate);connect(selected,&QListWidget::itemChanged,dialog,invalidate);
     connect(units,&QComboBox::currentIndexChanged,dialog,invalidate);
-    connect(format,&QComboBox::currentIndexChanged,dialog,[=]{invalidate();const bool obj=format->currentData()=="obj";previewButton->setVisible(!obj);count->setVisible(!obj);refinement->setVisible(!obj);if(auto* label=form->labelForField(refinement))label->setVisible(!obj);policy->setVisible(!obj);});
+    connect(format,&QComboBox::currentIndexChanged,dialog,[=]{invalidate();const bool obj=format->currentData()=="obj";refinement->setVisible(!obj);if(auto* label=form->labelForField(refinement))label->setVisible(!obj);policy->setVisible(!obj);});
     connect(previewButton,&QPushButton::clicked,dialog,[=,this]{
         invalidate();const auto inputs=settings();
         // Resolve the sheet's legacy selectors to one exact instance at the shared boundary.
@@ -149,10 +178,11 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
         }catch(const GeometryKernel::EvaluationError& error){status->setText(error.diagnostics().value("message").toString());return;}
         const auto response=execute("document.previewMesh",exact);
         if(!response.value("ok").toBool()){status->setText(response.value("error").toObject().value("message").toString());return;}
-        dialog->setProperty("meshPreviewId",response.value("result").toObject().value("previewId").toString());status->setText("Preparing private export mesh…");
+        dialog->setProperty("meshPreviewId",response.value("result").toObject().value("previewId").toString());status->setText("Preparing preview…");
     });
     auto* previewUi=new QTimer(dialog);previewUi->setInterval(50);
     connect(previewUi,&QTimer::timeout,dialog,[=,this]{
+        if(!dialog->property("requiresMeshPreview").toBool() || !dialog->property("exportOperation").toString().isEmpty())return;
         const auto id=dialog->property("meshPreviewId").toString();if(id.isEmpty())return;
         const auto state=meshPreviewState();const auto phase=state.value("evaluationStatus").toString();
         const bool ready=phase=="completed" && state.value("previewId")==id;
@@ -160,7 +190,7 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
         count->setText(ready ? "Triangle Count: "+QString::number(state.value("triangles").toInteger()) : "Triangle Count: —");
         if(dialog->property("meshPreviewPhase").toString()!=phase){
             dialog->setProperty("meshPreviewPhase",phase);
-            if(ready)status->setText("Preview ready. Save publishes these exact prepared bytes.");
+            if(ready)status->setText("Preview ready.");
             else if(phase=="failed")status->setText(state.value("error").toObject().value("message").toString());
             else if(phase!="pending")status->setText("Preview invalidated. Preview the current solid and settings again.");
         }
@@ -185,23 +215,26 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
         const bool obj=format->currentData()=="obj";
         const QString suffix=threeMf ? ".3mf" : obj ? ".obj" : ".stl";
         const auto previewId=dialog->property("meshPreviewId").toString();
-        if(!obj && (meshPreviewState().value("evaluationStatus")!="completed" || !meshPreviewWork_ || meshPreviewWork_->id!=previewId)){status->setText("Preview the current solid and settings before Save.");return;}
+        const bool requiresPreview=dialog->property("requiresMeshPreview").toBool();
+        const bool perBody=structure->currentData()=="oneBodyPerFile";
+        if(requiresPreview && (meshPreviewState().value("evaluationStatus")!="completed" || !meshPreviewWork_ || meshPreviewWork_->id!=previewId)){status->setText("Preview the current solid and settings before Save.");return;}
         const auto chosenSettings=settings();
 
-        auto path=QFileDialog::getSaveFileName(dialog,"Save As Mesh",bodies->currentText()+suffix,
+        auto path=perBody ? directory->text() : QFileDialog::getSaveFileName(dialog,"Save As Mesh",bodies->currentText()+suffix,
             threeMf ? "3MF mesh (*.3mf)" : obj ? "OBJ mesh (*.obj)" : "STL mesh (*.stl)");
         if(path.isEmpty())return;
         if(document_->authored().value("documentId").toString()!=documentId || document_->revision()!=revision) {
             status->setText("The design changed. Close this window and restart Save As Mesh.");return;
         }
-        if(!path.endsWith(suffix,Qt::CaseInsensitive))path+=suffix;
-        if(!obj){
+        if(!perBody && !path.endsWith(suffix,Qt::CaseInsensitive))path+=suffix;
+        if(requiresPreview){
             if(settings()!=chosenSettings || !meshPreviewWork_ || meshPreviewWork_->id!=previewId || !meshPreviewCurrent(*meshPreviewWork_)){invalidate();status->setText("The design, selection or settings changed. Preview again before Save.");return;}
             const auto result=execute("document.saveMeshPreview",{{"previewId",previewId},{"path",QFileInfo(path).absoluteFilePath()}});
             if(!result.value("ok").toBool()){status->setText(result.value("error").toObject().value("message").toString());return;}
             dialog->accept();return;
         }
 
+        if(!obj)selection["structure"]=structure->currentData().toString();
         selection["path"]=QFileInfo(path).absoluteFilePath();
         if(!threeMf){selection["units"]=units->currentData().toString();if(!obj)selection["format"]=format->currentData().toString();}
         selection["surfaceDeviationMm"]=surface->value();selection["normalDeviationDeg"]=normal->value();
@@ -223,6 +256,8 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
 }
 
 QJsonObject AlloyWindow::beginMeshExport(const std::vector<EvaluatedBody>& bodies,const QJsonObject& inputs,const QString& label,const QString& format) {
+    const auto structure=inputs.value("structure").toString("oneFile");
+    if(structure!="oneFile" && structure!="oneBodyPerFile")return {{"ok",false},{"error",QJsonObject{{"code","invalid_structure"},{"message","Structure must be oneFile or oneBodyPerFile"}}}};
     auto task=std::make_shared<GeometryEvaluation>();task->command=format=="3mf" ? "document.export3mf" : format=="obj" ? "document.exportObj" : "document.exportStl";task->phase="export";
     task->document=document_;task->documentId=document_->authored().value("documentId").toString();
     task->revision=document_->revision();task->base=document_->authored();task->retainedSession=session_;
@@ -281,12 +316,17 @@ void AlloyWindow::evaluateMeshExport(GeometryEvaluation& task) {
                 if(approved)publication.start();
                 return approved;
             };
-            task.exportResult=threeMf
+            task.exportResult=task.inputs.value("structure")=="oneBodyPerFile"
+                ? MeshExport::writeBatch(task.exportBodies,task.exportTransforms,task.inputs.value("path").toString(),
+                    threeMf ? "3mf" : task.inputs.value("format").toString(),task.inputs.value("units").toString(),
+                    task.inputs.value("surfaceDeviationMm").toDouble(),task.inputs.value("normalDeviationDeg").toDouble(),approve,
+                    [&]{return gate->state()==MeshExport::PublicationGate::State::Denied;})
+                : threeMf
                 ? MeshExport::write3mf(task.exportBodies,task.exportTransforms,task.inputs.value("path").toString(),
                     task.inputs.value("surfaceDeviationMm").toDouble(),task.inputs.value("normalDeviationDeg").toDouble(),approve)
                 : obj ? MeshExport::writeObj(task.exportBodies,task.inputs.value("path").toString(),task.inputs.value("units").toString(),
                     task.inputs.value("surfaceDeviationMm").toDouble(),task.inputs.value("normalDeviationDeg").toDouble(),approve)
-                : MeshExport::writeStl(task.exportBodies,task.inputs.value("path").toString(),"mm",true,
+                : MeshExport::writeStl(task.exportBodies,task.inputs.value("path").toString(),task.inputs.value("units").toString(),task.inputs.value("format")=="binary",
                     task.inputs.value("surfaceDeviationMm").toDouble(),task.inputs.value("normalDeviationDeg").toDouble(),approve);
         }
     }catch(const GeometryKernel::EvaluationError& error){task.exportError=error.diagnostics();}
@@ -380,13 +420,13 @@ void AlloyWindow::refreshMeshExportDialog() {
     const QString formatLabel=meshExportOperation_.value("command")=="document.export3mf" ? "3MF" : meshExportOperation_.value("command")=="document.exportObj" ? "OBJ" : "STL";
     const bool pending=meshExportOperation_.value("evaluationStatus")=="pending";
     for(auto* widget:dialog->findChildren<QWidget*>())
-        if(qobject_cast<QComboBox*>(widget) || qobject_cast<QListWidget*>(widget) || qobject_cast<QDoubleSpinBox*>(widget))widget->setEnabled(!running);
+        if(qobject_cast<QComboBox*>(widget) || qobject_cast<QListWidget*>(widget) || qobject_cast<QDoubleSpinBox*>(widget) || qobject_cast<QLineEdit*>(widget))widget->setEnabled(!running);
     auto* buttons=dialog->findChild<QDialogButtonBox*>();buttons->button(QDialogButtonBox::Save)->setEnabled(!running);
     buttons->button(QDialogButtonBox::Cancel)->setEnabled(!running || (pending && meshExportOperation_.value("evaluationPhase")!="publishing"));
     auto* label=dialog->findChild<QLabel*>("mesh.export.status");
     if(running){label->setText(pending ? (meshExportOperation_.value("evaluationPhase")=="publishing" ? "Publishing "+formatLabel+"…" : "Preparing "+formatLabel+"… You can Cancel before publication.") : "Finishing cancelled export…");}
     else {
-        dialog->pendingCancel={};
+        dialog->pendingCancel={};dialog->setProperty("exportOperation",QString{});
         if(meshExportOperation_.value("evaluationStatus")=="completed")dialog->accept();
         else label->setText(meshExportOperation_.value("previewError").toObject().value("message").toString());
     }

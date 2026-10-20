@@ -45,6 +45,15 @@ public:
         std::condition_variable changed_;
         State state_=State::Preparing;
     };
+    // Per-body publication owns a NEW directory, never an existing file/folder.
+    // The ordered plan is shared by the sheet and worker; keys are exact instances.
+    static QJsonArray batchPlan(const std::vector<EvaluatedBody>& bodies,
+        const QString& directory,const QString& format);
+    static QJsonObject writeBatch(const std::vector<EvaluatedBody>& bodies,
+        const std::vector<gp_Trsf>& placements,const QString& directory,
+        const QString& format,const QString& units,double deviation,double angle,
+        const std::function<bool()>& approvePublication,
+        const std::function<bool()>& cancelled = {});
     // Inputs are committed world geometry; each supplied placement is removed
     // from mesh coordinates and emitted exactly once on its Core build item.
     static QJsonObject write3mf(const std::vector<EvaluatedBody>& bodies,

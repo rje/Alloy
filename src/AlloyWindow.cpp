@@ -2519,15 +2519,13 @@ void AlloyWindow::registerCommands() {
     add("document.exportStl","Export STL","Export selected committed solids preserving world placement; STL does not embed units.",
         {{"path",parameter("string","Absolute output STL path.")},{"occurrenceId",optional(parameter("string","Local component occurrence UUID; export its visible bodies, excluding root bodies."))},{"bodyId",optional(parameter("string","Stable evaluated solid body UUID."))},
          {"bodyIds",optional(parameter("array","Distinct evaluated solid body UUIDs."))},{"allVisible",optional(parameter("boolean","Export all active visible bodies."))},
-         {"units",units},{"format",meshFormat},{"surfaceDeviationMm",meshDeviation},{"normalDeviationDeg",meshAngle}},[this](const auto& a){
+         {"structure",optional(parameter("string","oneFile (default) or oneBodyPerFile; per-body path is a NEW output directory whose parent exists."))},{"units",units},{"format",meshFormat},{"surfaceDeviationMm",meshDeviation},{"normalDeviationDeg",meshAngle}},[this](const auto& a){
             if(!session_.isEmpty())return failure("active_command","Finish or Cancel the active command before exporting");
             if(!sliderPreviewAuthored_.isEmpty() || !jointGraphStage_.isEmpty() || transientSliderPosition_.has_value() || pendingReferenceEvaluation_)
                 return failure("staged_pose","Finish or revert staged motion before exporting the committed pose");
             try{const auto selected=ExportScope::select(document_->authored(),presentationBodies(),a);
-                if(selected.bodies.size()==1 && a.value("units")=="mm" && a.value("format")=="binary")
-                    return beginMeshExport(selected.bodies,a,selected.label);
-                auto result=MeshExport::writeStl(selected.bodies,a["path"].toString(),a["units"].toString(),a["format"]=="binary",a["surfaceDeviationMm"].toDouble(),a["normalDeviationDeg"].toDouble());
-                result["scopeLabel"]=selected.label;return result;}
+                return beginMeshExport(selected.bodies,a,selected.label);}
+
             catch(const GeometryKernel::EvaluationError& error){return QJsonObject{{"ok",false},{"error",error.diagnostics()}};}
 
         });
@@ -2535,7 +2533,7 @@ void AlloyWindow::registerCommands() {
         {{"path",parameter("string","Absolute output 3MF path.")},{"occurrenceId",optional(parameter("string","Local component occurrence UUID; export its visible bodies, excluding root bodies."))},
          {"bodyId",optional(parameter("string","Stable evaluated solid body UUID."))},{"bodyIds",optional(parameter("array","Distinct evaluated solid body UUIDs."))},
          {"allVisible",optional(parameter("boolean","Export all active visible bodies."))},
-         {"surfaceDeviationMm",meshDeviation},{"normalDeviationDeg",meshAngle}},[this](const auto& a){
+         {"structure",optional(parameter("string","oneFile (default) or oneBodyPerFile; per-body path is a NEW output directory whose parent exists."))},{"surfaceDeviationMm",meshDeviation},{"normalDeviationDeg",meshAngle}},[this](const auto& a){
             if(!session_.isEmpty())return failure("active_command","Finish or Cancel the active command before exporting");
             if(!sliderPreviewAuthored_.isEmpty() || !jointGraphStage_.isEmpty() || transientSliderPosition_.has_value() || pendingReferenceEvaluation_)
                 return failure("staged_pose","Finish or revert staged motion before exporting the committed pose");

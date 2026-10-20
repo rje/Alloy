@@ -29,6 +29,18 @@
 #include <limits>
 #include <lib3mf_implicit.hpp>
 #include <Standard_Failure.hxx>
+#ifdef Q_OS_MACOS
+#include <stdio.h>
+#elif defined(Q_OS_LINUX)
+#include <sys/syscall.h>
+#include <unistd.h>
+#include <fcntl.h>
+#elif defined(Q_OS_WIN)
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
 
 namespace {
 [[noreturn]] void reject(const QString& code,const QString& message) {
@@ -507,4 +519,82 @@ QJsonObject MeshExport::publish(const PreparedArtifact& artifact,const QString& 
     if(!output.open(QIODevice::WriteOnly) || output.write(artifact.bytes)!=artifact.bytes.size())reject("export_failed",output.errorString());
     if(!output.commit())reject("export_failed",output.errorString());
     auto result=artifact.metadata;result["path"]=destination.absoluteFilePath();result["preparedBytesPublished"]=true;result["publicationMs"]=publication.elapsed();return result;
+}
+
+namespace {
+QString portableStem(const QString& name) {
+    QString result;
+    for(const auto c:name) {
+        const ushort u=c.unicode();
+        if((u>='a' && u<='z') || (u>='A' && u<='Z') || (u>='0' && u<='9'))result+=c;
+        else if(!result.endsWith('_'))result+='_';
+        if(result.size()>=48)break;
+    }
+    while(result.endsWith('_'))result.chop(1);
+    return result.isEmpty() ? QString("body") : result;
+}
+bool destinationExists(const QString& path) {const QFileInfo info(path);return info.exists() || info.isSymLink();}
+bool publishNewDirectory(const QString& source,const QString& destination) {
+    // An exclusive native rename prevents a racing empty folder or symlink
+    // from being replaced after preflight or approval.
+#ifdef Q_OS_MACOS
+    return ::renamex_np(QFile::encodeName(source).constData(),QFile::encodeName(destination).constData(),RENAME_EXCL)==0;
+#elif defined(Q_OS_LINUX)
+    return ::syscall(SYS_renameat2,AT_FDCWD,QFile::encodeName(source).constData(),AT_FDCWD,QFile::encodeName(destination).constData(),1)==0;
+#elif defined(Q_OS_WIN)
+    return ::MoveFileW(reinterpret_cast<LPCWSTR>(source.utf16()),reinterpret_cast<LPCWSTR>(destination.utf16()));
+#else
+    return false; // No unsafe replacement fallback on an unqualified platform.
+#endif
+}
+}
+
+QJsonArray MeshExport::batchPlan(const std::vector<EvaluatedBody>& bodies,const QString& directory,const QString& format) {
+    if(format!="binary" && format!="ascii" && format!="3mf")reject("invalid_format","Batch mesh supports binary, ascii or 3mf");
+    if(bodies.empty())reject("solid_required","Select at least one committed solid");
+    std::vector<const EvaluatedBody*> sorted;QSet<QString> keys;
+    for(const auto& body:bodies){
+        const auto key=body.occurrenceId+":"+body.bodyId;
+        if(body.bodyId.isEmpty() || keys.contains(key))reject("invalid_body_selection","Select distinct exact body instances");
+        keys.insert(key);sorted.push_back(&body);
+    }
+    std::sort(sorted.begin(),sorted.end(),[](const auto* a,const auto* b){return a->occurrenceId+":"+a->bodyId < b->occurrenceId+":"+b->bodyId;});
+    const auto base=portableStem(QFileInfo(directory).fileName());QJsonArray plan;
+    for(size_t i=0;i<sorted.size();++i){const auto& body=*sorted[i];
+        const auto filename=QString("%1_%2_%3.%4").arg(base).arg(i+1,4,10,QChar('0')).arg(portableStem(body.name)).arg(format=="3mf" ? "3mf" : "stl");
+        plan.append(QJsonObject{{"instanceKey",body.occurrenceId+":"+body.bodyId},{"bodyId",body.bodyId},{"occurrenceId",body.occurrenceId},{"name",body.name},{"filename",filename},{"path",QDir(directory).filePath(filename)}});
+    }
+    return plan;
+}
+
+QJsonObject MeshExport::writeBatch(const std::vector<EvaluatedBody>& bodies,const std::vector<gp_Trsf>& placements,
+    const QString& directory,const QString& format,const QString& units,double deviation,double angle,
+    const std::function<bool()>& approvePublication,const std::function<bool()>& cancelled) {
+    const QFileInfo final(directory);
+    if(!final.isAbsolute() || final.fileName().isEmpty() || final.fileName()=="." || final.fileName()==".." || !final.dir().exists())
+        reject("invalid_path","Choose a new absolute output folder whose parent already exists");
+    if(destinationExists(directory))reject("destination_exists","Batch output folder already exists; choose a new folder: "+directory);
+    if(placements.size()!=bodies.size())reject("invalid_transform","Each batch body requires one placement");
+    auto plan=batchPlan(bodies,final.absoluteFilePath(),format);
+    QTemporaryDir staging(final.dir().filePath(".alloy-mesh-XXXXXX"));
+    if(!staging.isValid())reject("export_failed","Cannot create private batch staging folder");
+    const auto checkCancelled=[&]{if(cancelled && cancelled())reject("export_cancelled","Batch export cancelled; destination preserved");};
+    qint64 triangles=0,bytes=0;
+    for(int i=0;i<plan.size();++i){checkCancelled();auto row=plan[i].toObject();
+        size_t index=0;for(;index<bodies.size();++index)if(bodies[index].occurrenceId+":"+bodies[index].bodyId==row.value("instanceKey").toString())break;
+        const auto staged=staging.filePath(row.value("filename").toString());QJsonObject result;
+        try{
+            const auto keepStaged=[&]{return !(cancelled && cancelled());};
+            result=format=="3mf" ? write3mf({bodies[index]},{placements[index]},staged,deviation,angle,keepStaged)
+                : writeStl(bodies[index],staged,units,format=="binary",deviation,angle,keepStaged);
+        }catch(const GeometryKernel::EvaluationError& error){auto diagnostics=error.diagnostics();diagnostics["bodyId"]=row.value("bodyId");diagnostics["path"]=row.value("path");throw GeometryKernel::EvaluationError(diagnostics);}
+        triangles+=result.value("triangles").toInteger();bytes+=result.value("bytes").toInteger();
+        result["path"]=row.value("path");row["result"]=result;plan[i]=row;
+    }
+    checkCancelled();
+    if(destinationExists(directory))reject("destination_exists","Batch output folder already exists; destination preserved: "+directory);
+    if(approvePublication && !approvePublication())reject("export_cancelled","Batch publication cancelled; destination preserved");
+    if(!publishNewDirectory(staging.path(),final.absoluteFilePath()))reject("export_failed","Cannot publish new batch folder; destination preserved: "+directory);
+    staging.setAutoRemove(false);
+    return {{"path",final.absoluteFilePath()},{"structure","oneBodyPerFile"},{"format",format},{"bodyCount",int(bodies.size())},{"files",plan},{"triangles",triangles},{"bytes",bytes},{"authoredChanged",false}};
 }
