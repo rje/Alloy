@@ -1,5 +1,7 @@
 # Alloy
 
+[Per-body mesh destination](docs/validation/batch-destination.md) now has a native Browse control, a new-folder name field and a full computed path preview, with independent two-file export readback. Physical chooser input and sheet placement remain release gates.
+
 [Selected-body STL/Core 3MF export](docs/validation/batch-mesh-export.md) now writes an explicit body set as one file or a new atomic per-body directory. Independent multi-body files, names, placement and preservation checks pass; native Browse and cross-platform runtime remain release work.
 
 [Selected-solid mesh refinement](docs/validation/mesh-refinement.md) now previews the final STL/Core 3MF triangles with Low/Medium/High/Custom settings and publishes the prepared bytes on Save. Independent curved-part readback, cancellation/retry and Apple M4 GPU captures pass; multi-body structure and native sheet placement remain tracked separately.
