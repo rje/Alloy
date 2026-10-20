@@ -47,7 +47,7 @@ QJsonObject materialize(const QJsonObject& p,const QJsonArray& groups,bool refre
  result["points"]=points;if(!groups.isEmpty())result["moveGroups"]=updated;return result;}
 QJsonObject create(const QJsonObject& p,const QJsonArray& entityIds,double du,double dv,const QString& groupId){auto groups=p["moveGroups"].toArray();QJsonObject g;
  if(groupId.isEmpty()){
-  require(groups.isEmpty(),"This sketch already has a retained Move; use Edit Move");const auto selected=ids(entityIds);const auto es=rows(p,"entities");QSet<QString> vertices;QJsonArray topology,sources,cs,ds;
+  require(groups.isEmpty(),"This sketch already has a retained Move; use Edit Move");const auto selected=ids(entityIds);require(selected.size()==4,"Move requires exactly four distinct Line IDs");require(std::abs(du)>=1e-9 || std::abs(dv)>=1e-9,"Enter a nonzero X or Y displacement");const auto es=rows(p,"entities");QSet<QString> vertices;QJsonArray topology,sources,cs,ds;
   for(const auto& key:entityIds){const auto e=es.value(key.toString());require(e["type"]=="line","Move requires authored Lines");vertices.insert(e["startPointId"].toString());vertices.insert(e["endPointId"].toString());topology.append(QJsonObject{{"entityId",key},{"startPointId",e["startPointId"]},{"endPointId",e["endPointId"]}});}
   const auto targets=selected+vertices;for(const auto& value:p["points"].toArray()){const auto point=value.toObject();if(vertices.contains(point["id"].toString()))sources.append(QJsonObject{{"pointId",point["id"]},{"uMm",point["uMm"]},{"vMm",point["vMm"]}});}
   for(const auto& v:p["constraints"].toArray())if(mentions(v,targets))cs.append(v.toObject()["id"]);for(const auto& v:p["dimensions"].toArray())if(mentions(v,targets))ds.append(v.toObject()["id"]);

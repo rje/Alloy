@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include "CadDocument.h"
 #include "SketchGeometry.h"
+#include "SketchMove.h"
 #include <QCoreApplication>
 #include <QTemporaryDir>
 #include <cmath>
@@ -12,6 +13,14 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
  for(const auto& d:QJsonArray{QJsonObject{{"kind","horizontal"},{"entityId",ids[0]},{"valueMm",20}},QJsonObject{{"kind","vertical"},{"entityId",ids[1]},{"valueMm",12}}}){const auto solved=SketchGeometry::addDimension(sketch,d.toObject());check(solved.ok,solved.error);sketch=solved.feature;}
 
  const auto original=sketch;const auto width=sketch["parameters"].toObject()["dimensions"].toArray().first().toObject().value("id");
+ // An explicitly empty group ID is creation, with all creation guards intact.
+ for(const auto& supplied:QJsonArray{QJsonObject{},QJsonObject{{"entityIds",QJsonArray{}}},QJsonObject{{"entityIds",QJsonArray{ids[0]}}},QJsonObject{{"entityIds",ids},{"deltaUMm",0},{"deltaVMm",0}}}){
+  auto bad=supplied.toObject();bad["groupId"]="";if(!bad.contains("deltaUMm"))bad["deltaUMm"]=5;if(!bad.contains("deltaVMm"))bad["deltaVMm"]=-3;
+  const auto result=SketchGeometry::retainedMove(original,bad);check(!result.ok && result.feature==original,"Empty groupId cannot bypass creation qualification");
+ }
+ for(const auto& supplied:QJsonArray{QJsonObject{{"deltaUMm",5},{"deltaVMm",-3}},QJsonObject{{"entityIds",QJsonArray{}},{"deltaUMm",5},{"deltaVMm",-3}}}){const auto result=SketchGeometry::retainedMove(original,supplied.toObject());check(!result.ok && result.feature==original,"Absent groupId/selection refuses safely");}
+ const auto emptyIdCreation=SketchGeometry::retainedMove(original,{{"groupId",""},{"entityIds",ids},{"deltaUMm",5},{"deltaVMm",-3}});check(emptyIdCreation.ok,"Empty groupId with qualified nonzero selection is ordinary creation");
+ bool helperRefused=false;try{SketchMove::create(original["parameters"].toObject(),{},5,-3,{});}catch(const std::exception&){helperRefused=true;}check(helperRefused,"Owner builder checks cardinality before first()");
  QJsonObject args{{"entityIds",ids},{"deltaUMm",5},{"deltaVMm",-3}};auto moved=SketchGeometry::retainedMove(sketch,args);check(moved.ok,moved.error);sketch=moved.feature;const auto group=sketch["parameters"].toObject()["moveGroups"].toArray().first().toObject();check(moved.diagnostics["dof"].toInt()==0,"Source anchor removes placement freedom without extra output variables");
  const auto profile=SketchGeometry::evaluateFeature(original).profiles[0].profileId;
  auto verify=[&](const QJsonObject& now,double du,double dv,double size){const auto p=now["parameters"].toObject(),g=p["moveGroups"].toArray().first().toObject();check(g["id"]==group["id"] && g["entityIds"]==group["entityIds"] && p["entities"]==original["parameters"].toObject()["entities"] && p["constraints"]==original["parameters"].toObject()["constraints"],"Stable source/profile topology");double minU=1e10,maxU=-1e10,minV=1e10,maxV=-1e10;for(const auto& value:p["points"].toArray()){const auto point=value.toObject();minU=std::min(minU,point["uMm"].toDouble());maxU=std::max(maxU,point["uMm"].toDouble());minV=std::min(minV,point["vMm"].toDouble());maxV=std::max(maxV,point["vMm"].toDouble());for(const auto& row:g["sourcePoints"].toArray()){const auto source=row.toObject();if(source["pointId"]==point["id"])check(std::abs(point["uMm"].toDouble()-source["uMm"].toDouble()-du)<1e-9 && std::abs(point["vMm"].toDouble()-source["vMm"].toDouble()-dv)<1e-9,"Exactly one derivation");}}check(std::abs(minU-(10+du))<1e-6 && std::abs(maxU-(10+size+du))<1e-6 && std::abs(minV-(8+dv))<1e-6 && std::abs(maxV-(20+dv))<1e-6,"Exact transformed bounds");check(SketchGeometry::evaluateFeature(now).profiles[0].profileId==profile,"Same profile identity");};

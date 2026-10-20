@@ -4186,7 +4186,8 @@ SketchGeometry::SolveResult SketchGeometry::updateAnnotation(const QJsonObject& 
 SketchGeometry::SolveResult SketchGeometry::retainedMove(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext){
     try{
         validateDraft(draft);checkFields(arguments,{"entityIds","deltaUMm","deltaVMm","groupId"});const double du=coordinate(arguments,"deltaUMm"),dv=coordinate(arguments,"deltaVMm");
-        if(!arguments.contains("groupId")){
+        if(arguments.contains("groupId") && !arguments["groupId"].isString())reject("Move groupId must be a string UUID");
+        if(arguments["groupId"].toString().isEmpty()){
             const auto qualified=translateProfile(draft,{{"entityIds",arguments["entityIds"]},{"deltaUMm",du},{"deltaVMm",dv}},projectionContext);
             if(!qualified.ok)return qualified;
         }

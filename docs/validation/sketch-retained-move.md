@@ -109,3 +109,24 @@ qualification. Wider planes, multiple owners/profiles, output inverse editing,
 3D Move and direct manipulator input remain broader ADV-005 scope;
 Copy/Rotate/Scale remain SKT-179–181. Independent Sol review is pending.
 Private fixture editors closed; preserved user PID 72618 remains running.
+
+## Independent-review creation-boundary correction
+
+Review of `cd0e682` found inconsistent creation/edit discrimination: the command
+used presence of `groupId`, while the owner builder used its empty value. An
+explicit empty string could bypass rigid creation qualification and reach an
+empty-array `first()`. Both layers now use the same empty-string creation rule;
+non-string core IDs reject. The builder independently requires four distinct
+Line IDs and nonzero creation displacement before indexing. Existing nonempty
+owner-ID edits still permit zero displacement.
+
+Focused evidence is external in `empty-group-fix/`: retained core passes,
+including empty/absent group IDs, missing/empty/partial selection, zero creation,
+valid empty-ID creation and direct empty builder refusal. The real executable
+API regression (`tests/sketch_retained_move_empty_group_api.py`) passes six
+invalid creation cases without a crash or draft/history/authored mutation,
+then accepts a qualified nonzero creation and refuses empty-ID zero creation
+against that owned profile. Session cancellation preserves the document.
+Build remains Release/private Qt/OCCT `-j4`; `api/report.json` and transcript
+record the actual calls. These focused checks do not repeat unchanged GPU/STL
+qualification. Private test editor closed; user PID 72618 preserved. No CI/push.
