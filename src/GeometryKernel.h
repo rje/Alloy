@@ -61,10 +61,18 @@ struct EvaluatedConstructionPlane {
     QJsonArray displayBoundsMm;
 };
 
+struct EvaluatedConstructionAxis {
+    QString featureId, name;
+    bool visible = true;
+    QJsonObject line; // Infinite origin/direction and exact source span; display is separate.
+    QString ownerId;
+};
+
 struct EvaluatedDocument {
     std::vector<EvaluatedBody> bodies;
     std::vector<EvaluatedSketch> sketches;
     std::vector<EvaluatedConstructionPlane> constructionPlanes;
+    std::vector<EvaluatedConstructionAxis> constructionAxes;
     std::vector<QString> featureOrder;
     QJsonObject joinBodyResults;
     QJsonObject featureStates; // Derived availability; only explicit suppression is authored.

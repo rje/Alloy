@@ -231,6 +231,10 @@ private:
     QJsonObject previewTangentPlane();
     void showTangentPlane();
     QDockWidget* tangentPlaneDock_ = nullptr;
+    QJsonObject beginAxis(const QJsonObject& inputs);
+    QJsonObject previewAxis();
+    void showAxis();
+    QDockWidget* axisDock_ = nullptr;
     QJsonObject beginAngledPlane(const QJsonObject& inputs);
     QJsonObject previewAngledPlane();
     void showAngledPlane();

@@ -765,6 +765,8 @@ void ReferenceView::rebindDocument() {
     for(const auto& model:sketchModels_)context_->Remove(model,false);
     for(const auto& model:constructionSketchModels_)context_->Remove(model,false);
     for(const auto& model:centerlineSketchModels_)context_->Remove(model,false);
+    for(const auto& model:constructionAxisModels_)context_->Remove(model,false);
+    constructionAxisModels_.clear();constructionAxisRevision_=std::numeric_limits<quint64>::max();
     for(const auto& model:constructionPlaneModels_)context_->Remove(model,false);
     for(const auto& model:finishedProfileModels_)context_->Remove(model,false);
     for(const auto& model:finishedPointModels_)context_->Remove(model,false);
@@ -1093,6 +1095,18 @@ void ReferenceView::setSketches(const std::vector<EvaluatedSketch>& sketches,qui
         }
     }
     sketchRevision_=revision;applyEditDisplay();
+}
+void ReferenceView::setConstructionAxes(const std::vector<EvaluatedConstructionAxis>& axes,quint64 revision) {
+    if(context_.IsNull() || constructionAxisRevision_==revision)return;
+    for(const auto& model:constructionAxisModels_)context_->Remove(model,false);constructionAxisModels_.clear();
+    for(const auto& axis:axes){if(!axis.visible)continue;const auto origin=axis.line.value("originMm").toArray(),direction=axis.line.value("direction").toArray();
+        if(origin.size()!=3 || direction.size()!=3)continue;
+        const gp_Pnt p(origin[0].toDouble(),origin[1].toDouble(),origin[2].toDouble());const gp_Vec d(direction[0].toDouble(),direction[1].toDouble(),direction[2].toDouble());
+        Handle(AIS_Shape) model=new AIS_Shape(BRepBuilderAPI_MakeEdge(p.Translated(d.Multiplied(-15)),p.Translated(d.Multiplied(axis.line.value("sourceSpanMm").toDouble()+15))).Edge());
+        model->SetColor(axis.featureId=="axis-preview"?Quantity_Color(0.10,0.34,0.84,Quantity_TOC_sRGB):Quantity_Color(0.90,0.48,0.08,Quantity_TOC_sRGB));
+        model->SetWidth(2.5);context_->Display(model,AIS_WireFrame,-1,false);context_->Deactivate(model);constructionAxisModels_[axis.featureId]=model;
+    }
+    constructionAxisRevision_=revision;context_->UpdateCurrentViewer();
 }
 void ReferenceView::setConstructionPlanes(const std::vector<EvaluatedConstructionPlane>& planes,quint64 revision) {
     if(context_.IsNull() || constructionPlaneRevision_==revision)return;

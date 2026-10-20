@@ -30,6 +30,7 @@ target_include_directories(alloy_sketch_solver PUBLIC src)
 target_link_libraries(alloy_sketch_solver PUBLIC Qt6::Core PRIVATE alloy_planegcs)
 
 add_library(alloy_kernel STATIC
+    src/DatumAxis.cpp src/DatumAxis.h
     src/SurfaceContinuity.cpp src/SurfaceContinuity.h
     src/FaceNormalInspector.cpp src/FaceNormalInspector.h
     src/Scale.cpp src/Scale.h src/Measure.cpp src/Measure.h src/Align.cpp src/Align.h
@@ -52,6 +53,7 @@ qt_add_resources(alloy_kernel "alloy_text_font" PREFIX "/alloy/fonts" BASE "thir
 target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_VERSION}")
 
 add_library(alloy_application STATIC
+    src/DatumAxisControls.cpp
     src/SurfaceContinuityControls.cpp
     src/ZebraPresentation.cpp src/ZebraPresentation.h
     src/ScaleControls.cpp src/AlignControls.cpp src/DraftControls.cpp src/MeasureControls.cpp
@@ -1182,6 +1184,14 @@ if(BUILD_TESTING)
     add_executable(shoehorn_perimeter_test tests/shoehorn_perimeter.cpp src/CadDocument.cpp src/CadDocument.h)
     target_include_directories(shoehorn_perimeter_test PRIVATE src)
     target_link_libraries(shoehorn_perimeter_test PRIVATE Qt6::Gui alloy_kernel)
+    add_executable(datum_axis_test tests/datum_axis.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_include_directories(datum_axis_test PRIVATE src)
+    target_link_libraries(datum_axis_test PRIVATE Qt6::Gui alloy_kernel)
+    add_test(NAME datum_axis COMMAND datum_axis_test)
+    add_executable(datum_axis_controls_test tests/datum_axis_controls.cpp)
+    target_link_libraries(datum_axis_controls_test PRIVATE alloy_application Qt6::Test)
+    add_test(NAME datum_axis_controls COMMAND datum_axis_controls_test)
+    set_tests_properties(datum_axis_controls PROPERTIES TIMEOUT 45 LABELS "widget;gpu" RUN_SERIAL TRUE)
     add_executable(angled_plane_test tests/angled_plane.cpp src/CadDocument.cpp src/CadDocument.h)
     target_include_directories(angled_plane_test PRIVATE src)
     target_link_libraries(angled_plane_test PRIVATE Qt6::Gui alloy_kernel)
