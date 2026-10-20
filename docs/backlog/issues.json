@@ -3707,7 +3707,9 @@
         "SRF-037",
         "SRF-038",
         "SRF-039",
-        "SRF-040"
+        "SRF-040",
+        "SRF-041",
+        "SRF-042"
       ],
       "labels": [
         "kind:validation",
@@ -10728,7 +10730,7 @@
         "priority:P1",
         "area:srf"
       ],
-      "body": "## Bounded result\nCreate an editable signed offset of one supported retained face with explicit normal direction.\n\nThis is a finishable child of SRF-004; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Expose signed distance and normal direction and preview the offset on one supported face fixture.\n- Verify expected separation, area, and bounds and retain source-face identity.\n- Refuse self-intersection/folding or invalid distance without changing the prior feature result.\n- Verify edit, undo/redo, and save/reopen.\n\n## Preserved remainder\nBroader surface families, multi-face offset, and self-intersection recovery remain under SRF-004.\n"
+      "body": "## Bounded result\nCreate an editable signed offset of one supported retained face with explicit normal direction.\n\nThis is a finishable child of SRF-004; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Expose signed distance and normal direction and preview the offset on one supported face fixture.\n- Verify expected separation, area, and bounds and retain source-face identity.\n- Refuse self-intersection/folding or invalid distance without changing the prior feature result.\n- Verify edit, undo/redo, and save/reopen.\n\n## Preserved remainder\nBroader surface families, multi-face offset, and self-intersection recovery remain under SRF-004.\n\n## Accepted bounded planar core and explicit curved/native remainder \u2014 2026-10-20\nCommits ac73359 and 06a44ac accept one retained planar source surface face signed Offset as an independent sheet with exact source tuple, oriented normal, signed distance and translated face/edge lineage. Focused C++ passes. Independent 84-response real-app fixture checks 40\u00d730 mm Patch z20 with +5\u2192z25, -2\u2192z18 and zero coincident sheet, area1200 mm2; source width40\u219250 gives area1500 in source/Offset/downstream sheet, zero boundary deviation, atomic invalid/curved refusal, Undo/Redo/reopen and inspected Apple M4 DPR2 GPU captures. Focused 8-response follow-up verifies exact source IDs on stale draft errors after 06a44ac. See docs/validation/surface-offset.md. Planar geometry cannot fold; cylindrical inward-collapse acceptance remains linked first-v1 Todo SRF-042. Native canvas face pick/normal drag/actual-hit/1x/2x acceptance remains linked first-v1 Todo SRF-041 while the Mac console is locked. Multi-face/chained and broader curved families remain SRF-004. Closing SRF-029 accepts planar core/API and compiled basic dock only, not folding, native or packaged parity.\n"
     },
     {
       "key": "SRF-030",
@@ -10904,6 +10906,41 @@
         "area:srf"
       ],
       "body": "## Bounded first-v1 native workflow\nComplete user-facing ordered boundary selection for the retained nonplanar four-Line G0 Patch after SRF-028 core acceptance. Its basic four-dropdown dock and shared API pass, but public Patch controls select boundary edges on the canvas and the Mac console is locked on 2026-10-20.\n\n## Acceptance criteria\n- Pick four supported retained sketch Line edges through actual canvas hits, maintaining ordered source identities and a visible closed-loop/G0 cue. Allow wrong-order/disconnected/underdefined selections to be repaired in the active session without adding history or focus-repair clicks.\n- Inspect live nonplanar sheet preview with four visibly attached boundaries and the declared <=0.01 mm whole-boundary tolerance. Cancel/Escape preserves authored/Undo state; OK commits and Timeline reopen/edit retains sources through a z10\u219215 source edit.\n- On an unlocked Mac run strict actual-hit checks of receiving widgets and popup readiness, Undo/Redo, save/reopen and whole-app GPU captures at 1x/2x. Use an informative view for the skew sheet and compare only dated matched public evidence. Close private editor afterward.\n\n## Preserved remainder\nArbitrary B-Rep face edges, chaining, larger/mixed curved networks, G1/G2 continuity, multiple faces, exact pixel/key parity and Windows/Linux packaged runtime remain SRF-003 and release owners. This issue is distinct from planar profile selection SRF-039.\n"
+    },
+    {
+      "key": "SRF-041",
+      "title": "Complete and qualify native Surface Offset face pick and normal drag",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "SRF-029"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P1",
+        "area:srf"
+      ],
+      "body": "## Bounded first-v1 native workflow\nComplete and qualify the one-planar-face Surface Offset UI after SRF-029 core acceptance. The basic face/typed-distance dock and +N cue compile, while actual canvas face picking and drag are not implemented or physically qualified. The Mac console is locked on 2026-10-20.\n\n## Acceptance criteria\n- Select one supported retained planar surface face by actual canvas hit with visible source identity and normal direction; enter signed distance or drag a functional in-canvas normal handle through the same shared command. Preserve explicit negative and zero meaning.\n- Inspect live +5 and -2 mm sheet separation, readable overlapping-source state, Cancel/Escape, OK and Timeline edit without focus/selection repair between user steps. Invalid/missing face feedback names the exact source and permits valid retry.\n- On an unlocked Mac run strict actual-hit widget/popup checks, source edit and downstream sheet recompute, Undo/Redo, save/reopen and whole-app GPU captures at 1x/2x against dated comparable public evidence. Close the private editor.\n\n## Preserved remainder\nCurved-face offsets/collapse remain SRF-042; multi-face/chained offset, joins, exact pixel/key parity and Windows/Linux packaged runtime remain SRF-004/release owners.\n"
+    },
+    {
+      "key": "SRF-042",
+      "title": "Offset one retained cylindrical surface and refuse inward radius collapse",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "SRF-029",
+        "SRF-025"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P1",
+        "area:srf"
+      ],
+      "body": "## Bounded curved continuation of SRF-029\nA planar face cannot fold or self-intersect. SRF-029 proves signed planar separation only; this issue retains the original folding/refusal acceptance on one supported curved surface family before broader Surface Offset readiness is claimed.\n\n## Acceptance criteria\n- Offset one retained partial cylindrical Surface Revolve face with explicit oriented normal and signed distance into an independent open sheet. Verify radius, bounds, area, source-face/edge identity and stable recompute after a source radius/height edit.\n- Attempt inward offset at and beyond the radius-collapse threshold (and any fixture self-intersection boundary); refuse preview/commit/edit atomically with an actionable source/result error, preserving last valid geometry/history, then allow valid retry. Do not silently invert the sheet or manufacture a solid.\n- Verify Undo/Redo, save/reopen, actual output B-rep and independent numeric geometry through the real app. Coordinate native hit/drag acceptance with SRF-041 once the Mac console is unlocked.\n\n## Preserved remainder\nGeneral curved families, multi-face joins, trim/recovery and arbitrary self-intersections remain SRF-004. A cylinder-specific refusal does not claim a universal surface-offset algorithm.\n"
     },
     {
       "key": "GEO-025",

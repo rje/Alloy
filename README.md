@@ -1,5 +1,7 @@
 # Alloy
 
+[Planar Surface Offset](docs/validation/surface-offset.md) now creates an editable signed new sheet from one retained face, with exact source/downstream recompute and real-app GPU evidence. Native pick/drag and curved collapse refusal remain SRF-041/042.
+
 [Nonplanar four-edge Patch](docs/validation/surface-nonplanar-patch.md) now creates an editable skew sheet with retained source lines and a whole-boundary deviation certificate below 0.01 mm. Native canvas four-edge selection remains SRF-040.
 
 [Planar Patch](docs/validation/surface-patch.md) now creates an editable one-face sheet from a simple retained closed sketch loop, with exact area/normal/boundary and real-app history/GPU checks. Native canvas profile picking remains SRF-039.
