@@ -3704,7 +3704,8 @@
         "SOL-095",
         "SOL-096",
         "SRF-036",
-        "SRF-037"
+        "SRF-037",
+        "SRF-038"
       ],
       "labels": [
         "kind:validation",
@@ -10680,7 +10681,7 @@
         "priority:P1",
         "area:srf"
       ],
-      "body": "## Bounded result\nCreate an editable G0 sheet by sweeping one supported open section along one retained line/arc path.\n\nThis is a finishable child of SRF-002; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Support the declared open section and line/arc path combinations and preserve both source identities.\n- Verify sheet output, path endpoints, bounds, and G0 boundary condition on a fixed fixture.\n- Edit section/path and verify recompute; refuse unsupported path or end conditions explicitly.\n- Verify undo/redo and save/reopen.\n\n## Preserved remainder\nGuide rails, multiple sections, G1/G2 continuity, and broader path/section combinations remain under SRF-002.\n"
+      "body": "## Bounded result\nCreate an editable G0 sheet by sweeping one supported open section along one retained line/arc path.\n\nThis is a finishable child of SRF-002; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Support the declared open section and line/arc path combinations and preserve both source identities.\n- Verify sheet output, path endpoints, bounds, and G0 boundary condition on a fixed fixture.\n- Edit section/path and verify recompute; refuse unsupported path or end conditions explicitly.\n- Verify undo/redo and save/reopen.\n\n## Preserved remainder\nGuide rails, multiple sections, G1/G2 continuity, and broader path/section combinations remain under SRF-002.\n\n## Accepted bounded core and native split \u2014 2026-10-20\nCommits eead92f, 1e90a2b and a73e03d accept one open Line section swept along one retained straight Line or analytic Arc path to a valid non-solid Full/100%, Perpendicular, New Body G0 sheet. Native selector dock compiles. Focused core checks exact line and \u00b1arc geometry. Independent 194-response real-app API checks 400\u2192700 mm2 line and 100\u03c0\u2192280\u03c0/3 mm2 arc areas, bounds, one face/four edges/zero solids/no caps, exact start/end G0 boundaries, retained IDs, source/path edits, invalid refusal/retry, Undo/Redo, save/reopen and inspected Apple M4 DPR2 GPU captures. See docs/validation/surface-sweep.md. The first real-app run found and fixed a Timeline edit dispatch bug. Public canvas Profile/Path picking and actual-hit native/1x/2x visual acceptance remain linked first-v1 Todo SRF-038 because the Mac console is locked. Guides, partial extents, multi-entity paths and broader continuity remain SRF-002. Closing SRF-026 accepts bounded core/API and basic compiled controls only, not native or packaged parity.\n"
     },
     {
       "key": "SRF-027",
@@ -10850,6 +10851,23 @@
         "area:srf"
       ],
       "body": "## Bounded continuation of SRF-025\nThe accepted one-line Surface Revolve core does not admit a connected open section with multiple curve entities. Public Surface Revolve workflows and the referenced basic-surfaces tutorial use curve/profile selections. Add one retained connected open sketch chain before claiming that broader first-v1 surface-creation subset.\n\n## Acceptance criteria\n- Admit one connected finite open chain of supported authored sketch curves (at minimum two joined lines, then one line/arc chain if compatible with the existing solver), retaining each source ID and ordered orientation. Do not silently close the wire or create a solid.\n- Revolve about a distinct supported retained coplanar axis through a partial angle into one valid non-solid sheet; independently check exact/analytic area, bounds, boundary presentation and source/axis edit recompute.\n- Refuse disconnected, branching, crossing-axis and self-intersecting sections atomically with actionable feedback; verify Undo/Redo and save/reopen through the real app.\n- Coordinate with SRF-036 canvas chain selection and visual native gate, linking a source-derived public tutorial state when comparable.\n\n## Preserved remainder\nGeneral splines, multiple profiles, alternate axes/extents and complex topology remain SRF-001. Keep this issue Todo until the bounded multi-entity chain is implemented and checked; SRF-025's one-line acceptance does not close it.\n"
+    },
+    {
+      "key": "SRF-038",
+      "title": "Complete and qualify native Surface Sweep profile/path picking and preview",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "SRF-026"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P1",
+        "area:srf"
+      ],
+      "body": "## Bounded first-v1 native workflow\nComplete the one-Line-section, Line/Arc-path Surface Sweep UI after SRF-026 core/API acceptance. The current selector dock compiles and actual-app API geometry passes, but public help uses canvas Profile/Path picks and the Mac console was locked on 2026-10-20.\n\n## Acceptance criteria\n- Implement actual canvas sketch-curve Profile and Path selection for the supported single-entity line/arc families, with visible role and retained start-end direction feedback. Selecting a wrong or misaligned source gives actionable refusal without selection/focus repair between user steps.\n- Show a live open-sheet preview at a useful camera angle, with clear uncapped boundaries, retained Full/100%/Perpendicular/New Body state, Cancel and OK. Reopen the Timeline feature and edit selection through the same authoritative command/session.\n- On an unlocked Mac run strict actual-hit checks against receiving widgets/popup readiness, including both line and arc paths, same-session invalid/retry, Undo/Redo and saved reopen state. Inspect whole-app GPU captures at 1x and 2x and compare only dated/matched public evidence. Close the private editor afterward.\n\n## Preserved remainder\nGuide rails/surfaces, multi-entity sections/paths, partial extents, alternate orientation/continuity, exact pixel/key parity and Windows/Linux packaged runtime remain SRF-002 and release owners. The home isometric camera is partly edge-on for the quarter-cylinder; choose an informative verification view rather than treating its projection as a disconnected sheet.\n"
     },
     {
       "key": "GEO-025",

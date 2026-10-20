@@ -1,5 +1,7 @@
 # Alloy
 
+[Open-line Surface Sweep](docs/validation/surface-sweep.md) now creates editable non-solid sheets along retained Line and Arc paths, with exact endpoint/area checks, saved history and inspected GPU captures. Native canvas Profile/Path selection and interactive acceptance remain SRF-038.
+
 [Open-line Surface Revolve](docs/validation/surface-revolve.md) now creates an editable uncapped sheet with retained section/axis references and independently checked real-app geometry, history and GPU capture. Canvas selection, angular drag and actual-hit native acceptance remain SRF-036; connected multi-curve sections remain SRF-037.
 
 [Distance And Angle solid Chamfer](docs/validation/solid-distance-angle-chamfer.md) now has a retained one-edge directed core, explicit incident reference face and independently measured real-app geometry/history/STL. Native actual-hit edge/face/field and 1×/2× GPU acceptance remain SOL-096/#658.
