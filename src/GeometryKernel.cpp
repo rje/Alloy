@@ -19,6 +19,7 @@
 #include <GProp_GProps.hxx>
 #include "SolidLoft.h"
 #include "SurfaceExtrude.h"
+#include "SurfaceRevolve.h"
 #include "BoundaryFill.h"
 #include "SurfaceTrim.h"
 #include "SolidThicken.h"
@@ -1305,6 +1306,8 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                 evaluated.bodies.push_back(SolidRevolve::evaluate(feature,evaluated,source));
             } else if(type=="loft") {
                 evaluated.bodies.push_back(SolidLoft::evaluate(feature,evaluated));
+            } else if(type=="surfaceRevolve") {
+                evaluated.bodies.push_back(SurfaceRevolve::evaluate(feature,evaluated));
             } else if(type=="surfaceExtrude") {
                 const auto results=SurfaceExtrude::evaluateResults(feature,evaluated);
                 evaluated.bodies.insert(evaluated.bodies.end(),results.begin(),results.end());
