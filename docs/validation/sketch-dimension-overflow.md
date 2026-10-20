@@ -1,6 +1,7 @@
-# Sketch dimension margin overflow candidate
+# Sketch dimension margin overflow
 
-SKT-191/#714, 2026-10-20. Candidate; independent review is pending.
+SKT-191/#714, 2026-10-20. Independent Sol source/evidence review accepted
+candidate `2c21d9f` for the bounded seven-dimension, minimum-window fixture.
 
 When all four local lanes fail, visible ordinary dimensions now share a finite
 screen-space row grid at the nearer canvas margin, then the opposite margin.

@@ -33,7 +33,8 @@ trigger for reopening the unknown sketch-specific Copy history question.
 Independent cumulative review accepts the bounded connected four-Line XY
 `sketch.transform` minimum. [SKT-190/#713](../validation/sketch-dense-dimensions.md)
 accepts directly editable, separated labels in the dense multi-profile fixture;
-SKT-191/#714 retains overflow layout when the four local lanes cannot fit.
+[SKT-191/#714](../validation/sketch-dimension-overflow.md) accepts a bounded
+two-margin overflow layout at the supported minimum window size.
 The [atomic Move receipt](../validation/sketch-move.md) accepts SKT-098/#503,
 and [Retained Edit Move](../validation/sketch-retained-move.md) accepts SKT-184/#707.
 The public transform contract is outside the repository.

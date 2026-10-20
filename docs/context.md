@@ -1,14 +1,16 @@
-## 2026-10-20 sketch dimension overflow candidate
+## 2026-10-20 sketch dimension overflow accepted
 
 SKT-191/#714 adds a bounded two-margin fallback after the accepted local lanes
 exhaust. The supported1040×640 fixture retains seven full direct-value targets,
 source IDs/values, authored save/reopen and exact evaluated bodies; one new STL
 is byte-identical to the accepted SKT-190 readback. Effective DPR1/2 Qt actual-hit
-and GPU evidence is recorded in [the candidate receipt](validation/sketch-dimension-overflow.md).
+and GPU evidence is recorded in [the accepted receipt](validation/sketch-dimension-overflow.md).
 Public automatic-layout parity, physical input and arbitrary finite-canvas density
-remain unknown or limited; independent review is pending. Native DPR1 backing
+remain unknown or limited; independent Sol review accepted `2c21d9f`. Native DPR1 backing
 height can differ by one pixel before resize; exact same-state stability and
-bounded resize-return centers are checked separately. No CI/release or push.
+bounded resize-return centers are checked separately. SKT-191/#714 is closed/Done;
+the canonical backlog remains 711 issues. No CI/release was run; private
+fixtures exited and user PID72618 was preserved.
 
 ## 2026-10-20 SKT-165 native retry remains blocked
 
