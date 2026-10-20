@@ -25,7 +25,7 @@ message(STATUS "Qt ${Qt6_VERSION}; spikes=${ALLOY_BUILD_SPIKES}; OCCT components
 include(cmake/PlaneGCS.cmake)
 include(cmake/OndselSolver.cmake)
 include(cmake/Lib3MF.cmake)
-add_library(alloy_sketch_solver STATIC src/SketchSolver.cpp src/SketchSolver.h src/SketchMirror.cpp src/SketchMirror.h src/SketchPattern.cpp src/SketchPattern.h src/SketchMove.cpp src/SketchMove.h src/SketchRotate.cpp src/SketchRotate.h src/SketchAxis3d.cpp src/SketchAxis3d.h src/SketchArcSlot.cpp src/SketchArcSlot.h src/SketchEllipse.cpp src/SketchEllipse.h src/SketchPolygon.cpp src/SketchPolygon.h)
+add_library(alloy_sketch_solver STATIC src/SketchSolver.cpp src/SketchSolver.h src/SketchMirror.cpp src/SketchMirror.h src/SketchPattern.cpp src/SketchPattern.h src/SketchMove.cpp src/SketchMove.h src/SketchRotate.cpp src/SketchRotate.h src/SketchScale.cpp src/SketchScale.h src/SketchAxis3d.cpp src/SketchAxis3d.h src/SketchArcSlot.cpp src/SketchArcSlot.h src/SketchEllipse.cpp src/SketchEllipse.h src/SketchPolygon.cpp src/SketchPolygon.h)
 target_include_directories(alloy_sketch_solver PUBLIC src)
 target_link_libraries(alloy_sketch_solver PUBLIC Qt6::Core PRIVATE alloy_planegcs)
 
@@ -67,7 +67,7 @@ add_library(alloy_application STATIC
     src/SketchChamferControls.cpp
     src/ThreePointCircleControls.cpp
     src/ThreePointRectangleControls.cpp
-    src/AlloyWindow.cpp src/AlloyWindow.h src/SketchMoveControls.cpp src/SketchCopyControls.cpp src/SketchAxis3dControls.cpp src/SketchPatternControls.cpp src/SketchPatternInteraction.cpp src/SplitBodyControls.cpp src/AssemblyControls.cpp src/PointControls.cpp src/SplineControls.cpp src/SlotDragControls.cpp src/ConicControls.cpp src/SketchTextControls.cpp src/CommandIcons.cpp src/CommandIcons.h src/SolidFilletControls.cpp src/SolidChamferControls.cpp src/SphereControls.cpp src/SolidHoleControls.cpp src/SolidThreadControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/SurfaceExtrudeControls.cpp src/SurfaceRevolveControls.cpp src/SurfaceOffsetControls.cpp src/SurfaceRuledControls.cpp src/SurfaceExtendControls.cpp src/SurfaceSweepControls.cpp src/SurfacePatchControls.cpp src/SketchEvaluation.cpp src/FailedEditRepair.cpp src/SketchPlaneRepairControls.cpp src/BoundaryFillControls.cpp src/SurfaceTrimControls.cpp src/SurfaceUntrimControls.cpp src/RemoveBodyControls.cpp src/ThickenControls.cpp src/RevolveCommands.cpp src/SweepCommands.cpp src/SweepSelection.cpp src/PipeCommands.cpp src/RibCommands.cpp src/PatternControls.cpp src/CircularPatternControls.cpp src/SolidMirrorControls.cpp src/SolidFeatureMirrorControls.cpp src/CanvasControls.cpp src/ReferenceCanvasView.cpp src/SectionAnalysisControls.cpp src/ReferenceSection.cpp src/MoveControls.cpp src/BodyCopyControls.cpp src/ComponentCopyControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
+    src/AlloyWindow.cpp src/AlloyWindow.h src/SketchMoveControls.cpp src/SketchScaleControls.cpp src/SketchCopyControls.cpp src/SketchAxis3dControls.cpp src/SketchPatternControls.cpp src/SketchPatternInteraction.cpp src/SplitBodyControls.cpp src/AssemblyControls.cpp src/PointControls.cpp src/SplineControls.cpp src/SlotDragControls.cpp src/ConicControls.cpp src/SketchTextControls.cpp src/CommandIcons.cpp src/CommandIcons.h src/SolidFilletControls.cpp src/SolidChamferControls.cpp src/SphereControls.cpp src/SolidHoleControls.cpp src/SolidThreadControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/SurfaceExtrudeControls.cpp src/SurfaceRevolveControls.cpp src/SurfaceOffsetControls.cpp src/SurfaceRuledControls.cpp src/SurfaceExtendControls.cpp src/SurfaceSweepControls.cpp src/SurfacePatchControls.cpp src/SketchEvaluation.cpp src/FailedEditRepair.cpp src/SketchPlaneRepairControls.cpp src/BoundaryFillControls.cpp src/SurfaceTrimControls.cpp src/SurfaceUntrimControls.cpp src/RemoveBodyControls.cpp src/ThickenControls.cpp src/RevolveCommands.cpp src/SweepCommands.cpp src/SweepSelection.cpp src/PipeCommands.cpp src/RibCommands.cpp src/PatternControls.cpp src/CircularPatternControls.cpp src/SolidMirrorControls.cpp src/SolidFeatureMirrorControls.cpp src/CanvasControls.cpp src/ReferenceCanvasView.cpp src/SectionAnalysisControls.cpp src/ReferenceSection.cpp src/MoveControls.cpp src/BodyCopyControls.cpp src/ComponentCopyControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
     src/TutorialRecorder.cpp src/TutorialRecorder.h
     src/CadDocument.cpp src/CadDocument.h src/LocalReferenceControls.cpp src/LocalReference.h
     src/RecoveryStore.cpp src/RecoveryStore.h
@@ -534,6 +534,10 @@ if(BUILD_TESTING)
     target_include_directories(sketch_circular_pattern_test PRIVATE src)
     target_link_libraries(sketch_circular_pattern_test PRIVATE Qt6::Gui alloy_kernel)
     add_test(NAME sketch_circular_pattern COMMAND sketch_circular_pattern_test)
+    add_executable(sketch_scale_test tests/sketch_scale.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_include_directories(sketch_scale_test PRIVATE src)
+    target_link_libraries(sketch_scale_test PRIVATE Qt6::Gui alloy_kernel)
+    add_test(NAME sketch_scale COMMAND sketch_scale_test)
     add_executable(sketch_rotate_source_size_test tests/sketch_rotate_source_size.cpp src/CadDocument.cpp src/CadDocument.h)
     target_include_directories(sketch_rotate_source_size_test PRIVATE src)
     target_link_libraries(sketch_rotate_source_size_test PRIVATE Qt6::Gui alloy_kernel)
@@ -673,6 +677,9 @@ if(BUILD_TESTING)
     target_link_libraries(sketch_rotate_source_size_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME sketch_rotate_source_size_controls COMMAND sketch_rotate_source_size_controls_test)
     set_tests_properties(sketch_rotate_source_size_controls PROPERTIES TIMEOUT 120 LABELS "widget;gpu" RUN_SERIAL TRUE)
+    add_executable(sketch_scale_controls_test tests/sketch_scale_controls.cpp)
+    target_link_libraries(sketch_scale_controls_test PRIVATE alloy_application Qt6::Test)
+    add_test(NAME sketch_scale_controls COMMAND sketch_scale_controls_test)
     add_executable(sketch_rotate_controls_test tests/sketch_rotate_controls.cpp)
     target_link_libraries(sketch_rotate_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME sketch_rotate_controls COMMAND sketch_rotate_controls_test)

@@ -162,6 +162,7 @@ public:
     static SolveResult copyProfileSelection(const QJsonObject& draft,const QJsonArray& entityIds,const QJsonObject& projectionContext = {});
     static SolveResult pasteProfile(const QJsonObject& draft,const QJsonObject& clipboard,const QJsonObject& arguments,const QJsonObject& projectionContext = {});
     static SolveResult retainedRotate(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext = {});
+    static SolveResult retainedScale(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext = {});
     static SolveResult retainedMove(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext = {});
     static SolveResult translateProfile(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext = {});
     static SolveResult movePoint(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});

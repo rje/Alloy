@@ -10,6 +10,7 @@
 #include "SketchPattern.h"
 #include "SketchMove.h"
 #include "SketchRotate.h"
+#include "SketchScale.h"
 #include "SketchAxis3d.h"
 #include "SketchArcSlot.h"
 #include "SketchSplineOffset.h"
@@ -1670,6 +1671,7 @@ SketchGeometry::SolveResult SketchGeometry::deleteEntities(const QJsonObject& dr
         auto parameters=draft["parameters"].toObject();
         for(const auto& id:entityIds)if(SketchAxis3d::ids(parameters).contains(id.toString()))reject("Use dedicated 3D construction Line Delete; ordinary 2D Delete cannot own this reference");
         for(const auto& id:pointIds)if(SketchAxis3d::ids(parameters).contains(id.toString()))reject("Use dedicated 3D construction Line Delete; its endpoints are not planar points");
+        if(SketchScale::touches(parameters,entityIds) || SketchScale::touches(parameters,pointIds))reject("Scale owns this profile/pivot; edit Scale or its source rather than Delete");
         if(SketchRotate::touches(parameters,entityIds) || SketchRotate::touches(parameters,pointIds))reject("Rotate owns this profile; edit its angle or axis rather than Delete");
         if(SketchMove::touches(parameters,entityIds) || SketchMove::touches(parameters,pointIds))reject("Move owns this profile; edit its displacement or source size rather than Delete");
         for(const auto& row:parameters.value("patternGroups").toArray()){
@@ -2108,7 +2110,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
         try {return validateParameters(expandedProjectionFeature({{"parameters",parameters}},{{"lines",lines},{"circles",circles},{"points",resolvedPoints}})["parameters"].toObject(),authoredIds,referenceIds);}
         catch(const std::exception& error){return QString::fromUtf8(error.what());}
     }
-    const QSet<QString> allowed{"plane", "planeId", "originConvention", "points", "entities", "constraints", "dimensions", "nextDimensionNameIndex", "originPointId", "support", "texts", "loopOffsets", "openChainOffsets", "closedRectOffsets", "roundedRectangleIntent", "mirrorGroups", "slotGroups", "arcSlotGroups", "polygonGroups", "chamferGroups", "patternGroups", "moveGroups", "rotateGroups", "constructionLines3d"};
+    const QSet<QString> allowed{"plane", "planeId", "originConvention", "points", "entities", "constraints", "dimensions", "nextDimensionNameIndex", "originPointId", "support", "texts", "loopOffsets", "openChainOffsets", "closedRectOffsets", "roundedRectangleIntent", "mirrorGroups", "slotGroups", "arcSlotGroups", "polygonGroups", "chamferGroups", "patternGroups", "moveGroups", "rotateGroups", "scaleGroups", "constructionLines3d"};
     for (auto it = parameters.begin(); it != parameters.end(); ++it)
         if (!allowed.contains(it.key())) return "Unknown sketch parameter: " + it.key();
     if (!parameters["points"].isArray() || !parameters["entities"].isArray()) return "Sketch requires points and entities";
@@ -2657,6 +2659,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
             } else return "Unsupported sketch constraint type";
         }
         if(parameters.contains("constructionLines3d")){const auto error=SketchAxis3d::validate(parameters);if(!error.isEmpty())return error;for(const auto& id:SketchAxis3d::ids(parameters))if(!claimId(id))return "Duplicate or foreign 3D construction identity";}
+        if(parameters.contains("scaleGroups")){const auto error=SketchScale::validate(parameters);if(!error.isEmpty())return error;for(const auto& v:parameters["scaleGroups"].toArray())if(!claimId(v.toObject()["id"].toString()))return "Invalid or duplicate Scale group UUID";}
         if(parameters.contains("rotateGroups")){const auto error=SketchRotate::validate(parameters);if(!error.isEmpty())return error;for(const auto& v:parameters["rotateGroups"].toArray())if(!claimId(v.toObject()["id"].toString()))return "Invalid or duplicate Rotate group UUID";}
         if(parameters.contains("moveGroups")){
             const auto error=SketchMove::validate(parameters);if(!error.isEmpty())return error;
@@ -2808,20 +2811,22 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& source
         if(!initialReferencePointId.isEmpty())lockedPoints.insert(initialReferencePointId);
         validateDraft(expanded,derivedPoints);
         lockedPoints.unite(SketchMove::anchors(draft["parameters"].toObject()));
-        auto planar=SketchPattern::sourceOnly(SketchMove::source(SketchRotate::source(expanded["parameters"].toObject())));planar.remove("constructionLines3d");
+        auto planar=SketchPattern::sourceOnly(SketchMove::source(SketchRotate::source(SketchScale::source(expanded["parameters"].toObject()))));planar.remove("constructionLines3d");
         lockedPoints.unite(SketchRotate::anchors(draft["parameters"].toObject()));
         const auto result=SketchSolver::solve(planar,lockedPoints,SketchRotate::orientation(draft["parameters"].toObject()));
         if(!result.accepted)return {false,sourceDraft,result.diagnostics,result.error};
         SketchRotate::verifySource(draft["parameters"].toObject(),result.parameters);
+        SketchScale::verifySource(draft["parameters"].toObject(),result.parameters);
         auto solved=draft;auto parameters=SketchPattern::derive(deriveClosedRectOffsets(SketchOpenChainOffset::derive(result.parameters)));
         parameters=SketchMove::materialize(parameters,draft["parameters"].toObject()["moveGroups"].toArray());
         if(draft["parameters"].toObject().contains("constructionLines3d"))parameters["constructionLines3d"]=draft["parameters"].toObject()["constructionLines3d"];
         parameters=SketchRotate::materialize(parameters,draft["parameters"].toObject()["rotateGroups"].toArray());
-        if(!parameters.value("rotateGroups").toArray().isEmpty()){
-            auto post=parameters;post.remove("rotateGroups");post.remove("constructionLines3d");auto outputLocks=lockedPoints;outputLocks.subtract(SketchRotate::anchors(draft["parameters"].toObject()));const auto checked=SketchSolver::solve(post,outputLocks);
-            if(!checked.accepted)return {false,sourceDraft,checked.diagnostics,"Rotate output violates a preserved relation: "+checked.error};
-            const auto wanted=parameters["points"].toArray(),actual=checked.parameters["points"].toArray();if(actual.size()!=wanted.size())reject("Rotate output changed point membership");
-            for(int n=0;n<wanted.size();++n)for(const auto* key:{"uMm","vMm"})if(std::abs(wanted[n].toObject()[key].toDouble()-actual[n].toObject()[key].toDouble())>1e-6)reject("Rotate output conflicts with a preserved relation; no geometry changed");
+        parameters=SketchScale::materialize(parameters,draft["parameters"].toObject()["scaleGroups"].toArray());
+        if(!parameters.value("rotateGroups").toArray().isEmpty() || !parameters.value("scaleGroups").toArray().isEmpty()){
+            auto post=parameters;post.remove("rotateGroups");post.remove("scaleGroups");post.remove("constructionLines3d");auto outputLocks=lockedPoints;outputLocks.subtract(SketchRotate::anchors(draft["parameters"].toObject()));const auto checked=SketchSolver::solve(post,outputLocks);
+            if(!checked.accepted)return {false,sourceDraft,checked.diagnostics,"Retained transform output violates a preserved relation: "+checked.error};
+            const auto wanted=parameters["points"].toArray(),actual=checked.parameters["points"].toArray();if(actual.size()!=wanted.size())reject("Retained transform output changed point membership");
+            for(int n=0;n<wanted.size();++n)for(const auto* key:{"uMm","vMm"})if(std::abs(wanted[n].toObject()[key].toDouble()-actual[n].toObject()[key].toDouble())>1e-6)reject("Retained transform output conflicts with a preserved relation; no geometry changed");
         }
         QJsonArray points,entities,dimensions;
         for(const auto& value:parameters["points"].toArray())if(!externalLockedPoints.contains(value.toObject()["id"].toString()))points.append(value);
@@ -2865,6 +2870,7 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& source
             for(const auto& value:group["instances"].toArray()){const auto instance=value.toObject();entityFreedom[instance["entityId"].toString()]=freedom;pointFreedom[instance["pointId"].toString()]=freedom;}
         }
         for(const auto& row:parameters.value("rotateGroups").toArray()){const auto g=row.toObject();for(const auto& id:g["entityIds"].toArray()){auto f=entityFreedom[id.toString()].toObject();f["derived"]=true;f["ownerId"]=g["id"];entityFreedom[id.toString()]=f;}for(const auto& v:g["sourcePoints"].toArray()){const auto id=v.toObject()["pointId"].toString();auto f=pointFreedom[id].toObject();f["derived"]=true;f["ownerId"]=g["id"];pointFreedom[id]=f;}}
+        for(const auto& row:parameters.value("scaleGroups").toArray()){const auto g=row.toObject();for(const auto& id:g["entityIds"].toArray()){auto f=entityFreedom[id.toString()].toObject();f["derived"]=true;f["ownerId"]=g["id"];entityFreedom[id.toString()]=f;}for(const auto& v:g["sourcePoints"].toArray()){const auto id=v.toObject()["pointId"].toString();auto f=pointFreedom[id].toObject();f["derived"]=true;f["ownerId"]=g["id"];pointFreedom[id]=f;}}
         for(const auto& row:parameters["moveGroups"].toArray()){
             const auto g=row.toObject();for(const auto& id:g["entityIds"].toArray()){auto freedom=entityFreedom[id.toString()].toObject();freedom["derived"]=true;freedom["ownerId"]=g["id"];freedom["sourceSpace"]=true;entityFreedom[id.toString()]=freedom;}
             for(const auto& row:g["sourcePoints"].toArray()){const auto id=row.toObject()["pointId"].toString();auto freedom=pointFreedom[id].toObject();freedom["derived"]=true;freedom["ownerId"]=g["id"];pointFreedom[id]=freedom;}
@@ -2995,6 +3001,7 @@ SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& dra
     try {
         validateDraft(draft);
         checkFields(arguments, {"type", "pointIds", "entityIds", "side", "origin", "endpoint"});
+        if(SketchScale::touches(draft["parameters"].toObject(),arguments))reject("Scale outputs/pivot cannot acquire new relations");
         if(SketchRotate::touches(draft["parameters"].toObject(),arguments))reject("Rotate outputs cannot acquire new relations; edit Rotate angle or axis");
         if(SketchMove::touches(draft["parameters"].toObject(),arguments))reject("Move outputs cannot acquire constraints; edit source size dimensions or Move");
         if(arguments.contains("endpoint") && (arguments["type"]!="tangent" ||
@@ -4212,6 +4219,10 @@ SketchGeometry::SolveResult SketchGeometry::retainedRotate(const QJsonObject& dr
  try{validateDraft(draft);checkFields(arguments,{"entityIds","axisLineId","angleDeg","groupId"});if(arguments.contains("groupId") && !arguments["groupId"].isString())reject("Rotate groupId must be a string UUID");if(!arguments["angleDeg"].isDouble() || !std::isfinite(arguments["angleDeg"].toDouble()) || std::abs(arguments["angleDeg"].toDouble())>360000)reject("Rotate angle must be finite within ±360000 degrees");auto candidate=draft;candidate["parameters"]=SketchRotate::create(draft["parameters"].toObject(),arguments["entityIds"].toArray(),arguments["axisLineId"].toString(),arguments["angleDeg"].toDouble(),arguments["groupId"].toString());const auto result=solveDraft(candidate,projectionContext);if(!result.ok)return {false,draft,result.diagnostics,result.error};auto actual=result.feature["parameters"].toObject(),wanted=candidate["parameters"].toObject();const auto ap=actual["points"].toArray(),wp=wanted["points"].toArray();actual.remove("points");wanted.remove("points");if(actual!=wanted || ap.size()!=wp.size())reject("Rotate changed unrelated definitions or point membership");for(int n=0;n<ap.size();++n){auto a=ap[n].toObject(),w=wp[n].toObject();for(const auto* key:{"uMm","vMm"}){if(std::abs(a[key].toDouble()-w[key].toDouble())>1e-6)reject("Rotate would move an unselected source or violate its rigid target");a[key]=w[key];}if(a!=w)reject("Rotate changed point identity or metadata");}const auto before=evaluateFeature(draft),after=evaluateFeature(candidate);const auto owned=SketchRotate::owned(candidate["parameters"].toObject());int matching=0;for(const auto& profile:before.profiles){QSet<QString> edges;for(const auto& e:profile.boundaryEdges)edges.insert(e.sourceEntityId);if(edges==owned && profile.boundaryEdges.size()==4)++matching;}if(matching!=1)reject("Rotate selection must bound one isolated simple four-Line profile");if(before.profiles.size()!=after.profiles.size())reject("Rotate changed planar profile membership");for(int n=0;n<before.profiles.size();++n)if(before.profiles[n].profileId!=after.profiles[n].profileId)reject("Rotate changed profile identity or made an invalid loop");return {true,candidate,result.diagnostics,{}};}catch(const std::exception& e){return invalidDraft(draft,QString::fromUtf8(e.what()));}
 }
 
+SketchGeometry::SolveResult SketchGeometry::retainedScale(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext){
+ try{validateDraft(draft);checkFields(arguments,{"entityIds","pivotPointId","factor","groupId"});if(arguments.contains("groupId") && !arguments["groupId"].isString())reject("Scale groupId must be a string UUID");if(!arguments["factor"].isDouble())reject("Scale Factor must be numeric");auto candidate=draft;candidate["parameters"]=SketchScale::create(draft["parameters"].toObject(),arguments["entityIds"].toArray(),arguments["pivotPointId"].toString(),arguments["factor"].toDouble(),arguments["groupId"].toString());const auto result=solveDraft(candidate,projectionContext);if(!result.ok)return {false,draft,result.diagnostics,result.error};auto actual=result.feature["parameters"].toObject(),wanted=candidate["parameters"].toObject();const auto ap=actual["points"].toArray(),wp=wanted["points"].toArray();actual.remove("points");wanted.remove("points");if(actual!=wanted || ap.size()!=wp.size())reject("Scale changed unrelated definitions or point membership");for(int n=0;n<ap.size();++n){auto a=ap[n].toObject(),w=wp[n].toObject();for(const auto* key:{"uMm","vMm"}){if(std::abs(a[key].toDouble()-w[key].toDouble())>1e-6)reject("Scale would move an unselected source or violate its rigid target");a[key]=w[key];}if(a!=w)reject("Scale changed point identity or metadata");}const auto before=evaluateFeature(draft),after=evaluateFeature(candidate);const auto owned=SketchScale::owned(candidate["parameters"].toObject());int matching=0;for(const auto& profile:before.profiles){QSet<QString> edges;for(const auto& e:profile.boundaryEdges)edges.insert(e.sourceEntityId);if(edges==owned && profile.boundaryEdges.size()==4)++matching;}if(matching!=1)reject("Scale selection must bound one isolated simple four-Line profile");if(before.profiles.size()!=after.profiles.size())reject("Scale changed planar profile membership");for(int n=0;n<before.profiles.size();++n)if(before.profiles[n].profileId!=after.profiles[n].profileId)reject("Scale changed profile identity or made an invalid loop");return {true,candidate,result.diagnostics,{}};}catch(const std::exception& e){return invalidDraft(draft,QString::fromUtf8(e.what()));}
+}
+
 SketchGeometry::SolveResult SketchGeometry::retainedMove(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext){
     try{
         validateDraft(draft);checkFields(arguments,{"entityIds","deltaUMm","deltaVMm","groupId"});const double du=coordinate(arguments,"deltaUMm"),dv=coordinate(arguments,"deltaVMm");
@@ -4266,6 +4277,12 @@ SketchGeometry::SolveResult SketchGeometry::movePoint(const QJsonObject& draft, 
         coordinate(arguments, "uMm"); coordinate(arguments, "vMm");
         auto parameters = draft["parameters"].toObject();
         if (arguments["pointId"]==parameters.value("originPointId") && parameters.contains("originPointId")) reject("Sketch origin reference cannot be moved");
+        if(SketchScale::touches(parameters,arguments["pointId"])){
+            auto candidate=draft;candidate["parameters"]=SketchScale::editPoint(parameters,arguments["pointId"].toString(),arguments["uMm"].toDouble(),arguments["vMm"].toDouble());
+            const auto solved=solveDraft(candidate,projectionContext);if(!solved.ok)return {false,draft,solved.diagnostics,solved.error};
+            const auto before=evaluateFeature(draft),after=evaluateFeature(candidate);if(before.profiles.size()!=after.profiles.size())reject("Scale source edit changed profile membership");for(size_t n=0;n<before.profiles.size();++n)if(before.profiles[n].profileId!=after.profiles[n].profileId)reject("Scale source edit changed profile identity");
+            auto diagnostics=solved.diagnostics;diagnostics["scaleSourceEdit"]=true;return {true,candidate,diagnostics,{}};
+        }
         if(SketchRotate::owned(parameters,true).contains(arguments["pointId"].toString()))reject("Rotate output is derived; edit angle or axis");
         if(SketchMove::owned(parameters,true).contains(arguments["pointId"].toString()))reject("Move output is derived; edit Move displacement or an existing source size dimension");
         if(SketchPattern::resultIds(parameters,true).contains(arguments["pointId"].toString()))reject("Pattern result is derived; move its source or edit the Pattern");
@@ -4320,7 +4337,7 @@ SketchGeometry::SolveResult SketchGeometry::movePoint(const QJsonObject& draft, 
         // Point manipulation supplies a solver seed. ArcRules restore normalized
         // analytic intent before final validation; no inconsistent state is accepted.
         if(parameters.value("projections").toArray().isEmpty() && parameters.value("circleProjections").toArray().isEmpty()
-            && parameters.value("pointReferences").toArray().isEmpty() && parameters.value("patternGroups").toArray().isEmpty()) {
+            && parameters.value("pointReferences").toArray().isEmpty() && parameters.value("patternGroups").toArray().isEmpty() && parameters.value("scaleGroups").toArray().isEmpty()) {
             const auto result=SketchSolver::solve(parameters);
             if(!result.accepted)return {false,draft,result.diagnostics,result.error};
             candidate["parameters"]=result.parameters;
@@ -4427,6 +4444,7 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature, cons
     if(parameters.contains("chamferGroups"))summary["chamferGroups"]=parameters.value("chamferGroups");
     if(parameters.contains("mirrorGroups"))summary["mirrorGroups"]=parameters.value("mirrorGroups");
     if(parameters.contains("patternGroups"))summary["patternGroups"]=parameters.value("patternGroups");
+    if(parameters.contains("scaleGroups"))summary["scaleGroups"]=parameters["scaleGroups"];
     if(parameters.contains("rotateGroups"))summary["rotateGroups"]=parameters["rotateGroups"];
     if(parameters.contains("moveGroups"))summary["moveGroups"]=parameters.value("moveGroups");
     if(parameters.contains("constructionLines3d"))summary["constructionLines3d"]=SketchAxis3d::inspect(parameters);

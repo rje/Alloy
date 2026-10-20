@@ -3729,6 +3729,7 @@ QImage ReferenceView::framebuffer() {
     return image;
 }
 void ReferenceView::mousePressEvent(QMouseEvent* e) {
+    if(e->button()==Qt::LeftButton && e->modifiers()==Qt::NoModifier && decorationSelection_["scaleInteraction"].toObject()["active"].toBool()){axis3dSuppressRelease_=true;dispatch("sketch.scalePick",{{"role",decorationSelection_["scaleInteraction"].toObject()["role"]},{"x",e->position().x()},{"y",e->position().y()}});setFocus(Qt::MouseFocusReason);e->accept();return;}
     if(e->button()==Qt::LeftButton && e->modifiers()==Qt::NoModifier && decorationSelection_["moveInteraction"].toObject()["mode"]=="rotate"){axis3dSuppressRelease_=true;dispatch("sketch.rotatePick",{{"x",e->position().x()},{"y",e->position().y()}});setFocus(Qt::MouseFocusReason);e->accept();return;}
     if(e->button()==Qt::LeftButton && e->modifiers()==Qt::NoModifier && decorationSelection_.value("axis3dInteraction").toObject().value("active").toBool()){axis3dSuppressRelease_=true;dispatch("sketch.axis3dPivot",{{"x",e->position().x()},{"y",e->position().y()}});setFocus(Qt::MouseFocusReason);e->accept();return;}
     if(e->button()==Qt::LeftButton && e->modifiers()==Qt::NoModifier && decorationSelection_.value("sketch3dEnabled").toBool() && !pickSketchAxis3d(e->position().x(),e->position().y()).isEmpty()){axis3dSuppressRelease_=true;dispatch("sketch.axis3dPick",{{"x",e->position().x()},{"y",e->position().y()}});setFocus(Qt::MouseFocusReason);e->accept();return;}

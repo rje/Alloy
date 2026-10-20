@@ -660,6 +660,7 @@ AlloyWindow::AlloyWindow() {
     auto* sketchMoveAction=modify->addAction("Move/Copy\tM");sketchMoveAction->setObjectName("sketch.action.moveCopy");
     connect(sketchMoveAction,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.moveStart"));});
     auto* sketchMoveKey=new QShortcut(QKeySequence(Qt::Key_M),view_);sketchMoveKey->setContext(Qt::WidgetShortcut);connect(sketchMoveKey,&QShortcut::activated,this,[this]{if(session_["command"]=="sketch.edit")sketchResponse(execute("sketch.moveStart"));});
+    for(const auto& route:{std::pair{QString("Scale"),QString("scaleStart")},std::pair{QString("Edit Scale"),QString("scaleEdit")}}){auto* action=modify->addAction(route.first);action->setObjectName(route.second=="scaleStart"?"sketch.action.scale":"sketch.action.editScale");connect(action,&QAction::triggered,this,[this,id=route.second]{sketchResponse(execute("sketch."+id));});}
     auto* editSketchRotate=modify->addAction("Edit Rotate");editSketchRotate->setObjectName("sketch.action.editRotate");connect(editSketchRotate,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.rotateEdit"));});
     auto* editSketchMove=modify->addAction("Edit Move");editSketchMove->setObjectName("sketch.action.editMove");connect(editSketchMove,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.moveEdit"));});
     auto* sketchMirrorAction=modify->addAction("Mirror");sketchMirrorAction->setObjectName("sketch.action.mirror");
@@ -1347,6 +1348,7 @@ AlloyWindow::AlloyWindow() {
         if(!failedEditRepair_.isEmpty()){execute("sketch.cancel");return;}
         if(session_.value("command")=="sketch.plane")execute("sketch.cancel");
         else if(session_.value("command").toString()=="sketch.edit") {
+            if(session_.contains("pendingSketchScale") || session_.contains("scaleInteraction")){execute("sketch.scaleCancel");return;}
             if(session_.contains("axis3dInteraction")){execute("sketch.axis3dCancel");return;}
             if(session_.contains("pasteInteraction")){execute("sketch.pasteCancel");return;}
             if(session_["moveInteraction"].toObject()["active"].toBool()){execute("sketch.moveExit");return;}
@@ -4079,6 +4081,7 @@ void AlloyWindow::registerCommands() {
         [this](const auto& a){return appendSketchCurve(a["mode"]=="center" ? "centerArc" : "threePointArc",a);});
     registerSketchMoveCommands();
     registerSketchRotateCommands();
+    registerSketchScaleCommands();
     registerSketchCopyCommands();
     registerSketchAxis3dCommands();
     registerSketchPatternCommands();
@@ -5306,7 +5309,7 @@ void AlloyWindow::registerCommands() {
     });
     add("sketch.lookAt","Look At sketch","Orient the view normal to the active sketch plane.",{},[this](const auto&){
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
-        const auto draft=session_.contains("pendingSketchPaste") ? session_["pendingSketchPaste"].toObject()["draft"].toObject() : session_.contains("pendingSketchMove") ? session_["pendingSketchMove"].toObject()["draft"].toObject() : session_.contains("pendingSketchPattern") ? session_["pendingSketchPattern"].toObject()["draft"].toObject() : session_.value("draftSketch").toObject();
+        const auto draft=session_.contains("pendingSketchScale") ? session_["pendingSketchScale"].toObject()["draft"].toObject() : session_.contains("pendingSketchPaste") ? session_["pendingSketchPaste"].toObject()["draft"].toObject() : session_.contains("pendingSketchMove") ? session_["pendingSketchMove"].toObject()["draft"].toObject() : session_.contains("pendingSketchPattern") ? session_["pendingSketchPattern"].toObject()["draft"].toObject() : session_.value("draftSketch").toObject();
         view_->lookAtSketch(session_.value("inputs").toObject()["plane"].toString(),session_.value("resolvedFrame").toObject(),
             sketchLookAtContent(draft,session_.value("resolvedFrame").toObject(),session_.value("projectionContext").toObject()));
         return QJsonObject{};
@@ -5769,6 +5772,7 @@ void AlloyWindow::registerCommands() {
             auto candidate=document_->authored();auto features=candidate["features"].toArray();bool found=false,isSketch=false;
             for(int i=0;i<features.size();++i) {auto feature=features[i].toObject();if(feature["id"]!=a["featureId"]) continue;
                 auto parameters=feature["parameters"].toObject();const auto edits=a["parameters"].toObject();
+                if(!parameters["scaleGroups"].toArray().isEmpty())for(const auto* key:{"points","entities","constraints","dimensions","scaleGroups"})if(edits.contains(key))return failure("scale_owned","Edit Scale or its source through sketch commands");
                 if(parameters.contains("rotateGroups") && edits.contains("rotateGroups"))return failure("rotate_owned","Edit retained Rotate through its sketch command");
                 if(parameters.contains("constructionLines3d") && edits.contains("constructionLines3d"))return failure("axis3d_owned","Edit or delete the normal construction Line through its dedicated sketch command");
                 if(!parameters["moveGroups"].toArray().isEmpty())for(const auto& key:{"points","entities","constraints","dimensions","moveGroups"})if(edits.contains(key))return failure("retained_move_owned","Edit retained Move displacement or source size through sketch commands");
@@ -6766,7 +6770,7 @@ void AlloyWindow::registerCommands() {
         }
         if(session_.value("command").toString()=="sketch.edit") {
             const auto draft=session_.value("draftSketch").toObject();
-            const auto presentation=session_.contains("pendingSketchPaste") ? session_["pendingSketchPaste"].toObject()["draft"].toObject() : session_.contains("pendingSketchMove") ? session_["pendingSketchMove"].toObject()["draft"].toObject() : session_.contains("pendingSketchPattern") ? session_["pendingSketchPattern"].toObject()["draft"].toObject() : draft;
+            const auto presentation=session_.contains("pendingSketchScale") ? session_["pendingSketchScale"].toObject()["draft"].toObject() : session_.contains("pendingSketchPaste") ? session_["pendingSketchPaste"].toObject()["draft"].toObject() : session_.contains("pendingSketchMove") ? session_["pendingSketchMove"].toObject()["draft"].toObject() : session_.contains("pendingSketchPattern") ? session_["pendingSketchPattern"].toObject()["draft"].toObject() : draft;
             const auto evaluated=evaluateSketchDraft(presentation);view_->showSketchDraft(evaluated);
             result["authoredDraft"]=draft;
             result["documentDraft"]=SketchGeometry::replaceFeature(document_->authored(),draft);
@@ -9980,6 +9984,8 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     if(session_.value("command").toString().startsWith("canvas."))return finishCanvas(id,commit);
     if (session_.isEmpty() || session_.value("id").toString() != id) return failure("invalid_session", "Session is no longer active");
     if(session_.value("command")=="sketch.edit"){
+        if(commit && (session_.contains("pendingSketchScale") || session_.contains("scaleInteraction")))return failure("pending_scale","Accept or cancel Scale before finishing the sketch");
+        if(!commit)closeSketchScaleControls();
         if(commit && session_.contains("axis3dInteraction"))return failure("pending_axis3d","Accept or cancel Normal Construction Line before finishing the sketch");
         if(!commit)closeSketchAxis3dControls();
         if(commit && session_.contains("pasteInteraction"))return failure("pending_paste","Accept or cancel Paste before finishing the sketch");
@@ -12105,6 +12111,8 @@ double AlloyWindow::sketchDimensionMeasure(const QJsonObject& targets,const QStr
 }
 
 QJsonObject AlloyWindow::publishSketchSolve(const SketchGeometry::SolveResult& solved,const QString& journalGroup) {
+    if((session_.contains("pendingSketchScale") || session_.contains("scaleInteraction")) && solved.feature!=session_["pendingSketchScale"].toObject()["draft"])return failure("pending_scale","Accept or cancel Scale before editing sketch geometry");
+    if(solved.diagnostics.value("scaleSourceEdit").toBool() && (session_.contains("pendingSketchMove") || session_.value("moveInteraction").toObject().value("active").toBool() || session_.contains("pasteInteraction")))return failure("pending_transform","Accept or cancel the active transform before editing Scale source");
     if(solved.diagnostics.value("rotateSourceSize").toBool() && (!session_.value("pendingSketchMove").toObject().isEmpty() || !session_.value("pendingSketchPaste").toObject().isEmpty() || session_.value("moveInteraction").toObject().value("active").toBool() || session_.value("pasteInteraction").toObject().value("active").toBool()))return failure("pending_transform","Accept or cancel the active transform before resizing Rotate source");
     if(session_.value("pendingSketchMove").toObject().value("rotate").toBool() && solved.feature!=session_.value("pendingSketchMove").toObject().value("draft"))return failure("pending_rotate","Accept or cancel Rotate before editing other sketch geometry");
     if(session_.value("pasteInteraction").toObject().value("active").toBool() && solved.feature!=session_.value("pendingSketchPaste").toObject().value("draft"))return failure("pending_paste","Accept or cancel Paste before editing other sketch geometry");
@@ -12123,7 +12131,7 @@ QJsonObject AlloyWindow::publishSketchSolve(const SketchGeometry::SolveResult& s
     }
     const auto candidate=SketchGeometry::replaceFeature(document_->authored(),solved.feature);const auto error=CadDocument::validate(candidate);
     if(!error.isEmpty())return failure("invalid_sketch",error);
-    if(solved.diagnostics.value("rotateSourceSize").toBool())try{GeometryKernel::evaluateDocument(candidate);}catch(const std::exception& error){return failure("rotate_source_dependency",QString::fromUtf8(error.what()));}
+    if(solved.diagnostics.value("rotateSourceSize").toBool() || solved.diagnostics.value("scaleSourceEdit").toBool())try{GeometryKernel::evaluateDocument(candidate);}catch(const std::exception& error){return failure(solved.diagnostics.value("scaleSourceEdit").toBool()?"scale_source_dependency":"rotate_source_dependency",QString::fromUtf8(error.what()));}
     auto context=session_.value("projectionContext").toObject();
     if(solved.feature["parameters"].toObject()["plane"]=="face" || solved.feature["parameters"].toObject()["plane"]=="construction")try {
         const auto editId=session_.value("inputs").toObject().value("sketchId").toString();
@@ -12277,6 +12285,7 @@ QJsonObject AlloyWindow::traverseSketchHistory(int direction) {
     cancelSlotDrag();
     if(session_.contains("axis3dInteraction")){execute("sketch.axis3dCancel");return {{"action","cancelled_input"},{"changed",false},{"draftHistory",session_["draftHistory"]}};}
     if(session_.contains("pasteInteraction")){execute("sketch.pasteCancel");return {{"action","cancelled_input"},{"changed",false},{"draftHistory",session_["draftHistory"]}};}
+    if(session_.contains("pendingSketchScale") || session_.contains("scaleInteraction")){execute("sketch.scaleCancel");return {{"action","cancelled_input"},{"changed",false},{"draftHistory",session_["draftHistory"]}};}
     if(session_.contains("pendingSketchMove") || session_["moveInteraction"].toObject()["active"].toBool()){execute("sketch.moveExit");return {{"action","cancelled_input"},{"changed",false},{"draftHistory",session_["draftHistory"]}};}
     if(session_.contains("pendingSketchPattern")){execute("sketch.patternCancel");return {{"action","cancelled_input"},{"changed",false},{"draftHistory",session_["draftHistory"]}};}
     if(session_.contains("pendingSketchMirror")){
@@ -13361,6 +13370,7 @@ void AlloyWindow::refreshSketchControls() {
     if(auto* box=findChild<QCheckBox*>("sketch.3dMode")){QSignalBlocker block(box);box->setChecked(session_.value("sketch3dEnabled").toBool());box->setEnabled(session_.value("command")=="sketch.edit" && session_.value("draftSketch").toObject()["parameters"].toObject()["plane"]=="XY");}
     if(auto* action=findChild<QAction*>("sketch.action.axis3d"))action->setEnabled(session_.value("command")=="sketch.edit" && session_.value("sketch3dEnabled").toBool());
     if(auto* action=findChild<QAction*>("sketch.action.editRotate"))action->setEnabled(session_.value("command")=="sketch.edit" && !session_["draftSketch"].toObject()["parameters"].toObject()["rotateGroups"].toArray().isEmpty());
+    if(auto* action=findChild<QAction*>("sketch.action.editScale"))action->setEnabled(session_.value("command")=="sketch.edit" && !session_["draftSketch"].toObject()["parameters"].toObject()["scaleGroups"].toArray().isEmpty());
     if(auto* action=findChild<QAction*>("sketch.action.editMove"))action->setEnabled(session_.value("command")=="sketch.edit" && !session_["draftSketch"].toObject()["parameters"].toObject()["moveGroups"].toArray().isEmpty());
     if(session_.value("tool")!="twoTangentCircle" && tangentCircleRadius_)tangentCircleRadius_->hide();
     if(!sketchSelectionTree_ || session_.value("command")!="sketch.edit")return;
@@ -13433,6 +13443,9 @@ void AlloyWindow::refreshSketchControls() {
     const auto projectPreview=session_.value("pendingProject").toObject();
     const auto patternPreview=session_.value("pendingSketchPattern").toObject();
     const auto movePreview=session_.value("pendingSketchMove").toObject();
+    const auto scalePreview=session_.value("pendingSketchScale").toObject();
+    presentationSelection["scaleInteraction"]=session_.value("scaleInteraction");
+    if(session_.contains("scaleInteraction")){const auto in=session_["scaleInteraction"].toObject();presentationSelection["entityIds"]=in["entityIds"];presentationSelection["pointIds"]=QJsonArray{in["pivotPointId"]};}
     const auto pastePreview=session_.value("pendingSketchPaste").toObject();
     presentationSelection["pasteInteraction"]=session_.value("pasteInteraction");
     if(!pastePreview.isEmpty())presentationSelection["entityIds"]=pastePreview["diagnostics"].toObject()["copiedEntityIds"];
@@ -13446,7 +13459,7 @@ void AlloyWindow::refreshSketchControls() {
     if(!patternPreview.isEmpty())presentationSelection["entityIds"]=QJsonArray{patternPreview["draft"].toObject()["parameters"].toObject()["patternGroups"].toArray().first().toObject()["sourceEntityId"]};
     for(const auto& id:session_["patternInteraction"].toObject()["pickedPointIds"].toArray()){auto ids=presentationSelection["pointIds"].toArray();if(!ids.contains(id))ids.append(id);presentationSelection["pointIds"]=ids;}
     for(const auto& id:session_["patternInteraction"].toObject()["pickedEntityIds"].toArray()){auto ids=presentationSelection["entityIds"].toArray();if(!ids.contains(id))ids.append(id);presentationSelection["entityIds"]=ids;}
-    view_->decorateSketch(!pastePreview.isEmpty() ? pastePreview["draft"].toObject() : !movePreview.isEmpty() ? movePreview["draft"].toObject() : !patternPreview.isEmpty() ? patternPreview["draft"].toObject() : !projectPreview.isEmpty() ? projectPreview["previewDraft"].toObject()
+    view_->decorateSketch(!scalePreview.isEmpty() ? scalePreview["draft"].toObject() : !pastePreview.isEmpty() ? pastePreview["draft"].toObject() : !movePreview.isEmpty() ? movePreview["draft"].toObject() : !patternPreview.isEmpty() ? patternPreview["draft"].toObject() : !projectPreview.isEmpty() ? projectPreview["previewDraft"].toObject()
             : loopPreview["valid"].toBool() ? loopPreview["previewDraft"].toObject() : draft,
         presentationSelection,patternPreview.isEmpty() ? session_.value("solverDiagnostics").toObject() : patternPreview["diagnostics"].toObject(),units,session_.value("pendingDimension").toObject());
     if(sketchCurveEntry_){const auto tool=session_["tool"].toString();sketchCurveEntry_->setVisible(tool=="circle" || tool=="centerArc" || tool=="threePointArc");}
