@@ -39,7 +39,8 @@ EvaluatedBody SurfaceSweep::evaluate(const QJsonObject& feature,const EvaluatedD
     const bool backwards=curve.Value(curve.FirstParameter()).Distance(retainedStart)>1e-7;
     gp_Pnt start,finish;gp_Vec tangent,endTangent;curve.D1(backwards?curve.LastParameter():curve.FirstParameter(),start,tangent);curve.D1(backwards?curve.FirstParameter():curve.LastParameter(),finish,endTangent);
     if(start.Distance(retainedStart)>1e-7 || start.Distance(finish)<1e-7 || tangent.Magnitude()<1e-10)reject("degenerate_path","Path must have distinct retained endpoints and a nonzero tangent");
-    if(backwards){pathEdge.Reverse();tangent.Reverse();}tangent.Normalize();
+    if((pathEdge.Orientation()==TopAbs_REVERSED)!=backwards)pathEdge.Reverse();
+    if(backwards)tangent.Reverse();tangent.Normalize();
     const auto a=section.Value(section.FirstParameter()),b=section.Value(section.LastParameter());const gp_Vec width(a,b);
     if(width.Magnitude()<1e-7)reject("degenerate_section","Section must have positive solved length");
     const gp_Pnt midpoint((a.X()+b.X())/2,(a.Y()+b.Y())/2,(a.Z()+b.Z())/2);
