@@ -106,3 +106,62 @@ The reviewer accepted the bounded Qt active-sketch component, shared-command
 lifetime and focused evidence. It confirmed that gesture events are Qt-delivered,
 keyboard and assistive-technology operation are unverified, and the captured
 AppKit state was inactive; no physical-input parity is inferred.
+
+## 2026-10-20 SKT-175 visual/access candidate
+
+This bounded refinement adds independently authored geometric icons to supported
+radial and context-list actions, a transparent radial field, compact 24px radial
+targets with full text, 11px compact list rows, and blue focus/hover/gesture states.
+Targets are sized from the live font metrics and do not overlap. Popup and
+held-gesture relocation clamp the complete menu to the available screen. The
+context list remains normal authoritative QMenu actions; no modeling capability
+or unsupported slot is added. External researched contract:
+`knowledge/specs/skt175-menu-visual-access-2026-10-20.md`, reusing source IDs
+SKT173-R1/R2 and `tutorial-illustrated-bracket-a2` with archived provenance.
+
+Tab/Shift-Tab traverses visible enabled radial controls and context rows in a
+cycle. Radial arrows follow clockwise/counterclockwise order; Enter or Space
+invokes the focused button. Keyboard submenu entry puts focus at Finish Sketch,
+and Return to first level is a real accessible button. Escape dismisses from
+both areas. Names, button roles, action interfaces, shared commands/arguments and
+stable IDs remain available; menu diagnostics now include global position and
+DPR. Screen-reader narration is not qualified by interface inspection alone.
+
+Accepted build directory remains `build-preview-release`, Release/private Qt
+6.11.2/OCCT 7.9.3, targets `alloy` and `bracket_midpoint_controls_test`, `-j4`.
+External final evidence: `validation/skt175-2026-10-20/final2/`; build log is one
+level above. The focused test passes **4/4 in 19.1 seconds**:
+
+- The isolated component fixture uses actual-hit clicks on all eleven command
+  buttons, plus Sketch, Back and dismissal. It separately verifies all eight
+  clockwise Sketch gesture octants, exact command IDs/tool arguments, real Qt
+  accessibility names/button roles/action interfaces, disjoint target bounds,
+  full keyboard traversal/wrap/reverse execution and four screen-corner bounds.
+  Its command callback records dispatch; it does not claim document outcomes.
+- The actual Alloy fixture starts Line by uninterrupted keyboard traversal and
+  actual-hit clicks start Line, Circle, Fit Point Spline, Offset and Dimension.
+  Line/Circle gestures and Escape/center/outside cancellation still pass without
+  interstep focus or selection repairs. Natural viewport focus is asserted before
+  the next input. The selected-cap Normal/Construction route, midpoint/tangent
+  geometry, radius edits, stable IDs, Undo/Redo and exact save/reopen still pass.
+- Actual transparent popup grabs, whole-app GPU composition and keyboard-focus
+  capture were inspected. Labels remain readable and the focused Line has the
+  blue state. The QTest mouse-move-only capture has no visible hover highlight;
+  physical pointer hover is unqualified, alongside AppKit/OS input SKT-171/#694.
+
+This fixture remains 1500×950 logical, XY/light/Fit then 0.75 zoom; viewport
+932×616 logical, 1864×1232 framebuffer, Apple M4/Apple/OpenGL 4.1 Metal – 90.5,
+macOS 26.5.1, DPR2. AppKit application/key-window flags remain false. Qt logs
+retain `QWidgetWindow ... must be a top level window` warnings during captures;
+API/geometry/input assertions pass. DPR1, Windows/Linux runtime, physical input
+and assistive-technology operation remain unqualified.
+
+| Checkpoint | Bounded result |
+| --- | --- |
+| Original icons, transparent field, readable compact radial targets | Implemented and actual app captures inspected. Symbols are independently authored; no reference asset shipped. |
+| Supported click/gesture routes, keyboard and Qt accessibility interfaces | Matched bounded command dispatch; representative real-app outcomes and original bracket route pass. |
+| Exact public metrics/theme/hover | Unknown: archive does not identify platform/build/DPR. Physical hover was not observed. |
+| Lower-list silhouette | Mismatch: QMenu rows still occupy the full radial width, whereas the archived image has a narrower centered list. Proposed Todo follow-up must retain actual row hits, keyboard/accessibility and cancellation. |
+
+This is a candidate pending independent review and issue scope reconciliation.
+No CI, tag, push or release was performed. All private validation windows closed.

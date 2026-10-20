@@ -1,3 +1,17 @@
+## 2026-10-20 SKT-175 bounded visual/access candidate
+
+[Menu receipt](validation/canvas-marking-menu.md#2026-10-20-skt-175-visualaccess-candidate)
+records original icons, transparent compact radial targets, screen clamping and
+explicit radial/list keyboard traversal. `build-preview-release` real-app fixture
+passes 4/4 in 19.1s; component actual-hit checks cover all command buttons/eight
+gesture octants/accessibility interfaces, while real Alloy covers keyboard Line,
+five tool clicks and the full retained bracket route. External captures/receipt:
+`validation/skt175-2026-10-20/final2/`. DPR2 Apple M4 and actual focus-state
+captures inspected; physical hover/input/VoiceOver and native DPR1 remain
+unqualified. Lower list still spans radial width, unlike the narrower centered
+public screenshot: explicit Todo remainder proposed. Independent review and
+issue scope reconciliation pending; no CI/push/release. Private windows closed.
+
 ## 2026-10-20 SKT-173 active-sketch menu acceptance
 
 [Canvas marking-menu receipt](validation/canvas-marking-menu.md) records a

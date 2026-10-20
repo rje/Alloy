@@ -2,6 +2,10 @@
 #include "AlloyTheme.h"
 #include "AlloyWindow.h"
 #include "ReferenceView.h"
+#include "CanvasMarkingMenu.h"
+#include <QAccessible>
+#include <QPointer>
+#include <QScreen>
 #include <QApplication>
 #include <QDir>
 #include <QFile>
@@ -181,6 +185,67 @@ class BracketMidpointControls final : public QObject {
     }
   }
 private slots:
+  void radialContract() {
+    AlloyTheme::apply(*qApp);
+    QWidget owner;owner.resize(700,600);owner.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&owner));
+    QApplication::setActiveWindow(&owner);
+    QString result;QJsonObject arguments;
+    auto open=[&](QPoint at=QPoint{}) {
+      result.clear();arguments={};
+      auto* m=new CanvasMarkingMenu(&owner,[&](const QString& command,const QJsonObject& args){result=command;arguments=args;},true);
+      m->addAction("Sketch Dimension")->setObjectName("test.dimension");
+      m->addAction("Normal/Construction")->setObjectName("test.construction");
+      m->openAt(at.isNull()?owner.mapToGlobal(QPoint(350,200)):at);QTest::qWait(50);return m;
+    };
+    auto click=[&](CanvasMarkingMenu* m,const QString& id) {
+      auto* b=m->findChild<QToolButton*>("context.radial."+id);
+      check(b&&b->isVisible(),"visible "+id);
+      check(QApplication::widgetAt(b->mapToGlobal(b->rect().center()))==b,"actual radial hit "+id);
+      auto* accessible=QAccessible::queryAccessibleInterface(b);
+      check(accessible&&accessible->role()==QAccessible::Button&&!accessible->text(QAccessible::Name).isEmpty()&&accessible->actionInterface(),"accessible button "+id);
+      check(!b->icon().isNull()||id=="back"||id=="dismiss","original icon "+id);
+      QTest::mouseClick(b,Qt::LeftButton);QTest::qWait(50);
+    };
+    try {
+      for(const auto& pair:QList<QPair<QString,QString>>{{"redo","history.redo"},{"undo","history.undo"},{"delete","sketch.deleteSelection"}}){
+        auto* m=open();click(m,pair.first);check(result==pair.second&&!QApplication::activePopupWidget(),"first-level shared command "+pair.first);
+      }
+      const QStringList ids{"finish","rectangle","spline","project","line","offset","dimension","circle"};
+      const QStringList commands{"sketch.finish","sketch.twoPointRectangle","sketch.tool","sketch.projectBegin","sketch.tool","sketch.tool","sketch.tool","sketch.tool"};
+      for(int i=0;i<ids.size();++i){auto* m=open();click(m,"sketch");
+        auto buttons=m->findChildren<QToolButton*>();
+        for(auto* a:buttons)if(a->isVisible())for(auto* b:buttons)if(b!=a&&b->isVisible())check(!a->geometry().intersects(b->geometry()),"disjoint button hit regions");
+        click(m,ids[i]);check(result==commands[i]&&!QApplication::activePopupWidget(),"Sketch click command "+ids[i]);
+        if(commands[i]=="sketch.tool")check(arguments.value("tool")== (ids[i]=="spline"?QString("fitSpline"):ids[i]),"shared tool arguments");
+      }
+      const QList<QPoint> directions{{0,-45},{45,-45},{45,0},{45,45},{0,45},{-45,45},{-45,0},{-45,-45}};
+      for(int i=0;i<8;++i){auto* m=open();const QPoint start=owner.mapToGlobal(QPoint(350,200)),turn=start+QPoint(0,50),end=turn+directions[i];
+        auto send=[&](QEvent::Type type,QPoint global){QMouseEvent event(type,QPointF(m->mapFromGlobal(global)),QPointF(global),type==QEvent::MouseButtonRelease?Qt::RightButton:Qt::NoButton,type==QEvent::MouseButtonRelease?Qt::NoButton:Qt::RightButton,Qt::NoModifier);QApplication::sendEvent(m,&event);};
+        send(QEvent::MouseMove,turn);check(m->property("radialLevel")=="sketch","gesture enters Sketch");send(QEvent::MouseMove,end);
+        auto* active=m->findChild<QToolButton*>("context.radial."+ids[i]);check(active->property("gestureActive").toBool(),"gesture hover direction "+ids[i]);
+        send(QEvent::MouseButtonRelease,end);QTest::qWait(50);check(result==commands[i]&&!QApplication::activePopupWidget(),"octant command "+ids[i]);
+      }
+      auto* m=open();click(m,"sketch");click(m,"back");check(m->property("radialLevel")=="design","back returns to first level");
+      QTest::keyClick(m,Qt::Key_Tab);check(QApplication::focusWidget()->objectName()=="context.radial.redo","Tab enters radial controls");
+      const QStringList traversal{"sketch","undo","delete","dismiss"};
+      for(const auto& id:traversal){QTest::keyClick(QApplication::focusWidget(),Qt::Key_Tab);check(QApplication::focusWidget()->objectName()=="context.radial."+id,"radial keyboard traversal "+id);}
+      QTest::keyClick(QApplication::focusWidget(),Qt::Key_Tab);check(m->activeAction()&&m->activeAction()->objectName()=="test.dimension","Tab reaches context list");
+      QTest::keyClick(m,Qt::Key_Tab);check(m->activeAction()->objectName()=="test.construction","Tab traverses list");
+      QTest::keyClick(m,Qt::Key_Tab);check(QApplication::focusWidget()->objectName()=="context.radial.redo","Tab wraps to radial");
+      QTest::keyClick(QApplication::focusWidget(),Qt::Key_Tab,Qt::ShiftModifier);check(m->activeAction()->objectName()=="test.construction","reverse traversal");
+      QTest::keyClick(m,Qt::Key_Escape);QTest::qWait(50);check(!QApplication::activePopupWidget()&&result.isEmpty(),"keyboard cancellation");
+      m=open();QTest::keyClick(m,Qt::Key_Tab);
+      QTest::keyClick(QApplication::focusWidget(),Qt::Key_Right);
+      check(QApplication::focusWidget()->objectName()=="context.radial.sketch","arrows reach Sketch");
+      QTest::keyClick(QApplication::focusWidget(),Qt::Key_Return);check(m->property("radialLevel")=="sketch"&&QApplication::focusWidget()->objectName()=="context.radial.finish","keyboard enters Sketch at first command");
+      for(int i=0;i<4;++i)QTest::keyClick(QApplication::focusWidget(),Qt::Key_Right);
+      QTest::keyClick(QApplication::focusWidget(),Qt::Key_Space);QTest::qWait(50);check(result=="sketch.tool"&&arguments.value("tool")=="line","keyboard executes actual button command");
+      const auto available=owner.screen()->availableGeometry();
+      for(const QPoint corner:{available.topLeft(),available.topRight(),available.bottomLeft(),available.bottomRight()}){m=open(corner);check(available.contains(m->geometry()),"popup clamped to available screen");QTest::keyClick(m,Qt::Key_Escape);QTest::qWait(50);}
+      owner.close();
+    } catch(const std::exception& e){if(auto* popup=QApplication::activePopupWidget())popup->close();owner.close();QFAIL(e.what());}
+  }
   void activity2() {
     output = qEnvironmentVariable("ALLOY_BRACKET_MIDPOINT_EVIDENCE");
     if (output.isEmpty())
@@ -267,16 +332,33 @@ private slots:
       const QPoint outside=m->mapFromGlobal(view->mapToGlobal(QPoint(30,30)));
       QTest::mouseClick(m,Qt::LeftButton,Qt::NoModifier,outside);QTest::qWait(80);
       check(!QApplication::activePopupWidget(),"outside dismisses menu");ready();
-      for(const auto& tool:QStringList{"line","circle"}) {
+      m=popup();QTest::keyClick(m,Qt::Key_Tab);
+      check(QApplication::focusWidget()->objectName()=="context.radial.redo","real app keyboard begins at Redo");
+      QTest::keyClick(QApplication::focusWidget(),Qt::Key_Right);
+      check(QApplication::focusWidget()->objectName()=="context.radial.sketch","real app keyboard reaches Sketch");
+      QTest::keyClick(QApplication::focusWidget(),Qt::Key_Return);
+      check(m->property("radialLevel")=="sketch"&&QApplication::focusWidget()->objectName()=="context.radial.finish","natural submenu keyboard focus");
+      for(int i=0;i<4;++i)QTest::keyClick(QApplication::focusWidget(),Qt::Key_Right);
+      check(QApplication::focusWidget()->objectName()=="context.radial.line","real app keyboard reaches Line");
+      check(m->grab().save(output+"/00-keyboard-focus.png"),"keyboard focus capture");
+      QTest::keyClick(QApplication::focusWidget(),Qt::Key_Return);QTest::qWait(80);
+      check(!QApplication::activePopupWidget()&&session().value("tool")=="line","real app keyboard invokes shared Line");
+      ready();key(Qt::Key_Escape);
+      for(const auto& tool:QStringList{"line","circle","fitSpline","offset","dimension"}) {
         m=popup();clickButton(m,"context.radial.sketch");
         check(m->property("radialLevel")=="sketch","Sketch opens second radial level");
         if(tool=="line"){
           check(m->grab().save(output+"/00-sketch-radial.png"),"Sketch radial capture");
           capture("00-sketch-radial-app");
+          auto* hovered=m->findChild<QToolButton*>("context.radial.line");
+          check(QApplication::widgetAt(hovered->mapToGlobal(hovered->rect().center()))==hovered,"hover receives actual hit");
+          QTest::mouseMove(hovered,hovered->rect().center());QTest::qWait(50);
+          check(m->grab().save(output+"/00-line-hover.png"),"hover capture");
         }
-        auto* button=m->findChild<QToolButton*>("context.radial."+tool);
+        const auto radialId=tool=="fitSpline" ? QString("spline") : tool;
+        auto* button=m->findChild<QToolButton*>("context.radial."+radialId);
         check(button->property("commandId")=="sketch.tool","radial shares authoritative tool command");
-        clickButton(m,"context.radial."+tool);
+        clickButton(m,"context.radial."+radialId);
         check(!QApplication::activePopupWidget() && session().value("tool")==tool,"radial click starts shared "+tool);
         ready();key(Qt::Key_Escape);
         check(session().value("tool")=="select","Escape returns to selection");
