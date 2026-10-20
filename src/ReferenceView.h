@@ -400,6 +400,8 @@ private:
     QJsonArray annotationLayouts_;
     QJsonArray constraintGlyphs_;
     QJsonArray patternGlyphs_;
+    QJsonArray patternHandles_;
+    QJsonObject patternHandleDrag_;
     QJsonObject sketchDisplayOptions_;
     bool showConstraints_ = true;
     bool showDimensions_ = true;

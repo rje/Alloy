@@ -1796,7 +1796,7 @@ void ReferenceView::clearSketchDecorations() {
     if(!context_.IsNull())for(const auto& decoration:sketchDecorations_)context_->Remove(decoration,false);
     sketchDecorations_.clear();splineHandleState_={};
     annotationLayouts_={};chamferHandles_={};
-    constraintGlyphs_={};patternGlyphs_={};
+    constraintGlyphs_={};patternGlyphs_={};patternHandles_={};
 }
 QJsonObject ReferenceView::dimensionLayout(const QJsonObject& feature,const QJsonObject& dimension,double valueMm,const QString& units) const {
     if(view_.IsNull())return {};
@@ -2106,6 +2106,7 @@ void ReferenceView::decorateSketch(const QJsonObject& sourceFeature,const QJsonO
     if(sourceFeature!=decorationFeature_ || selection!=decorationSelection_
         || (!sketchSelectOtherPreview_.isEmpty() && !sketchEntityVisible(sketchSelectOtherPreview_.value("entityId").toString())))
         previewSketchSelectionCandidate();
+    if(!selection["patternInteraction"].toObject()["active"].toBool())patternHandleDrag_={};
     decorationFeature_=sourceFeature;decorationSelection_=selection;decorationDiagnostics_=diagnostics;decorationUnits_=units;decorationPending_=pending;
     clearSketchDecorations();if(context_.IsNull())return;
     const bool insetPresentation=std::any_of(draftProfiles_.begin(),draftProfiles_.end(),[](const auto& profile){
@@ -2177,10 +2178,11 @@ void ReferenceView::decorateSketch(const QJsonObject& sourceFeature,const QJsonO
         marker->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(marker,0,-1,false);context_->Deactivate(marker);sketchDecorations_.push_back(marker);
     }
     for(const auto& entry:parameters["entities"].toArray()) {
-        const auto entity=entry.toObject();if(!sketchEntityVisible(entity.value("id").toString()) || entity["type"]=="point" || !selection["entityIds"].toArray().contains(entity["id"]))continue;
+        const auto entity=entry.toObject();if(!sketchEntityVisible(entity.value("id").toString()) || entity["type"]=="point" || (!selection["entityIds"].toArray().contains(entity["id"]) && selection["patternInteraction"].toObject()["hoveredEntityId"]!=entity["id"]))continue;
         const auto edge=SketchGeometry::analyticEdge(parameters,entity,sketchFrame_);
         const auto highlight=entity.value("construction").toBool() ? constructionPresentation(edge,true) : entity.value("centerline").toBool() ? centerlinePresentation(edge,true) : sketchPresentation(edge);
         if(!entity.value("construction").toBool() && !entity.value("centerline").toBool()){highlight->SetColor(selection.value("tool")=="chamfer" ? Quantity_Color(0.88,0.16,0.12,Quantity_TOC_RGB) : Quantity_Color(0.08,0.43,0.91,Quantity_TOC_sRGB));highlight->SetWidth(4);}
+        if(selection["patternInteraction"].toObject()["hoveredEntityId"]==entity["id"]){highlight->SetColor(Quantity_Color(.98,.62,.08,Quantity_TOC_sRGB));highlight->SetWidth(4*devicePixelRatioF());}
         highlight->SetZLayer(Graphic3d_ZLayerId_Topmost);
         context_->Display(highlight,AIS_WireFrame,-1,false);context_->Deactivate(highlight);sketchDecorations_.push_back(highlight);
     }
@@ -2472,6 +2474,22 @@ void ReferenceView::decorateSketch(const QJsonObject& sourceFeature,const QJsonO
         auto glyph=sketchPresentation(strokes);glyph->SetColor(Quantity_Color(.36,.39,.42,Quantity_TOC_sRGB));glyph->SetWidth(1.6*devicePixelRatioF());glyph->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(glyph,AIS_WireFrame,-1,false);context_->Deactivate(glyph);sketchDecorations_.push_back(glyph);
         double left=1e100,top=1e100,right=-1e100,bottom=-1e100;for(double x:{-10.,10.})for(double y:{-8.,8.}){const auto p=projectSketchPoint(u+x*size,v+y*size,plane);left=std::min(left,p["x"].toDouble());right=std::max(right,p["x"].toDouble());top=std::min(top,p["y"].toDouble());bottom=std::max(bottom,p["y"].toDouble());}
         patternGlyphs_.append(QJsonObject{{"groupId",group["id"]},{"sourceEntityId",group["sourceEntityId"]},{"bounds",QJsonObject{{"x",left},{"y",top},{"width",right-left},{"height",bottom-top}}},{"viewportLocal",true},{"units","logicalPixels"}});
+    }
+    if(selection["patternInteraction"].toObject()["active"].toBool() && !selection["patternInteraction"].toObject()["invalid"].toBool() && selection["patternInteraction"].toObject()["role"]=="values")for(const auto& row:parameters["patternGroups"].toArray()){
+        const auto group=row.toObject();if(group["type"]!="rectangular")continue;const auto seed=entities.value(group["sourceEntityId"].toString()),center=points.value(seed["centerPointId"].toString());
+        const QPointF origin(center["uMm"].toDouble(),center["vMm"].toDouble());
+        for(int axis=1;axis<=2;++axis){const auto line=entities.value(group[QString("direction%1EntityId").arg(axis)].toString()),first=points.value(line["startPointId"].toString()),last=points.value(line["endPointId"].toString());
+            auto direction=QPointF(last["uMm"].toDouble()-first["uMm"].toDouble(),last["vMm"].toDouble()-first["vMm"].toDouble());const double length=std::hypot(direction.x(),direction.y());if(length<.001)continue;direction/=length;const QPointF normal(-direction.y(),direction.x());
+            const auto a=projectSketchPoint(origin.x(),origin.y(),plane),b=projectSketchPoint(origin.x()+100,origin.y(),plane);const double pixels=std::hypot(b["x"].toDouble()-a["x"].toDouble(),b["y"].toDouble()-a["y"].toDouble());if(pixels<1e-6)continue;const double size=100/pixels;
+            const double spacing=group[QString("spacing%1Mm").arg(axis)].toDouble();const int quantity=group[QString("quantity%1").arg(axis)].toInt();
+            for(const bool count:{false,true}){const auto anchor=origin+direction*(spacing*(count ? quantity-1 : 1))+normal*((count ? -1 : 1)*28*size);const auto screen=projectSketchPoint(anchor.x(),anchor.y(),plane);
+                TopoDS_Compound strokes;BRep_Builder builder;builder.MakeCompound(strokes);auto stroke=[&](double x1,double y1,double x2,double y2){const auto p=anchor+(direction*x1+normal*y1)*size,q=anchor+(direction*x2+normal*y2)*size;builder.Add(strokes,BRepBuilderAPI_MakeEdge(sketchWorld(plane,p.x(),p.y()),sketchWorld(plane,q.x(),q.y())).Edge());};
+                if(count){stroke(-5,-5,5,-5);stroke(5,-5,5,5);stroke(5,5,-5,5);stroke(-5,5,-5,-5);stroke(-2,0,2,0);stroke(0,-2,0,2);}else{stroke(-9,0,9,0);stroke(9,0,4,4);stroke(9,0,4,-4);stroke(-9,0,-4,4);stroke(-9,0,-4,-4);}
+                auto graphic=sketchPresentation(strokes);graphic->SetColor(axis==1 ? Quantity_Color(.1,.43,.81,Quantity_TOC_sRGB) : Quantity_Color(.77,.3,.1,Quantity_TOC_sRGB));graphic->SetWidth(2.2*devicePixelRatioF());graphic->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(graphic,AIS_WireFrame,-1,false);context_->Deactivate(graphic);sketchDecorations_.push_back(graphic);
+                Handle(AIS_TextLabel) label=new AIS_TextLabel;label->SetText(TCollection_ExtendedString(QString("%1%2 · %3").arg(count ? "N" : "D").arg(axis).arg(count ? QString::number(quantity) : QString::number(spacing,'g',6)+" mm").toUtf8().constData(),true));const auto labelPoint=anchor+normal*((count ? -1 : 1)*12*size);const auto labelScreen=projectSketchPoint(labelPoint.x(),labelPoint.y(),plane);const double labelDx=labelScreen["x"].toDouble()-screen["x"].toDouble();label->SetHJustification(std::abs(labelDx)<2 ? Graphic3d_HTA_CENTER : labelDx<0 ? Graphic3d_HTA_RIGHT : Graphic3d_HTA_LEFT);label->SetPosition(sketchWorld(plane,labelPoint.x(),labelPoint.y()));label->SetHeight(12);label->SetColor(Quantity_Color(.2,.25,.3,Quantity_TOC_sRGB));label->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(label,false);context_->Deactivate(label);sketchDecorations_.push_back(label);
+                patternHandles_.append(QJsonObject{{"key",QString(count ? "quantity%1" : "spacing%1Mm").arg(axis)},{"kind",count ? "quantity" : "distance"},{"axis",axis},{"value",count ? double(quantity) : spacing},{"spacingMm",spacing},{"uMm",anchor.x()},{"vMm",anchor.y()},{"unitU",direction.x()},{"unitV",direction.y()},{"x",screen["x"]},{"y",screen["y"]},{"hitRadius",12},{"viewportLocal",true}});
+            }
+        }
     }
     QMap<QString,QJsonObject> measurements;
     for(const auto& entry:diagnostics["dimensionValues"].toArray()){const auto value=entry.toObject();measurements[value["id"].toString()]=value;}
@@ -3585,6 +3603,8 @@ QJsonObject ReferenceView::diagnostics() const {
     result.insert("sketchSnapCue",snapCue);
     result.insert("sketchConstraintGlyphs",constraintGlyphs_);
     result.insert("sketchPatternGlyphs",patternGlyphs_);
+    result.insert("sketchPatternHandles",patternHandles_);
+    result.insert("sketchPatternHandleDrag",patternHandleDrag_);
     result.insert("splineHandles",splineHandleState_);
     result.insert("conicHandle",conicHandleState_);
     result.insert("sketchConstraintVisibility",QJsonObject{{"visible",!decorationFeature_.isEmpty()},{"editable",false}});
@@ -3721,6 +3741,12 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
             navigationWindowBand_->setGeometry(QRect(e->position().toPoint(),QSize()));
             navigationWindowBand_->show();navigationWindowBand_->raise();
         } else setCursor(Qt::ClosedHandCursor);
+        setFocus(Qt::MouseFocusReason);e->accept();return;
+    }
+    if(e->button()==Qt::LeftButton && e->modifiers()==Qt::NoModifier && decorationSelection_["patternInteraction"].toObject()["active"].toBool()){
+        const auto role=decorationSelection_["patternInteraction"].toObject()["role"].toString();
+        if(role!="values"){dispatch("sketch.patternPick",{{"x",e->position().x()},{"y",e->position().y()}});setFocus(Qt::MouseFocusReason);e->accept();return;}
+        for(const auto& row:patternHandles_){const auto handle=row.toObject();if(QLineF(e->position(),QPointF(handle["x"].toDouble(),handle["y"].toDouble())).length()>handle["hitRadius"].toDouble())continue;const auto point=sketchPoint(e->position().x(),e->position().y(),sketchPlane_,sketchFrame_);patternHandleDrag_=handle;patternHandleDrag_["pressU"]=point["uMm"];patternHandleDrag_["pressV"]=point["vMm"];dispatch("sketch.patternHandle",{{"phase","begin"},{"key",handle["key"]}});setFocus(Qt::MouseFocusReason);e->accept();return;}
         setFocus(Qt::MouseFocusReason);e->accept();return;
     }
     if(orbitCenterPicking_ && e->button()==Qt::LeftButton) {
@@ -3928,6 +3954,12 @@ void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
         } else {e->accept();return;}
     }
 
+    if(!patternHandleDrag_.isEmpty() && e->buttons().testFlag(Qt::LeftButton)){
+        const auto point=sketchPoint(e->position().x(),e->position().y(),sketchPlane_,sketchFrame_);const double delta=(point["uMm"].toDouble()-patternHandleDrag_["pressU"].toDouble())*patternHandleDrag_["unitU"].toDouble()+(point["vMm"].toDouble()-patternHandleDrag_["pressV"].toDouble())*patternHandleDrag_["unitV"].toDouble();
+        const double value=patternHandleDrag_["kind"]=="quantity" ? patternHandleDrag_["value"].toDouble()+std::round(delta/patternHandleDrag_["spacingMm"].toDouble()) : std::round((patternHandleDrag_["value"].toDouble()+delta)*10)/10;
+        dispatch("sketch.patternHandle",{{"phase","move"},{"value",value}});e->accept();return;
+    }
+    if(decorationSelection_["patternInteraction"].toObject()["active"].toBool() && decorationSelection_["patternInteraction"].toObject()["role"]!="values"){dispatch("sketch.patternHover",{{"x",e->position().x()},{"y",e->position().y()}});e->accept();return;}
     if(!chamferDrag_.isEmpty() && e->buttons().testFlag(Qt::LeftButton)){
         const auto point=sketchPoint(e->position().x(),e->position().y(),sketchPlane_,sketchFrame_);
         const QPointF axis(chamferDrag_.value("axisU").toDouble(),chamferDrag_.value("axisV").toDouble());
@@ -4115,6 +4147,9 @@ void ReferenceView::keyReleaseEvent(QKeyEvent* e) {
     QWidget::keyReleaseEvent(e);
 }
 void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
+    if(e->button()==Qt::LeftButton && !patternHandleDrag_.isEmpty()){patternHandleDrag_={};dispatch("sketch.patternHandle",{{"phase","end"}});e->accept();return;}
+    if(e->button()==Qt::LeftButton && decorationSelection_["patternInteraction"].toObject()["active"].toBool()){e->accept();return;}
+
     if(e->button()==Qt::LeftButton && sketchSelectOtherPending_) {
         sketchSelectOtherTimer_->stop();sketchSelectOtherPending_=false;
         if(!sketchSelectOtherOpened_)dispatch("sketch.selectionPick",{{"x",e->position().x()},{"y",e->position().y()}});

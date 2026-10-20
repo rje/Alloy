@@ -14,10 +14,12 @@
 #include <QSpinBox>
 #include <QShortcut>
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 namespace {
 class PatternDock final:public QDockWidget{public:using QDockWidget::QDockWidget;std::function<void()> closed;protected:void closeEvent(QCloseEvent* event)override{if(closed)closed();QDockWidget::closeEvent(event);}};
 QJsonObject failure(const QString& code,const QString& message){return {{"ok",false},{"error",QJsonObject{{"code",code},{"message",message}}}};} }
 void AlloyWindow::registerSketchPatternCommands(){
+ registerSketchPatternInteractionCommands();
  auto add=[this](const QString& id,const QString& title,const QJsonObject& parameters,std::function<QJsonObject(const QJsonObject&)> run){commands_.push_back({id,title,title,parameters,true,std::move(run)});};
  // The same retained solver and transient draft serve native and local control.
  QJsonObject schema;for(const auto* key:{"groupId","sourceEntityId","direction1EntityId","direction2EntityId","type","centerPointId","mode"})schema[key]=QJsonObject{{"type","string"},{"required",QString(key)=="sourceEntityId"}};
@@ -29,12 +31,15 @@ void AlloyWindow::registerSketchPatternCommands(){
    base=prior["draft"].toObject();inputs["groupId"]=base["parameters"].toObject()["patternGroups"].toArray().first().toObject()["id"];
   }
   const auto solved=SketchGeometry::rectangularPattern(base,inputs,session_["projectionContext"].toObject());
-  if(!solved.ok){session_.remove("pendingSketchPattern");view_->showSketchDraft(evaluateSketchDraft(session_["draftSketch"].toObject()));return failure("sketch_pattern_failed",solved.error);}
+  if(!solved.ok){auto interaction=session_["patternInteraction"].toObject();interaction["invalid"]=true;session_["patternInteraction"]=interaction;session_.remove("pendingSketchPattern");view_->showSketchDraft(evaluateSketchDraft(session_["draftSketch"].toObject()));return failure("sketch_pattern_failed",solved.error);}
   // An existing explicit downstream profile set must remain complete. Refuse
   // removed indices before publishing a draft history item or preview.
   if(!session_["inputs"].toObject()["sketchId"].toString().isEmpty())try{
    GeometryKernel::evaluateDocument(SketchGeometry::replaceFeature(document_->authored(),solved.feature));
   }catch(const std::exception& error){session_.remove("pendingSketchPattern");view_->showSketchDraft(evaluateSketchDraft(session_["draftSketch"].toObject()));return failure("sketch_pattern_dependency",QString::fromUtf8(error.what()));}
+  if(session_["patternInteraction"].toObject()["active"].toBool()){
+   auto interaction=session_["patternInteraction"].toObject();interaction["inputs"]=a;interaction.remove("error");interaction.remove("invalid");session_["patternInteraction"]=interaction;
+  }
   const auto geometry=evaluateSketchDraft(solved.feature);
   session_["pendingSketchPattern"]=QJsonObject{{"base",session_["draftSketch"]},{"draft",solved.feature},{"diagnostics",solved.diagnostics},{"geometry",geometry.summary}};
   view_->showSketchDraft(geometry);displayedSketchDraft_=session_["draftSketch"].toObject();
@@ -43,11 +48,11 @@ void AlloyWindow::registerSketchPatternCommands(){
  add("sketch.patternAccept","Accept Sketch Pattern",{},[this](const auto&){
   const auto pending=session_["pendingSketchPattern"].toObject();if(pending.isEmpty())return failure("pattern_preview_required","Preview a sketch pattern first");
   if(pending["base"]!=session_["draftSketch"])return failure("stale_pattern_preview","The sketch changed; preview again");
-  return publishSketchSolve(SketchGeometry::solveDraft(pending["draft"].toObject(),session_["projectionContext"].toObject()));
+  const auto result=publishSketchSolve(SketchGeometry::solveDraft(pending["draft"].toObject(),session_["projectionContext"].toObject()));if(!result.contains("error")){session_.remove("patternInteraction");session_.remove("patternHandleGesture");}return result;
  });
  add("sketch.patternCancel","Cancel Sketch Pattern",{},[this](const auto&){
   if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
-  session_.remove("pendingSketchPattern");const auto draft=session_["draftSketch"].toObject();view_->showSketchDraft(evaluateSketchDraft(draft));displayedSketchDraft_=draft;
+  session_.remove("pendingSketchPattern");session_.remove("patternInteraction");session_.remove("patternHandleGesture");const auto draft=session_["draftSketch"].toObject();view_->showSketchDraft(evaluateSketchDraft(draft));displayedSketchDraft_=draft;
   return QJsonObject{{"pending",false},{"authoredChange",false}};
  });
  add("sketch.patternEdit","Edit Sketch Pattern",{{"groupId",QJsonObject{{"type","string"}}}},[this](const auto& a){if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");const auto groups=session_["draftSketch"].toObject()["parameters"].toObject()["patternGroups"].toArray();if(groups.isEmpty() || groups.first().toObject()["id"]!=a["groupId"])return failure("pattern_missing","Pattern association is unavailable");showSketchPatternControls();return QJsonObject{{"visible",true},{"groupId",a["groupId"]}};});
@@ -81,21 +86,28 @@ void AlloyWindow::showSketchPatternControls(){
  q1->setValue(group["quantity1"].toInt(2));q2->setValue(group["quantity2"].toInt(3));s1->setValue(group["spacing1Mm"].toDouble(14));s2->setValue(group["spacing2Mm"].toDouble(11));
  if(circular){q1->setObjectName("sketch.pattern.quantity");q1->setValue(group["quantity"].toInt(6));s1->setObjectName("sketch.pattern.angle");s1->setRange(.001,360);s1->setSuffix(QString::fromUtf8(" °"));s1->setValue(group["totalAngleDeg"].toDouble(360));s1->setEnabled(mode->currentData()=="angle");form->addRow("Quantity",q1);form->addRow("Total Angle",s1);}else{form->addRow("Quantity 1",q1);form->addRow("Distance 1",s1);form->addRow("Quantity 2",q2);form->addRow("Distance 2",s2);}
  if(circular){delete d1;delete d2;d1=nullptr;d2=nullptr;delete q2;delete s2;q2=nullptr;s2=nullptr;}else{delete center;delete mode;center=nullptr;mode=nullptr;}
- auto* status=new QLabel;status->setWordWrap(true);layout->addWidget(status);auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel);layout->addWidget(buttons);buttons->button(QDialogButtonBox::Ok)->setEnabled(false);
+ if(!circular){
+  auto* roles=new QHBoxLayout;
+  for(const auto& entry:{std::pair{QString("objects"),QString("Objects")},std::pair{QString("direction1"),QString("Direction 1")},std::pair{QString("direction2"),QString("Direction 2")},std::pair{QString("values"),QString("Handles")}}){auto* button=new QPushButton(entry.second);button->setCheckable(true);button->setObjectName("sketch.pattern.role."+entry.first);roles->addWidget(button);connect(button,&QPushButton::clicked,this,[this,role=entry.first]{execute("sketch.patternRole",{{"role",role}});});}
+  layout->addLayout(roles);auto* prompt=new QLabel;prompt->setObjectName("sketch.pattern.selectionPrompt");prompt->setWordWrap(true);layout->addWidget(prompt);
+  session_["patternInteraction"]=QJsonObject{{"active",true},{"role",group.isEmpty() ? "objects" : "values"},{"pickedEntityIds",QJsonArray{}},{"hoveredEntityId",""}};
+ }
+ auto* status=new QLabel;status->setObjectName("sketch.pattern.status");status->setWordWrap(true);layout->addWidget(status);auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel);layout->addWidget(buttons);buttons->button(QDialogButtonBox::Ok)->setEnabled(false);
  const auto sessionId=session_["id"].toString();
  auto preview=[this,sessionId,source,d1,d2,q1,q2,s1,s2,status,buttons,group,circular,center,mode]{
   if(session_["id"].toString()!=sessionId){buttons->button(QDialogButtonBox::Ok)->setEnabled(false);status->setText("Sketch session ended");return;}
   QJsonObject a{{"sourceEntityId",source->currentData().toString()}};
   if(circular){a["type"]="circular";a["centerPointId"]=center->currentData().toString();a["quantity"]=q1->value();a["mode"]=mode->currentData().toString();a["totalAngleDeg"]=s1->value();}
   else{a["direction1EntityId"]=d1->currentData().toString();a["direction2EntityId"]=d2->currentData().toString();a["quantity1"]=q1->value();a["quantity2"]=q2->value();a["spacing1Mm"]=s1->value();a["spacing2Mm"]=s2->value();}if(!group.isEmpty())a["groupId"]=group["id"];
-  const auto result=execute("sketch.patternPreview",a);const bool ok=!result.contains("error");buttons->button(QDialogButtonBox::Ok)->setEnabled(ok);status->setText(ok ? "Preview · source and derived circles" : result["error"].toObject()["message"].toString());
+  if(!circular){auto interaction=session_["patternInteraction"].toObject();interaction["inputs"]=a;session_["patternInteraction"]=interaction;}
+  const auto result=execute("sketch.patternPreview",a);const bool ok=!result.contains("error");buttons->button(QDialogButtonBox::Ok)->setEnabled(ok);status->setText(ok ? "Preview · source and derived circles" : result["error"].toObject()["message"].toString());if(!circular)syncSketchPatternInteractionControls({},ok ? QString{} : result["error"].toObject()["message"].toString());
  };
  for(auto* combo:{source,d1,d2,center})if(combo)connect(combo,&QComboBox::currentIndexChanged,dialog,preview);
  for(auto* q:{q1,q2})if(q)connect(q,&QSpinBox::valueChanged,dialog,preview);for(auto* s:{s1,s2})if(s)connect(s,&QDoubleSpinBox::valueChanged,dialog,preview);
  if(mode)connect(mode,&QComboBox::currentIndexChanged,dialog,[mode,s1,preview]{const bool angle=mode->currentData()=="angle";s1->setEnabled(angle);if(!angle)s1->setValue(360);else if(s1->value()>=360)s1->setValue(120);preview();});
  connect(buttons,&QDialogButtonBox::accepted,dialog,[this,dialog,status,sessionId]{if(session_["id"].toString()!=sessionId){status->setText("Sketch session ended");return;}const auto result=execute("sketch.patternAccept");if(result.contains("error")){status->setText(result["error"].toObject()["message"].toString());return;}dialog->accept();});
  connect(buttons,&QDialogButtonBox::rejected,dialog,&QDialog::reject);connect(dialog,&QDialog::rejected,this,[this,sessionId]{if(session_["id"].toString()==sessionId)execute("sketch.patternCancel");});dock->setWidget(dialog);canvasWindow_->addDockWidget(Qt::RightDockWidgetArea,dock);if(sketchDock_)canvasWindow_->tabifyDockWidget(sketchDock_,dock);
- connect(dialog,&QDialog::finished,dock,[dock]{dock->close();});dock->closed=[this,sessionId]{if(session_["id"].toString()==sessionId && session_.contains("pendingSketchPattern"))execute("sketch.patternCancel");if(sketchDock_)sketchDock_->raise();};
+ connect(dialog,&QDialog::finished,dock,[dock]{dock->close();});dock->closed=[this,sessionId]{if(session_["id"].toString()==sessionId){if(session_.contains("pendingSketchPattern"))execute("sketch.patternCancel");session_.remove("patternInteraction");session_.remove("patternHandleGesture");refreshSketchControls();}if(sketchDock_)sketchDock_->raise();};
  auto* escape=new QShortcut(QKeySequence(Qt::Key_Escape),dialog);escape->setContext(Qt::WidgetWithChildrenShortcut);connect(escape,&QShortcut::activated,dialog,&QDialog::reject);
  dock->show();dock->raise();dialog->show();source->setFocus(Qt::OtherFocusReason);preview();
 }

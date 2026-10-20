@@ -63,6 +63,8 @@ protected:
     bool eventFilter(QObject*, QEvent*) override;
 private:
     void registerSketchPatternCommands();
+    void registerSketchPatternInteractionCommands();
+    void syncSketchPatternInteractionControls(const QJsonObject& inputs,const QString& message = {});
     void showSketchPatternControls();
     QPointer<QDialog> sketchPatternDialog_;
     struct Command {

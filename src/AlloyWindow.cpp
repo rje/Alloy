@@ -1338,6 +1338,7 @@ AlloyWindow::AlloyWindow() {
         if(!failedEditRepair_.isEmpty()){execute("sketch.cancel");return;}
         if(session_.value("command")=="sketch.plane")execute("sketch.cancel");
         else if(session_.value("command").toString()=="sketch.edit") {
+            if(session_["patternInteraction"].toObject()["active"].toBool()){execute("sketch.patternExit");return;}
             if(session_.contains("pendingLineArc"))execute("sketch.lineArcDrag",{{"phase","cancel"}});
             else if(session_.value("tool")=="mirror")execute("sketch.mirrorExit");
             else if(session_.contains("pendingCenterRectangle"))execute("sketch.centerRectangleCancel");
@@ -13391,7 +13392,9 @@ void AlloyWindow::refreshSketchControls() {
     const auto loopPreview=session_.value("pendingLoopOffset").toObject();
     const auto projectPreview=session_.value("pendingProject").toObject();
     const auto patternPreview=session_.value("pendingSketchPattern").toObject();
+    presentationSelection["patternInteraction"]=session_.value("patternInteraction");
     if(!patternPreview.isEmpty())presentationSelection["entityIds"]=QJsonArray{patternPreview["draft"].toObject()["parameters"].toObject()["patternGroups"].toArray().first().toObject()["sourceEntityId"]};
+    for(const auto& id:session_["patternInteraction"].toObject()["pickedEntityIds"].toArray()){auto ids=presentationSelection["entityIds"].toArray();if(!ids.contains(id))ids.append(id);presentationSelection["entityIds"]=ids;}
     view_->decorateSketch(!patternPreview.isEmpty() ? patternPreview["draft"].toObject() : !projectPreview.isEmpty() ? projectPreview["previewDraft"].toObject()
             : loopPreview["valid"].toBool() ? loopPreview["previewDraft"].toObject() : draft,
         presentationSelection,patternPreview.isEmpty() ? session_.value("solverDiagnostics").toObject() : patternPreview["diagnostics"].toObject(),units,session_.value("pendingDimension").toObject());
