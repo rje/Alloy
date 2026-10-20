@@ -125,6 +125,7 @@ public:
     static SolveResult addCircleOffset(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext = {});
     static SolveResult updateCircleOffset(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext = {});
     // Retained symmetry group: source line/arc entities and one authored straight axis.
+    static SolveResult circularPattern(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext = {});
     static SolveResult rectangularPattern(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext = {});
     static SolveResult mirrorEntities(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext = {});
     static double centerlineDiameterValue(const QJsonObject& draft, const QJsonArray& entityIds, const QJsonObject& projectionContext = {});

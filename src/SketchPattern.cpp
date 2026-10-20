@@ -5,6 +5,7 @@
 #include <QPointF>
 #include <QUuid>
 #include <cmath>
+#include <numbers>
 #include <stdexcept>
 namespace {
 void require(bool ok,const char* reason){if(!ok)throw std::invalid_argument(reason);}
@@ -17,16 +18,29 @@ QPointF direction(const QJsonObject& g,const char* key,const QMap<QString,QJsonO
  const auto a=points.value(line["startPointId"].toString()),b=points.value(line["endPointId"].toString());require(!a.isEmpty() && !b.isEmpty(),"Pattern direction points are missing");
  const auto d=pos(b)-pos(a);const double n=std::hypot(d.x(),d.y());require(n>=.001,"Pattern direction is degenerate");return d/n;
 }
-QJsonArray instances(const QJsonObject& g){QJsonArray out;for(int i=0;i<count(g,"quantity1");++i)for(int j=0;j<count(g,"quantity2");++j)if(i || j)out.append(QJsonObject{{"i",i},{"j",j},{"entityId",identity(g,i,j,false)},{"pointId",identity(g,i,j,true)}});return out;}
+QJsonArray instances(const QJsonObject& g){QJsonArray out;if(g["type"]=="circular"){for(int k=1;k<count(g,"quantity");++k){auto id=[&](const char* role){return QUuid::createUuidV5(QUuid(g["id"].toString()),QString("alloy-sketch-circular/1/%1/%2/%3").arg(g["sourceEntityId"].toString()).arg(k).arg(role).toUtf8()).toString(QUuid::WithoutBraces);};out.append(QJsonObject{{"k",k},{"entityId",id("circle")},{"pointId",id("point")}});}return out;}for(int i=0;i<count(g,"quantity1");++i)for(int j=0;j<count(g,"quantity2");++j)if(i || j)out.append(QJsonObject{{"i",i},{"j",j},{"entityId",identity(g,i,j,false)},{"pointId",identity(g,i,j,true)}});return out;}
 void definition(const QJsonObject& p,const QJsonObject& g){
- require(g.size()==12 && !QUuid(g["id"].toString()).isNull() && g["type"]=="rectangular" && g["distribution"]=="spacing" && g["directionType"]=="oneDirection","Invalid rectangular Pattern definition");
+ const bool circular=g["type"]=="circular";
+ require(!QUuid(g["id"].toString()).isNull(),"Invalid Pattern UUID");
+ if(circular){
+  require(g.size()==8 && (g["mode"]=="full" || g["mode"]=="angle"),"Invalid circular Pattern definition");
+  count(g,"quantity");const auto angle=g["totalAngleDeg"];
+  require(angle.isDouble() && std::isfinite(angle.toDouble()) && (g["mode"]=="full" ? angle.toDouble()==360 : angle.toDouble()>=.001 && angle.toDouble()<360),"Circular Pattern Total Angle must be 360 for Full or 0.001..<360 degrees for Angle");
+ }else require(g.size()==12 && g["type"]=="rectangular" && g["distribution"]=="spacing" && g["directionType"]=="oneDirection","Invalid rectangular Pattern definition");
  const auto es=rows(p,"entities"),ps=rows(p,"points");const auto source=es.value(g["sourceEntityId"].toString());
  require(source["type"]=="circle" && !source.contains("offsetSourceEntityId") && !source.contains("offsetMm"),"Pattern requires an ordinary authored circle");
  for(const auto& row:p["constraints"].toArray()){const auto r=row.toObject();if(r["type"]=="circleOffset" && r["entityIds"].toArray().size()==2)require(r["entityIds"].toArray()[1]!=g["sourceEntityId"],"Pattern seed cannot be a Circle Offset result");}
  for(const auto& row:p["mirrorGroups"].toArray())for(const auto& pair:row.toObject()["entityPairs"].toArray()){const auto id=pair.toObject().value("resultEntityId");require(id!=g["sourceEntityId"] && id!=g["direction1EntityId"] && id!=g["direction2EntityId"],"Pattern inputs cannot be Mirror results");}
+ if(circular){
+  const auto centerId=g["centerPointId"].toString();bool standalone=false;for(const auto& e:es)standalone |= e["type"]=="point" && e["pointId"]==centerId;
+  require(standalone && ps.contains(centerId),"Circular Pattern center must be an authored standalone sketch Point");
+  for(const auto& row:p["mirrorGroups"].toArray())for(const auto& pair:row.toObject()["pointPairs"].toArray())require(pair.toObject()["resultPointId"]!=centerId,"Circular Pattern center cannot be a Mirror result");
+  const auto delta=pos(ps.value(source["centerPointId"].toString()))-pos(ps.value(centerId));require(std::hypot(delta.x(),delta.y())>=.001,"Circular Pattern source must be away from its center");
+ }else{
  require(count(g,"quantity1")*count(g,"quantity2")<=64,"Pattern supports at most 64 total circles");
  for(const auto* key:{"spacing1Mm","spacing2Mm"})require(g[key].isDouble() && std::isfinite(g[key].toDouble()) && g[key].toDouble()>=.001 && g[key].toDouble()<=100000,"Pattern Spacing must be finite and positive in 0.001..100000 mm");
  const auto a=direction(g,"direction1EntityId",es,ps),b=direction(g,"direction2EntityId",es,ps);require(std::abs(QPointF::dotProduct(a,b))<1e-7,"Pattern requires perpendicular directions in this slice");
+ }
  require(g["instances"].isArray() && g["instances"].toArray()==instances(g),"Pattern indexed result identities changed");
 }
 }
@@ -35,7 +49,7 @@ QSet<QString> resultIds(const QJsonObject& p,bool points){QSet<QString> out;for(
 QJsonObject sourceOnly(const QJsonObject& p){auto out=p;const auto es=resultIds(p),ps=resultIds(p,true);for(const auto* field:{"entities","points"}){QJsonArray keep;for(const auto& v:p[field].toArray())if(!(QString(field)=="entities" ? es : ps).contains(v.toObject()["id"].toString()))keep.append(v);out[field]=keep;}return out;}
 QString validate(const QJsonObject& p){try{
  if(!p.contains("patternGroups"))return {};
- require(p["patternGroups"].isArray() && p["patternGroups"].toArray().size()<=1,"This slice supports one rectangular sketch Pattern group");
+ require(p["patternGroups"].isArray() && p["patternGroups"].toArray().size()<=1,"This slice supports one sketch Pattern group");
  const auto es=rows(p,"entities"),ps=rows(p,"points");const auto owned=resultIds(p),ownedPoints=resultIds(p,true);
  for(const auto& row:p["patternGroups"].toArray()){
   const auto g=row.toObject();definition(p,g);const auto seed=es.value(g["sourceEntityId"].toString());
@@ -65,10 +79,14 @@ QJsonObject derive(const QJsonObject& p){
  auto out=sourceOnly(p);auto entities=out["entities"].toArray(),points=out["points"].toArray();const auto es=rows(out,"entities"),ps=rows(out,"points");
  for(const auto& row:p["patternGroups"].toArray()){
   const auto g=row.toObject();definition(p,g);const auto seed=es.value(g["sourceEntityId"].toString()),center=ps.value(seed["centerPointId"].toString());
-  require(!center.isEmpty(),"Pattern source center is missing");const auto a=direction(g,"direction1EntityId",es,ps)*g["spacing1Mm"].toDouble(),b=direction(g,"direction2EntityId",es,ps)*g["spacing2Mm"].toDouble();
+  require(!center.isEmpty(),"Pattern source center is missing");const bool circular=g["type"]=="circular";
+  const auto origin=pos(ps.value(g["centerPointId"].toString()));
+  const auto a=circular ? QPointF{} : direction(g,"direction1EntityId",es,ps)*g["spacing1Mm"].toDouble(),b=circular ? QPointF{} : direction(g,"direction2EntityId",es,ps)*g["spacing2Mm"].toDouble();
   QJsonArray centers{QJsonObject{{"uMm",pos(center).x()},{"vMm",pos(center).y()}}};
   for(const auto& value:g["instances"].toArray()){
-   const auto instance=value.toObject();auto e=seed,c=center;const auto xy=pos(center)+a*instance["i"].toInt()+b*instance["j"].toInt();require(std::isfinite(xy.x()) && std::isfinite(xy.y()) && std::abs(xy.x())<=100000 && std::abs(xy.y())<=100000,"Pattern output exceeds coordinate bounds");
+   const auto instance=value.toObject();auto e=seed,c=center;QPointF xy=pos(center)+a*instance["i"].toInt()+b*instance["j"].toInt();
+   if(circular){const double angle=g["totalAngleDeg"].toDouble()*std::numbers::pi/180*instance["k"].toInt()/(count(g,"quantity")-(g["mode"]=="full" ? 0 : 1));const auto delta=pos(center)-origin;xy=origin+QPointF(std::cos(angle)*delta.x()-std::sin(angle)*delta.y(),std::sin(angle)*delta.x()+std::cos(angle)*delta.y());}
+   require(std::isfinite(xy.x()) && std::isfinite(xy.y()) && std::abs(xy.x())<=100000 && std::abs(xy.y())<=100000,"Pattern output exceeds coordinate bounds");
    for(const auto& prior:centers){const auto d=xy-pos(prior.toObject());require(std::hypot(d.x(),d.y())>2*seed["radiusMm"].toDouble()+1e-6,"Pattern circles overlap or touch");}
    c["id"]=instance["pointId"];c["uMm"]=xy.x();c["vMm"]=xy.y();e["id"]=instance["entityId"];e["centerPointId"]=c["id"];points.append(c);entities.append(e);centers.append(c);
   }
@@ -76,11 +94,13 @@ QJsonObject derive(const QJsonObject& p){
  out["points"]=points;out["entities"]=entities;return out;
 }
 QJsonObject create(const QJsonObject& p,const QJsonObject& arguments){
- const QSet<QString> allowed{"groupId","sourceEntityId","direction1EntityId","direction2EntityId","quantity1","quantity2","spacing1Mm","spacing2Mm"};for(auto it=arguments.begin();it!=arguments.end();++it)require(allowed.contains(it.key()),"Unknown Pattern input");
+ const QSet<QString> allowed{"groupId","sourceEntityId","direction1EntityId","direction2EntityId","quantity1","quantity2","spacing1Mm","spacing2Mm","type","centerPointId","quantity","mode","totalAngleDeg"};for(auto it=arguments.begin();it!=arguments.end();++it)require(allowed.contains(it.key()),"Unknown Pattern input");
  auto out=p;auto groups=p["patternGroups"].toArray();QJsonObject g;const auto edit=arguments["groupId"].toString();
- if(!edit.isEmpty()){require(groups.size()==1 && groups.first().toObject()["id"]==edit,"Pattern group is missing");g=groups.first().toObject();out=sourceOnly(p);}else{require(groups.isEmpty(),"This slice supports one rectangular sketch Pattern group");g={{"id",QUuid::createUuid().toString(QUuid::WithoutBraces)}};}
+ if(!edit.isEmpty()){require(groups.size()==1 && groups.first().toObject()["id"]==edit,"Pattern group is missing");g=groups.first().toObject();out=sourceOnly(p);}else{require(groups.isEmpty(),"This slice supports one sketch Pattern group");g={{"id",QUuid::createUuid().toString(QUuid::WithoutBraces)}};}
  for(auto it=arguments.begin();it!=arguments.end();++it)if(it.key()!="groupId")g[it.key()]=it.value();
- g["type"]="rectangular";g["distribution"]="spacing";g["directionType"]="oneDirection";g["instances"]=instances(g);
+ if(!g.contains("type"))g["type"]="rectangular";
+ if(g["type"]=="rectangular"){g["distribution"]="spacing";g["directionType"]="oneDirection";}
+ g["instances"]=instances(g);
  out["patternGroups"]=QJsonArray{g};out=derive(out);const auto error=validate(out);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return out;
 }
 }

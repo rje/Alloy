@@ -2455,18 +2455,20 @@ void ReferenceView::decorateSketch(const QJsonObject& sourceFeature,const QJsonO
             constraintGlyphs_.append(QJsonObject{{"constraintId",relation["id"]},{"pointIds",relation["pointIds"]},{"entityIds",relation["entityIds"]},{"anchorEntityId",target},{"kind",kind},{"contextual",kind=="coincident" || !showConstraints_},{"selected",selectedBadge},{"hovered",hoveredBadge},{"originAvoidanceApplied",originAvoidanceApplied},{"anchorMm",QJsonObject{{"uMm",u},{"vMm",v}}},{"bounds",QJsonObject{{"x",left},{"y",top},{"width",right-left},{"height",bottom-top}}},{"viewportLocal",true},{"units","logicalPixels"}});
         }
     }
-    // Independently authored 2-by-3 grid glyph. Its identity and hit bounds
+    // Independently authored grid/ring glyph. Its identity and hit bounds
     // belong to the retained association, never to a synthetic constraint.
     for(const auto& row:parameters["patternGroups"].toArray()){
         const auto group=row.toObject(),seed=entities.value(group["sourceEntityId"].toString());
-        const auto center=points.value(seed["centerPointId"].toString());if(center.isEmpty())continue;
+        const bool circular=group["type"]=="circular";
+        const auto center=points.value((circular ? group["centerPointId"] : seed["centerPointId"]).toString());if(center.isEmpty())continue;
         const double cu=center["uMm"].toDouble(),cv=center["vMm"].toDouble();
         const auto screen=projectSketchPoint(cu,cv,plane),unit=projectSketchPoint(cu+100,cv,plane);
         const double pixels=std::hypot(unit["x"].toDouble()-screen["x"].toDouble(),unit["y"].toDouble()-screen["y"].toDouble());if(pixels<1e-6)continue;
-        const double size=100/pixels,u=cu+seed["radiusMm"].toDouble()+22*size,v=cv+18*size;
+        const double size=100/pixels,u=circular ? cu : cu+seed["radiusMm"].toDouble()+22*size,v=circular ? cv : cv+18*size;
         TopoDS_Compound strokes;BRep_Builder builder;builder.MakeCompound(strokes);
         auto stroke=[&](double x1,double y1,double x2,double y2){builder.Add(strokes,BRepBuilderAPI_MakeEdge(sketchWorld(plane,u+x1*size,v+y1*size),sketchWorld(plane,u+x2*size,v+y2*size)).Edge());};
-        for(int i=0;i<3;++i)for(int j=0;j<2;++j){const double x=-8+i*6,y=-5+j*6;stroke(x,y,x+4,y);stroke(x+4,y,x+4,y+4);stroke(x+4,y+4,x,y+4);stroke(x,y+4,x,y);}
+        if(circular){for(int k=0;k<6;++k){const double angle=k*std::numbers::pi/3,x=5*std::cos(angle)-1,y=5*std::sin(angle)-1;stroke(x,y,x+2,y);stroke(x+2,y,x+2,y+2);stroke(x+2,y+2,x,y+2);stroke(x,y+2,x,y);}}
+        else for(int i=0;i<3;++i)for(int j=0;j<2;++j){const double x=-8+i*6,y=-5+j*6;stroke(x,y,x+4,y);stroke(x+4,y,x+4,y+4);stroke(x+4,y+4,x,y+4);stroke(x,y+4,x,y);}
         auto glyph=sketchPresentation(strokes);glyph->SetColor(Quantity_Color(.36,.39,.42,Quantity_TOC_sRGB));glyph->SetWidth(1.6*devicePixelRatioF());glyph->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(glyph,AIS_WireFrame,-1,false);context_->Deactivate(glyph);sketchDecorations_.push_back(glyph);
         double left=1e100,top=1e100,right=-1e100,bottom=-1e100;for(double x:{-10.,10.})for(double y:{-8.,8.}){const auto p=projectSketchPoint(u+x*size,v+y*size,plane);left=std::min(left,p["x"].toDouble());right=std::max(right,p["x"].toDouble());top=std::min(top,p["y"].toDouble());bottom=std::max(bottom,p["y"].toDouble());}
         patternGlyphs_.append(QJsonObject{{"groupId",group["id"]},{"sourceEntityId",group["sourceEntityId"]},{"bounds",QJsonObject{{"x",left},{"y",top},{"width",right-left},{"height",bottom-top}}},{"viewportLocal",true},{"units","logicalPixels"}});

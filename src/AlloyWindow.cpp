@@ -647,6 +647,8 @@ AlloyWindow::AlloyWindow() {
     connect(projectAction,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.projectBegin"));});
     auto* rectangularSketchPattern=create->addAction("Rectangular Pattern");rectangularSketchPattern->setObjectName("sketch.action.rectangularPattern");
     connect(rectangularSketchPattern,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.patternStart"));});
+    auto* circularSketchPattern=create->addAction("Circular Pattern");circularSketchPattern->setObjectName("sketch.action.circularPattern");
+    connect(circularSketchPattern,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.circularPatternStart"));});
     create->addSeparator();toolAction(create,"Sketch Dimension\tD","dimension");
     auto* modify=sketchMenu("Modify","modify");toolAction(modify,"Fillet","fillet");auto* sketchChamferMenu=modify->addMenu("Chamfer");sketchChamferMenu->setObjectName("sketch.menu.chamfer");for(const auto& option:{std::pair{QString("Equal Distance Chamfer"),QString("equalDistance")},std::pair{QString("Two Distance Chamfer"),QString("twoDistance")},std::pair{QString("Distance And Angle Chamfer"),QString("distanceAngle")}}){
         auto* action=sketchChamferMenu->addAction(option.first);action->setObjectName(option.second=="equalDistance"?"sketch.tool.chamfer":option.second=="twoDistance"?"sketch.tool.twoDistanceChamfer":"sketch.tool.distanceAngleChamfer");
@@ -8485,7 +8487,7 @@ void AlloyWindow::refresh() {
         else if(tool=="threePointArc")prompt=session_.contains("secondPoint") ? "Click a point on the arc" : session_.contains("firstPoint") ? "Click the arc end" : "Click the arc start";
         else if(session_.contains("firstPoint"))prompt="Click the next point · Escape stops drawing";
         const auto mirrorPreview=session_.contains("pendingSketchPattern") ? session_.value("pendingSketchPattern").toObject() : session_.value("pendingSketchMirror").toObject();
-        if(!mirrorPreview.isEmpty())prompt=session_.contains("pendingSketchPattern") ? "Rectangular Pattern preview · total Quantity includes source" : "Mirror preview · inspect reflected geometry";
+        if(!mirrorPreview.isEmpty())prompt=session_.contains("pendingSketchPattern") ? "Sketch Pattern preview · total Quantity includes source" : "Mirror preview · inspect reflected geometry";
         if((tool=="trim" || tool=="break") && !session_.value("trimNotice").toString().isEmpty())prompt+="\n"+session_.value("trimNotice").toString();
         int standaloneCount=0,curveCount=0;
         for(const auto& e:(mirrorPreview.isEmpty() ? draft : mirrorPreview["draft"].toObject())["parameters"].toObject()["entities"].toArray()) {

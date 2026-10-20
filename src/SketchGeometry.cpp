@@ -1668,7 +1668,7 @@ SketchGeometry::SolveResult SketchGeometry::deleteEntities(const QJsonObject& dr
         for(const auto& row:parameters.value("patternGroups").toArray()){
             const auto group=row.toObject();QSet<QString> protectedEntities{group["sourceEntityId"].toString(),group["direction1EntityId"].toString(),group["direction2EntityId"].toString()};
             protectedEntities.unite(SketchPattern::resultIds(parameters));
-            QSet<QString> protectedPoints=SketchPattern::resultIds(parameters,true);
+            QSet<QString> protectedPoints=SketchPattern::resultIds(parameters,true);if(group["type"]=="circular"){protectedPoints.insert(group["centerPointId"].toString());for(const auto& e:parameters["entities"].toArray())if(e.toObject()["type"]=="point" && e.toObject()["pointId"]==group["centerPointId"])protectedEntities.insert(e.toObject()["id"].toString());}
             for(const auto& entityRow:parameters["entities"].toArray()){const auto entity=entityRow.toObject();if(!protectedEntities.contains(entity["id"].toString()))continue;for(const auto* key:{"centerPointId","startPointId","endPointId"})if(entity.contains(key))protectedPoints.insert(entity[key].toString());}
             for(const auto& id:entityIds)if(protectedEntities.contains(id.toString()))reject("Pattern owns this geometry; remove or edit its association before Delete");
             for(const auto& id:pointIds)if(protectedPoints.contains(id.toString()))reject("Pattern owns this geometry; remove or edit its association before Delete");
@@ -2833,7 +2833,8 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& source
         }
         for(const auto& row:parameters.value("patternGroups").toArray()){
             const auto group=row.toObject();bool constrained=true;
-            for(const auto* key:{"sourceEntityId","direction1EntityId","direction2EntityId"})constrained &= entityFreedom.value(group[key].toString()).toObject().value("fullyConstrained").toBool();
+            for(const auto& key:group["type"]=="circular" ? QStringList{"sourceEntityId"} : QStringList{"sourceEntityId","direction1EntityId","direction2EntityId"})constrained &= entityFreedom.value(group[key].toString()).toObject().value("fullyConstrained").toBool();
+            if(group["type"]=="circular")constrained &= pointFreedom.value(group["centerPointId"].toString()).toObject().value("fullyConstrained").toBool();
             const QJsonObject freedom{{"fullyConstrained",constrained},{"derived",true},{"ownerId",group["id"]}};
             for(const auto& value:group["instances"].toArray()){const auto instance=value.toObject();entityFreedom[instance["entityId"].toString()]=freedom;pointFreedom[instance["pointId"].toString()]=freedom;}
         }
@@ -2873,6 +2874,9 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& source
     } catch(const std::exception& error){return invalidDraft(sourceDraft,QString::fromUtf8(error.what()));}
 }
 
+SketchGeometry::SolveResult SketchGeometry::circularPattern(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext){
+    auto inputs=arguments;inputs["type"]="circular";return rectangularPattern(draft,inputs,projectionContext);
+}
 SketchGeometry::SolveResult SketchGeometry::rectangularPattern(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext){
     try{validateDraft(draft);auto candidate=draft;candidate["parameters"]=SketchPattern::create(draft["parameters"].toObject(),arguments);
         auto result=solveDraft(candidate,projectionContext);if(!result.ok)result.feature=draft;return result;
