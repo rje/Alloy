@@ -909,6 +909,13 @@ private:
     bool faceNormalsEnabled_ = false;
     QString faceNormalsDocumentId_;
     void registerMeasureCommands();
+    void registerSurfaceContinuityCommands();
+    void refreshSurfaceContinuity();
+    QPointer<QDialog> surfaceContinuityDialog_;
+    const CadDocument* surfaceContinuityDocument_ = nullptr;
+    QString surfaceContinuityDocumentId_;
+    QJsonArray surfaceContinuityFaces_;
+    QString surfaceContinuityEdgeId_;
     void refreshMeasure();
     QJsonObject pickMeasure(double x,double y);
     QPointer<QDialog> measureDialog_;

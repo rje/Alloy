@@ -550,7 +550,7 @@ AlloyWindow::AlloyWindow() {
     group("MODIFY", {{"solid.pressPullDialog", "⇧"}, {"solid.combineDialog", "▣"}, {"solid.filletDialog", "◩"}, {"solid.chamferDialog", "◪"}, {"solid.shellDialog", "▱"}, {"solid.faceOffsetDialog", "↗"}, {"solid.splitBodyDialog", "◫"}, {"solid.moveDialog", "✥"}});
     group("ASSEMBLE", {{"joint.asBuiltDialog","◉"},{"joint.sliderDialog", "⇆"},{"position.revert","↶"}});
     group("CONSTRUCT", {{"construction.plane", "▰"}, {"construction.pathPlane", "⟂"}, {"construction.tangentPlane", "▱"}, {"construction.midplane", "◫"}});
-    group("INSPECT", {{"inspect.sectionDialog", "◧"}, {"inspect.measure", "↔"}, {"inspect.faceNormals", "↥"}, {"inspect.zebra", "▥"}});
+    group("INSPECT", {{"inspect.sectionDialog", "◧"}, {"inspect.measure", "↔"}, {"inspect.faceNormals", "↥"}, {"inspect.zebra", "▥"}, {"inspect.surfaceContinuity", "∠"}});
     auto* selectMenuButton=new QToolButton;selectMenuButton->setText("SELECT");
     selectMenuButton->setObjectName("solid.menu.select");
     selectMenuButton->setMinimumWidth(112);
@@ -573,7 +573,7 @@ AlloyWindow::AlloyWindow() {
     group("CREATE", {{"sketch.create", "▧"}, {"surface.extrudeDialog", "▤"}, {"surface.revolveDialog", "◉"}, {"surface.patchDialog", "▱"}, {"surface.offsetDialog", "↥"}, {"surface.ruledDialog", "⌁"}, {"surface.sweepDialog", "◡"}, {"surface.loftDialog", "◒"}, {"surface.boundaryFillDialog", "▣"}});
     group("MODIFY", {{"surface.extendDialog", "⇥"}, {"surface.trimDialog", "✂"}, {"surface.untrimDialog", "▱"}, {"body.removeDialog", "⊖"}});
     group("CONSTRUCT", {{"construction.plane", "▰"}, {"construction.pathPlane", "⟂"}, {"construction.tangentPlane", "▱"}, {"construction.midplane", "◫"}});
-    group("INSPECT", {{"inspect.sectionDialog", "◧"}, {"inspect.measure", "↔"}, {"inspect.faceNormals", "↥"}, {"inspect.zebra", "▥"}});
+    group("INSPECT", {{"inspect.sectionDialog", "◧"}, {"inspect.measure", "↔"}, {"inspect.faceNormals", "↥"}, {"inspect.zebra", "▥"}, {"inspect.surfaceContinuity", "∠"}});
     groups->addStretch();surfaceGroups->hide();ribbonRight->addWidget(surfaceGroups);
     ribbonLayout->addLayout(ribbonRight, 1); layout->addWidget(ribbon);
     fullRibbonWidth_=ribbon->sizeHint().width();
@@ -1982,6 +1982,7 @@ void AlloyWindow::registerCommands() {
     registerBoundaryFillCommands();
     registerSectionCommands();
     registerMeasureCommands();
+    registerSurfaceContinuityCommands();
     add("inspect.faceNormals", "Show Face Normals", "Alloy inspection proposal: transient oriented normal at one interior UV sample of the current planar or cylindrical face. Arrow targets 48 screen pixels, capped at 35% face size; length is diagnostic, not model geometry. No shortcut or saved analysis.",
         {{"enabled",QJsonObject{{"type","boolean"},{"required",false},{"description","Set visibility; omit to toggle."}}}},[this](const auto& args){
             faceNormalsDocumentId_=document_->authored().value("documentId").toString();
@@ -7068,6 +7069,7 @@ void AlloyWindow::registerCommands() {
             : session_.value("command").toString() == "solid.combine" ? combinePanel_
             : session_.value("command").toString().startsWith("solid.") ? primitivePanel_
             : session_.value("command").toString().startsWith("sketch.") ? sketchPanel_ : unitsDialog_;
+        if(surfaceContinuityDialog_ && session_.isEmpty())dialog=surfaceContinuityDialog_;
         const auto* activeModal=QApplication::activeModalWidget();
         const bool planeDialog=activeModal && (activeModal->objectName()=="constructionPlaneDialog" || activeModal->objectName()=="mesh.export.dialog" || activeModal->objectName()=="step.export.dialog"
             || activeModal->objectName()=="component.reparent.dialog" || activeModal->objectName()=="component.rename.dialog"
@@ -7578,6 +7580,7 @@ void AlloyWindow::refresh() {
         {"right",QJsonArray{1,0,0}},{"back",QJsonArray{0,1,0}},{"up",QJsonArray{0,0,1}}} : storedConvention;
     if(view_->viewConvention()!=effectiveConvention)view_->setViewConvention(storedConvention);
     refreshMeasure();
+    refreshSurfaceContinuity();
     refreshBodyPropertiesDialog();
     if(upAxisNode_)upAxisNode_->setText(0,"Up: "+effectiveConvention.value("defaultUp").toString("Z"));
     refreshPositionTab();

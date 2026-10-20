@@ -30,6 +30,7 @@ target_include_directories(alloy_sketch_solver PUBLIC src)
 target_link_libraries(alloy_sketch_solver PUBLIC Qt6::Core PRIVATE alloy_planegcs)
 
 add_library(alloy_kernel STATIC
+    src/SurfaceContinuity.cpp src/SurfaceContinuity.h
     src/FaceNormalInspector.cpp src/FaceNormalInspector.h
     src/Scale.cpp src/Scale.h src/Measure.cpp src/Measure.h src/Align.cpp src/Align.h
     src/SolidDraft.cpp src/SolidDraft.h
@@ -51,6 +52,7 @@ qt_add_resources(alloy_kernel "alloy_text_font" PREFIX "/alloy/fonts" BASE "thir
 target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_VERSION}")
 
 add_library(alloy_application STATIC
+    src/SurfaceContinuityControls.cpp
     src/ZebraPresentation.cpp src/ZebraPresentation.h
     src/ScaleControls.cpp src/AlignControls.cpp src/DraftControls.cpp src/MeasureControls.cpp
     src/AlloyTheme.cpp src/AlloyTheme.h
@@ -98,6 +100,9 @@ if(ALLOY_BUILD_SPIKES)
         TKernel TKMath TKBRep TKPrim TKTopAlgo TKLCAF TKCAF TKBin TKBinL TKCDF)
 endif()
 if(BUILD_TESTING)
+    add_executable(surface_continuity_test tests/surface_continuity.cpp)
+    target_link_libraries(surface_continuity_test PRIVATE alloy_application)
+    add_test(NAME surface_continuity COMMAND surface_continuity_test)
     add_executable(zebra_presentation_test tests/zebra_presentation.cpp)
     target_link_libraries(zebra_presentation_test PRIVATE alloy_application)
     add_test(NAME zebra_presentation COMMAND zebra_presentation_test)
