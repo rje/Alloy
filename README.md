@@ -1,5 +1,7 @@
 # Alloy
 
+[Retained Plane At Angle](docs/validation/angled-plane.md) now creates an editable datum from an authored straight sketch Line and explicit source plane, with numeric angle and Flip Side. Independent real-app geometry/history/reopen and compiled dock checks pass; physical canvas selection and in-canvas rotation remain GEO-028.
+
 [Sampled Surface Continuity](docs/validation/surface-continuity.md) now reports numeric G0 gap and tangent-plane G1 angle at nine exact shared-edge samples for two retained planar faces. Independent app and analytic checks pass through a 45° source edit, history and reopen; physical native selection and broader boundary families remain Todo.
 
 [Selected-face Zebra Analysis](docs/validation/zebra.md) now draws camera-responsive GPU bands on one planar or cylindrical face without changing authored geometry or history. Independent app, reopened-B-rep and Apple M4 capture checks pass; physical native input and the documented saved body-level Analysis workflow remain separate issues.
