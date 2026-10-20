@@ -2954,15 +2954,16 @@ void AlloyWindow::registerCommands() {
     auto surfaceAngle=optional(parameter("number","Partial One Side angle in degrees, strictly between 0 and 360; default 90."));
     surfaceAngle["minimum"]=-360.;surfaceAngle["maximum"]=360.;
     QJsonObject surfaceRevolveSchema{{"sketchId",optional(parameter("string","Earlier solved source sketch UUID."))},
+        {"entityIds",optional(parameter("array","Ordered connected open Line source UUIDs (2-32); mutually exclusive with entityId."))},
         {"entityId",optional(parameter("string","One ordinary open straight Line UUID."))},
         {"axisEntityId",optional(parameter("string","Distinct same-sketch retained construction Line UUID; positive rotation follows start to end."))},
         {"angleDeg",surfaceAngle},{"reverseDirection",optional(parameter("boolean","Reverse the right-hand rotation; default false."))},
         {"featureId",optional(featureId)},{"name",optional(parameter("string","Surface Revolve name."))}};
-    add("surface.revolve","Revolve","Create or edit one retained uncapped Line sheet with a construction-line axis, Partial One Side and New Body.",surfaceRevolveSchema,[this](const auto& a){
+    add("surface.revolve","Revolve","Create or edit one retained uncapped Line or connected Line-chain sheet with a construction-line axis, Partial One Side and New Body.",surfaceRevolveSchema,[this](const auto& a){
         QJsonObject candidate;try{candidate=surfaceRevolveCandidate(a);}catch(const std::exception& error){return failure("invalid_arguments",QString::fromUtf8(error.what()));}
         const auto error=document_->commit(candidate,"Surface Revolve");if(!error.isEmpty()){auto result=failure("evaluation_failed",error);auto detail=result["error"].toObject();detail["diagnostics"]=document_->lastEvaluationError();result["error"]=detail;return result;}return document_->state();
     });
-    add("surface.revolveDialog","Revolve","Select an open Line and construction axis, preview a partial surface, then OK or Cancel.",surfaceRevolveSchema,[this](const auto& a){return beginSurfaceRevolve(a);});
+    add("surface.revolveDialog","Revolve","Select an open Line or connected Line chain and construction axis, preview a partial surface, then OK or Cancel.",surfaceRevolveSchema,[this](const auto& a){return beginSurfaceRevolve(a);});
     QJsonObject surfacePatchSchema{{"sketchId",optional(parameter("string","Earlier solved planar sketch UUID."))},
         {"profileId",optional(parameter("string","One simple closed ordinary-Line profile UUID."))},
         {"boundaryMode",optional(parameter("string","planarProfile or fourEdges. Four-edge mode requires a nonplanar cyclic loop."))},

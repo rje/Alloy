@@ -2097,8 +2097,9 @@ QJsonObject CadDocument::surfaceOffsetCandidate(const QJsonObject& authored,cons
 }
 
 QJsonObject CadDocument::surfaceRevolveCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
-    const QSet<QString> allowed{"sketchId","entityId","axisEntityId","angleDeg","reverseDirection","featureId","newFeatureId","newBodyId","ownerId","name"};
+    const QSet<QString> allowed{"sketchId","entityId","entityIds","axisEntityId","angleDeg","reverseDirection","featureId","newFeatureId","newBodyId","ownerId","name"};
     for(auto i=arguments.begin();i!=arguments.end();++i)if(!allowed.contains(i.key()))throw std::invalid_argument("Unknown Surface Revolve argument");
+    if(arguments.contains("entityId") && arguments.contains("entityIds"))throw std::invalid_argument("Select one Line or one ordered Line chain, not both");
     if(arguments.contains("featureId") && (arguments.contains("newFeatureId") || arguments.contains("newBodyId") || arguments.contains("ownerId")))
         throw std::invalid_argument("Surface Revolve edit retains feature, body and owner identities");
     auto candidate=authored;auto rows=candidate["features"].toArray();QJsonObject feature;int index=-1;
@@ -2108,7 +2109,9 @@ QJsonObject CadDocument::surfaceRevolveCandidate(const QJsonObject& authored,con
     }else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"bodyId",arguments.value("newBodyId").toString(newId())},
         {"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","surfaceRevolve"},{"name","Revolve"},{"visible",true}};
     auto params=feature["parameters"].toObject();if(params.isEmpty())params={{"extent","partial"},{"direction","oneSide"},{"operation","newBody"},{"isSolid",false},{"angleDeg",90.},{"reverseDirection",false}};
-    for(const auto& key:{"sketchId","entityId","axisEntityId","angleDeg","reverseDirection"})if(arguments.contains(key))params[key]=arguments[key];
+    for(const auto& key:{"sketchId","entityId","entityIds","axisEntityId","angleDeg","reverseDirection"})if(arguments.contains(key))params[key]=arguments[key];
+    if(arguments.contains("entityIds")){params.remove("entityId");params["sectionVersion"]=2;}
+    else if(arguments.contains("entityId")){params.remove("entityIds");params.remove("sectionVersion");}
     feature["parameters"]=params;if(arguments.contains("name"))feature["name"]=arguments["name"];
     if(index<0)rows.append(feature);else rows[index]=feature;candidate["features"]=rows;
     const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
@@ -3206,9 +3209,12 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             ids.insert(feature.value("bodyId").toString());continue;
         }
         if(type=="surfaceRevolve") {
-            if(!validId(feature["bodyId"].toString()) || ids.contains(feature["bodyId"].toString()) || p.size()!=9
-                || !validId(p["sketchId"].toString()) || !validId(p["entityId"].toString()) || !validId(p["axisEntityId"].toString())
-                || p["entityId"]==p["axisEntityId"] || p["extent"]!="partial" || p["direction"]!="oneSide" || p["operation"]!="newBody"
+            const bool chain=p.contains("entityIds");QSet<QString> sectionIds;
+            if(chain){if(p["sectionVersion"]!=2 || !p["entityIds"].isArray() || p["entityIds"].toArray().size()<2 || p["entityIds"].toArray().size()>32)return "Surface Revolve chain requires 2-32 ordered Lines";
+                for(const auto& id:p["entityIds"].toArray()){if(!validId(id.toString()) || sectionIds.contains(id.toString()) || id==p["axisEntityId"])return "Surface Revolve chain requires distinct source IDs and axis";sectionIds.insert(id.toString());}}
+            if(!validId(feature["bodyId"].toString()) || ids.contains(feature["bodyId"].toString()) || p.size()!=(chain ? 10:9)
+                || !validId(p["sketchId"].toString()) || (!chain && !validId(p["entityId"].toString())) || !validId(p["axisEntityId"].toString())
+                || (!chain && p["entityId"]==p["axisEntityId"]) || p["extent"]!="partial" || p["direction"]!="oneSide" || p["operation"]!="newBody"
                 || !p["isSolid"].isBool() || p["isSolid"].toBool() || !p["reverseDirection"].isBool())
                 return "Surface Revolve requires one retained sketch Line, a distinct construction axis, Partial One Side and non-solid New Body";
             if(!p["angleDeg"].isDouble() || !std::isfinite(p["angleDeg"].toDouble()) || p["angleDeg"].toDouble()<=0 || p["angleDeg"].toDouble()>=360)

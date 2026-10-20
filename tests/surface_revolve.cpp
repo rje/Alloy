@@ -67,5 +67,27 @@ int main(int argc,char** argv){QCoreApplication app(argc,argv);try{
     QTemporaryDir temp;const auto path=temp.filePath("surface-revolve.alloy");check(doc.save(path).isEmpty(),"save");CadDocument reopened;
     check(reopened.open(path).isEmpty() && reopened.authored()==doc.authored() && reopened.bodies().front().bodyId==bodyId,"reopen exact retained input");
     near(reopened.bodies().front().summary["areaMm2"].toDouble(),225*std::numbers::pi,"reopen geometry");
+    CadDocument chain;auto section=SketchGeometry::newFeature(chain.authored()["documentId"].toString(),"XZ","Connected section");
+    section=SketchGeometry::addLine(section,{{"u1Mm",20},{"v1Mm",-10},{"u2Mm",30},{"v2Mm",0}});
+    section=SketchGeometry::addLine(section,{{"u1Mm",30},{"v1Mm",0},{"u2Mm",20},{"v2Mm",10}});
+    section=SketchGeometry::addLine(section,{{"u1Mm",0},{"v1Mm",-15},{"u2Mm",0},{"v2Mm",15}});
+    auto entities=section["parameters"].toObject()["entities"].toArray();const auto e0=entities[0].toObject(),e1=entities[1].toObject(),ax=entities[2].toObject();
+    section=SketchGeometry::setConstruction(section,{{"entityIds",QJsonArray{ax["id"]}},{"construction",true}}).feature;
+    check(chain.commit(SketchGeometry::replaceFeature(chain.authored(),section),"Chain source").isEmpty(),"chain source");
+    auto chainArgs=QJsonObject{{"sketchId",section["id"]},{"entityIds",QJsonArray{e0["id"],e1["id"]}},{"axisEntityId",ax["id"]}};
+    check(chain.commit(CadDocument::surfaceRevolveCandidate(chain.authored(),chainArgs),"Chain revolve").isEmpty(),chain.lastEvaluationError()["message"].toString());
+    const auto cb=chain.bodies().front();near(cb.summary["areaMm2"].toDouble(),250*std::numbers::pi*std::sqrt(2.),"two conical patches area");
+    check(cb.supportFaces.size()==2 && cb.solidEdges.size()==7,"connected two face sheet topology");
+    const auto chainAuthored=chain.authored();chainArgs={{"featureId",cb.featureId},{"angleDeg",45.},{"reverseDirection",true}};
+    check(chain.commit(CadDocument::surfaceRevolveCandidate(chain.authored(),chainArgs),"Chain angle").isEmpty(),"chain edit");
+    near(chain.bodies().front().summary["areaMm2"].toDouble(),125*std::numbers::pi*std::sqrt(2.),"chain edited area");
+    for(int j=0;j<2;++j)check(chain.bodies().front().supportFaces[j].faceId==cb.supportFaces[j].faceId,"stable chain face");
+    for(int j=0;j<7;++j)check(chain.bodies().front().solidEdges[j].edgeId==cb.solidEdges[j].edgeId,"stable chain boundary");
+    chain.history().undo();check(chain.authored()==chainAuthored,"chain Undo");chain.history().redo();
+    auto axisChanged=movePoints(chain.authored(),section["id"].toString(),ax["startPointId"].toString(),5,-15);
+    axisChanged=movePoints(axisChanged,section["id"].toString(),ax["endPointId"].toString(),5,15);
+    check(chain.commit(axisChanged,"Chain axis edit").isEmpty(),"chain axis recompute");
+    near(chain.bodies().front().summary["areaMm2"].toDouble(),100*std::numbers::pi*std::sqrt(2.),"chain axis analytic area");
+    const auto chainPath=temp.filePath("chain.alloy");check(chain.save(chainPath).isEmpty(),"chain save");CadDocument readChain;check(readChain.open(chainPath).isEmpty() && readChain.authored()==chain.authored(),"chain reopen");
     std::cout<<"PASS retained surface Revolve area/bounds/lineage, solved source+axis edits, atomic refusal/retry, undo/redo/reopen\n";return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}
