@@ -3712,7 +3712,8 @@
         "SRF-042",
         "SRF-043",
         "SRF-044",
-        "SRF-047"
+        "SRF-047",
+        "SRF-048"
       ],
       "labels": [
         "kind:validation",
@@ -10778,7 +10779,7 @@
         "priority:P1",
         "area:srf"
       ],
-      "body": "## Bounded result\nUntrim one supported trimmed face to its retained prior boundary as an editable operation that preserves source/history.\n\nThis is a finishable child of SRF-005; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Apply a known trim to a supported face and untrim it to the recorded pretrim boundary.\n- Verify the restored boundary and face bounds against the original fixture.\n- Refuse missing or ambiguous trim history without altering the current face.\n- Verify undo/redo and save/reopen.\n\n## Preserved remainder\nMulti-edge histories, generalized trim restoration, and broader recovery variants remain under SRF-005.\n"
+      "body": "## Bounded result\nUntrim one supported trimmed face to its retained prior boundary as an editable operation that preserves source/history.\n\nThis is a finishable child of SRF-005; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Apply a known trim to a supported face and untrim it to the recorded pretrim boundary.\n- Verify the restored boundary and face bounds against the original fixture.\n- Refuse missing or ambiguous trim history without altering the current face.\n- Verify undo/redo and save/reopen.\n\n## Preserved remainder\nMulti-edge histories, generalized trim restoration, and broader recovery variants remain under SRF-005.\n\n## Linked native remainder\nSRF-048 retains physical actual-hit face selection, documented External Edges controls, visual comparison, edit/Cancel/OK and source-visible presentation. This issue accepts a bounded shared-command core/API and compiled dialog only after independent geometry/history/GPU evidence; native parity is not inferred from API routing.\n"
     },
     {
       "key": "SRF-033",
@@ -11366,6 +11367,23 @@
         "area:srf"
       ],
       "body": "## Bounded first-v1 native workflow\nSRF-031 owns the retained rectangular-sheet Natural distance core and shared numeric command. Complete the actual canvas one-edge selection and documented distance manipulator, then qualify the physical workflow. The Mac console is locked on 2026-10-20; keep native acceptance Todo until an unlocked run.\n\n## Acceptance criteria\n- Open Surface > Modify > Extend and select one exact retained outer edge through an actual viewport hit. Show one selected edge and its source sheet, Natural type, Free Edges and chaining off; no simulated selection or separate mock geometry.\n- Drag a discoverable in-canvas distance handle and type the same positive value in active units. Preview must extend the sheet without thickness or source-history mutation. Invalid zero/stale input shows actionable feedback and disables OK; Cancel/Escape preserves authored/revision/Undo, then valid retry and Timeline edit work without inter-step focus repair.\n- On an unlocked Mac use strict widget/popup readiness and actual-hit checks, source width edit, Undo/Redo and save/reopen via shared state after native input. Inspect whole-app GPU captures at 1x/2x, comparing only comparable dated public edge/preview evidence; exact unmatched pixel parity remains unknown. Close private editor afterward. Diagnose and remove visible-source sketch/profile coplanar overdraw/striping observed in the SRF-031 reopened capture; a source-hidden capture is clean, so keep this as a presentation gate rather than a geometry failure.\n\n## Preserved remainder\nTarget termination SRF-045, curved self-intersection refusal SRF-046, Perpendicular/Tangent, chains/multiple edges and broader recovery remain SRF-005; Windows/Linux packaged runtime remains release-gate work.\n"
+    },
+    {
+      "key": "SRF-048",
+      "title": "Complete native one-face External Edges Untrim workflow",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "SRF-032"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P1",
+        "area:srf"
+      ],
+      "body": "## Bounded first-v1 native workflow\nSRF-032 owns the retained crossing-sheet Trim to one-face External Edges Untrim core/API and compiled dock. Complete the documented face-selection and External Edges presentation through actual user input, using the same authoritative command and retained history. The Mac console was locked on 2026-10-20; keep native acceptance Todo until an unlocked run.\n\n## Acceptance criteria\n- Open Surface > Modify > Untrim and select the one exact retained Trim-result face with a physical viewport hit. Show the selected face and External Edges type unambiguously; the command must not guess an earlier face or substitute geometry.\n- Expose the documented face-scope options truthfully, marking unsupported All/Internal/Manual, optional extension distance and Keep Copy unavailable rather than pretending they work. For the bounded External Edges mode, preview the finite 400\u2192800 mm\u00b2 restoration, Cancel/Escape without document mutation, OK as one editable feature, and Timeline reopen/edit.\n- Implement the documented macOS Command / Windows Ctrl preview suppression during selection adjustment, or record a bounded compatibility mismatch with a follow-up owner before claiming parity. Invalid/stale/ambiguous ancestry gives actionable feedback and valid retry without inter-step focus repair.\n- On an unlocked Mac run actual-hit widget/popup readiness checks and inspect whole-app GPU captures at 1x/2x, including source-visible and source-hidden states. Exercise source edit, Undo/Redo and save/reopen after native input; compare only matched public evidence and record unmatched styling/gesture unknowns. Close the private editor.\n\n## Preserved remainder\nGeneral Internal/All/Manual loops, multiple-edge histories, Keep Copy, extension distance, imported/curved surfaces and broad recovery remain SRF-005; Windows/Linux packaged runtime stays a release gate.\n"
     }
   ]
 }
