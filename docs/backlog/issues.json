@@ -11033,7 +11033,7 @@
     },
     {
       "key": "PRT-012",
-      "title": "Export selected bodies as one mesh file or per-body mesh files safely",
+      "title": "Export selected bodies as one file or an atomic per-body directory",
       "kind": "implementation",
       "phase": "P3 Shape/import/print breadth",
       "priority": "P1",
@@ -11047,7 +11047,7 @@
         "priority:P1",
         "area:prt"
       ],
-      "body": "## Bounded result\nExport selected bodies as one-file or per-body STL/Core 3MF files with collision handling and atomic cancellation/failure behavior.\n\nThis is a finishable child of PRT-002; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Expose one-file/per-body structure and deterministic naming for selected bodies in STL and Core 3MF.\n- Test filename collisions, an existing destination, and cancellation; preserve prior files and publish no partial batch.\n- Independently read every produced mesh and verify units, object count, bounds, and transforms for the fixture.\n- Verify failed/cancelled export leaves authored geometry, history, and undo state unchanged.\n\n## Preserved remainder\nSTEP and other exporters, broader batch naming/presets, and native platform chooser qualification remain with PRT-002 and cumulative release gates.\n"
+      "body": "## Bounded result\nExport an explicit selected committed-solid set as one STL/Core 3MF file or as one file per body in a newly created output directory. This is a finishable child of PRT-002; public one-file/per-body terminology is recorded externally under PRT012-R1/R3. The new-directory transaction is an explicit Alloy safety policy, not a claim about the reference product. Preserve PRT-011 exact single-solid prepared preview.\n\n## Acceptance criteria\n- Show Structure: One File / One Body Per File, selected body count and exact scope in the native Save As Mesh sheet. Multi-body one-file and per-body modes must remain usable without falsely requiring PRT-011 single-solid Preview. Retain format, units and refinement settings; avoid synchronous GUI tessellation.\n- One File combines only the explicit set in STL or retains separate Core 3MF objects/build items with each world placement exactly once. Per-body mode creates deterministic portable ordinal/body-name files for the exact set. Report final path-to-instance mapping.\n- Per-body destination is a new directory under an existing parent. Stage every output in a private sibling directory, then publish with one directory rename after current-document approval. Reject an existing file/directory/symlink destination unchanged. Cancel or any prepublication/body failure exposes no partial final batch and preserves authored geometry/history/undo. Exact cross-platform race/crash durability and replacing an existing output directory remain PRT-015.\n- Independently read every produced STL/Core 3MF for units, object count, bounds, placement and selected-set isolation. Exercise duplicate/case/unsafe names, an existing destination, cancellation and a late staged-body failure. Inspect actual native sheet/GPU capture; physical chooser and platform runtime remain PRT-014/release gates.\n\n## Linked remainders\nPRT-015 owns Replace All/existing directory transaction and platform-specific no-replace race/durability qualification. PRT-013 owns Maximum Edge Length/Aspect Ratio. PRT-014 owns physical native mesh-export interaction and viewport-visible sheet placement. STEP/OBJ and broader export structures stay with existing exchange/PRT-002 scope.\n"
     },
     {
       "key": "HIS-011",
@@ -11714,6 +11714,23 @@
         "area:prt"
       ],
       "body": "## First-v1 native export gate\nPRT-011 owns one-solid prepared-artifact preview and exact count through the shared API/compiled sheet. Qualify physical Save As Mesh interaction and visual quality, including transient GPU facets and native filename chooser.\n\n## Acceptance criteria\n- Physically select a committed curved solid, open Save As Mesh through the actual UI, switch Low/Medium/High/Custom and STL/Core 3MF, activate Preview, inspect distinct facet-density/count changes, and edit typed fields without focus or selection repair.\n- Cancel while preparing or previewing, cancel the native chooser, and save after a valid preview. Prove no file or authored/history mutation on Cancel, exact prepared/saved byte hash on Save, safe existing-file failure/retry and stale document/settings refusal after chooser return.\n- Fix the centered export sheet obscuring much of the selected part: preserve a useful viewport view of the changing facets while controls, count and Save/Cancel stay readable. Inspect full-app 1x/2x GPU captures with vendor/renderer/version/framebuffer and matched public evidence where available. Record specific visual/input mismatches; close the private editor. Windows/Linux packaged runtime remains the release gate.\n\n## Preserved remainder\nMulti-body structure/collisions remain PRT-012, maximum edge/aspect PRT-013 and broader advanced options PRT-002.\n"
+    },
+    {
+      "key": "PRT-015",
+      "title": "Replace an existing per-body mesh batch safely",
+      "kind": "implementation",
+      "phase": "P4 Full replacement",
+      "priority": "P2",
+      "depends_on": [
+        "PRT-012"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P4",
+        "priority:P2",
+        "area:prt"
+      ],
+      "body": "## Preserved replacement workflow\nExtend the accepted PRT-012 new-directory per-body STL/Core 3MF export to an existing destination with an explicit conflict list and Replace All or Cancel choice. Public evidence does not establish an exact conflict prompt or replacement semantics; this is an Alloy safety and familiarity requirement.\n\n## Acceptance criteria\n- Show every generated path and existing conflict before publication; require explicit Replace All. Preserve deterministic path-to-instance mapping and refuse symlink/path traversal escapes.\n- Prepare all replacement bytes before any destination mutation. Use a cross-platform transaction/rollback design with bounded crash-recovery semantics and clear limits; no silent per-file skip or partial success. Failed or cancelled replacement preserves the previous complete file set byte-for-byte.\n- Independently read every replaced STL/Core 3MF and verify selected-body scope, units, bounds and transforms. Exercise a late publication failure, recovery/retry and existing-file conflicts on macOS, Windows and Linux runtime before claiming portable safety.\n- Inspect physical native conflict/chooser flow and readable user feedback without altering authored geometry, history or Undo.\n\n## Dependencies\n- PRT-012/#644 new-directory batch core.\n"
     }
   ]
 }
