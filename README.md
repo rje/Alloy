@@ -1,5 +1,9 @@
 # Alloy
 
+[The bounded sketch-transform minimum](docs/validation/sketch-transform-cumulative.md)
+now covers Move, Copy, Rotate and Scale for one connected four-Line XY profile;
+independent cumulative review accepts that slice while release gates remain open.
+
 [Atomic sketch Move](docs/validation/sketch-move.md) now translates one isolated
 closed four-Line profile through native or local controls. Two relative edits,
 constraint-safe refusals, history/reopen and a downstream watertight STL pass;

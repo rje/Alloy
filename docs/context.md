@@ -1,3 +1,26 @@
+## 2026-10-20 bounded sketch-transform family accepted
+
+Independent Astra read-only review accepted the proposed-v1 connected four-Line
+XY Move, Copy, Rotate and Scale minimum through `753f2c8`, including source/edit
+authority, preview/cancel, history/reopen and independently read printable
+geometry. `sketch.transform` row098 moves from S to E for this bounded minimum;
+arbitrary stacked transforms, other curves/planes and exact reference behavior
+remain broader or unknown, and physical/package release gates remain open.
+The multi-profile SKT-189 capture has crowded Rotate dimension labels; visual
+follow-up SKT-190/#713 is Todo with a matched-state research and native GPU
+readability gate. The canonical backlog has 710 issues. No CI/release was run.
+
+## 2026-10-20 SKT-186 Create Copy history research disposition
+
+Additional permitted public help, support, product-team and tutorial evidence
+confirms active-sketch Create Copy/Translate, but does not demonstrate a
+sketch-specific Timeline/Edit Feature result followed by later source edit.
+The comparison and evidence trigger are external in
+`../Alloy-reference-records/knowledge/specs/skt186-create-copy-history-followup-2026-10-20.md`.
+SKT-186/#709 is closed/Done as an evidence-bounded unknown; the accepted
+independent-copy policy remains and exact history parity is not claimed. The
+cumulative sketch-transform minimum is accepted above.
+
 ## 2026-10-20 SKT-189 Copy/Rotate coexistence acceptance
 
 [Bounded receipt](validation/sketch-copy-rotate-coexistence.md) accepts ordinary
@@ -7,8 +30,8 @@ the complete sketch still passes strict Rotate validation. Native actual-hit
 input passes 3/3, real-app API passes 70 calls, identities/history/reopen stay
 stable and independent STL readback finds four watertight components totaling
 7,712 mm³. Independent Sol read-only review accepted `753f2c8`.
-SKT-189/#712 is closed/Done. SKT-186/#709 is the sole In Progress research item
-for sketch-specific Create Copy history. The canonical backlog remains 709
+SKT-189/#712 is closed/Done. Sketch-specific Create Copy history is disposed
+above as an evidence-bounded unknown. The canonical backlog later reached 710
 issues. No CI/release; private editors closed and user PID72618 preserved.
 
 ## 2026-10-20 SKT-181 active-sketch Scale acceptance
@@ -20,8 +43,7 @@ same-owner edits keep identities/history stable, and independently read STLs
 are watertight at 3,762 and 3,510 mm³. Independent Sol read-only review found
 and verified the Pattern-input/Scale-accept lifecycle correction in `0c7a457`
 after initial candidate `3569a46`. SKT-181/#704 is closed/Done. Copy/Rotate
-coexistence is accepted above; SKT-186/#709 remains active research for sketch
-Create Copy history.
+coexistence and Copy history research are disposed above.
 No CI/release; private editors closed, user PID72618 preserved.
 
 ## 2026-10-20 SKT-188 retained Rotate source-size acceptance

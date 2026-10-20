@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **709 issues**: **559 implementation, 24 research,
+The current local backlog contains **710 issues**: **560 implementation, 24 research,
 6 research/design, 22 epics, and 98 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 SKT-097/#502 accepts a bounded retained rectangular sketch-circle pattern and
@@ -19,18 +19,20 @@ Both pattern modes are required for proposed-v1 sketch patterns, with the public
 contract and engineering note outside the repository. SKT-098/#503 owns atomic
 authored Move and SKT-184/#707 owns retained editable Move. [Copy/Paste](../validation/sketch-copy.md)
 accepts SKT-179/#702. The [general Move/Copy Create Copy route](../validation/sketch-create-copy.md)
-accepts SKT-185/#708; its unresolved sketch-specific retained-history research
-is SKT-186/#709. [Retained planar Rotate](../validation/sketch-rotate.md)
+accepts SKT-185/#708; its sketch-specific retained-history research SKT-186/#709
+closed with an evidence-bounded unknown. [Retained planar Rotate](../validation/sketch-rotate.md)
 accepts SKT-180/#703; [bounded active-sketch Scale](../validation/sketch-scale.md)
 accepts SKT-181/#704.
 [Normal 3D construction Line](../validation/sketch-normal-axis.md) accepts
 SKT-187/#710 as the Rotate prerequisite; [source-size composition](../validation/sketch-rotate-source-size.md)
-accepts SKT-188/#711. Copy/Rotate coexistence SKT-189/#712 is the sole active
-transform integration task.
+accepts SKT-188/#711.
 [Copy/Create Copy beside retained Rotate](../validation/sketch-copy-rotate-coexistence.md)
 accepts SKT-189/#712 after the source-size validation revealed the isolated
-candidate refusal. SKT-186/#709 is the sole active transform-family research
-item for sketch-specific retained Copy history.
+candidate refusal. SKT-186/#709's external follow-up record gives the evidence
+trigger for reopening the unknown sketch-specific Copy history question.
+Independent cumulative review accepts the bounded connected four-Line XY
+`sketch.transform` minimum; SKT-190/#713 tracks crowded dimension labels in a
+zoomed-out multi-profile sketch, separate from release/platform gates.
 The [atomic Move receipt](../validation/sketch-move.md) accepts SKT-098/#503,
 and [Retained Edit Move](../validation/sketch-retained-move.md) accepts SKT-184/#707.
 The public transform contract is outside the repository.

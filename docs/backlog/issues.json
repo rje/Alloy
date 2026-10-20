@@ -12099,6 +12099,25 @@
         "area:skt"
       ],
       "body": "<!-- alloy-backlog:SKT-189 -->\n**Backlog key:** `SKT-189` · **Phase:** `P2 Parametric modeling` · **Priority:** `P1` · **Kind:** `implementation`\n\n## Copy alongside an unrelated retained Rotate\nA real-app #711 validation fixture can capture an ordinary distant rectangle for Copy, but Create Copy preview in the same sketch as an unrelated retained Rotate refuses `Invalid Rotate source identity`. The isolated Copy candidate filters away the Rotate source points while retaining its owner metadata. The refusal is atomic; this issue restores the expected independent-profile workflow without broadening Rotate's source-size edit.\n\n## Acceptance\n- In one active XY sketch, retain a valid rotated four-Line profile and author a separate ordinary closed rectangle. Copy/Paste or Move/Copy Create Copy the rectangle to a nonoverlapping placement. Scope candidate isolation so the unrelated Rotate owner validates against its complete source or is excluded with its whole owned dependency set; do not weaken global Rotate validation or rewrite its source/cache.\n- Verify original owner, axis, source frame, angle, rotated profile and downstream solid keep exact IDs and geometry. The pasted/copy geometry has new independent IDs and supported internal relations, with no copied dependency on the Rotate owner. Edit either independent profile afterward and confirm the other remains unchanged.\n- Check native actual-hit and local API routes, atomic refusal for invalid overlapping ownership, Undo/Redo and authored save/reopen. Inspect a downstream multi-body solid and independently read a watertight STL if the existing Copy fixture can reuse that route. Keep focused tests and evidence proportional to this integration bug.\n\n## Dependencies\n- SKT-179/#702 independent sketch Copy; SKT-180/#703 retained planar Rotate.\n\nThis is a code interaction found in Alloy validation, not a claim about undocumented reference-product behavior.\n"
+    },
+    {
+      "key": "SKT-190",
+      "title": "Keep sketch dimensions readable in zoomed-out multi-profile views",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-180",
+        "SKT-189",
+        "SKT-004"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P1",
+        "area:skt"
+      ],
+      "body": "<!-- alloy-backlog:SKT-190 -->\n**Backlog key:** `SKT-190` · **Phase:** `P2 Parametric modeling` · **Priority:** `P1` · **Kind:** `implementation`\n\n## Dimension-label readability in dense sketch views\nThe accepted cumulative transform fixture for SKT-189/#712 shows several driving dimension labels colliding over a small rotated profile when the view also contains distant independent profiles. The geometry and dimensions remain correct, but the labels become difficult to read or select at that zoom. Public reference screenshots/tutorials may guide placement; this issue starts from an observed Alloy presentation defect and makes no exact-parity claim.\n\n## Acceptance\n- Research permitted public examples of dense sketch dimension presentation and record provenance outside git. Define a bounded visibility/placement rule for annotations whose projected label footprints collide at the same viewport scale. Preserve each dimension's authored identity/value and direct edit/select route; do not silently delete, hide or change a driving dimension to make the capture look clean.\n- Reuse the SKT-189 multi-profile rotated fixture and at least one normal zoom where labels are already readable. At the recorded zoomed-out viewport, show distinguishable dimension labels or a clear inspectable compact representation without collision over the selected profile. At normal zoom, preserve the readable annotation workflow. Check pan/zoom/resize and native hit targets without repairing selection between user steps.\n- Inspect actual GPU/native captures at recorded logical and framebuffer size, plus save/reopen and unchanged authored geometry, constraints, downstream solids and exported mesh. Keep styling claims bounded to available public evidence; physical trackpad and packaged-platform input remain release gates.\n\n## Dependencies\n- SKT-180/#703 retained planar Rotate; SKT-189/#712 Copy coexistence fixture; SKT-004/#31 sketch dimensions.\n"
     }
   ]
 }
