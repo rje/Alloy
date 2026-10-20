@@ -1,5 +1,7 @@
 # Alloy
 
+[Distance And Angle solid Chamfer](docs/validation/solid-distance-angle-chamfer.md) now has a retained one-edge directed core, explicit incident reference face and independently measured real-app geometry/history/STL. Native actual-hit edge/face/field and 1×/2× GPU acceptance remain SOL-096/#658.
+
 [Two Distance solid Chamfer](docs/validation/solid-two-distance-chamfer.md) now has a retained unequal-setback core, explicit adjacent face/Flip assignment and shared controls. Native actual-hit edge selection and GPU visual acceptance remain SOL-095/#657.
 
 [Uniform retained body Scale](docs/validation/scale.md) now has an exact origin-centered core and shared local API, including stable face references through a downstream Offset Face. Native Body/Origin selection, factor input and GPU visual acceptance remain SOL-094/#656.

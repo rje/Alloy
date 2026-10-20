@@ -3701,7 +3701,8 @@
         "SOL-092",
         "SOL-093",
         "SOL-094",
-        "SOL-095"
+        "SOL-095",
+        "SOL-096"
       ],
       "labels": [
         "kind:validation",
@@ -10647,7 +10648,7 @@
         "priority:P1",
         "area:sol"
       ],
-      "body": "## Bounded result\nCreate and edit a Distance And Angle Chamfer on supported retained solid edges with explicit reference face/direction and atomic refusal.\n\nThis is a finishable child of SOL-005; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Expose distance, angle, reference face, and direction as retained inputs.\n- Preview, commit, and edit the chamfer on a supported analytic edge fixture with measured resulting dimensions.\n- Refuse invalid angles, ambiguous references, and failed kernel results without partial history changes.\n- Verify downstream reference behavior, undo/redo, save/reopen, and STL bounds.\n\n## Preserved remainder\nTangent-chain variants, generated-edge naming, and difficult topology remain under SOL-005.\n"
+      "body": "## Bounded result\nCreate and edit a Distance And Angle Chamfer on supported retained solid edges with explicit reference face/direction and atomic refusal.\n\nThis is a finishable child of SOL-005; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Expose distance, angle, reference face, and direction as retained inputs.\n- Preview, commit, and edit the chamfer on a supported analytic edge fixture with measured resulting dimensions.\n- Refuse invalid angles, ambiguous references, and failed kernel results without partial history changes.\n- Verify downstream reference behavior, undo/redo, save/reopen, and STL bounds.\n\n## Preserved remainder\nTangent-chain variants, generated-edge naming, and difficult topology remain under SOL-005.\n\n## Accepted bounded core and native split \u2014 2026-10-20\nCommits 035e256 and 9855e33 accept a one-edge retained Distance And Angle Chamfer on perpendicular extrusion endRim faces with explicit incident referenceFace, positive distance and open-interval angle (0,90) degrees. The shared preview/Cancel/commit/edit path uses an Alloy-documented reference-face angle convention and converts to OCCT\u2019s complementary datum. Focused Equal/Two/Distance Angle core tests pass; independent real-app API checks exact 2 mm/30\u00b0 side setbacks, reversed reference face and 45\u00b0 datum, downstream blind Cut, distance/angle edits, invalid refusal/retry, 30\u219236 mm source edit, Undo/Redo, save/reopen and independently parsed watertight STL. See docs/validation/solid-distance-angle-chamfer.md. Native actual-hit edge/face/field and 1x/2x GPU acceptance remain linked first-v1 Todo SOL-096 because the Mac console is locked. Current proprietary UI angle datum and reference-face gesture remain unknown from public evidence; tangent chains, generated-edge naming and broader topology remain SOL-005. Closing SOL-089 accepts bounded core and compiled controls only, not native or packaged parity.\n"
     },
     {
       "key": "SRF-025",
@@ -11132,6 +11133,23 @@
         "area:solid"
       ],
       "body": "## Bounded first-v1 native gate\nQualify actual-hit Two Distance solid Chamfer after the SOL-088 geometry core. Mac console is locked on 2026-10-20; API preview and compiled Qt controls cannot substitute for this native gate.\n\n## Acceptance criteria\n- Run strict unlocked Mac preflight, open Solid > Modify > Chamfer, select one retained straight solid edge by actual viewport hit and choose Two Distance without inter-step focus/selection repair. Verify target widget receivers and popup/dialog readiness.\n- Show both adjacent face sides and explicit Side 1/Side 2 assignment; enter unequal values in active units, Flip and inspect visibly swapped bevel orientation in live preview. Cancel/Escape leaves authored state/Undo unchanged; repeat OK commits one feature.\n- Reopen Timeline feature, edit each value and Flip; verify exact cross-section, stable selected edge ID, downstream supported face, Undo/Redo and save/reopen through the shared API after native input. Exercise invalid-value feedback and valid retry.\n- Capture and inspect whole-app GPU presentation at 1x and 2x backing scale, comparing only documented control structure/visible bevel with a dated public reference. Record physical device status separately; close private editors after evidence.\n\n## Preserved remainder\nTangent chains, generated-edge naming, multi-edge corners, broader topology, exact pixel/key parity and Windows/Linux packaged runtime remain SOL-005 and release owners.\n"
+    },
+    {
+      "key": "SOL-096",
+      "title": "Qualify native Distance And Angle solid Chamfer direction and preview",
+      "kind": "validation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-089"
+      ],
+      "labels": [
+        "kind:validation",
+        "phase:P2",
+        "priority:P1",
+        "area:solid"
+      ],
+      "body": "## Bounded first-v1 native gate\nQualify actual-hit Distance And Angle solid Chamfer after SOL-089 core acceptance. The Mac console is locked on 2026-10-20, so shared API geometry and compiled controls cannot close this native gate.\n\n## Acceptance criteria\n- Run strict unlocked Mac preflight. Open Solid > Modify > Chamfer, select one retained straight edge by actual viewport hit, switch to Distance And Angle, and choose an incident Reference Face. Verify widget hit receivers, popup readiness, and focus without inter-step repair.\n- Enter 2 mm and 30\u00b0 in active units. Inspect live preview and explicit reference/direction labels; switch the face and confirm the bevel's measured setbacks reverse. Cancel/Escape preserves authored/Undo; repeat OK commits one retained feature.\n- Reopen Timeline edit, independently change distance and angle, test invalid-value feedback and valid retry, and verify downstream unchanged-face Cut, exact geometry, Undo/Redo, save/reopen via shared state after native input.\n- Capture and inspect whole-app GPU presentation at 1x and 2x backing scale against only dated public controls/results where comparable. Record physical-device input separately. Close the private editor afterward.\n\n## Preserved remainder\nThe published help does not establish current native angle datum, face-picking gesture, defaults or Distance And Angle Flip. Do not claim exact parity on these points; research further permitted public evidence. Tangent chains, generated-edge naming, multi-edge corners, broader topology, exact pixel/key parity and Windows/Linux packaged runtime remain SOL-005 and release owners.\n"
     }
   ]
 }
