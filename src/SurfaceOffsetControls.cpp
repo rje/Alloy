@@ -60,7 +60,7 @@ QJsonObject AlloyWindow::previewSurfaceOffset() {
     const auto ref=inputs.value("sourceFace").toObject();
     if(ref.isEmpty())return reject("selection_required","Select one retained planar face in the canvas");
     try{const auto face=GeometryKernel::resolveSketchSupport(source,ref);view_->selectSupportFace(ref,face.face);}
-    catch(const std::exception& e){return reject("surface_source_unavailable",QString::fromUtf8(e.what()));}
+    catch(const std::exception& e){return reject("surface_source_unavailable",QString::fromUtf8(e.what()),{{"sourceFace",ref},{"faceId",ref.value("faceId")}});}
     QJsonObject candidate;try{candidate=surfaceOffsetCandidate(inputs);}catch(const std::exception& e){return reject("invalid_arguments",QString::fromUtf8(e.what()));}
     const auto evaluated=CadDocument::evaluateCandidate(candidate);if(!evaluated.ok)return reject("evaluation_failed",evaluated.error,evaluated.diagnostics);
     auto stage=evaluated.evaluation;const auto id=edit.isEmpty() ? session_.value("newFeatureId").toString() : edit;
