@@ -45,7 +45,7 @@ void sourceArc(){
     checkHalfSweep(sketch,origin);
     sketch=accept(SketchGeometry::addDimension(sketch,{{"kind","horizontal"},{"pointIds",QJsonArray{start,end}},
         {"valueMm",50}}));
-    const auto widthId=sketch["parameters"].toObject()["dimensions"].toArray().last().toObject()["id"];
+    const auto widthId=sketch["parameters"].toObject()["dimensions"].toArray().last().toObject().value("id");
     sketch=accept(SketchGeometry::addDimension(sketch,{{"kind","vertical"},{"pointIds",QJsonArray{origin,start}},
         {"valueMm",10}}));
     sketch=accept(SketchGeometry::addDimension(sketch,{{"kind","vertical"},{"pointIds",QJsonArray{origin,end}},

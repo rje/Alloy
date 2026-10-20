@@ -12,6 +12,7 @@
 #include <QProcess>
 #include <QTest>
 #include <QWindow>
+#include <algorithm>
 #include <cmath>
 #include <stdexcept>
 #ifdef Q_OS_MACOS
@@ -277,6 +278,14 @@ private slots:
       for (auto row : actions)
         diagnosed |= row.toObject().value("id") == action->objectName();
       check(diagnosed, "API diagnostics expose construction action");
+      const auto menuActions=menu->actions();
+      const auto dimensionIndex=std::find_if(menuActions.begin(),menuActions.end(),[](auto* a){return a->objectName()=="sketch.tool.dimension";});
+      check(dimensionIndex!=menuActions.end() && dimensionIndex+1!=menuActions.end() && *(dimensionIndex+1)==action,
+            "Dimension immediately precedes construction in sketch group");
+      check(action->text()=="Normal/Construction\tX", "construction has distinct shortcut column");
+      const auto midpoint=std::find_if(menuActions.begin(),menuActions.end(),[](auto* a){return a->objectName()=="sketch.action.constraint.midpoint";});
+      check(midpoint!=menuActions.end() && menu->actionGeometry(*midpoint).top()>menu->actionGeometry(action).bottom(),
+            "constraint group follows construction");
       capture("01-construction-menu");
       auto local = menu->actionGeometry(action).center();
       check(QApplication::widgetAt(menu->mapToGlobal(local)) == menu,
@@ -332,6 +341,17 @@ private slots:
       key(Qt::Key_Escape);
       check(session().value("tool") == "select", "Escape exits Circle");
       relations(50);
+      const auto glyphs=gpu().value("sketchConstraintGlyphs").toArray();
+      for(const auto& row:glyphs) {
+        const auto glyph=row.toObject();
+        if(glyph.value("kind")!="midpoint" && glyph.value("kind")!="tangent")continue;
+        const auto anchor=glyph.value("anchorMm").toObject();
+        const auto bounds=glyph.value("bounds").toObject();
+        const QPoint projected=pixel({anchor.value("uMm").toDouble(),anchor.value("vMm").toDouble()});
+        check(std::abs(projected.x()-(bounds.value("x").toDouble()+bounds.value("width").toDouble()/2))<=1 &&
+              std::abs(projected.y()-(bounds.value("y").toDouble()+bounds.value("height").toDouble()/2))<=1,
+              "retained glyph stroke anchor shares actual hit bounds");
+      }
       capture("07-two-retained-circles");
       const auto completed = draft();
       call("history.undo");
