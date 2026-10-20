@@ -45,9 +45,14 @@ The public-evidence contract is external at
 It records source IDs R1–R4, provenance, retrieval date and documented versus
 inferred behavior. No proprietary application was operated.
 
-## Limits and remaining acceptance
+## Independent review and remaining acceptance
 
-Independent compatibility review is pending. The Mac console remains locked;
+An independent Astra compatibility review accepted commit `0d53862` for the
+bounded joined-Line result, including source-derived face/edge identity, the
+real-app geometry/history fixture and inspected GPU captures. The inactive
+single-Profile combo can display “Select” while the explicit chain list contains
+two Lines; this is a presentation follow-up, not a missing authored selection.
+The Mac console remains locked;
 this receipt does not establish actual-hit dock input, physical canvas selection,
 angle dragging, OS input, DPR 1 or matched public visual parity. SRF-036 owns the
 canvas-selection/manipulator gate. The available public one-curve/full-revolution

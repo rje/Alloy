@@ -4,6 +4,11 @@ Private review site: https://alloy-v1-review.rjevans1.chatgpt.site
 
 The user reviewed this as a reasonable working direction on 2026-10-17. The [2026-10-20 planning freeze](scope-reconciliation-2026-10-20.md) selects the first-v1 minimums and release owners across all 134 proposed rows, including the [27 formerly open-owner rows](open-row-disposition.md). This fixes planning scope, not feature or package readiness; the execution gates remain open. The long-term full noncloud product contract remains intact. Older audit narrative below records how the plan was assembled and should be read as dated history.
 
+Surface Revolve row117 now has an independently accepted retained joined-Line
+sheet minimum under [SRF-037](../validation/surface-revolve-chain.md). Its canvas
+selection, angle drag and native visual gate remain SRF-036, while curved
+Line/Arc chains are tracked as later SRF-055.
+
 The 2026-10-19 all-row audit found and corrected a release dependency contradiction: required Core 3MF **export** now enters GATE-040 through XCH-011 without making later 3MF import under XCH-005 a transitive prerequisite. Exact accepted import subsets, native exchange, all-platform packages and STL/STEP/3MF readback still need execution. REL-054/#615 is the stable-v1 exit after REL-049's post-packaging intrinsic-cost audit; earlier preview packages remain separate. The [private review site](https://alloy-v1-review.rjevans1.chatgpt.site) now serves the synchronized planning data; source/data checks and private deployment succeeded, while browser visual inspection remains open.
 
 The first ownership pass linked 20 previously broad-only proposed tool areas to

@@ -9,7 +9,8 @@ section and axis identities, Partial One Side angle and Reverse direction;
 The current native Surface Create dock has sketch/profile/axis combo selectors
 and typed angle/Reverse controls. Public help also describes canvas selection
 and an angle manipulator. Those controls are unfinished and tracked under
-SRF-036. Connected multi-curve sections remain linked first-v1 Todo SRF-037; wider axis classes and extent modes remain SRF-001.
+SRF-036. Joined-Line sections are accepted under [SRF-037](surface-revolve-chain.md);
+Line/Arc sections remain later SRF-055, and wider axis classes and extent modes remain SRF-001.
 
 ## Evidence
 
@@ -47,6 +48,9 @@ external knowledge tree. No proprietary runtime was operated.
 
 The Mac console is locked. No actual-hit native selection, angular drag,
 physical input, 1× capture or matched public visual comparison is accepted.
-SRF-036 is the first-v1 owner for those controls and checks. Connected multi-curve sections remain SRF-037; origin/model axes, Full/Two Sides/Symmetric extents and surface combinations remain SRF-001. Windows/Linux packaged runtime remains
+SRF-036 is the first-v1 owner for those controls and checks. The joined-Line section
+minimum is accepted in [SRF-037](surface-revolve-chain.md); Line/Arc continuation
+is later SRF-055. Origin/model axes, Full/Two Sides/Symmetric extents and surface
+combinations remain SRF-001. Windows/Linux packaged runtime remains
 under release gates. This core/API evidence does not establish complete user
 workflow or exact interface parity.

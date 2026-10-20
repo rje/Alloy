@@ -1,3 +1,14 @@
+## 2026-10-20 connected-Line Surface Revolve accepted
+
+[SRF-037/#660](validation/surface-revolve-chain.md) accepts one retained connected
+2–32 Line open section as an editable non-solid sheet. Independent Astra review
+accepted commit `0d53862`: 3 focused CTests, a 77-response real-app analytic
+fixture, unchanged one-Line regression, persistence/Undo/Redo and inspected
+Apple M4 GPU captures. SRF-036 still owns canvas selection, angular drag and
+native 1×/2× input/visual acceptance; later SRF-055/#715 owns Line/Arc sections.
+The canonical backlog now has 712 issues. No CI/release was run and the private
+editor was closed; user-owned PID72618 was preserved.
+
 ## 2026-10-20 sketch dimension overflow accepted
 
 SKT-191/#714 adds a bounded two-margin fallback after the accepted local lanes

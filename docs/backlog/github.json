@@ -3286,7 +3286,7 @@
     "SRF-037": {
       "number": 660,
       "url": "https://github.com/rje/Alloy/issues/660",
-      "state": "open"
+      "state": "closed"
     },
     "SRF-038": {
       "number": 661,
@@ -3557,6 +3557,11 @@
       "number": 714,
       "url": "https://github.com/rje/Alloy/issues/714",
       "state": "closed"
+    },
+    "SRF-055": {
+      "number": 715,
+      "url": "https://github.com/rje/Alloy/issues/715",
+      "state": "open"
     }
   }
 }
