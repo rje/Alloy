@@ -1,5 +1,7 @@
 # Alloy
 
+[Retained datum Point](docs/validation/datum-point.md) now places an editable reference point at a semantic Box vertex or along an authored straight sketch Line with proportional or physical distance. Independent geometry/history/reopen and STL-isolation checks pass; physical picking and canvas distance manipulation remain GEO-035.
+
 [Retained datum Axis](docs/validation/datum-axis.md) now creates an editable reference line from two authored sketch Points or one straight sketch Line. Independent real-app geometry/history/reopen and compiled dock checks pass; physical source picking and distinct source/Axis feedback remain GEO-031.
 
 [Retained Plane At Angle](docs/validation/angled-plane.md) now creates an editable datum from an authored straight sketch Line and explicit source plane, with numeric angle and Flip Side. Independent real-app geometry/history/reopen and compiled dock checks pass; physical canvas selection and in-canvas rotation remain GEO-028.
