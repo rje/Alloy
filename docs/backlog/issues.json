@@ -3711,7 +3711,8 @@
         "SRF-041",
         "SRF-042",
         "SRF-043",
-        "SRF-044"
+        "SRF-044",
+        "SRF-047"
       ],
       "labels": [
         "kind:validation",
@@ -10762,7 +10763,7 @@
         "priority:P1",
         "area:srf"
       ],
-      "body": "## Bounded result\nExtend one supported sheet boundary by a declared distance or retained target while preserving source/history identity.\n\nThis is a finishable child of SRF-005; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Support a declared straight boundary and distance/target input with visible preview.\n- Verify the extended surface reaches the requested extent and retains the original face and boundary references.\n- Refuse invalid targets or self-intersection atomically without changing the source.\n- Verify undo/redo and save/reopen.\n\n## Preserved remainder\nMulti-edge and generalized intersection-driven extension and complex trim histories remain under SRF-005.\n"
+      "body": "## Bounded result\nExtend one supported sheet boundary by a declared distance or retained target while preserving source/history identity.\n\nThis is a finishable child of SRF-005; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Support a declared straight boundary and distance/target input with visible preview.\n- Verify the extended surface reaches the requested extent and retains the original face and boundary references.\n- Refuse invalid targets or self-intersection atomically without changing the source.\n- Verify undo/redo and save/reopen.\n\n## Preserved remainder\nMulti-edge and generalized intersection-driven extension and complex trim histories remain under SRF-005.\n\n## Linked bounded remainders\nSRF-045 retains the proposed target-end-condition mode, which is not present in the researched public Extend UI/API contract. SRF-046 retains curved self-intersection/fold refusal, which one planar rectangle cannot exercise. SRF-047 owns native actual-hit selection and the documented distance manipulator. This issue accepts only the researched one-edge Natural distance mode; the linked remainders are explicit Todo work, not silently dropped criteria.\n"
     },
     {
       "key": "SRF-032",
@@ -11314,6 +11315,57 @@
         "area:srf"
       ],
       "body": "## Bounded first-v1 native Ruled workflow\nSRF-030 provides the retained one-edge Normal Ruled geometry core and shared numeric command. Complete the user-facing canvas path and qualify it through the real application. The 2026-10-20 Mac console is locked; keep native acceptance Todo until an unlocked run.\n\n## Acceptance criteria\n- Open Surface > Create > Ruled; select one supported retained straight boundary edge by an actual viewport hit. Show the selected edge and owning planar face unambiguously, with a selected-edge count and Normal type. The native pick must invoke the same authoritative candidate/command as the API; no copied or mock geometry.\n- Provide separate discoverable in-canvas distance and angle handles as described by the dated public command and tutorial evidence. Dragging them must update the same signed numeric fields and actual flange preview; 0\u00b0 follows the oriented face normal, +120\u00b0 remains constructible on the supported source. Keep the documented Alloy positive-angle side explicit until reference sign evidence is available.\n- Verify one-edge chain-off input, active-unit fields, preview, Cancel/Escape, OK, Timeline edit, invalid distance and stale-edge feedback/retry without focus or selection repair between demonstrated native steps. Save/reopen, Undo/Redo and source width edit must retain exact body/edge identities and geometry.\n- On an unlocked Mac perform strict actual-hit widget/popup checks and inspect whole-app GPU captures at 1x/2x against dated comparable public evidence. Record limitations of unmatched cushion/tutorial views and physical input separately. Close the private editor afterward.\n\n## Preserved remainder\nTangent/Direction rules, chain and multiple edges, mitering, shared/corner/curved source cases, exact pixel parity and Windows/Linux packaged runtime remain SRF-004 and release owners.\n"
+    },
+    {
+      "key": "SRF-045",
+      "title": "Resolve and implement retained-target Surface Extend end condition",
+      "kind": "research/design",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P2",
+      "depends_on": [
+        "SRF-031"
+      ],
+      "labels": [
+        "kind:research/design",
+        "phase:P3",
+        "priority:P2",
+        "area:srf"
+      ],
+      "body": "## Preserved target-end-condition requirement\nSRF-031's original acceptance mentioned extending to a retained target. The researched public Surface Extend UI/API describes a numeric Distance and Natural/Perpendicular/Tangent types, without a target-object end condition. This issue keeps the proposed target workflow visible rather than attributing undocumented behavior to the reference.\n\n## Acceptance criteria\n- Search additional permitted public tutorials/API material for a target-object Extend input or a documented Extend-then-Trim workflow; record creator, URL, retrieval date and relevant frames/timestamps outside the repository. Distinguish documented reference behavior from an Alloy enhancement.\n- If a target end condition is supported or chosen as an Alloy enhancement, define one retained planar target plane or finite sheet, unique intersection/reach conditions, source and target reference schema, preview/commit/edit/history and atomic no-intersection/ambiguous/overshoot refusal; implement a bounded exact fixture with real-app/B-rep verification.\n- If the compatible workflow is explicitly two commands, document and verify Extend by Distance followed by Trim to a retained target, and keep wider target modes on the long-term roadmap. Do not silently present a numeric distance as a retained target feature.\n\n## Scope boundary\nThis is later breadth outside the first-v1 one-edge Natural distance minimum; arbitrary nonparallel target intersections and general multi-face extension stay SRF-005.\n"
+    },
+    {
+      "key": "SRF-046",
+      "title": "Qualify curved Surface Extend self-intersection and fold refusal",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P2",
+      "depends_on": [
+        "SRF-031"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P2",
+        "area:srf"
+      ],
+      "body": "## Preserved invalid-curved requirement\nA planar straight-edge Natural extension cannot self-intersect. SRF-031's original invalid-result criterion needs a separately qualified curved source/extent before it can be claimed.\n\n## Acceptance criteria\n- Research a permitted public curved Natural Extend workflow and choose one supported retained curved sheet with independently measurable regular and failing distances. Record provenance and distinguish any Alloy refusal policy from documented reference behavior.\n- Extend the shared command through a bounded exact curved family, or isolate its candidate validator if geometry breadth is staged; ensure a known folded/self-intersecting/degenerate candidate is refused atomically with an actionable source/result diagnostic. Do not classify a stale or non-outer edge as self-intersection.\n- Verify actual output B-rep and failure condition independently, source/edge identity, valid retry, authored/revision/Undo preservation, edit, save/reopen and GPU state through the real app. Physical native input remains a separate gate.\n\n## Preserved remainder\nGeneral curved families, multiple-edge chains, recovery/repair and broad continuity remain SRF-005.\n"
+    },
+    {
+      "key": "SRF-047",
+      "title": "Complete native one-edge Natural Surface Extend selection and distance drag",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "SRF-031"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P1",
+        "area:srf"
+      ],
+      "body": "## Bounded first-v1 native workflow\nSRF-031 owns the retained rectangular-sheet Natural distance core and shared numeric command. Complete the actual canvas one-edge selection and documented distance manipulator, then qualify the physical workflow. The Mac console is locked on 2026-10-20; keep native acceptance Todo until an unlocked run.\n\n## Acceptance criteria\n- Open Surface > Modify > Extend and select one exact retained outer edge through an actual viewport hit. Show one selected edge and its source sheet, Natural type, Free Edges and chaining off; no simulated selection or separate mock geometry.\n- Drag a discoverable in-canvas distance handle and type the same positive value in active units. Preview must extend the sheet without thickness or source-history mutation. Invalid zero/stale input shows actionable feedback and disables OK; Cancel/Escape preserves authored/revision/Undo, then valid retry and Timeline edit work without inter-step focus repair.\n- On an unlocked Mac use strict widget/popup readiness and actual-hit checks, source width edit, Undo/Redo and save/reopen via shared state after native input. Inspect whole-app GPU captures at 1x/2x, comparing only comparable dated public edge/preview evidence; exact unmatched pixel parity remains unknown. Close private editor afterward. Diagnose and remove visible-source sketch/profile coplanar overdraw/striping observed in the SRF-031 reopened capture; a source-hidden capture is clean, so keep this as a presentation gate rather than a geometry failure.\n\n## Preserved remainder\nTarget termination SRF-045, curved self-intersection refusal SRF-046, Perpendicular/Tangent, chains/multiple edges and broader recovery remain SRF-005; Windows/Linux packaged runtime remains release-gate work.\n"
     }
   ]
 }
