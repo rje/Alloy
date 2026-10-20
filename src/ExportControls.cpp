@@ -1,5 +1,11 @@
 #include "AlloyWindow.h"
+#include "ReferenceView.h"
 #include "LocalOccurrences.h"
+#include "ExportScope.h"
+#include <QTimer>
+#include <QSignalBlocker>
+#include <cmath>
+#include <thread>
 #include <BRepBuilderAPI_Copy.hxx>
 #include <QDockWidget>
 #include <QTabBar>
@@ -87,6 +93,8 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
     auto* units=new QComboBox;units->setObjectName("mesh.export.units");
     units->setFocusPolicy(Qt::StrongFocus);
     units->addItem("Millimeters","mm");units->addItem("Inches","in");form->addRow("Unit Type",units);
+    auto* refinement=new QComboBox;refinement->setObjectName("mesh.export.refinement");refinement->setFocusPolicy(Qt::StrongFocus);
+    refinement->addItem("Low (Coarse)","Low");refinement->addItem("Medium","Medium");refinement->addItem("High (Fine)","High");refinement->addItem("Custom","Custom");refinement->setCurrentIndex(1);form->addRow("Refinement",refinement);
     auto* surface=new QDoubleSpinBox;surface->setObjectName("mesh.export.surfaceDeviation");
     surface->setDecimals(3);surface->setRange(0.001,10);surface->setValue(0.1);surface->setSuffix(" mm");form->addRow("Surface Deviation",surface);
     auto* normal=new QDoubleSpinBox;normal->setObjectName("mesh.export.normalDeviation");
@@ -98,14 +106,68 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
         units->setVisible(!threeMf);
         if(auto* label=form->labelForField(units))label->setVisible(!threeMf);
         note->setText(threeMf
-            ? "3MF uses millimeters and keeps selected bodies as separate placed objects.\nComponent selections include visible bodies."
+            ? "3MF uses millimeters. Preview supports one committed solid instance."
             : format->currentData()=="obj" ? "One file · separate body groups · no materials.\nZ-up world coordinates; OBJ does not store units. Use matching import units."
-            : "Custom refinement · separate bodies retain their placement.\nComponent selections include visible bodies.\nSTL files do not store units. Use the same units when importing.");
+            : "Preview supports one committed solid. Alloy numeric presets are shown below.\nSTL files do not store units. Use matching import units.");
     };
     connect(format,&QComboBox::currentIndexChanged,dialog,updateFormat);updateFormat();
+    auto* previewButton=new QPushButton("Preview");previewButton->setObjectName("mesh.export.preview");layout->addWidget(previewButton);
+    auto* count=new QLabel("Triangle Count: —");count->setObjectName("mesh.export.triangleCount");layout->addWidget(count);
+    auto* policy=new QLabel("Alloy presets: Low 0.5 mm / 25° · Medium 0.1 mm / 10° · High 0.02 mm / 5°.\nMaximum Edge Length and Aspect Ratio are not yet available.");policy->setWordWrap(true);layout->addWidget(policy);
     auto* status=new QLabel;status->setObjectName("mesh.export.status");status->setWordWrap(true);layout->addWidget(status);
     auto* buttons=new QDialogButtonBox(QDialogButtonBox::Save|QDialogButtonBox::Cancel);layout->addWidget(buttons);
     connect(buttons,&QDialogButtonBox::rejected,dialog,&QDialog::reject);
+    const auto invalidate=[=,this]{clearMeshPreview();dialog->setProperty("meshPreviewId",QString{});dialog->setProperty("meshPreviewPhase",QString{});count->setText("Triangle Count: —");buttons->button(QDialogButtonBox::Save)->setEnabled(format->currentData()=="obj");};
+    const auto settings=[=]{
+        QJsonObject inputs{{"format",format->currentData().toString()},{"units",format->currentData()=="3mf" ? "mm" : units->currentData().toString()},
+            {"preset",refinement->currentData().toString()},{"surfaceDeviationMm",surface->value()},{"normalDeviationDeg",normal->value()}};
+        const auto source=bodies->currentData().toString();
+        if(source=="visible")inputs["allVisible"]=true;
+        else if(source=="selected"){QJsonArray ids;for(int i=0;i<selected->count();++i)if(selected->item(i)->checkState()==Qt::Checked)ids.append(selected->item(i)->data(Qt::UserRole).toString());inputs["bodyIds"]=ids;}
+        else if(source.startsWith("occurrence:"))inputs["occurrenceId"]=source.sliced(11);
+        else inputs["bodyId"]=source;
+        return inputs;
+    };
+    connect(refinement,&QComboBox::currentIndexChanged,dialog,[=]{
+        const auto preset=refinement->currentData().toString();
+        if(preset!="Custom"){const QSignalBlocker bs(surface),bn(normal);surface->setValue(preset=="Low" ? .5 : preset=="High" ? .02 : .1);normal->setValue(preset=="Low" ? 25 : preset=="High" ? 5 : 10);}
+        invalidate();
+    });
+    const auto custom=[=]{refinement->setCurrentIndex(refinement->findData("Custom"));invalidate();};
+    connect(surface,&QDoubleSpinBox::valueChanged,dialog,custom);connect(normal,&QDoubleSpinBox::valueChanged,dialog,custom);
+    connect(bodies,&QComboBox::currentIndexChanged,dialog,invalidate);connect(selected,&QListWidget::itemChanged,dialog,invalidate);
+    connect(units,&QComboBox::currentIndexChanged,dialog,invalidate);
+    connect(format,&QComboBox::currentIndexChanged,dialog,[=]{invalidate();const bool obj=format->currentData()=="obj";previewButton->setVisible(!obj);count->setVisible(!obj);refinement->setVisible(!obj);if(auto* label=form->labelForField(refinement))label->setVisible(!obj);policy->setVisible(!obj);});
+    connect(previewButton,&QPushButton::clicked,dialog,[=,this]{
+        invalidate();const auto inputs=settings();
+        // Resolve the sheet's legacy selectors to one exact instance at the shared boundary.
+        QJsonObject exact=inputs;
+        try{const auto chosen=ExportScope::select(document_->authored(),presentationBodies(),inputs);
+            if(chosen.bodies.size()!=1){status->setText("Preview supports exactly one committed solid instance.");return;}
+            exact.remove("bodyIds");exact.remove("allVisible");exact["bodyId"]=chosen.bodies.front().bodyId;
+            if(!chosen.bodies.front().occurrenceId.isEmpty())exact["occurrenceId"]=chosen.bodies.front().occurrenceId;
+        }catch(const GeometryKernel::EvaluationError& error){status->setText(error.diagnostics().value("message").toString());return;}
+        const auto response=execute("document.previewMesh",exact);
+        if(!response.value("ok").toBool()){status->setText(response.value("error").toObject().value("message").toString());return;}
+        dialog->setProperty("meshPreviewId",response.value("result").toObject().value("previewId").toString());status->setText("Preparing private export mesh…");
+    });
+    auto* previewUi=new QTimer(dialog);previewUi->setInterval(50);
+    connect(previewUi,&QTimer::timeout,dialog,[=,this]{
+        const auto id=dialog->property("meshPreviewId").toString();if(id.isEmpty())return;
+        const auto state=meshPreviewState();const auto phase=state.value("evaluationStatus").toString();
+        const bool ready=phase=="completed" && state.value("previewId")==id;
+        buttons->button(QDialogButtonBox::Save)->setEnabled(ready);
+        count->setText(ready ? "Triangle Count: "+QString::number(state.value("triangles").toInteger()) : "Triangle Count: —");
+        if(dialog->property("meshPreviewPhase").toString()!=phase){
+            dialog->setProperty("meshPreviewPhase",phase);
+            if(ready)status->setText("Preview ready. Save publishes these exact prepared bytes.");
+            else if(phase=="failed")status->setText(state.value("error").toObject().value("message").toString());
+            else if(phase!="pending")status->setText("Preview invalidated. Preview the current solid and settings again.");
+        }
+    });previewUi->start();
+    connect(dialog,&QDialog::finished,this,[this]{clearMeshPreview();});
+    invalidate();
+
     const auto documentId=document_->authored().value("documentId").toString();const auto revision=document_->revision();
     connect(buttons,&QDialogButtonBox::accepted,dialog,[=,this]{
         if(document_->authored().value("documentId").toString()!=documentId || document_->revision()!=revision) {
@@ -122,6 +184,10 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
         const bool threeMf=format->currentData()=="3mf";
         const bool obj=format->currentData()=="obj";
         const QString suffix=threeMf ? ".3mf" : obj ? ".obj" : ".stl";
+        const auto previewId=dialog->property("meshPreviewId").toString();
+        if(!obj && (meshPreviewState().value("evaluationStatus")!="completed" || !meshPreviewWork_ || meshPreviewWork_->id!=previewId)){status->setText("Preview the current solid and settings before Save.");return;}
+        const auto chosenSettings=settings();
+
         auto path=QFileDialog::getSaveFileName(dialog,"Save As Mesh",bodies->currentText()+suffix,
             threeMf ? "3MF mesh (*.3mf)" : obj ? "OBJ mesh (*.obj)" : "STL mesh (*.stl)");
         if(path.isEmpty())return;
@@ -129,6 +195,13 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
             status->setText("The design changed. Close this window and restart Save As Mesh.");return;
         }
         if(!path.endsWith(suffix,Qt::CaseInsensitive))path+=suffix;
+        if(!obj){
+            if(settings()!=chosenSettings || !meshPreviewWork_ || meshPreviewWork_->id!=previewId || !meshPreviewCurrent(*meshPreviewWork_)){invalidate();status->setText("The design, selection or settings changed. Preview again before Save.");return;}
+            const auto result=execute("document.saveMeshPreview",{{"previewId",previewId},{"path",QFileInfo(path).absoluteFilePath()}});
+            if(!result.value("ok").toBool()){status->setText(result.value("error").toObject().value("message").toString());return;}
+            dialog->accept();return;
+        }
+
         selection["path"]=QFileInfo(path).absoluteFilePath();
         if(!threeMf){selection["units"]=units->currentData().toString();if(!obj)selection["format"]=format->currentData().toString();}
         selection["surfaceDeviationMm"]=surface->value();selection["normalDeviationDeg"]=normal->value();
@@ -140,7 +213,7 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
             refreshMeshExportDialog();
         }else dialog->accept();
     });
-    dialog->resize(430,380);dialog->show();
+    dialog->resize(470,560);dialog->show();
     QJsonObject state{{"visible",true}};
     if(bodies->currentData()=="visible")state["allVisible"]=true;
     else if(bodies->currentData()=="selected")state["bodyIds"]=bodyIds;
@@ -317,4 +390,92 @@ void AlloyWindow::refreshMeshExportDialog() {
         if(meshExportOperation_.value("evaluationStatus")=="completed")dialog->accept();
         else label->setText(meshExportOperation_.value("previewError").toObject().value("message").toString());
     }
+}
+
+
+bool AlloyWindow::meshPreviewCurrent(const MeshPreviewWork& work) const {
+    if(document_!=work.document || activeTabId_!=work.tabId || document_->revision()!=work.revision
+        || document_->authored().value("documentId").toString()!=work.documentId || document_->authored()!=work.base
+        || work.generation!=meshPreviewGeneration_ || selectedOccurrence_+":"+selectedBody_!=work.selectionKey || !session_.isEmpty()
+        || !sliderPreviewAuthored_.isEmpty() || !jointGraphStage_.isEmpty() || transientSliderPosition_.has_value() || pendingReferenceEvaluation_)return false;
+    try {const auto selected=ExportScope::select(document_->authored(),presentationBodies(),work.settings);
+        return selected.bodies.size()==1 && selected.bodies.front().occurrenceId+":"+selected.bodies.front().bodyId==work.instanceKey;
+    }catch(...){return false;}
+}
+QJsonObject AlloyWindow::clearMeshPreview(const QString& id) {
+    if(!id.isEmpty() && (!meshPreviewWork_ || meshPreviewWork_->id!=id))return {{"ok",false},{"error",QJsonObject{{"code","invalid_preview"},{"message","Mesh preview is no longer current"}}}};
+    ++meshPreviewGeneration_;if(meshPreviewWork_ && !meshPreviewWork_->ready.load(std::memory_order_acquire))meshPreviewDraining_=meshPreviewWork_;meshPreviewWork_.reset();
+    if(meshPreviewPoll_)meshPreviewPoll_->stop();view_->setMeshExportPreview({});view_->setProperty("meshPreviewToken",QString{});
+    const auto draining=meshPreviewDraining_.lock();
+    return {{"cleared",true},{"authoredChanged",false},{"evaluationStillRunning",draining && !draining->ready.load(std::memory_order_acquire)}};
+}
+QJsonObject AlloyWindow::previewMesh(const QJsonObject& args) {
+    auto fail=[](const QString& code,const QString& message){return QJsonObject{{"ok",false},{"error",QJsonObject{{"code",code},{"message",message}}}};};
+    if(!session_.isEmpty())return fail("active_command","Finish or Cancel the active command before Preview");
+    if(!sliderPreviewAuthored_.isEmpty() || !jointGraphStage_.isEmpty() || transientSliderPosition_.has_value() || pendingReferenceEvaluation_)return fail("staged_pose","Finish or revert staged motion before Preview");
+    if(const auto draining=meshPreviewDraining_.lock();draining && !draining->ready.load(std::memory_order_acquire))return fail("evaluation_busy","Cancelled mesh preparation is still draining; retry Preview when finished");
+    if(meshPreviewWork_ && !meshPreviewWork_->ready.load(std::memory_order_acquire))return fail("evaluation_busy","Mesh preparation is running; Cancel before restarting Preview");
+    clearMeshPreview();
+    const auto format=args.value("format").toString(),units=args.value("units").toString();
+    const double deviation=args.value("surfaceDeviationMm").toDouble(),angle=args.value("normalDeviationDeg").toDouble();
+    if(format!="binary" && format!="ascii" && format!="3mf")return fail("invalid_format","Choose binary/ASCII STL or Core 3MF");
+    if((format=="3mf" && units!="mm") || (units!="mm" && units!="in"))return fail("invalid_units","Core 3MF uses mm; STL supports mm or in");
+    if(!std::isfinite(deviation) || deviation<.001 || deviation>10 || !std::isfinite(angle) || angle<1 || angle>45)return fail("invalid_mesh_settings","Surface deviation must be 0.001–10 mm; normal deviation 1–45 degrees");
+    const auto preset=args.value("preset").toString("Custom");
+    if(preset!="Low" && preset!="Medium" && preset!="High" && preset!="Custom")return fail("invalid_preset","Choose Low, Medium, High or Custom");
+    const double presetDeviation=preset=="Low" ? .5 : preset=="High" ? .02 : .1;
+    const double presetAngle=preset=="Low" ? 25 : preset=="High" ? 5 : 10;
+    if(preset!="Custom" && (deviation!=presetDeviation || angle!=presetAngle))return fail("invalid_preset","Preset tolerances must match the explicit Alloy values");
+    try {
+        const auto selected=ExportScope::select(document_->authored(),presentationBodies(),args);
+        if(selected.bodies.size()!=1)return fail("single_solid_required","Preview supports exactly one committed solid instance");
+        const auto& body=selected.bodies.front();BRepBuilderAPI_Copy copy(body.shape,true,false);
+        if(!copy.IsDone())return fail("export_failed","Cannot detach preview geometry");
+        EvaluatedBody detached;detached.shape=copy.Shape();detached.bodyId=body.bodyId;detached.name=body.name;detached.occurrenceId=body.occurrenceId;detached.definitionId=body.definitionId;detached.summary=body.summary;
+        gp_Trsf placement;
+        for(const auto& value:document_->authored().value("occurrences").toArray())if(value.toObject().value("id")==body.occurrenceId)placement=LocalOccurrences::worldTransform(document_->authored(),body.occurrenceId);
+        auto work=std::make_shared<MeshPreviewWork>();
+        work->document=document_;work->documentId=document_->authored().value("documentId").toString();work->tabId=activeTabId_;work->revision=document_->revision();work->base=document_->authored();
+        work->selectionKey=selectedOccurrence_+":"+selectedBody_;work->generation=meshPreviewGeneration_;work->id=CadDocument::newId();work->instanceKey=body.occurrenceId+":"+body.bodyId;work->settings=args;work->settings["preset"]=preset;
+        meshPreviewWork_=work;
+        std::thread([work,detached=std::move(detached),placement,format,units,deviation,angle]{
+            try{work->artifact=MeshExport::prepare(detached,placement,format,units,deviation,angle);}
+            catch(const GeometryKernel::EvaluationError& error){work->error=error.diagnostics();}
+            catch(const std::exception& error){work->error={{"code","export_failed"},{"message",QString::fromUtf8(error.what())}};}
+            catch(...){work->error={{"code","export_failed"},{"message","Mesh preparation failed"}};}
+            work->ready.store(true,std::memory_order_release);
+        }).detach();
+        if(!meshPreviewPoll_){meshPreviewPoll_=new QTimer(this);meshPreviewPoll_->setInterval(40);connect(meshPreviewPoll_,&QTimer::timeout,this,&AlloyWindow::pollMeshPreview);}
+        meshPreviewPoll_->start();return meshPreviewState();
+    }catch(const GeometryKernel::EvaluationError& error){return {{"ok",false},{"error",error.diagnostics()}};}
+}
+QJsonObject AlloyWindow::meshPreviewState(bool includeBytes) {
+    if(!meshPreviewWork_){const auto draining=meshPreviewDraining_.lock();return {{"evaluationStatus","uncomputed"},{"evaluationStillRunning",draining && !draining->ready.load(std::memory_order_acquire)}};}
+    const auto work=meshPreviewWork_;
+    if(!meshPreviewCurrent(*work)){clearMeshPreview();return {{"evaluationStatus","invalidated"}};}
+    QJsonObject state{{"previewId",work->id},{"id",work->id},{"previewGeneration",qint64(work->generation)},
+        {"documentId",work->documentId},{"tabId",work->tabId},{"sourceDocumentRevision",qint64(work->revision)},
+        {"instanceKey",work->instanceKey},{"settings",work->settings},{"presetPolicy","Alloy numeric presets; public preset values unknown"},
+        {"validRanges",QJsonObject{{"surfaceDeviationMm",QJsonArray{.001,10}},{"normalDeviationDeg",QJsonArray{1,45}}}},
+        {"presets",QJsonObject{{"Low",QJsonObject{{"surfaceDeviationMm",.5},{"normalDeviationDeg",25}}},{"Medium",QJsonObject{{"surfaceDeviationMm",.1},{"normalDeviationDeg",10}}},{"High",QJsonObject{{"surfaceDeviationMm",.02},{"normalDeviationDeg",5}}}}}};
+    if(!work->ready.load(std::memory_order_acquire)){state["evaluationStatus"]="pending";return state;}
+    if(!work->error.isEmpty()){state["evaluationStatus"]="failed";state["error"]=work->error;return state;}
+    state["evaluationStatus"]="completed";
+    if(view_->property("meshPreviewToken").toString()!=work->id){view_->setMeshExportPreview(work->artifact->facetsMm,work->instanceKey);view_->setProperty("meshPreviewToken",work->id);}
+    for(auto it=work->artifact->metadata.begin();it!=work->artifact->metadata.end();++it)state[it.key()]=it.value();
+    if(includeBytes)state["bytesBase64"]=QString::fromLatin1(work->artifact->bytes.toBase64());
+    return state;
+}
+void AlloyWindow::pollMeshPreview() {
+    const auto state=meshPreviewState();
+    if(state.value("evaluationStatus")!="pending") {
+        if(meshPreviewPoll_)meshPreviewPoll_->stop();
+
+    }
+}
+QJsonObject AlloyWindow::saveMeshPreview(const QString& id,const QString& path) {
+    const auto state=meshPreviewState();
+    if(!meshPreviewWork_ || meshPreviewWork_->id!=id || state.value("evaluationStatus")!="completed")return {{"ok",false},{"error",QJsonObject{{"code","invalid_preview"},{"message","Preview the current solid and settings before Save"}}}};
+    try {auto result=MeshExport::publish(*meshPreviewWork_->artifact,path);result["previewId"]=id;return result;}
+    catch(const GeometryKernel::EvaluationError& error){return {{"ok",false},{"error",error.diagnostics()}};}
 }

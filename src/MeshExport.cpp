@@ -16,6 +16,9 @@
 #include <QFileInfo>
 #include <QSaveFile>
 #include <QTemporaryFile>
+#include <QTemporaryDir>
+#include <QCryptographicHash>
+#include <QElapsedTimer>
 #include <QtEndian>
 #include <algorithm>
 #include <bit>
@@ -439,4 +442,69 @@ QJsonObject MeshExport::writeObj(const std::vector<EvaluatedBody>& bodies,const 
         {"collapsedTrianglesRemoved",collapsed},{"bytes",bytes},{"authoredChanged",false}};
     if(bodies.size()==1)result["bodyId"]=bodies.front().bodyId;
     return result;
+}
+
+
+std::shared_ptr<const MeshExport::PreparedArtifact> MeshExport::prepare(const EvaluatedBody& body,
+    const gp_Trsf& placement,const QString& format,const QString& units,double deviation,double angle) {
+    if(format!="binary" && format!="ascii" && format!="3mf")reject("invalid_format","Preview supports binary/ASCII STL and Core 3MF");
+    if((format=="3mf" && units!="mm") || (units!="mm" && units!="in"))reject("invalid_units","Core 3MF uses mm; STL supports mm or in");
+    QTemporaryDir privateFiles;
+    if(!privateFiles.isValid())reject("export_failed","Cannot create private mesh preparation directory");
+    const auto path=privateFiles.filePath("prepared.mesh");
+    auto artifact=std::make_shared<PreparedArtifact>();
+    artifact->metadata=format=="3mf" ? write3mf({body},{placement},path,deviation,angle)
+        : writeStl(body,path,units,format=="binary",deviation,angle);
+    QFile file(path);if(!file.open(QIODevice::ReadOnly))reject("export_failed",file.errorString());
+    artifact->bytes=file.readAll();
+    auto& facets=artifact->facetsMm;
+    if(format=="binary") {
+        const auto count=qFromLittleEndian<quint32>(artifact->bytes.constData()+80);
+        facets.reserve(size_t(count)*3);
+        const double scale=units=="in" ? 25.4 : 1;
+        for(quint32 i=0;i<count;++i)for(int v=0;v<3;++v) {
+            double xyz[3];for(int a=0;a<3;++a)xyz[a]=double(std::bit_cast<float>(qFromLittleEndian<quint32>(artifact->bytes.constData()+84+qint64(i)*50+12+(v*3+a)*4)))*scale;
+            facets.emplace_back(xyz[0],xyz[1],xyz[2]);
+        }
+    } else if(format=="ascii") {
+        const double scale=units=="in" ? 25.4 : 1;
+        for(const auto& line:artifact->bytes.split('\n')) {
+            const auto fields=line.simplified().split(' ');
+            if(fields.size()==4 && fields[0]=="vertex")facets.emplace_back(fields[1].toDouble()*scale,fields[2].toDouble()*scale,fields[3].toDouble()*scale);
+        }
+    } else {
+        try {
+            const auto wrapper=Lib3MF::CWrapper::loadLibrary();const auto model=wrapper->CreateModel();
+            std::vector<Lib3MF_uint8> bytes(artifact->bytes.begin(),artifact->bytes.end());
+            model->QueryReader("3mf")->ReadFromBuffer(bytes);
+            const auto items=model->GetBuildItems();
+            while(items->MoveNext()) {
+                const auto item=items->GetCurrent();const auto mesh=model->GetMeshObjectByID(item->GetObjectResourceID());
+                const auto transform=item->GetObjectTransform();std::vector<Lib3MF::sPosition> vertices;mesh->GetVertices(vertices);
+                for(Lib3MF_uint32 i=0;i<mesh->GetTriangleCount();++i) {
+                    const auto triangle=mesh->GetTriangle(i);
+                    for(int v=0;v<3;++v) {
+                        const auto& p=vertices.at(triangle.m_Indices[v]);double xyz[3];
+                        for(int a=0;a<3;++a){xyz[a]=transform.m_Fields[3][a];for(int b=0;b<3;++b)xyz[a]+=double(p.m_Coordinates[b])*transform.m_Fields[b][a];}
+                        facets.emplace_back(xyz[0],xyz[1],xyz[2]);
+                    }
+                }
+            }
+        }catch(const Lib3MF::ELib3MFException& error){reject("export_failed","3MF preview readback: "+QString::fromUtf8(error.what()));}
+    }
+    if(facets.empty() || facets.size()%3 || qint64(facets.size()/3)!=artifact->metadata.value("triangles").toInteger())
+        reject("export_failed","Serialized preview triangle count does not match the prepared artifact");
+    artifact->metadata.remove("path");artifact->metadata["sha256"]=QString::fromLatin1(QCryptographicHash::hash(artifact->bytes,QCryptographicHash::Sha256).toHex());
+    artifact->metadata["previewVertices"]=qint64(facets.size());
+    return artifact;
+}
+
+QJsonObject MeshExport::publish(const PreparedArtifact& artifact,const QString& path) {
+    QElapsedTimer publication;publication.start();
+    const QFileInfo destination(path);
+    if(!destination.isAbsolute() || destination.fileName().isEmpty() || !destination.dir().exists())reject("invalid_path","Choose an absolute mesh path in an existing directory");
+    QSaveFile output(path);output.setDirectWriteFallback(false);
+    if(!output.open(QIODevice::WriteOnly) || output.write(artifact.bytes)!=artifact.bytes.size())reject("export_failed",output.errorString());
+    if(!output.commit())reject("export_failed",output.errorString());
+    auto result=artifact.metadata;result["path"]=destination.absoluteFilePath();result["preparedBytesPublished"]=true;result["publicationMs"]=publication.elapsed();return result;
 }

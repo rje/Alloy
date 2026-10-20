@@ -10,6 +10,8 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QComboBox>
+#include <QDoubleSpinBox>
+#include <QCryptographicHash>
 #include <QTimer>
 #include <QJsonDocument>
 #include <QContextMenuEvent>
@@ -36,6 +38,39 @@ class MeshExportControlsTest final:public QObject {
  }
  void drain(AlloyWindow& w){QTRY_VERIFY_WITH_TIMEOUT(w.geometryEvaluationRunning_->ready.load(std::memory_order_acquire),10000);w.pollGeometryEvaluation();QVERIFY(!w.geometryEvaluationRunning_);}
 private slots:
+ void preparedPreviewLifecycle(){
+  QTemporaryDir dir;QVERIFY(dir.isValid());AlloyWindow w;
+  call(w,"solid.box",{{"width",20},{"depth",10},{"height",15},{"units","mm"}});
+  const auto before=call(w,"document.inspect");const auto id=before.value("evaluation").toObject().value("bodies").toArray().first().toObject().value("bodyId").toString();
+  QJsonObject inputs{{"bodyId",id},{"format","binary"},{"units","mm"},{"preset","Medium"},{"surfaceDeviationMm",.1},{"normalDeviationDeg",10}};
+  auto op=call(w,"document.previewMesh",inputs);QVERIFY(!op.contains("triangles"));
+  QTRY_COMPARE_WITH_TIMEOUT(call(w,"document.meshPreview").value("evaluationStatus").toString(),QString("completed"),15000);
+  const auto prepared=call(w,"document.meshPreview",{{"includeBytes",true}});const auto data=QByteArray::fromBase64(prepared.value("bytesBase64").toString().toLatin1());
+  QCOMPARE(prepared.value("triangles").toInt(),12);QCOMPARE(QString::fromLatin1(QCryptographicHash::hash(data,QCryptographicHash::Sha256).toHex()),prepared.value("sha256").toString());
+  QCOMPARE(call(w,"document.inspect"),before);
+  QVERIFY(!w.execute("document.saveMeshPreview",{{"previewId",op.value("previewId")},{"path",dir.filePath("missing/no.stl")}}).value("ok").toBool());
+  const auto path=dir.filePath("same.stl");sentinel(path);
+  const auto published=call(w,"document.saveMeshPreview",{{"previewId",op.value("previewId")},{"path",path}});qInfo()<<"prepared publication bytes"<<data.size()<<"elapsedMs"<<published.value("publicationMs").toInteger();QCOMPARE(bytes(path),data);QCOMPARE(call(w,"document.inspect"),before);
+  call(w,"document.clearMeshPreview",{{"previewId",op.value("previewId")}});QVERIFY(!call(w,"document.meshPreview").contains("triangles"));QCOMPARE(bytes(path),data);
+  op=call(w,"document.previewMesh",inputs);const auto running=w.meshPreviewWork_;call(w,"document.clearMeshPreview",{{"previewId",op.value("previewId")}});
+  QVERIFY(!call(w,"document.meshPreview").contains("triangles"));QTRY_VERIFY_WITH_TIMEOUT(running->ready.load(std::memory_order_acquire),15000);QVERIFY(!w.meshPreviewWork_);
+  op=call(w,"document.previewMesh",inputs);QTRY_COMPARE_WITH_TIMEOUT(call(w,"document.meshPreview").value("evaluationStatus").toString(),QString("completed"),15000);
+  call(w,"solid.box",{{"width",2},{"depth",2},{"height",2},{"units","mm"}});QVERIFY(!call(w,"document.meshPreview").contains("triangles"));
+  QVERIFY(!w.execute("document.saveMeshPreview",{{"previewId",op.value("previewId")},{"path",dir.filePath("stale.stl")}}).value("ok").toBool());QVERIFY(!QFile::exists(dir.filePath("stale.stl")));
+ }
+ void refinementSheetPreview(){
+  AlloyTheme::apply(*qApp);AlloyWindow w;w.resize(1400,900);w.show();QVERIFY(QTest::qWaitForWindowExposed(&w));
+  call(w,"solid.box",{{"width",20},{"depth",10},{"height",15},{"units","mm"}});const auto before=call(w,"document.inspect");
+  call(w,"document.exportMeshDialog");QPointer<QDialog> dialog=w.findChild<QDialog*>("mesh.export.dialog");QVERIFY(dialog);
+  auto* refinement=dialog->findChild<QComboBox*>("mesh.export.refinement");auto* surface=dialog->findChild<QDoubleSpinBox*>("mesh.export.surfaceDeviation");auto* normal=dialog->findChild<QDoubleSpinBox*>("mesh.export.normalDeviation");
+  QCOMPARE(refinement->currentData().toString(),QString("Medium"));refinement->setCurrentIndex(refinement->findData("High"));QCOMPARE(surface->value(),.02);QCOMPARE(normal->value(),5.);
+  QTest::mouseClick(dialog->findChild<QPushButton*>("mesh.export.preview"),Qt::LeftButton);
+  QTRY_COMPARE_WITH_TIMEOUT(dialog->findChild<QLabel*>("mesh.export.triangleCount")->text(),QString("Triangle Count: 12"),15000);
+  QVERIFY(dialog->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Save)->isEnabled());
+  const auto evidence=qEnvironmentVariable("ALLOY_MESH_PREVIEW_CAPTURE");if(!evidence.isEmpty())QVERIFY(w.captureImage().save(evidence));
+  surface->setValue(.03);QCOMPARE(refinement->currentData().toString(),QString("Custom"));QCOMPARE(dialog->findChild<QLabel*>("mesh.export.triangleCount")->text(),QString("Triangle Count: —"));QVERIFY(!dialog->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Save)->isEnabled());
+  QTest::mouseClick(dialog->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Cancel),Qt::LeftButton);QTRY_VERIFY(!dialog || !dialog->isVisible());QCOMPARE(call(w,"document.inspect"),before);
+ }
  void browserContextMeshCancel(){
   AlloyTheme::apply(*qApp);AlloyWindow w;w.resize(1400,900);w.show();QVERIFY(QTest::qWaitForWindowExposed(&w));
   call(w,"solid.box",{{"width",20},{"depth",10},{"height",15},{"units","mm"}});

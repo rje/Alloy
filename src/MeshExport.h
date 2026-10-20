@@ -3,10 +3,21 @@
 #include <condition_variable>
 #include <functional>
 #include <mutex>
+#include <QByteArray>
+#include <memory>
 
 // Export tessellation is detached from the document and viewport caches.
 class MeshExport final {
 public:
+    struct PreparedArtifact {
+        QByteArray bytes;
+        std::vector<gp_Pnt> facetsMm; // Three serialized vertices per final triangle, world millimeters.
+        QJsonObject metadata;
+    };
+    static std::shared_ptr<const PreparedArtifact> prepare(const EvaluatedBody& body,
+        const gp_Trsf& placement,const QString& format,const QString& units,
+        double surfaceDeviationMm,double normalDeviationDeg);
+    static QJsonObject publish(const PreparedArtifact& artifact,const QString& path);
     // Value-only handshake: approval is the publication linearization point.
     // The GUI never waits; the worker owns staging and atomic file publication.
     class PublicationGate final {

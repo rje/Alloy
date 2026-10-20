@@ -485,6 +485,24 @@ private:
     QString surfaceExtrudeRequestedSession_;
     quint64 geometryEvaluationGeneration_ = 0;
     QTimer* geometryEvaluationPoll_ = nullptr;
+    struct MeshPreviewWork {
+        std::atomic<bool> ready{false};
+        CadDocument* document=nullptr;
+        QString documentId,tabId,id,instanceKey,selectionKey;
+        quint64 revision=0,generation=0;
+        QJsonObject settings,base,error;
+        std::shared_ptr<const MeshExport::PreparedArtifact> artifact;
+    };
+    std::shared_ptr<MeshPreviewWork> meshPreviewWork_;
+    std::weak_ptr<MeshPreviewWork> meshPreviewDraining_;
+    quint64 meshPreviewGeneration_=0;
+    QTimer* meshPreviewPoll_=nullptr;
+    QJsonObject previewMesh(const QJsonObject& args);
+    QJsonObject meshPreviewState(bool includeBytes=false);
+    QJsonObject saveMeshPreview(const QString& id,const QString& path);
+    QJsonObject clearMeshPreview(const QString& id={});
+    bool meshPreviewCurrent(const MeshPreviewWork& work) const;
+    void pollMeshPreview();
     QJsonObject meshExportOperation_; // One terminal result, until next request/session/document mutation.
     QList<QPointer<QWidget>> meshExportFrozenControls_;
     QPushButton* meshExportCancel_ = nullptr;

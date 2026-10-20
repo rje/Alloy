@@ -1,4 +1,8 @@
 #include <AIS_ColoredShape.hxx>
+#include <Graphic3d_ArrayOfTriangles.hxx>
+#include <Graphic3d_AspectFillArea3d.hxx>
+#include <Graphic3d_Group.hxx>
+#include <Prs3d_Presentation.hxx>
 #include "ZebraPresentation.h"
 #include <TopExp.hxx>
 #include <TopTools_IndexedMapOfShape.hxx>
@@ -76,6 +80,23 @@
 #include <QLabel>
 #include <gp_Trsf.hxx>
 namespace {
+class ExportFacetPresentation final:public AIS_InteractiveObject {
+public:
+    explicit ExportFacetPresentation(const std::vector<gp_Pnt>& facets):facets_(facets){}
+private:
+    std::vector<gp_Pnt> facets_;
+    void Compute(const Handle(PrsMgr_PresentationManager)&,const Handle(Prs3d_Presentation)& presentation,const Standard_Integer) override {
+        Handle(Graphic3d_ArrayOfTriangles) triangles=new Graphic3d_ArrayOfTriangles(int(facets_.size()));
+        for(const auto& point:facets_)triangles->AddVertex(point);
+        Handle(Graphic3d_AspectFillArea3d) aspect=new Graphic3d_AspectFillArea3d;
+        aspect->SetInteriorStyle(Aspect_IS_SOLID);aspect->SetInteriorColor(Quantity_Color(.38,.65,.84,Quantity_TOC_sRGB));
+        aspect->SetShadingModel(Graphic3d_TOSM_UNLIT);aspect->SetEdgeOn();
+        aspect->SetEdgeColor(Quantity_Color(.09,.18,.24,Quantity_TOC_sRGB));aspect->SetEdgeWidth(1);
+        aspect->SetPolygonOffsets(Aspect_POM_Fill,-1,-1);
+        auto group=presentation->NewGroup();group->SetPrimitivesAspect(aspect);group->AddPrimitiveArray(triangles);
+    }
+    void ComputeSelection(const Handle(SelectMgr_Selection)&,const Standard_Integer) override {}
+};
 const QMap<QString,V3d_TypeOfOrientation>& cubeOrientations() {
     static const QMap<QString,V3d_TypeOfOrientation> rows{
         {"right",V3d_Xpos},{"left",V3d_Xneg},{"back",V3d_Ypos},{"front",V3d_Yneg},
@@ -747,6 +768,7 @@ void ReferenceView::resetOrbitCenter() {
 void ReferenceView::rebindDocument() {
     setZebra({});
     setFaceNormals({});
+    setMeshExportPreview({});
     cancelNavigationGesture(navigationPressActive_);
     cancelOrbitCenterPick();
     nativeGestureActive_=false;
@@ -1227,7 +1249,9 @@ void ReferenceView::applyEditDisplay(bool redraw) {
     for(auto i=models_.begin();i!=models_.end();++i) {
         const auto bodyId=modelReferences_.value(i.key())["bodyId"].toString();
         const bool visible=bodyVisibility_.value(i.key()) || bodyId==combineTargetId_ || combineToolIds_.contains(bodyId);
-        if(!visible || hiddenBodyIds_.contains(bodyId) || bodyId==previewReplacedBody_)context_->Erase(i.value(),false);
+        const auto reference=modelReferences_.value(i.key());
+        const bool exportReplaced=!meshExportPreview_.IsNull() && reference.value("occurrenceId").toString()+":"+bodyId==meshExportPreviewInstance_;
+        if(!visible || exportReplaced || hiddenBodyIds_.contains(bodyId) || bodyId==previewReplacedBody_)context_->Erase(i.value(),false);
         else context_->Display(i.value(),AIS_Shaded,AIS_Shape::SelectionMode(TopAbs_FACE),false);
     }
     if(redraw)context_->UpdateCurrentViewer();
@@ -4408,4 +4432,17 @@ bool ReferenceView::event(QEvent* e) {
         {"delta",QJsonArray{gesture->delta().x(),gesture->delta().y()}},
         {"modifiers",static_cast<int>(gesture->modifiers())}};
     e->accept();return true;
+}
+
+void ReferenceView::setMeshExportPreview(const std::vector<gp_Pnt>& facets,const QString& instanceKey) {
+    if(context_.IsNull())return;
+    if(!meshExportPreview_.IsNull()){context_->Remove(meshExportPreview_,false);meshExportPreview_.Nullify();}
+    meshExportPreviewInstance_=instanceKey;
+    if(!facets.empty()) {
+        meshExportPreview_=new ExportFacetPresentation(facets);
+        context_->Display(meshExportPreview_,0,-1,false);
+        context_->Deactivate(meshExportPreview_);
+    }
+    applyEditDisplay(false);
+    context_->UpdateCurrentViewer();
 }
