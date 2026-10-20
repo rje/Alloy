@@ -2393,6 +2393,7 @@
         "GEO-005",
         "GEO-024",
         "GEO-025",
+        "GEO-028",
         "GEO-026",
         "GEO-027",
         "SOL-032",
@@ -10962,7 +10963,7 @@
         "priority:P1",
         "area:geo"
       ],
-      "body": "## Bounded result\nCreate one editable angled datum plane from one supported retained line/edge and one source plane, with explicit angle and side controls.\n\nThis is a finishable child of GEO-001; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Document the exact accepted line/edge and source-plane forms and reject all other source forms explicitly.\n- Create and edit angle/side on one supported fixture and verify the resulting plane equation and orientation.\n- Update from source edits or refuse explicitly if stable construction is no longer possible.\n- Verify undo/redo and save/reopen.\n\n## Preserved remainder\nOther point/edge-derived plane combinations and broader interactive manipulation remain under GEO-001.\n"
+      "body": "## Bounded result\nCreate one editable angled datum plane about one supported retained authored straight sketch Line, referenced to an explicit origin or retained construction plane, with exact numeric angle and Flip Side. This is an Alloy first slice of the documented Plane At Angle workflow and a finishable child of GEO-001.\n\n## Acceptance criteria\n- Retain exact solved ordered Line endpoints and source-plane reference; require the line to lie on that plane. Reject generated, non-Line, off-plane, stale, forward/cyclic or unsupported references explicitly and atomically.\n- Create and edit angle/side on one supported fixture. Independently verify the plane equation, orientation and pivot incidence at +30 and flipped -30 degrees; preserve source-following or give an exact refusal if stable construction fails.\n- Expose shared numeric UI/API create/preview/Cancel/OK/Timeline edit controls, with an evaluated GPU plane; verify one downstream sketch on the new plane if supported. Verify Undo/Redo and save/reopen through the real application.\n\n## Linked remainders\nGEO-028 owns physical native canvas source selection, rotation handle, focus/panel and 1x/2x visual acceptance while the Mac console is locked. GEO-029 owns a retained straight B-rep edge pivot and planar face angular reference; GEO-030 owns documented Offset, Extent Type and Resize options. Public help does not establish a Flip default or sign mapping: Alloy's side mapping must be labeled policy. Other point/edge-derived combinations stay GEO-001.\n"
     },
     {
       "key": "GEO-026",
@@ -11454,6 +11455,36 @@
       "depends_on": ["SRF-035"],
       "labels": ["kind:validation", "phase:P3", "priority:P1", "area:srf"],
       "body": "## Bounded first-v1 native inspection gate\nSRF-035 owns a read-only sampled G0/G1 report for two retained planar faces on one exact shared straight edge. Qualify its actual user-facing selections and numeric panel when the Mac console is unlocked; do not use Zebra stripes as numeric proof.\n\n## Acceptance criteria\n- Through the actual Inspect action, select the two distinct face widgets and the exact shared edge by physical viewport hits with clear first/second/edge feedback, no implicit first-common-edge guess and no harness focus repair. Verify pending, valid, stale and unsupported states plus Cancel/close/readiness.\n- Inspect readable max-gap/max-angle values, units, sample count/method, threshold and orientation diagnostics at 1x/2x in whole-app GPU captures; the panel must not cover the selected seam or contradict the API result.\n- Exercise coplanar and kinked source edits, Undo/Redo and save/reopen from native input, checking authored/revision/dirty/Undo invariance for inspection. Record vendor/renderer/version/framebuffer and public-reference limits; close the private editor.\n\n## Preserved remainder\nDistinct-edge gaps SRF-052, curved boundaries SRF-053 and G2/advanced controls SRF-008; Windows/Linux packaged runtime stays GATE-050.\n"
+    },
+    {
+      "key": "GEO-028",
+      "title": "Qualify native Plane At Angle selection, drag and visual workflow",
+      "kind": "validation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": ["GEO-025"],
+      "labels": ["kind:validation", "phase:P3", "priority:P1", "area:geo"],
+      "body": "## Bounded first-v1 native workflow\nGEO-025 owns the retained authored-Line plus origin/construction-plane numeric core and compiled panel. Complete and qualify the physical Plane At Angle workflow when the Mac console is unlocked. Public instructions document selecting a linear axis and using a numeric box or rotation handle; exact source-plane pick order and Flip default are unknown.\n\n## Acceptance criteria\n- Start Construct > Plane At Angle without preselection. Physically pick one authored straight sketch Line and explicit source plane through actual canvas/browser hit targets; expose selected IDs, angle, Flip Side Alloy policy and readable plane preview. No focus or selection repair between steps.\n- Drive the same retained angle using a discoverable in-canvas rotation handle and exact typed field. Cancel/Escape preserves authored/history; OK creates one feature; Timeline and Browser Edit restore sources/angle/side and allow valid retry after invalid input.\n- Verify +30/flip -30 plane equation, source edit, downstream sketch, Undo/Redo and save/reopen through native input and shared API. Inspect whole-app GPU captures at 1x/2x with vendor/renderer/version/framebuffer and comparable public evidence; explicitly label unmatched visual/default/gesture behavior. Close the private editor.\n\n## Preserved remainder\nStraight model-edge/planar-face references remain GEO-029; Offset/Extent Type/Resize options GEO-030; other constructions GEO-001. Other-platform packaged runtime remains GATE-050.\n"
+    },
+    {
+      "key": "GEO-029",
+      "title": "Support straight model-edge and planar-face Plane At Angle references",
+      "kind": "implementation",
+      "phase": "P4 Full replacement",
+      "priority": "P2",
+      "depends_on": ["GEO-025"],
+      "labels": ["kind:implementation", "phase:P4", "priority:P2", "area:geo"],
+      "body": "## Preserved documented reference forms\nPublic current API documentation identifies a linear pivot entity and planar face or construction-plane angular reference; public UI help selects a straight edge or axis. Extend GEO-025's authored-Line/plane first slice to one retained straight B-rep edge and one retained planar B-rep face with exact lineage and unambiguous oriented pivot. Do not infer a direction from unstable OCCT edge traversal.\n\n## Acceptance criteria\n- Research and record exact public source forms and current selection semantics. Resolve a retained current straight model edge and planar support face through persistent references, with a documented deterministic pivot direction and no guessing after topology edits. Reject curved/stale/ambiguous/off-plane sources atomically.\n- Create/edit +30/flip results, source edits and downstream sketch support; independently verify plane equation, history, Undo/Redo, save/reopen and GPU preview through the real app.\n- Qualify native canvas selection and 1x/2x visuals separately; preserve the original sketch-Line mode.\n\n## Preserved remainder\nOther edges/axes, profile references, arbitrary face-derived combinations and broad repairs remain GEO-001.\n"
+    },
+    {
+      "key": "GEO-030",
+      "title": "Add Plane At Angle Offset, Extent Type and Resize options",
+      "kind": "implementation",
+      "phase": "P4 Full replacement",
+      "priority": "P2",
+      "depends_on": ["GEO-025"],
+      "labels": ["kind:implementation", "phase:P4", "priority:P2", "area:geo"],
+      "body": "## Preserved documented command options\nPublic Plane At Angle help names optional Offset, Extent Type and Resize with Default/Extended display sizes. The first GEO-025 slice has fixed extent and no offset control. Research the actual extent choices/defaults and offset direction from permitted public evidence before claiming compatibility; do not invent exact reference values.\n\n## Acceptance criteria\n- Define retained numeric offset along the evaluated angled-plane normal with explicit units/sign and independently checked plane equation; preserve source/angle/side through edit and source updates.\n- Expose documented Extent Type choices and Resize Default/Extended presentation distinctly from infinite geometric plane evaluation. Preview/Cancel/OK, Timeline edit, Undo/Redo and save/reopen share one authoritative command.\n- Inspect GPU preview and native controls at declared sizes, compare only matched public evidence, and refuse unsupported combinations visibly rather than ignoring them.\n\n## Preserved remainder\nOther plane constructors and arbitrary interactive manipulation remain GEO-001.\n"
     }
   ]
 }
