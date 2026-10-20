@@ -1928,6 +1928,22 @@ QJsonObject CadDocument::loftCandidate(const QJsonObject& authored,const QJsonOb
     if(index<0)features.append(feature);else features[index]=feature;candidate["features"]=features;return candidate;
 }
 
+QJsonObject CadDocument::surfaceExtendCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
+    const QSet<QString> allowed{"sourceEdge","distanceMm","extendType","edgeAlignment","chaining","featureId","newFeatureId","ownerId","name"};
+    for(auto i=arguments.begin();i!=arguments.end();++i)if(!allowed.contains(i.key()))throw std::invalid_argument("Unknown Extend argument");
+    if(arguments.contains("featureId") && (arguments.contains("newFeatureId") || arguments.contains("ownerId")))throw std::invalid_argument("Extend edit retains feature and owner identities");
+    auto candidate=authored;auto rows=candidate["features"].toArray();QJsonObject feature;int index=-1;
+    if(arguments.contains("featureId")){
+        for(int i=0;i<rows.size();++i)if(rows[i].toObject()["id"]==arguments["featureId"]){feature=rows[i].toObject();index=i;break;}
+        if(index<0 || feature["type"]!="surfaceExtend")throw std::invalid_argument("Extend feature unavailable");
+    }else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","surfaceExtend"},{"name","Extend"},{"visible",true}};
+    auto params=feature["parameters"].toObject();if(params.isEmpty())params={{"extendType","natural"},{"edgeAlignment","freeEdges"},{"chaining",false},{"distanceMm",20.}};
+    for(const auto& key:{"sourceEdge","distanceMm","extendType","edgeAlignment","chaining"})if(arguments.contains(key))params[key]=arguments[key];
+    feature["parameters"]=params;if(arguments.contains("name"))feature["name"]=arguments["name"];
+    if(index<0)rows.append(feature);else rows[index]=feature;candidate["features"]=rows;
+    const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
+}
+
 QJsonObject CadDocument::surfaceRuledCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
     const QSet<QString> allowed{"sourceEdge","distanceMm","angleDeg","ruleType","operation","isSolid","featureId","newFeatureId","newBodyId","ownerId","name"};
     for(auto i=arguments.begin();i!=arguments.end();++i)if(!allowed.contains(i.key()))throw std::invalid_argument("Unknown Ruled argument");
@@ -2992,6 +3008,14 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
                 || p["entityId"]==p["pathEntityId"] || p["extent"]!="full" || p["orientation"]!="perpendicular" || p["operation"]!="newBody"
                 || !p["isSolid"].isBool() || p["isSolid"].toBool())return "Surface Sweep requires retained Line section, distinct Line/Arc path and endpoint, full Perpendicular non-solid New Body";
             ids.insert(feature["bodyId"].toString());continue;
+        }
+        if(type=="surfaceExtend") {
+            const auto ref=p.value("sourceEdge").toObject();
+            if(feature.contains("bodyId") || p.size()!=5 || ref.size()!=4 || !validId(ref.value("bodyId").toString()) || !validId(ref.value("producerFeatureId").toString()) || !validId(ref.value("faceId").toString()) || !validId(ref.value("edgeId").toString())
+                || p.value("extendType")!="natural" || p.value("edgeAlignment")!="freeEdges" || !p.value("chaining").isBool() || p.value("chaining").toBool()
+                || !p.value("distanceMm").isDouble() || !std::isfinite(p.value("distanceMm").toDouble()) || p.value("distanceMm").toDouble()<=1e-7)
+                return "Extend requires one exact retained boundary edge, Natural, Free Edges, chaining disabled and positive finite distance above kernel tolerance";
+            continue;
         }
         if(type=="surfaceRuled") {
             const auto ref=p.value("sourceEdge").toObject();

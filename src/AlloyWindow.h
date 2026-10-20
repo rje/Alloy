@@ -329,6 +329,13 @@ private:
     void displaySweepSelection();
     QDockWidget* sweepDock_=nullptr;
     QShortcut* sweepEscape_=nullptr;
+    QJsonObject surfaceExtendCandidate(const QJsonObject& inputs) const;
+    QJsonObject beginSurfaceExtend(const QJsonObject& overrides={});
+    QJsonObject previewSurfaceExtend();
+    void showSurfaceExtend();
+    void refreshSurfaceExtendControls();
+    QDockWidget* surfaceExtendDock_=nullptr;
+    QShortcut* surfaceExtendEscape_=nullptr;
     QJsonObject surfaceRuledCandidate(const QJsonObject& inputs) const;
     QJsonObject beginSurfaceRuled(const QJsonObject& overrides={});
     QJsonObject previewSurfaceRuled();

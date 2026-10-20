@@ -22,6 +22,7 @@
 #include "SurfaceRevolve.h"
 #include "SurfaceOffset.h"
 #include "SurfaceRuled.h"
+#include "SurfaceExtend.h"
 #include "SurfaceSweep.h"
 #include "SurfacePatch.h"
 #include "BoundaryFill.h"
@@ -1314,6 +1315,12 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                 evaluated.bodies.push_back(SurfacePatch::evaluate(feature,evaluated));
             } else if(type=="surfaceSweep") {
                 evaluated.bodies.push_back(SurfaceSweep::evaluate(feature,evaluated));
+            } else if(type=="surfaceExtend") {
+                const auto ref=parameters.value("sourceEdge").toObject();
+                const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==ref.value("bodyId").toString();});
+                if(target==evaluated.bodies.end())throw EvaluationError({{"featureId",id},{"featureType","surfaceExtend"},{"sourceEdge",ref},{"code","surface_source_unavailable"},{"message","Extend requires an active earlier sheet"}});
+                if(target->ownerId!=feature.value("ownerId").toString() && !target->ownerId.isEmpty())reject("unsupported_instance_edit","Extend requires a same-owner source sheet");
+                SurfaceExtend::evaluate(*target,feature,evaluated);
             } else if(type=="surfaceRuled") {
                 evaluated.bodies.push_back(SurfaceRuled::evaluate(feature,evaluated));
             } else if(type=="surfaceOffset") {
