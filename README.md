@@ -1,5 +1,7 @@
 # Alloy
 
+[Selected-face normal inspection](docs/validation/face-normals.md) now shows a transient GPU arrow at an exact oriented planar or cylindrical B-rep sample. Independent app, reopened geometry and Apple M4 capture checks pass. Physical native input remains SRF-049; exact reference vector-overlay parity is unknown.
+
 [One-face External Edges Surface Untrim](docs/validation/surface-untrim.md) now restores a retained planar Trim portion to its exact earlier finite boundary as an editable history operation. Independent app and saved-B-rep checks pass. Physical face selection and control parity remain SRF-048; broader modes remain SRF-005.
 
 [One-edge Natural Surface Extend](docs/validation/surface-extend.md) now grows a retained planar Patch sheet in place with exact four-edge lineage and an editable distance. Independent app and saved-B-rep checks pass. Native actual-hit selection/drag and visible-source overlay polish remain SRF-047; target and curved invalid modes remain separate Todo work.
