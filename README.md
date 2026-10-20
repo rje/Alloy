@@ -1,5 +1,7 @@
 # Alloy
 
+[Sampled Surface Continuity](docs/validation/surface-continuity.md) now reports numeric G0 gap and tangent-plane G1 angle at nine exact shared-edge samples for two retained planar faces. Independent app and analytic checks pass through a 45° source edit, history and reopen; physical native selection and broader boundary families remain Todo.
+
 [Selected-face Zebra Analysis](docs/validation/zebra.md) now draws camera-responsive GPU bands on one planar or cylindrical face without changing authored geometry or history. Independent app, reopened-B-rep and Apple M4 capture checks pass; physical native input and the documented saved body-level Analysis workflow remain separate issues.
 
 [Selected-face normal inspection](docs/validation/face-normals.md) now shows a transient GPU arrow at an exact oriented planar or cylindrical B-rep sample. Independent app, reopened geometry and Apple M4 capture checks pass. Physical native input remains SRF-049; exact reference vector-overlay parity is unknown.
