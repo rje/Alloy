@@ -1,4 +1,4 @@
-## 2026-10-20 SKT-170 bracket end-circle candidate
+## 2026-10-20 SKT-170 bounded bracket end-circle acceptance
 
 The bounded [construction/midpoint receipt](validation/bracket-midpoint.md)
 records a passing compiled Qt actual-hit A2 conversion/circle route and a
@@ -6,7 +6,10 @@ separate real-executable cap100-to120 edit, exact Undo/Redo and save/reopen.
 The sole product change exposes Normal/Construction in context diagnostics.
 Strict native mode lost AppKit activation before the upper tangent input and
 stopped without repair; its cause is unproven, so native/physical acceptance
-and #647 remain open. Independent review is pending. Build is
+remain unqualified under SKT-171/#694, while SKT-172/#695 owns the observed
+menu, selection-color and badge-placement differences. Independent Sol review
+accepted the Qt/API/diagnostic increment; TUT-003 depends on both Todo children.
+Build is
 `build-preview-release` Release/private Qt; evidence is external under
 `validation/skt170-2026-10-20/`. Both private editors were closed.
 

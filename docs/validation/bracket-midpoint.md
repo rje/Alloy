@@ -1,6 +1,10 @@
 # Bracket construction and midpoint end circles
 
-SKT-170/#647 bounded candidate, 2026-10-20. Independent review is pending.
+SKT-170/#647 bounded Qt/API and diagnostic increment accepted 2026-10-20.
+Independent Sol source/evidence review found no product blocker in that bounded
+increment. The original uninterrupted native and visible-checkpoint requirements
+were explicitly transferred to SKT-171/#694 and SKT-172/#695 before closure;
+they remain Todo and block TUT-003.
 The only product correction exposes the already implemented **Normal/Construction**
 context action in viewport diagnostics; geometry and command behavior are reused.
 
@@ -73,7 +77,7 @@ at a different circle step. Saved checkpoints isolate a native deactivation,
 but do not establish its cause or a product defect. A pre-existing child-window
 activation warning occurs during sketch setup; the evidence does not establish
 that warning as the cause. No speculative activation workaround is added.
-Strict native/physical acceptance remains unqualified and #647 stays open.
+Strict native/physical acceptance remains unqualified under SKT-171/#694.
 
 ## Visual comparison and scope
 
@@ -94,4 +98,7 @@ bounded follow-up; they are not concealed by the geometry checks.
 
 This does not qualify uninterrupted A1 creation, later fillets/extrusion,
 second-sketch guides, broader midpoint variants, packages or other-platform
-runtime. No release, push, CI dispatch or tag was performed.
+runtime. The original native right-click dispatch was not established: the Qt
+fixture sends a separate `QContextMenuEvent` after the actual-hit right click.
+The public menu's broader layout, blue selection and closer badge placement
+remain SKT-172/#695. No release, CI dispatch or tag was performed.
