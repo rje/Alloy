@@ -1,4 +1,4 @@
-# Independent sketch Copy/Paste candidate
+# Independent sketch Copy/Paste
 
 SKT-179/#702, 2026-10-20. The bounded route is in-sketch Copy/Paste of one
 isolated XY four-Line closed profile. General Move/Copy > Create Copy remains
@@ -127,6 +127,11 @@ construction/projection geometry, linked copies, rotation/scaling and generic
 Move/Copy Create Copy are outside this bounded route. Physical AppKit pointer/
 trackpad, DPR1 and packaged Windows/Linux runtime remain unqualified. Native
 Qt pointer checks do not establish those release gates. Public screenshot state,
-scale and theme are unmatched, so exact styling remains unknown. Independent
-review is pending. Private fixture editors close after evidence; user PID72618
-is preserved.
+scale and theme are unmatched, so exact styling remains unknown. Private
+fixture editors closed after evidence; user PID72618 is preserved.
+
+Independent Sol review accepted `498bc3a` after source/constraint-identity
+inspection, separate binary-STL recomputation and native preview inspection.
+A bounded Astra compatibility review of atomic Move, retained Move and Copy/Paste
+also accepted the combined workflow. Both reviews were read-only and did not
+claim a fresh application run; exact visual matching remains unknown.

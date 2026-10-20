@@ -1,14 +1,31 @@
+## 2026-10-20 SKT-179 sketch Copy/Paste acceptance
+
+[Bounded receipt](validation/sketch-copy.md) accepts selected four-Line
+Copy/Paste through context and platform keyboard routes. The copy gets disjoint
+stable points/curves/constraints/dimensions with internal references remapped;
+unsupported external relations and profile contact refuse atomically. Native
+actual-hit preview, click/Enter/Cancel/Escape, focus, Undo/Redo/reopen and local
+API pass. A two-Extrude STL has two watertight components totaling 3,840 mm³;
+independent source width and copy placement edits yield 4,224 mm³ with stable
+IDs. Independent Sol review accepted `498bc3a`; Astra's bounded cross-transform
+compatibility pass found no combined blocker across atomic Move, retained Move
+and Copy/Paste. External evidence is
+`../Alloy-reference-records/validation/skt179-2026-10-20/`. SKT-179/#702 is
+closed/Done. General Create Copy #708 and Rotate/Scale #703–704 remain Todo.
+Exact reference visual/Timeline parity, physical input and packaged platforms
+remain unqualified. No CI/release; private editors closed, user PID72618 kept.
+
 ## 2026-10-20 sketch Copy route split
 
-SKT-179/#702 is the sole In Progress board item for active-sketch Copy/Paste of
-one closed profile. Public research is external at
+SKT-179/#702 was the active-sketch Copy/Paste slice for one closed profile and
+is accepted above. Public research is external at
 `../Alloy-reference-records/knowledge/specs/skt179-sketch-copy-2026-10-20.md`:
 the documented selection/context or Cmd/Ctrl+C, Paste and placement route is
 the bounded slice. Public sources conflict or omit copied constraints, identity,
 history and preview defaults, so the spec labels independent-copy semantics as
 Alloy policy. The separate Move/Copy > Sketch Objects > Create Copy route is
 preserved in Todo SKT-185/#708 with a dependency on #702 and #707. The canonical
-backlog has 705 issues; #702 implementation and verification are pending.
+backlog has 705 issues; the general route and Rotate/Scale remain open.
 
 ## 2026-10-20 SKT-184 retained Move acceptance
 

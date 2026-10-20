@@ -107,7 +107,8 @@ sketch Timeline behavior and constraint migration. This is macOS Qt-delivered
 input/GPU evidence, not physical AppKit pointer/trackpad or Windows/Linux runtime
 qualification. Wider planes, multiple owners/profiles, output inverse editing,
 3D Move and direct manipulator input remain broader ADV-005 scope;
-Copy/Rotate/Scale remain SKT-179–181. Independent Sol review is pending.
+Copy/Paste is accepted separately in SKT-179; Rotate/Scale remain SKT-180–181.
+Independent Astra acceptance is recorded below.
 Private fixture editors closed; preserved user PID 72618 remains running.
 
 ## Independent-review creation-boundary correction

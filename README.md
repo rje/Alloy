@@ -7,7 +7,11 @@ an independent review accepted the shared commit guard and panel lifecycle.
 [Retained sketch Move](docs/validation/sketch-retained-move.md) now edits one
 Move definition on the same four-Line profile and composes a later source width
 edit once. Native Edit Move, identity/history/reopen, refusal and two checked
-STLs pass independent architecture review. Copy, Rotate and Scale remain Todo.
+STLs pass independent architecture review. [Sketch Copy/Paste](docs/validation/sketch-copy.md)
+now clones a selected four-Line profile with separate IDs and supported internal
+constraints, preserving independent source and copy edits. Native placement,
+history/reopen and two checked printable solids pass independent review.
+The general Create Copy route, Rotate and Scale remain Todo.
 
 [Retained circular sketch-circle Pattern](docs/validation/sketch-circular-pattern.md)
 now supports Full and Angle around an authored center Point through shared native

@@ -1,11 +1,10 @@
-# Atomic in-plane sketch Move candidate
+# Atomic in-plane sketch Move
 
 SKT-098/#503, 2026-10-20. This bounded workflow translates one isolated closed
 four-Line profile in an active XY sketch as an atomic authored coordinate edit.
 An independent architecture review preceded implementation. Retained Move
-membership/definition and same-definition editing remain explicit Todo
-SKT-184/#707; Copy/Rotate/Scale remain SKT-179–181/#702–704. Root owns backlog,
-inventory and continuation-context updates.
+membership/definition and same-definition editing are accepted separately in
+SKT-184/#707; Copy/Rotate/Scale remain SKT-179–181/#702–704.
 
 Public evidence and engineering review are external in
 `../Alloy-reference-records/knowledge/specs/skt098-sketch-transform-2026-10-20.md`
@@ -96,13 +95,13 @@ Clang, `-j4`. External evidence:
 
 ## Limits
 
-Retained definition/editing is SKT-184/#707. Numeric translation is the supported
+Retained definition/editing is accepted separately in SKT-184/#707. Numeric translation is the supported
 input; direct axis manipulator dragging, wider planar/support frames, multiple
 profiles, arbitrary curve families and 3D modes remain broader workflow scope.
 Physical AppKit pointer/trackpad, native DPR1 and packaged Windows/Linux runtime
-are unqualified release gates. No CI, tag, release or push was run. Private
-fixture editors closed; user-owned PID 72618 preserved. Independent acceptance
-is pending.
+are unqualified release gates. No CI, tag or release was run. Private fixture
+editors closed; user-owned PID 72618 preserved. Independent acceptance is
+recorded below.
 
 ## Independent-review lifecycle corrections
 
