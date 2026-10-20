@@ -1,5 +1,7 @@
 # Alloy
 
+[Retained hollow Pipe](docs/validation/solid-pipe.md) now creates an editable circular tube along a tangent Line/Arc sketch path, with a native preview and independent watertight STL readback. Broader Pipe modes and packaged-platform input remain tracked separately.
+
 [Per-body mesh destination](docs/validation/batch-destination.md) now has a native Browse control, a new-folder name field and a full computed path preview, with independent two-file export readback. Physical chooser input and sheet placement remain release gates.
 
 [Selected-body STL/Core 3MF export](docs/validation/batch-mesh-export.md) now writes an explicit body set as one file or a new atomic per-body directory. Independent multi-body files, names, placement and preservation checks pass; native Browse and cross-platform runtime remain release work.

@@ -111,7 +111,7 @@ Status codes follow the 2026-10-19 independent audit: **S** minimum/owner bounda
 | 101 | `solid.hole-variants` | S — Proposed minimum/later text present; finishability or accepted-only disposition pending. JSON accepted-slice text is stale. | `SOL-007 (o), SOL-035 (c), SOL-078 (c), SOL-079 (c)` | [simple-hole.md](../../docs/validation/simple-hole.md), [counterbore-hole.md](../../docs/validation/counterbore-hole.md) |
 | 102 | `solid.thread` | E — accepted minimum; release gate open | `ADV-005 (o), SOL-059 (c)` | [modeled-external-thread.md](../../docs/validation/modeled-external-thread.md) |
 | 103 | `solid.coil` | O — Plausible open owner; finalize required subset and wider boundary. | `ADV-005 (o), SOL-060 (o)` | — receipt needed |
-| 104 | `solid.pipe` | O — Plausible open owner; finalize required subset and wider boundary. | `ADV-005 (o), SOL-061 (o)` | — receipt needed |
+| 104 | `solid.pipe` | S — Retained hollow circular Line/Arc Pipe accepted; wider family and release input/platform gates remain. | `ADV-005 (o), SOL-061 (c)` | [SOL-061](../validation/solid-pipe.md) geometry/native/STL receipt |
 | 105 | `solid.cone-torus` | O — Plausible open owner; finalize required subset and wider boundary. JSON accepted-slice text is stale. | `ADV-005 (o), SOL-062 (c), SOL-077 (c)` | [cone-torus.md](../../docs/validation/cone-torus.md) |
 | 106 | `solid.rib-web` | O — Plausible open owner; finalize required subset and wider boundary. | `ADV-006 (o), SOL-066 (o)` | — receipt needed |
 | 107 | `solid.emboss` | O — Plausible open owner; finalize required subset and wider boundary. | `ADV-005 (o), SOL-063 (o)` | — receipt needed |
