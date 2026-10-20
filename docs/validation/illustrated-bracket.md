@@ -113,3 +113,14 @@ curve rows while the rows and command state remained present. This focused fix
 does not qualify general macOS accessibility or close FND-015 #158. The Qt
 widget suite passes 8/8; the native AX receipts are under the private
 `build-tutorial-completion` evidence directory.
+
+## 2026-10-20 bounded end-circle follow-up
+
+[SKT-170 candidate](bracket-midpoint.md) replaces the earlier two-cap API
+selection substitution with a compiled actual-hit upper click, Shift-lower
+click and context action, followed by C, lower/upper midpoint/tangent circles
+and Esc. Shared retained-reference geometry, cap100-to120 source following,
+Undo/Redo and reopen pass through separate Qt and real-executable fixtures.
+Strict native activation without initial Qt bookkeeping remains unqualified;
+the saved native probe stops on native activation/focus loss without repair.
+The physical device stream and recorded visual differences remain open.

@@ -1,0 +1,292 @@
+{
+    "displayUnits": "mm",
+    "documentId": "18252146-5a2c-4562-92d0-c3759a8fe8ea",
+    "features": [
+        {
+            "id": "a6874f39-4793-460b-9d40-f4cdbb0a9ee1",
+            "name": "Sketch",
+            "ownerId": "18252146-5a2c-4562-92d0-c3759a8fe8ea",
+            "parameters": {
+                "constraints": [
+                    {
+                        "id": "be318a7f-4f94-4380-bc45-3aa5ac81a23a",
+                        "pointIds": [
+                            "61496a0a-d9bf-40f8-a7d2-9c0be3d99129"
+                        ],
+                        "type": "fixed",
+                        "uMm": 0,
+                        "vMm": 0
+                    },
+                    {
+                        "id": "d7b91986-82cf-4385-ba6b-c57ff82bd775",
+                        "pointIds": [
+                            "61cf0044-d72e-453b-bddd-0de6d1a9aaec",
+                            "61496a0a-d9bf-40f8-a7d2-9c0be3d99129"
+                        ],
+                        "type": "coincident"
+                    },
+                    {
+                        "id": "205b17a9-cf83-467d-acbb-584c01442170",
+                        "pointIds": [
+                            "b0c5848e-24fe-408c-bc67-c5fe8c835c46",
+                            "87f0edef-c8a2-4f0f-ae63-685ed906803a"
+                        ],
+                        "type": "coincident"
+                    },
+                    {
+                        "id": "9126b052-c9ac-460f-a090-a98d437cc937",
+                        "pointIds": [
+                            "d6859c7c-a536-4ac2-a8c0-b25341f9fdf9",
+                            "c8f6eab9-a069-4c40-91db-8399ddfd926c"
+                        ],
+                        "type": "coincident"
+                    },
+                    {
+                        "id": "1a8933e7-d9fa-48da-b63b-30679e5a185b",
+                        "pointIds": [
+                            "d1381819-0eaf-4b0a-a144-7fcddf44dc58",
+                            "22f63e18-d2e5-4a0b-acd1-a876e9aed9a1"
+                        ],
+                        "type": "coincident"
+                    },
+                    {
+                        "id": "c00f7e96-6d37-41d9-bb4d-9ac0e0a3ce1c",
+                        "pointIds": [
+                            "61857c6d-ad09-418a-872a-f11eadfd2b3c",
+                            "0178ee3a-4780-4df4-ac6d-584ebf34fde4"
+                        ],
+                        "type": "coincident"
+                    },
+                    {
+                        "id": "cb96b722-8dd0-4beb-8883-1598522795aa",
+                        "pointIds": [
+                            "8a10b8a4-9901-41c3-b557-d3e970f1baac",
+                            "183e99e6-a8c4-4ad4-a396-a102815f21e0"
+                        ],
+                        "type": "coincident"
+                    },
+                    {
+                        "id": "4fb838b1-4564-4b15-a478-fcc1e6e414c3",
+                        "pointIds": [
+                            "0da801f7-1a34-4b27-855b-2a4be7e77996",
+                            "61496a0a-d9bf-40f8-a7d2-9c0be3d99129"
+                        ],
+                        "type": "coincident"
+                    },
+                    {
+                        "entityIds": [
+                            "0bb5e72e-ceaf-4b63-8071-396bb073c2af",
+                            "60ecf85a-e931-46b2-808b-4a66bb871b0b"
+                        ],
+                        "id": "b3c2836a-58d3-4f2e-b8f8-fe9166b70a10",
+                        "type": "perpendicular"
+                    },
+                    {
+                        "entityIds": [
+                            "c263a4cd-449b-40d0-9848-ae255071ff24",
+                            "ebb57827-c884-4a70-8e08-915af401b8cd"
+                        ],
+                        "id": "30edba64-2fe4-475e-a05b-42cf373d46dd",
+                        "type": "perpendicular"
+                    },
+                    {
+                        "entityIds": [
+                            "ebb57827-c884-4a70-8e08-915af401b8cd",
+                            "51592178-4252-4701-87c7-43daea6efb68"
+                        ],
+                        "id": "ca61d337-1123-4325-9402-edcc814fca0e",
+                        "type": "perpendicular"
+                    },
+                    {
+                        "entityIds": [
+                            "60ecf85a-e931-46b2-808b-4a66bb871b0b"
+                        ],
+                        "id": "39ef8bed-dbee-4a72-8ea0-ba3bd4eaca6f",
+                        "type": "horizontal"
+                    },
+                    {
+                        "entityIds": [
+                            "c82006ff-fa97-4179-98d9-3f195253d8d2"
+                        ],
+                        "id": "622557f8-f633-4ae6-84c6-63affb893ad0",
+                        "type": "horizontal"
+                    },
+                    {
+                        "entityIds": [
+                            "60ecf85a-e931-46b2-808b-4a66bb871b0b",
+                            "c263a4cd-449b-40d0-9848-ae255071ff24"
+                        ],
+                        "id": "45819bba-3814-4ef2-87eb-d89875ab007a",
+                        "type": "equal"
+                    },
+                    {
+                        "entityIds": [
+                            "ebb57827-c884-4a70-8e08-915af401b8cd",
+                            "0bb5e72e-ceaf-4b63-8071-396bb073c2af"
+                        ],
+                        "id": "d9d0ec64-c33e-4960-ab70-6e2f500d79ab",
+                        "type": "equal"
+                    }
+                ],
+                "dimensions": [
+                    {
+                        "annotation": {
+                            "uMm": 219.85815602836885,
+                            "vMm": -92.19858156028369
+                        },
+                        "driving": true,
+                        "id": "d08d2996-3c82-487f-b44a-282fedfcb4d2",
+                        "kind": "horizontal",
+                        "pointIds": [
+                            "61cf0044-d72e-453b-bddd-0de6d1a9aaec",
+                            "87f0edef-c8a2-4f0f-ae63-685ed906803a"
+                        ],
+                        "valueMm": 500
+                    },
+                    {
+                        "annotation": {
+                            "uMm": 648.936170212766,
+                            "vMm": 49.645390070922
+                        },
+                        "driving": true,
+                        "entityIds": [
+                            "60ecf85a-e931-46b2-808b-4a66bb871b0b",
+                            "c263a4cd-449b-40d0-9848-ae255071ff24"
+                        ],
+                        "id": "34a876a9-34f9-4332-9876-e5f9aaafb80c",
+                        "kind": "angle",
+                        "raySigns": [
+                            1,
+                            1
+                        ],
+                        "valueDeg": 45
+                    },
+                    {
+                        "annotation": {
+                            "uMm": 861.7021276595747,
+                            "vMm": 434.3971631205674
+                        },
+                        "driving": true,
+                        "id": "04c2ce34-176d-42b6-bc68-373fb4db7f9d",
+                        "kind": "linear",
+                        "pointIds": [
+                            "d6859c7c-a536-4ac2-a8c0-b25341f9fdf9",
+                            "22f63e18-d2e5-4a0b-acd1-a876e9aed9a1"
+                        ],
+                        "valueMm": 100
+                    }
+                ],
+                "entities": [
+                    {
+                        "endPointId": "87f0edef-c8a2-4f0f-ae63-685ed906803a",
+                        "id": "60ecf85a-e931-46b2-808b-4a66bb871b0b",
+                        "startPointId": "61cf0044-d72e-453b-bddd-0de6d1a9aaec",
+                        "type": "line"
+                    },
+                    {
+                        "endPointId": "c8f6eab9-a069-4c40-91db-8399ddfd926c",
+                        "id": "c263a4cd-449b-40d0-9848-ae255071ff24",
+                        "startPointId": "b0c5848e-24fe-408c-bc67-c5fe8c835c46",
+                        "type": "line"
+                    },
+                    {
+                        "endPointId": "22f63e18-d2e5-4a0b-acd1-a876e9aed9a1",
+                        "id": "ebb57827-c884-4a70-8e08-915af401b8cd",
+                        "startPointId": "d6859c7c-a536-4ac2-a8c0-b25341f9fdf9",
+                        "type": "line"
+                    },
+                    {
+                        "endPointId": "0178ee3a-4780-4df4-ac6d-584ebf34fde4",
+                        "id": "51592178-4252-4701-87c7-43daea6efb68",
+                        "startPointId": "d1381819-0eaf-4b0a-a144-7fcddf44dc58",
+                        "type": "line"
+                    },
+                    {
+                        "endPointId": "183e99e6-a8c4-4ad4-a396-a102815f21e0",
+                        "id": "c82006ff-fa97-4179-98d9-3f195253d8d2",
+                        "startPointId": "61857c6d-ad09-418a-872a-f11eadfd2b3c",
+                        "type": "line"
+                    },
+                    {
+                        "endPointId": "0da801f7-1a34-4b27-855b-2a4be7e77996",
+                        "id": "0bb5e72e-ceaf-4b63-8071-396bb073c2af",
+                        "startPointId": "8a10b8a4-9901-41c3-b557-d3e970f1baac",
+                        "type": "line"
+                    }
+                ],
+                "originPointId": "61496a0a-d9bf-40f8-a7d2-9c0be3d99129",
+                "plane": "XY",
+                "points": [
+                    {
+                        "id": "61496a0a-d9bf-40f8-a7d2-9c0be3d99129",
+                        "uMm": -7.919758056827708e-20,
+                        "vMm": 2.168404344971009e-19
+                    },
+                    {
+                        "id": "61cf0044-d72e-453b-bddd-0de6d1a9aaec",
+                        "uMm": -7.919758056827708e-20,
+                        "vMm": 2.168404344971009e-19
+                    },
+                    {
+                        "id": "87f0edef-c8a2-4f0f-ae63-685ed906803a",
+                        "uMm": 500,
+                        "vMm": 2.168404344971009e-19
+                    },
+                    {
+                        "id": "b0c5848e-24fe-408c-bc67-c5fe8c835c46",
+                        "uMm": 500,
+                        "vMm": 2.168404344971009e-19
+                    },
+                    {
+                        "id": "c8f6eab9-a069-4c40-91db-8399ddfd926c",
+                        "uMm": 853.5533905932742,
+                        "vMm": 353.55339059327343
+                    },
+                    {
+                        "id": "d6859c7c-a536-4ac2-a8c0-b25341f9fdf9",
+                        "uMm": 853.5533905932742,
+                        "vMm": 353.55339059327343
+                    },
+                    {
+                        "id": "22f63e18-d2e5-4a0b-acd1-a876e9aed9a1",
+                        "uMm": 782.842712474609,
+                        "vMm": 424.26406871194297
+                    },
+                    {
+                        "id": "d1381819-0eaf-4b0a-a144-7fcddf44dc58",
+                        "uMm": 782.842712474609,
+                        "vMm": 424.26406871194297
+                    },
+                    {
+                        "id": "0178ee3a-4780-4df4-ac6d-584ebf34fde4",
+                        "uMm": 458.57864376321794,
+                        "vMm": 100
+                    },
+                    {
+                        "id": "61857c6d-ad09-418a-872a-f11eadfd2b3c",
+                        "uMm": 458.57864376321794,
+                        "vMm": 100
+                    },
+                    {
+                        "id": "183e99e6-a8c4-4ad4-a396-a102815f21e0",
+                        "uMm": 2.2421383307894763e-19,
+                        "vMm": 100
+                    },
+                    {
+                        "id": "8a10b8a4-9901-41c3-b557-d3e970f1baac",
+                        "uMm": 2.2421383307894763e-19,
+                        "vMm": 100
+                    },
+                    {
+                        "id": "0da801f7-1a34-4b27-855b-2a4be7e77996",
+                        "uMm": -7.919758056827708e-20,
+                        "vMm": 2.168404344971009e-19
+                    }
+                ]
+            },
+            "type": "sketch",
+            "visible": true
+        }
+    ],
+    "schema": "alloy-document/1"
+}

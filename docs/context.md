@@ -1,3 +1,15 @@
+## 2026-10-20 SKT-170 bracket end-circle candidate
+
+The bounded [construction/midpoint receipt](validation/bracket-midpoint.md)
+records a passing compiled Qt actual-hit A2 conversion/circle route and a
+separate real-executable cap100-to120 edit, exact Undo/Redo and save/reopen.
+The sole product change exposes Normal/Construction in context diagnostics.
+Strict native mode lost AppKit activation before the upper tangent input and
+stopped without repair; its cause is unproven, so native/physical acceptance
+and #647 remain open. Independent review is pending. Build is
+`build-preview-release` Release/private Qt; evidence is external under
+`validation/skt170-2026-10-20/`. Both private editors were closed.
+
 ## Typed Angle/Cylinder Height accepted (2026-10-20)
 
 PAR-009/#497 adds numeric degree user parameters (`valueDeg`, stable UUID),

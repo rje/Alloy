@@ -4298,6 +4298,7 @@ void ReferenceView::contextMenuEvent(QContextMenuEvent* e) {
             lastContextMenu_["phase"]="open";lastContextMenu_["origin"]="sketch";
             lastContextMenu_["actions"]=QJsonArray{QJsonObject{{"id",remove->objectName()},{"enabled",true}}};
             auto actions=lastContextMenu_.value("actions").toArray();
+            if(toggle)actions.append(QJsonObject{{"id",toggle->objectName()},{"enabled",toggle->isEnabled()}});
             if(breakLink)actions.append(QJsonObject{{"id",breakLink->objectName()},{"enabled",true}});
             for(auto i=coincidentActions.begin();i!=coincidentActions.end();++i)actions.append(QJsonObject{{"id",i.key()->objectName()},{"constraintId",i.value()},{"enabled",true}});
             lastContextMenu_["actions"]=actions;
