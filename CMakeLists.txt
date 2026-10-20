@@ -51,6 +51,7 @@ qt_add_resources(alloy_kernel "alloy_text_font" PREFIX "/alloy/fonts" BASE "thir
 target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_VERSION}")
 
 add_library(alloy_application STATIC
+    src/ZebraPresentation.cpp src/ZebraPresentation.h
     src/ScaleControls.cpp src/AlignControls.cpp src/DraftControls.cpp src/MeasureControls.cpp
     src/AlloyTheme.cpp src/AlloyTheme.h
     src/ThreeTangentCircleControls.cpp
@@ -97,6 +98,9 @@ if(ALLOY_BUILD_SPIKES)
         TKernel TKMath TKBRep TKPrim TKTopAlgo TKLCAF TKCAF TKBin TKBinL TKCDF)
 endif()
 if(BUILD_TESTING)
+    add_executable(zebra_presentation_test tests/zebra_presentation.cpp)
+    target_link_libraries(zebra_presentation_test PRIVATE alloy_application)
+    add_test(NAME zebra_presentation COMMAND zebra_presentation_test)
     add_executable(face_normals_test tests/face_normals.cpp)
     target_link_libraries(face_normals_test PRIVATE alloy_kernel Qt6::Core)
     add_test(NAME face_normals COMMAND face_normals_test)

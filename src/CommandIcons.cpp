@@ -159,6 +159,13 @@ public:
             painter->setPen(QPen(edge,1,Qt::DashLine)); painter->drawLine(QPointF(3,26),QPointF(29,12));
             polygon({{5,7},{19,1},{28,12},{14,19}},QColor(blue.red(),blue.green(),blue.blue(),185));
             arrow({7,24},{7,14},accent);
+        } else if (command_ == "inspect.zebra") {
+            QPainterPath sheet;sheet.moveTo(4,8);sheet.cubicTo(13,2,20,13,28,6);
+            sheet.lineTo(28,25);sheet.cubicTo(20,31,13,20,4,27);sheet.closeSubpath();
+            pen(edge);painter->setBrush(white);painter->drawPath(sheet);
+            painter->save();painter->setClipPath(sheet);painter->setBrush(Qt::NoBrush);pen(edge,3);
+            for(int i=0;i<5;++i){QPainterPath band;band.moveTo(5+i*6,1);band.cubicTo(-1+i*6,11,12+i*6,19,5+i*6,32);painter->drawPath(band);}
+            painter->restore();
         } else if (command_ == "inspect.measure") {
             polygon({{3,12},{27,7},{29,18},{5,23}},pale);
             pen(edge); for(int i=0;i<6;++i) {

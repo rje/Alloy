@@ -1,4 +1,5 @@
 #include <AIS_ColoredShape.hxx>
+#include "ZebraPresentation.h"
 #include <TopExp.hxx>
 #include <TopTools_IndexedMapOfShape.hxx>
 #include <BRepAdaptor_Curve.hxx>
@@ -744,6 +745,7 @@ void ReferenceView::resetOrbitCenter() {
     customOrbitCenter_.reset();cancelOrbitCenterPick();refreshOrbitCenterMarker();
 }
 void ReferenceView::rebindDocument() {
+    setZebra({});
     setFaceNormals({});
     cancelNavigationGesture(navigationPressActive_);
     cancelOrbitCenterPick();
@@ -1010,10 +1012,11 @@ void ReferenceView::displayBodies(const std::vector<EvaluatedBody>& bodies) {
     if(context_.IsNull())return;
     const bool trace=qEnvironmentVariableIsSet("ALLOY_TRACE_ASSEMBLY_SOLVES");
     QElapsedTimer timer;if(trace)timer.start();
+    clearZebraPresentation();
     for(const auto& model:models_)context_->Remove(model,false);
     models_.clear();modelReferences_.clear();bodyVisibility_.clear();
     for(const auto& body:bodies) {
-        Handle(AIS_Shape) model=new AIS_Shape(body.shape);model->SetDisplayMode(AIS_Shaded);
+        Handle(AIS_Shape) model=new AIS_ColoredShape(body.shape);model->SetDisplayMode(AIS_Shaded);
         // Bound screen presentation detail separately from export accuracy.
         // The finer legacy angular mesh stalled small multi-fillet parts.
         model->SetOwnDeviationCoefficient(0.0005);
@@ -1188,7 +1191,10 @@ void ReferenceView::applyEditDisplay(bool redraw) {
             // cover the selected cells. Keep their blue planar fill visible
             // until a real solid preview occupies the coplanar source face.
             const bool coveredBySolidPreview=!preview_.IsNull() && previewProfileIds_.contains(profile.profileId);
-            if(visible && !coveredBySolidPreview)context_->Display(fill,false);else context_->Erase(fill,false);
+            // Diagnostic face shading must not compete with a coplanar source
+            // profile fill. Keep sketch outlines; restore profile fills on Off.
+            const bool coveredByZebra=!zebraModel_.IsNull() && profile.face.IsSame(zebraFace_);
+            if(visible && !coveredBySolidPreview && !coveredByZebra)context_->Display(fill,false);else context_->Erase(fill,false);
         }
     }
     for(auto i=models_.begin();i!=models_.end();++i) {
@@ -1320,6 +1326,8 @@ QJsonObject ReferenceView::pickSupportFace(const ViewPickSnapshot& pick,const st
     return {};
 }
 void ReferenceView::selectSupportFace(const QJsonObject& support,const TopoDS_Face& face,bool outline) {
+    selectedSupportShape_=face;selectedSupportOutline_=outline;
+    outline=outline || (zebraState_.value("visible").toBool() && zebraState_.value("source").toObject()==support);
     hoverSupportFace({});
     if(!context_.IsNull() && !selectedSupportFaceOverlay_.IsNull())context_->Remove(selectedSupportFaceOverlay_,false);
     selectedSupportFaceOverlay_.Nullify();selectedSupportFace_=support;
@@ -1334,6 +1342,40 @@ void ReferenceView::selectSupportFace(const QJsonObject& support,const TopoDS_Fa
         context_->Deactivate(selectedSupportFaceOverlay_);
         context_->UpdateCurrentViewer();
     }
+}
+void ReferenceView::clearZebraPresentation() {
+    if(zebraModel_.IsNull())return;
+    ZebraPresentation::remove(zebraModel_,zebraFace_);
+    if(!context_.IsNull() && context_->IsDisplayed(zebraModel_))context_->Redisplay(zebraModel_,false);
+    zebraModel_.Nullify();zebraFace_.Nullify();
+}
+void ReferenceView::setZebra(const QJsonObject& state,const TopoDS_Face& face) {
+    Handle(AIS_ColoredShape) target;
+    if(state.value("enabled").toBool() && state.value("status")=="ready" && !face.IsNull()) {
+        const auto source=state.value("source").toObject();
+        for(auto it=models_.cbegin();it!=models_.cend();++it) {
+            const auto ref=modelReferences_.value(it.key());
+            if(ref.value("bodyId")!=source.value("bodyId") ||
+                (source.contains("occurrenceId") && ref.value("occurrenceId")!=source.value("occurrenceId")))continue;
+            if(!context_->IsDisplayed(it.value()))continue;
+            target=Handle(AIS_ColoredShape)::DownCast(it.value());break;
+        }
+    }
+    const bool same=target==zebraModel_ && (face.IsNull() ? zebraFace_.IsNull() : face.IsSame(zebraFace_));
+    if(!same) {
+        clearZebraPresentation();
+        if(!target.IsNull()) {
+            ZebraPresentation::apply(target,face);zebraModel_=target;zebraFace_=face;
+            context_->Redisplay(target,false);
+        }
+    }
+    auto next=state;next["visible"]=!zebraModel_.IsNull();
+    const bool selectionChanged=zebraState_.value("visible")!=next.value("visible") || zebraState_.value("source")!=next.value("source");
+    const bool displayChanged=zebraState_.value("visible")!=next.value("visible");
+    zebraState_=next;
+    if(displayChanged || !same)applyEditDisplay(false);
+    if(selectionChanged && !selectedSupportShape_.IsNull())selectSupportFace(selectedSupportFace_,selectedSupportShape_,selectedSupportOutline_);
+    if(!context_.IsNull())context_->UpdateCurrentViewer();
 }
 void ReferenceView::setFaceNormals(const QJsonObject& state) {
     auto prior=faceNormalsState_;prior.remove("glyph");prior["visible"]=false;
@@ -3488,6 +3530,7 @@ QJsonObject ReferenceView::diagnostics() const {
     result.insert("cutPreviewToolCount",static_cast<int>(cutTools_.size()));
     result.insert("cutPreviewSelectedProfileCount",static_cast<int>(cutProfileOverlays_.size()));
     result.insert("faceNormals",faceNormalsState_);
+    result.insert("zebra",zebraState_);
     result.insert("selectedSupportFace",selectedSupportFace_);
     result.insert("supportFaceHighlightVisible",!selectedSupportFaceOverlay_.IsNull());
     result.insert("hoveredSupportFace",hoveredSupportFace_);

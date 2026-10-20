@@ -902,6 +902,9 @@ private:
     QLabel* browserNote_ = nullptr;
     QString selectedBody_;
     QString selectedOccurrence_;
+    void refreshZebra();
+    bool zebraEnabled_=false;
+    QString zebraDocumentId_;
     void refreshFaceNormals();
     bool faceNormalsEnabled_ = false;
     QString faceNormalsDocumentId_;

@@ -516,7 +516,7 @@ AlloyWindow::AlloyWindow() {
                 if(!command || !command->available)continue;
                 auto* action=menu->addAction(command->title);
                 action->setObjectName(groupPrefix+".action."+entry.first);action->setToolTip(command->description);action->setIcon(commandIcon(entry.first));
-                if(entry.first=="inspect.faceNormals")action->setCheckable(true);
+                if(entry.first=="inspect.faceNormals" || entry.first=="inspect.zebra")action->setCheckable(true);
                 connect(action,&QAction::triggered,this,[this,id=entry.first]{execute(id);});
             }
             if(caption=="CREATE" && groupPrefix=="solid") {
@@ -550,7 +550,7 @@ AlloyWindow::AlloyWindow() {
     group("MODIFY", {{"solid.pressPullDialog", "⇧"}, {"solid.combineDialog", "▣"}, {"solid.filletDialog", "◩"}, {"solid.chamferDialog", "◪"}, {"solid.shellDialog", "▱"}, {"solid.faceOffsetDialog", "↗"}, {"solid.splitBodyDialog", "◫"}, {"solid.moveDialog", "✥"}});
     group("ASSEMBLE", {{"joint.asBuiltDialog","◉"},{"joint.sliderDialog", "⇆"},{"position.revert","↶"}});
     group("CONSTRUCT", {{"construction.plane", "▰"}, {"construction.pathPlane", "⟂"}, {"construction.tangentPlane", "▱"}, {"construction.midplane", "◫"}});
-    group("INSPECT", {{"inspect.sectionDialog", "◧"}, {"inspect.measure", "↔"}, {"inspect.faceNormals", "↥"}});
+    group("INSPECT", {{"inspect.sectionDialog", "◧"}, {"inspect.measure", "↔"}, {"inspect.faceNormals", "↥"}, {"inspect.zebra", "▥"}});
     auto* selectMenuButton=new QToolButton;selectMenuButton->setText("SELECT");
     selectMenuButton->setObjectName("solid.menu.select");
     selectMenuButton->setMinimumWidth(112);
@@ -573,7 +573,7 @@ AlloyWindow::AlloyWindow() {
     group("CREATE", {{"sketch.create", "▧"}, {"surface.extrudeDialog", "▤"}, {"surface.revolveDialog", "◉"}, {"surface.patchDialog", "▱"}, {"surface.offsetDialog", "↥"}, {"surface.ruledDialog", "⌁"}, {"surface.sweepDialog", "◡"}, {"surface.loftDialog", "◒"}, {"surface.boundaryFillDialog", "▣"}});
     group("MODIFY", {{"surface.extendDialog", "⇥"}, {"surface.trimDialog", "✂"}, {"surface.untrimDialog", "▱"}, {"body.removeDialog", "⊖"}});
     group("CONSTRUCT", {{"construction.plane", "▰"}, {"construction.pathPlane", "⟂"}, {"construction.tangentPlane", "▱"}, {"construction.midplane", "◫"}});
-    group("INSPECT", {{"inspect.sectionDialog", "◧"}, {"inspect.measure", "↔"}, {"inspect.faceNormals", "↥"}});
+    group("INSPECT", {{"inspect.sectionDialog", "◧"}, {"inspect.measure", "↔"}, {"inspect.faceNormals", "↥"}, {"inspect.zebra", "▥"}});
     groups->addStretch();surfaceGroups->hide();ribbonRight->addWidget(surfaceGroups);
     ribbonLayout->addLayout(ribbonRight, 1); layout->addWidget(ribbon);
     fullRibbonWidth_=ribbon->sizeHint().width();
@@ -1770,7 +1770,7 @@ void AlloyWindow::showActiveTab() {
     if(dimensionEditorValue_)dimensionEditorValue_->setReadOnly(false);
     if(lineLockCue_)lineLockCue_->hide();
     if(sketchDock_)sketchDock_->hide();
-    faceNormalsEnabled_=false;
+    faceNormalsEnabled_=false;zebraEnabled_=false;
     view_->rebindDocument();
     document_=active->document.get();session_=active->session;
     view_->setViewConvention(document_->authored().value("viewConvention").toObject(),false);
@@ -1989,6 +1989,13 @@ void AlloyWindow::registerCommands() {
             refreshFaceNormals();return view_->faceNormalsState();
         });
     add("inspect.faceNormalsResult", "Face Normals Result", "Read transient current-face normal and GPU glyph scale without changing model or history.",{},[this](const auto&){return view_->faceNormalsState();});
+    add("inspect.zebra", "Zebra Analysis", "Alloy transient visual aid for one current planar/cylindrical face. View-fixed reflection bands use interpolated B-rep tessellation normals, 12 angular repeats, 90% stripe blend. Orthographic planes may have one uniform band. No numeric continuity result, saved analysis or shortcut.",
+        {{"enabled",QJsonObject{{"type","boolean"},{"required",false},{"description","Set display; omit to toggle."}}}},[this](const auto& args){
+            zebraDocumentId_=document_->authored().value("documentId").toString();
+            zebraEnabled_=args.contains("enabled") ? args.value("enabled").toBool() : !zebraEnabled_;
+            refreshZebra();return view_->zebraState();
+        });
+    add("inspect.zebraResult", "Zebra Analysis Result", "Read transient display, exact target, fixed Alloy settings and limits without changing geometry/history.",{},[this](const auto&){return view_->zebraState();});
     registerComponentCopyCommands();
     registerBodyCopyCommands();
     registerSliderCommands();
@@ -2540,6 +2547,7 @@ void AlloyWindow::registerCommands() {
     add("document.open","Open","Validate and evaluate before replacing the current document.",{{"path",path},{"discard",discard}},[this](const auto& a){
         if(tabHasUnsavedWork(activeTabId_) && !a.value("discard").toBool()) return failure("unsaved_changes","Save or explicitly discard the current document");
         faceNormalsEnabled_=false;view_->setFaceNormals({});
+        zebraEnabled_=false;view_->setZebra({});
         return beginDocumentOpen(a.value("path").toString());
     });
     for(const auto& id:{"document.saveDialog","document.saveAsDialog"}) {
@@ -7468,7 +7476,7 @@ QJsonObject AlloyWindow::state() const {
                 {"presentation",target=="construction.tangentPlane" || target=="joint.slider" || target=="joint.revolute" || target=="joint.cylindrical" || target.startsWith("solid.") || target.startsWith("surface.") || target.startsWith("sketch.") ? (activeDock && activeDock->isFloating() ? "floating-panel" : "docked-panel") : "dialog"},
                 {"bounds",QJsonObject{{"x",panelRect.x()},{"y",panelRect.y()},{"width",panelRect.width()},{"height",panelRect.height()}}}}}}},
         {"navigationPreferences",QJsonObject{{"preset",view_->inputPreset()} }},
-        {"viewport", QJsonObject{{"faceNormals",view_->faceNormalsState()},{"renderer", "OCCT OpenGL"}, {"gpu", view_->diagnostics()}, {"navigation",view_->cameraState()},
+        {"viewport", QJsonObject{{"zebra",view_->zebraState()},{"faceNormals",view_->faceNormalsState()},{"renderer", "OCCT OpenGL"}, {"gpu", view_->diagnostics()}, {"navigation",view_->cameraState()},
             {"orbitCenterPickPending",view_->orbitCenterPicking()}, {"editDisplay",view_->diagnostics().value("editDisplay")},
             {"sketchAnnotations",view_->annotations()}, {"orientation", view_->orientation}, {"gridVisible", view_->grid},
             {"originVisible", view_->origin}, {"zoom", view_->zoom}, {"pan", QJsonObject{{"x", view_->pan.x()}, {"y", view_->pan.y()}}},
@@ -7510,6 +7518,40 @@ void AlloyWindow::refreshBodyPropertiesDialog() {
             number(size[i].toDouble())+" "+unit);
 }
 
+void AlloyWindow::refreshZebra() {
+    const auto documentId=document_->authored().value("documentId").toString();
+    if(zebraDocumentId_!=documentId){zebraEnabled_=false;zebraDocumentId_=documentId;}
+    QJsonObject state{{"enabled",zebraEnabled_},{"visible",false},{"scope","single_current_planar_or_cylindrical_face"},
+        {"persistence","session_only"},{"authoredChange",false},{"numericContinuityResult",false},
+        {"method","view_fixed_angular_environment_reflection_from_interpolated_tessellation_normals"},
+        {"settings",QJsonObject{{"direction","vertical"},{"angularRepeats",12},{"stripeBlend",0.9},{"materialAlphaPreserved",true},{"antiAliasing","fragment_derivative_smoothstep"}}},
+        {"limits","Visual aid only; tessellation interpolation, no numeric continuity test. Orthographic planar faces may show one uniform band. Fixed Alloy settings; reference defaults and exact graphic parity unknown. No Lock Stripes or High Quality controls."}};
+    TopoDS_Face target;
+    QString status="disabled";QJsonObject resolved;
+    if(zebraEnabled_) {
+        if(!session_.isEmpty())status="active_command";
+        else if(selectedFace_.isEmpty())status="no_selection";
+        else {
+            const auto bodies=presentationBodies();
+            resolved=FaceNormalInspector::evaluate(bodies,selectedFace_);status=resolved.value("status").toString();
+            if(status=="ready")for(const auto& body:bodies)if(body.visible && body.bodyId==selectedFace_.value("bodyId").toString()
+                && (!selectedFace_.contains("occurrenceId") || body.occurrenceId==selectedFace_.value("occurrenceId").toString()))
+                for(const auto& face:body.supportFaces)if(face.faceId==selectedFace_.value("faceId").toString()
+                    && face.producerFeatureId==selectedFace_.value("producerFeatureId").toString())target=face.face;
+        }
+    }
+    state["status"]=status;
+    if(resolved.contains("error"))state["error"]=resolved.value("error");
+    if(!target.IsNull()){state["source"]=selectedFace_;state["surfaceType"]=resolved.value("surfaceType");}
+    view_->setZebra(state,target);
+    const bool canEnable=session_.isEmpty() && !selectedFace_.isEmpty()
+        && FaceNormalInspector::evaluate(presentationBodies(),selectedFace_).value("status")=="ready";
+    for(const auto& prefix:{QString("solid"),QString("surface")}) {
+        if(auto* action=findChild<QAction*>(prefix+".action.inspect.zebra")){action->setChecked(zebraEnabled_);action->setEnabled(zebraEnabled_ || canEnable);}
+    }
+    if(auto* button=findChild<QToolButton*>("command.inspect.zebra"))button->setEnabled(zebraEnabled_ || canEnable);
+    if(auto* button=findChild<QToolButton*>("surface.command.inspect.zebra"))button->setEnabled(zebraEnabled_ || canEnable);
+}
 void AlloyWindow::refreshFaceNormals() {
     const auto documentId=document_->authored().value("documentId").toString();
     if(faceNormalsDocumentId_!=documentId){faceNormalsEnabled_=false;faceNormalsDocumentId_=documentId;}
@@ -8379,6 +8421,7 @@ void AlloyWindow::refresh() {
         .arg(gpu.value("displayedBodyReferences").toArray().size()).arg(view_->orientation).arg(qRound(view_->zoom * 100)).arg(activeTool));
     status_->setToolTip(completeStatus);status_->setAccessibleDescription(completeStatus);
     refreshFaceNormals();
+    refreshZebra();
 }
 
 void AlloyWindow::showSearch() {

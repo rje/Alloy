@@ -14,6 +14,7 @@
 #include <V3d_View.hxx>
 #include <V3d_Viewer.hxx>
 #include <AIS_Shape.hxx>
+#include <AIS_ColoredShape.hxx>
 #include <AIS_Point.hxx>
 #include <Graphic3d_ClipPlane.hxx>
 #include <QMap>
@@ -124,6 +125,8 @@ public:
     static QJsonObject pickSupportFace(const ViewPickSnapshot& pick,const std::vector<EvaluatedBody>& bodies);
     static QJsonObject pickSolidEdge(const ViewPickSnapshot& pick,const std::vector<EvaluatedBody>& bodies);
     void selectSupportFace(const QJsonObject& support, const TopoDS_Face& face = {}, bool outline = false);
+    void setZebra(const QJsonObject& state,const TopoDS_Face& face = {});
+    QJsonObject zebraState() const { return zebraState_; }
     void setFaceNormals(const QJsonObject& state);
     QJsonObject faceNormalsState() const { return faceNormalsState_; }
     void setCommandSketches(const QSet<QString>& ids);
@@ -328,6 +331,11 @@ private:
     QMap<QString,QJsonObject> modelReferences_;
     QMap<QString,bool> bodyVisibility_;
     QString combineTargetId_;
+    void clearZebraPresentation();
+    QJsonObject zebraState_;
+    Handle(AIS_ColoredShape) zebraModel_;
+    TopoDS_Face zebraFace_,selectedSupportShape_;
+    bool selectedSupportOutline_=false;
     QJsonObject selectedSupportFace_;
     Handle(AIS_Shape) selectedSupportFaceOverlay_;
     void refreshFaceNormals();
