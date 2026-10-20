@@ -140,7 +140,7 @@ Status codes follow the 2026-10-19 independent audit: **S** minimum/owner bounda
 | 130 | `exchange.dxf` | O — Plausible open owner; finalize required subset and wider boundary. | `XCH-006 (o)` | — receipt needed |
 | 131 | `exchange.svg` | O — Plausible open owner; finalize required subset and wider boundary. | `XCH-007 (o)` | — receipt needed |
 | 132 | `print.mesh-audit` | O — Plausible open owner; finalize required subset and wider boundary. | `PRT-003 (o)` | — receipt needed |
-| 133 | `print.refinement` | S — Proposed minimum now has bounded Todo child owner(s); implementation and release qualification open. | `PRT-002 (o), PRT-011 (o), PRT-012 (o)` | — receipt needed |
+| 133 | `print.refinement` | S — Selected-solid serialized STL/Core 3MF refinement preview accepted; batch structure and native release qualification open. | `PRT-002 (o), PRT-011 (c), PRT-012 (o), PRT-013 (o), PRT-014 (o)` | [PRT-011 receipt](../validation/mesh-refinement.md) |
 | 134 | `exchange.loss-report` | O — Plausible open owner; finalize required subset and wider boundary. | `XCH-008 (o)` | — receipt needed |
 | 135 | `history.general-expressions` | S — Proposed minimum/later text present; finishability or accepted-only disposition pending. | `PAR-001 (o), HIS-004 (o), PAR-006 (c), PAR-007 (c), PAR-008 (c), PAR-009 (c)` | — receipt needed |
 | 136 | `document.preflight` | R — shared release/infrastructure obligation; qualify through gates | `REL-015 (c), REL-050 (o), REL-001 (o)` | [actionable-failures-packaged.md](../../docs/validation/actionable-failures-packaged.md) |
