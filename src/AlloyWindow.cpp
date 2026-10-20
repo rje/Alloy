@@ -2819,6 +2819,7 @@ void AlloyWindow::registerCommands() {
     });
 
     auto surfaceAngle=optional(parameter("number","Partial One Side angle in degrees, strictly between 0 and 360; default 90."));
+    surfaceAngle["minimum"]=-360.;surfaceAngle["maximum"]=360.;
     QJsonObject surfaceRevolveSchema{{"sketchId",optional(parameter("string","Earlier solved source sketch UUID."))},
         {"entityId",optional(parameter("string","One ordinary open straight Line UUID."))},
         {"axisEntityId",optional(parameter("string","Distinct same-sketch retained construction Line UUID; positive rotation follows start to end."))},
