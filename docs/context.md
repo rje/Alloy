@@ -1,3 +1,17 @@
+## 2026-10-20 SKT-173 active-sketch menu candidate
+
+[Canvas marking-menu receipt](validation/canvas-marking-menu.md) records a
+canvas-owned radial/context surface for active-sketch Select: existing geometry
+actions plus eight supported Sketch controls, click and held-right Line/Circle
+gestures, accessible IDs and live command/bounds diagnostics. The focused real-app
+Qt fixture passes without test-injected context events or interstep focus repair;
+original bracket geometry/history/reopen remain covered. Native AppKit activation
+was false and remains SKT-171/#694, with the initial failed receipt preserved.
+Build is `build-preview-release`; external evidence is
+`validation/skt173-2026-10-20/qt-final/`. Independent review is pending; broader
+contexts and styling remain proposed SKT-174/SKT-175 Todo splits in the receipt.
+No CI, push or release.
+
 ## 2026-10-20 SKT-172 bounded visual acceptance
 
 [Bracket A2 visual receipt](validation/bracket-visual.md) records supported

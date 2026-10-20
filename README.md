@@ -1,5 +1,10 @@
 # Alloy
 
+[Active-sketch canvas marking menu](docs/validation/canvas-marking-menu.md) has a
+bounded candidate with shared radial commands, click/gesture Line and Circle,
+and the selected-cap construction route. Qt actual-hit checks pass; physical
+activation, broader contexts and exact styling remain separate acceptance work.
+
 [Typed Angle and Cylinder Height parameters](docs/validation/typed-angle-cylinder-parameters.md)
 now bind a driving line-pair sketch Angle and primitive Height to stable typed
 user parameters. A combined printable wedge-cut cylinder passes exact geometry,

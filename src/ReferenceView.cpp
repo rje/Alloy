@@ -15,6 +15,7 @@
 #include <BRep_Builder.hxx>
 #include <TopoDS_Compound.hxx>
 #include "ReferenceView.h"
+#include "CanvasMarkingMenu.h"
 #include <BRepAdaptor_Surface.hxx>
 #include "SketchGeometry.h"
 #include "SketchSpline.h"
@@ -3538,7 +3539,10 @@ QJsonObject ReferenceView::diagnostics() const {
     result.insert("rightMousePressCount",rightMousePressCount_);
     result.insert("contextMenuEventCount",contextMenuEventCount_);
     result.insert("contextMenuShownCount",contextMenuShownCount_);
-    result.insert("lastContextMenu",lastContextMenu_);
+    auto context=lastContextMenu_;
+    if(auto* marking=dynamic_cast<CanvasMarkingMenu*>(QApplication::activePopupWidget());marking && marking->parentWidget()==this)
+        context.insert("radial",marking->inspection());
+    result.insert("lastContextMenu",context);
     result.insert("contextMenuVisible",qobject_cast<QMenu*>(QApplication::activePopupWidget())!=nullptr);
     result.insert("draftSketchId",draftSketchId_);
     result.insert("sketchPlane",sketchPlane_);
@@ -3810,7 +3814,13 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
         }
         if(!picked.isEmpty()){setFocus(Qt::MouseFocusReason);moveDrag_={{"handle",picked},{"mode",mode},{"pressX",e->position().x()},{"pressY",e->position().y()},{"initialInputs",moveCueState_["inputs"]},{"handleCommand",moveCueState_["inputs"].toObject().value("handleCommand").toString("solid.moveHandle")},{"releaseCommand",moveCueState_["inputs"].toObject().value("releaseCommand").toString("solid.moveApplyGesture")}};e->accept();return;}
     }
-    if(e->button()==Qt::RightButton)++rightMousePressCount_;
+    if(e->button()==Qt::RightButton) {
+        ++rightMousePressCount_;
+        if(!sketchPlane_.isEmpty() && decorationSelection_.value("tool")=="select" && e->modifiers()==Qt::NoModifier) {
+            QContextMenuEvent context(QContextMenuEvent::Mouse,e->position().toPoint(),e->globalPosition().toPoint());
+            contextMenuEvent(&context);e->accept();return;
+        }
+    }
     if(e->button()==Qt::LeftButton){
         if(!sketchPlane_.isEmpty() && decorationSelection_.value("tool")=="line"
             && !decorationSelection_.value("chainLineId").toString().isEmpty()
@@ -4198,6 +4208,9 @@ void ReferenceView::recordContextMenu(const QJsonObject& state,bool shown) {
     lastContextMenu_=state;if(shown)++contextMenuShownCount_;
 }
 void ReferenceView::contextMenuEvent(QContextMenuEvent* e) {
+    // Some platforms deliver the native context request after the right press.
+    // Do not open a second popup or dispatch a command twice.
+    if(auto* popup=QApplication::activePopupWidget();popup && popup->parentWidget()==this){e->accept();return;}
     if(alternateRightContextSuppressed_){alternateRightContextSuppressed_=false;e->accept();return;}
     ++contextMenuEventCount_;
     const bool sketchActive=!sketchPlane_.isEmpty();
@@ -4276,9 +4289,11 @@ void ReferenceView::contextMenuEvent(QContextMenuEvent* e) {
         }
         const auto entities=decorationSelection_.value("entityIds").toArray();
         const auto points=decorationSelection_.value("pointIds").toArray();
-        if(!entities.isEmpty() || !points.isEmpty()) {
-            auto* menu=new QMenu(this);menu->setObjectName("context.sketchGeometry");menu->setAttribute(Qt::WA_DeleteOnClose);
-            auto* remove=menu->addAction("Delete");remove->setObjectName("sketch.action.deleteGeometry");
+        {
+            auto* menu=new CanvasMarkingMenu(this,[this](const QString& command,const QJsonObject& args){dispatch(command,args);},!entities.isEmpty() || !points.isEmpty());
+            menu->setObjectName("context.sketchGeometry");
+            const bool hasSelection=!entities.isEmpty() || !points.isEmpty();
+            auto* remove=menu->addAction("Delete");remove->setObjectName("sketch.action.deleteGeometry");remove->setVisible(hasSelection);
             QAction* breakLink=nullptr;
             if(entities.size()==1&&points.isEmpty())for(const auto& value:decorationFeature_.value("parameters").toObject().value("entities").toArray()){
                 const auto entity=value.toObject();if(entity.value("id")==entities[0]&&entity.value("type")=="fitSplineOffset"){
@@ -4308,8 +4323,13 @@ void ReferenceView::contextMenuEvent(QContextMenuEvent* e) {
             for(const auto& type:QStringList{"collinear","midpoint","fixed","parallel","perpendicular","horizontalVertical","equal"}) {
                 const auto text=type=="fixed" ? QString("Fix/UnFix") : type=="horizontalVertical" ? QString("Horizontal/Vertical") : type=="midpoint" ? QString("MidPoint") : type.first(1).toUpper()+type.sliced(1);
                 auto* action=menu->addAction(text);action->setObjectName("sketch.action.constraint."+type);
-                constraintActions.insert(action,type);
+                action->setVisible(hasSelection);constraintActions.insert(action,type);
             }
+            menu->addSeparator();
+            auto* pan=menu->addAction("Pan");pan->setObjectName("context.navigation.pan");
+            connect(pan,&QAction::triggered,this,[this]{dispatch("view.navigationTool",{{"mode","pan"}});});
+            auto* zoom=menu->addAction("Zoom");zoom->setObjectName("context.navigation.zoom");
+            connect(zoom,&QAction::triggered,this,[this]{dispatch("view.navigationTool",{{"mode","zoom"}});});
             lastContextMenu_["phase"]="open";lastContextMenu_["origin"]="sketch";
             // Expose actual visual order and shortcut columns through diagnostics.
             QJsonArray actions;
@@ -4335,9 +4355,10 @@ void ReferenceView::contextMenuEvent(QContextMenuEvent* e) {
                 }
                 else if(action==toggle)QTimer::singleShot(0,this,[this]{dispatch("sketch.constructionToggle",{});});
             });
-            connect(menu,&QMenu::aboutToHide,this,[this]{lastContextMenu_["phase"]="closed";
+            connect(menu,&QMenu::aboutToHide,this,[this,menu]{lastContextMenu_["phase"]="closed";
+                if(menu->property("radialResult").isValid())lastContextMenu_["result"]=menu->property("radialResult").toString();
                 if(!lastContextMenu_.contains("result"))lastContextMenu_["result"]="cancelled";});
-            menu->popup(e->globalPos());e->accept();return;
+            menu->openAt(e->globalPos());e->accept();return;
         }
     }
     const auto menuProfile=sketchActive ? QJsonObject{} : pickFinishedProfile(e->pos().x(),e->pos().y());
