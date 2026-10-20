@@ -1,5 +1,11 @@
 # Alloy
 
+[Typed Angle and Cylinder Height parameters](docs/validation/typed-angle-cylinder-parameters.md)
+now bind a driving line-pair sketch Angle and primitive Height to stable typed
+user parameters. A combined printable wedge-cut cylinder passes exact geometry,
+source edits, atomic mismatch refusal, native controls, history/reopen and
+independent watertight STL readback. Independent review is pending.
+
 [Analytic sketch Break](docs/validation/sketch-break.md) splits a line
 or finite arc at one crossing and a circle at two secant intersections, preserving
 its full locus. Shared native/API preview, history and reopen checks pass

@@ -2715,7 +2715,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                (dimension["expressionUnits"]!="mm" && dimension["expressionUnits"]!="in") ||
                !dimension["referenceIds"].isArray()))return "Invalid local dimension expression";
             if(dimension.size() != (driving ? 5 : 4)+int(placed)+int(kind=="angle" && dimension.contains("raySigns"))+2*int(kind=="pointLineDistance")+int(kind=="centerlineDiameter" || kind=="parallelLineDistance" || kind=="overallSlotLength")+int(dimension.contains("parameterId"))+int(named)+3*int(formula) || (!driving && dimension.contains(valueKey))) return "Unexpected dimension fields";
-            if(dimension.contains("parameterId") && (!driving || angle || kind=="arcSweep" || !validId(dimension["parameterId"].toString())))return "Only driving length dimensions accept stable parameter references";
+            if(dimension.contains("parameterId") && (!driving || kind=="arcSweep" || kind=="overallSlotAngle" || !validId(dimension["parameterId"].toString())))return "Only driving length dimensions accept stable parameter references";
             if (placed) {
                 if (!dimension["annotation"].isObject()) return "Dimension annotation must be an object";
                 const auto annotation = dimension["annotation"].toObject();
@@ -3302,7 +3302,7 @@ SketchGeometry::SolveResult SketchGeometry::addDimension(const QJsonObject& draf
         const bool driving = arguments.value("driving").toBool(true);
         QJsonObject dimension{{"id", newId()}, {"kind", arguments["kind"]}, {"pointIds", pointIds}, {"driving", driving}};
         if(arguments.contains("parameterId")) {
-            if(!driving || angle || kind=="arcSweep" || !validId(arguments["parameterId"].toString()))reject("Only driving length dimensions accept a stable parameter ID");
+            if(!driving || kind=="arcSweep" || kind=="overallSlotAngle" || !validId(arguments["parameterId"].toString()))reject("Only driving length dimensions accept a stable parameter ID");
             dimension["parameterId"]=arguments["parameterId"];
         }
         if(curve && arguments.contains("pointIds"))reject("Curve dimensions require one entity reference");
@@ -4101,7 +4101,7 @@ SketchGeometry::SolveResult SketchGeometry::updateDimension(const QJsonObject& d
                 dimension=bindLocalExpression(dimensions[i].toObject(),dimensions,
                     arguments["expression"].toString(),arguments["expressionUnits"].toString(),userLengthNames);
             } else if(arguments.contains("parameterId")) {
-                if(angular || !validId(arguments["parameterId"].toString()))reject("Only driving length dimensions accept a stable parameter ID");
+                if(dimension["kind"]=="arcSweep" || dimension["kind"]=="overallSlotAngle" || !validId(arguments["parameterId"].toString()))reject("Only driving length dimensions accept a stable parameter ID");
                 dimension[key]=arguments[key];
                 dimension["parameterId"]=arguments["parameterId"];
             } else {dimension[key]=arguments[key];dimension.remove("parameterId");}

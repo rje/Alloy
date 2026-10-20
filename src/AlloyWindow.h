@@ -250,7 +250,7 @@ private:
     QDockWidget* pathPlaneDock_ = nullptr;
     quint64 pathPlanePreviewRevision_ = 1;
     void showUnits();
-    QJsonObject lengthParameter(const QString& name) const;
+    QJsonObject lengthParameter(const QString& name,bool angular=false) const;
     QSet<QString> userLengthNames() const;
     void showLengthParameters();
     void refreshLengthParameters();

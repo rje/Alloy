@@ -29,7 +29,7 @@ QJsonObject user(const QJsonObject& authored,const QString& name) {
 }
 int main(int argc,char** argv) {QCoreApplication app(argc,argv);try {
     CadDocument document;
-    const auto owner=document.authored()["documentId"];
+    const QJsonValue owner=document.authored().value("documentId");
     QJsonObject box{{"id",CadDocument::newId()},{"bodyId",CadDocument::newId()},{"ownerId",owner},
         {"type","box"},{"name","Box"},{"visible",true},
         {"parameters",QJsonObject{{"widthMm",50},{"depthMm",80},{"heightMm",40},{"xMm",0},{"yMm",0},{"zMm",0}}}};
@@ -42,11 +42,11 @@ int main(int argc,char** argv) {QCoreApplication app(argc,argv);try {
         {"removedFace",top},{"thicknessMm",4}}));
     auto sketch=SketchGeometry::newFeature(document.activeOwnerId(),"XY","Angled length");
     sketch=SketchGeometry::addLine(sketch,{{"u1Mm",100},{"v1Mm",0},{"u2Mm",102},{"v2Mm",3.464101615}});
-    const auto lineId=sketch["parameters"].toObject()["entities"].toArray().last().toObject()["id"];
+    const QJsonValue lineId=sketch["parameters"].toObject()["entities"].toArray().last().toObject().value("id");
     const auto length=SketchGeometry::addDimension(sketch,{{"kind","linear"},{"entityId",lineId},{"valueMm",4}});
     check(length.ok,"driving slanted line length");sketch=length.feature;
     commit(document,SketchGeometry::replaceFeature(document.authored(),sketch));
-    const auto boxId=box["id"],shellId=document.authored()["features"].toArray()[1].toObject()["id"],sketchId=sketch["id"];
+    const QJsonValue boxId=box.value("id"),shellId=document.authored()["features"].toArray()[1].toObject().value("id"),sketchId=sketch.value("id");
     auto rows=CadDocument::modelLengthRows(document.authored());
     check(rows.size()==5,"literal Box Shell and sketch rows");
     const auto depthTarget=named(rows,"Depth","box")["target"].toObject();

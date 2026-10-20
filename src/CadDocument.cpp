@@ -86,7 +86,7 @@ bool validViewConvention(const QJsonObject& convention) {
         std::abs(r[1]-(b[2]*u[0]-b[0]*u[2]))<1e-6 &&
         std::abs(r[2]-(b[0]*u[1]-b[1]*u[0]))<1e-6;
 }
-QJsonArray resolvedLengthRows(const QJsonObject& authored) {
+QJsonArray resolvedUserRows(const QJsonObject& authored) {
     const auto source=authored.value("userParameters").toArray();
     QMap<QString,QJsonObject> byId;
     for(const auto& value:source){const auto row=value.toObject();byId[row.value("id").toString()]=row;}
@@ -102,6 +102,7 @@ QJsonArray resolvedLengthRows(const QJsonObject& authored) {
             LengthExpression parser(row.value("expression").toString(),[&](const QString& name,int index)->LengthQuantity {
                 if(index>=refs.size() || !refs[index].isString())throw std::invalid_argument("Length reference binding count differs from expression");
                 const auto ref=refs[index].toString();
+                if(byId.value(ref).value("units")=="deg")throw std::invalid_argument("Angle parameter cannot be used in a length expression");
                 if(!byId.contains(ref) || byId[ref].value("name").toString()!=name)throw std::invalid_argument("Length reference name or ID is unavailable");
                 return {evaluate(ref),true};
             });
@@ -112,15 +113,17 @@ QJsonArray resolvedLengthRows(const QJsonObject& authored) {
         if(!std::isfinite(value) || value<0.001 || value>100000)throw std::invalid_argument("User length result must be between 0.001 and 100000 mm");
         visiting.remove(id);evaluated[id]=value;return value;
     };
-    QJsonArray rows;for(const auto& entry:source){auto row=entry.toObject();row["valueMm"]=evaluate(row.value("id").toString());rows.append(row);}return rows;
+    QJsonArray rows;for(const auto& entry:source){auto row=entry.toObject();
+        if(row.value("units")!="deg")row["valueMm"]=evaluate(row.value("id").toString());
+        rows.append(row);}return rows;
 }
 double resolvedExtrudeExpression(const QJsonObject& authored,const QString& expression,const QJsonArray& references,const QString& units) {
     QMap<QString,QJsonObject> rows;
-    for(const auto& value:resolvedLengthRows(authored)) {const auto row=value.toObject();rows[row.value("id").toString()]=row;}
+    for(const auto& value:resolvedUserRows(authored)) {const auto row=value.toObject();rows[row.value("id").toString()]=row;}
     LengthExpression parser(expression,[&](const QString& name,int index)->LengthQuantity {
         if(index>=references.size() || !references[index].isString())throw std::invalid_argument("Extrude expression reference count differs from its text");
         const auto id=references[index].toString();
-        if(!rows.contains(id) || rows[id].value("name").toString()!=name)throw std::invalid_argument("Extrude expression reference name or ID is unavailable");
+        if(!rows.contains(id) || rows[id].value("units")=="deg" || rows[id].value("name").toString()!=name)throw std::invalid_argument("Extrude expression reference name or ID is unavailable");
         return {rows[id].value("valueMm").toDouble(),true};
     });
     const auto quantity=parser.parse();
@@ -930,8 +933,11 @@ QJsonObject CadDocument::lengthParameterCandidate(const QJsonObject& authored,co
     const auto oldName=row.value("name").toString();
     if(arguments.contains("name"))row["name"]=arguments["name"];
     if(arguments.contains("units"))row["units"]=arguments["units"];
+    if(index>=0 && (row.value("units")=="deg")!=(rows[index].toObject().value("units")=="deg"))throw std::invalid_argument("Changing a parameter between length and angle is unsupported");
+    if(row.value("units")=="deg" && arguments.contains("expression"))throw std::invalid_argument("Angle parameters accept a numeric degree value");
     if(arguments.contains("value")){
-        row["valueMm"]=millimeters(arguments["value"].toDouble(),row["units"].toString());
+        const bool angular=row.value("units")=="deg";
+        row[angular ? "valueDeg" : "valueMm"]=angular ? arguments["value"].toDouble() : millimeters(arguments["value"].toDouble(),row["units"].toString());
         row.remove("expression");row.remove("referenceIds");
     }else if(arguments.contains("expression")){
         row["expression"]=arguments["expression"];
@@ -965,6 +971,7 @@ QJsonObject CadDocument::lengthParameterCandidate(const QJsonObject& authored,co
         QJsonArray refs;
         LengthExpression parser(row.value("expression").toString(),[&](const QString& name,int)->LengthQuantity{
             if(!names.contains(name))throw std::invalid_argument("User length name is unavailable: "+name.toStdString());
+            for(const auto& entry:rows)if(entry.toObject().value("name")==name && entry.toObject().value("units")=="deg")throw std::invalid_argument("Angle parameter cannot be used in a length expression");
             refs.append(names[name]);return {1,true};
         });parser.parse();row["referenceIds"]=refs;rows[index<0 ? rows.size()-1 : index]=row;
     }
@@ -991,15 +998,19 @@ QJsonObject CadDocument::lengthParameterCandidate(const QJsonObject& authored,co
     const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());
     return candidate;
 }
-QJsonArray CadDocument::evaluatedLengthParameters(const QJsonObject& authored){return resolvedLengthRows(authored);}
+QJsonArray CadDocument::evaluatedUserParameters(const QJsonObject& authored){return resolvedUserRows(authored);}
+// Length consumers must never interpret an angle row as a missing valueMm (zero).
+QJsonArray CadDocument::evaluatedLengthParameters(const QJsonObject& authored){
+    QJsonArray rows;for(const auto& entry:resolvedUserRows(authored))if(entry.toObject().value("units")!="deg")rows.append(entry);return rows;
+}
 QJsonObject CadDocument::bindExtrudeDistanceExpression(const QJsonObject& authored,const QString& expression,const QString& units) {
     if(units!="mm" && units!="in")throw std::invalid_argument("Extrude expression units must be mm or in");
     QMap<QString,QJsonObject> names;
-    for(const auto& entry:resolvedLengthRows(authored)) {const auto row=entry.toObject();names[row.value("name").toString()]=row;}
+    for(const auto& entry:resolvedUserRows(authored)) {const auto row=entry.toObject();names[row.value("name").toString()]=row;}
     QJsonArray references;
     LengthExpression parser(expression,[&](const QString& name,int)->LengthQuantity {
         if(!names.contains(name))throw std::invalid_argument(("User length name is unavailable: "+name).toStdString());
-        const auto row=names[name];references.append(row.value("id"));return {row.value("valueMm").toDouble(),true};
+        const auto row=names[name];if(row.value("units")=="deg")throw std::invalid_argument("Angle parameter cannot be used in a length expression");references.append(row.value("id"));return {row.value("valueMm").toDouble(),true};
     });
     const auto quantity=parser.parse();
     const double value=quantity.length ? quantity.value : quantity.value*(units=="in" ? 25.4 : 1);
@@ -1008,9 +1019,9 @@ QJsonObject CadDocument::bindExtrudeDistanceExpression(const QJsonObject& author
     return {{"distanceExpression",expression},{"distanceReferenceIds",references},{"distanceExpressionUnits",units},{"distanceMm",value}};
 }
 QJsonObject CadDocument::resolveLengthBindings(const QJsonObject& authored) {
-    QMap<QString,double> values;
-    for(const auto& entry:evaluatedLengthParameters(authored)) {
-        const auto row=entry.toObject();values[row["id"].toString()]=row["valueMm"].toDouble();
+    QMap<QString,double> values,angles;
+    for(const auto& entry:evaluatedUserParameters(authored)) {
+        const auto row=entry.toObject();if(row.value("units")=="deg")angles[row["id"].toString()]=row["valueDeg"].toDouble();else values[row["id"].toString()]=row["valueMm"].toDouble();
     }
     auto result=authored;auto features=result["features"].toArray();
     for(int i=0;i<features.size();++i) {
@@ -1020,9 +1031,9 @@ QJsonObject CadDocument::resolveLengthBindings(const QJsonObject& authored) {
             for(int j=0;j<dims.size();++j) {
                 auto dim=dims[j].toObject();if(!dim.contains("parameterId"))continue;
                 const auto id=dim["parameterId"].toString();
-                if(!values.contains(id))throw std::invalid_argument("Sketch dimension references a missing length parameter");
-                if(!dim["driving"].toBool() || dim["kind"]=="angle" || dim["kind"]=="arcSweep")throw std::invalid_argument("Only driving length dimensions accept length parameters");
-                dim["valueMm"]=values[id];dims[j]=dim;changed=true;
+                const bool angular=dim["kind"]=="angle";
+                if(!dim["driving"].toBool() || !(angular ? angles.contains(id) : values.contains(id)))throw std::invalid_argument("Sketch parameter type mismatch or unavailable parameter");
+                dim[angular ? "valueDeg" : "valueMm"]=angular ? angles[id] : values[id];dims[j]=dim;changed=true;
             }
             if(changed)p["dimensions"]=dims;
             auto offsets=p.value("openChainOffsets").toArray();
@@ -1044,8 +1055,8 @@ QJsonObject CadDocument::resolveLengthBindings(const QJsonObject& authored) {
                 if(!values.contains(id))throw std::invalid_argument("Extrude references a missing length parameter");
                 p[binding.second]=values[id];
             }
-        } else if(feature["type"]=="box" || feature["type"]=="shell") {
-            const QStringList fields=feature["type"]=="box" ? QStringList{"width","depth","height"} : QStringList{"thickness"};
+        } else if(feature["type"]=="box" || feature["type"]=="shell" || feature["type"]=="cylinder") {
+            const QStringList fields=feature["type"]=="box" ? QStringList{"width","depth","height"} : feature["type"]=="cylinder" ? QStringList{"height"} : QStringList{"thickness"};
             for(const auto& field:fields) {
                 const auto idKey=field+"ParameterId";
                 if(!p.contains(idKey))continue;
@@ -1061,7 +1072,7 @@ QJsonObject CadDocument::resolveLengthBindings(const QJsonObject& authored) {
 QJsonArray CadDocument::modelLengthRows(const QJsonObject& authored) {
     const auto resolved=resolveLengthBindings(authored);
     QMap<QString,QJsonObject> sources,owners;
-    for(const auto& value:evaluatedLengthParameters(authored)) {
+    for(const auto& value:evaluatedUserParameters(authored)) {
         const auto row=value.toObject();sources[row["id"].toString()]=row;
     }
     owners[authored["documentId"].toString()]={{"name","Root"}};
@@ -1082,12 +1093,12 @@ QJsonArray CadDocument::modelLengthRows(const QJsonObject& authored) {
             if(!record[field].isDouble() || !computed[field].isDouble())return;
             const QString parameterId=record.value(idKey).toString();
             const auto source=sources.value(parameterId);
-            const double value=computed[field].toDouble();
+            const double value=computed[field].toDouble();const bool angular=field=="valueDeg";const auto rowUnits=angular ? QString("deg") : units;const double rowScale=angular ? 1 : scale;
             QJsonObject row{{"target",target},{"ownerId",feature["ownerId"]},{"ownerName",owner},
                 {"featureId",featureId},{"featureName",feature.value("name").toString(type)},
-                {"featureType",type},{"name",label},{"units",units},{"valueMm",value},
+                {"featureType",type},{"name",label},{"units",rowUnits},{angular ? "valueDeg" : "valueMm",value},
                 {"editable",true},{"expression",source.isEmpty() ?
-                    QString::number(record[field].toDouble()/scale,'g',10)+" "+units : source["name"].toString()}};
+                    QString::number(record[field].toDouble()/rowScale,'g',10)+" "+rowUnits : source["name"].toString()}};
             if(record.contains("expression")){
                 row["name"]=record.value("name").toString(label);
                 row["expression"]=record.value("expression");
@@ -1101,7 +1112,7 @@ QJsonArray CadDocument::modelLengthRows(const QJsonObject& authored) {
             }
             if(!source.isEmpty()) {
                 row["parameterId"]=parameterId;row["sourceName"]=source["name"];
-                row["sourceValueMm"]=source["valueMm"];
+                row[angular ? "sourceValueDeg" : "sourceValueMm"]=source[angular ? "valueDeg" : "valueMm"];
             }
             rows.append(row);
         };
@@ -1110,6 +1121,8 @@ QJsonArray CadDocument::modelLengthRows(const QJsonObject& authored) {
                 const auto field=entry.first;
                 append(field,entry.second,{{"featureId",featureId},{"field",field}},p,effective,field.chopped(2)+"ParameterId");
             }
+        } else if(type=="cylinder") {
+            append("heightMm","Height",{{"featureId",featureId},{"field","heightMm"}},p,effective,"heightParameterId");
         } else if(type=="shell") {
             append("thicknessMm","Thickness",{{"featureId",featureId},{"field","thicknessMm"}},p,effective,"thicknessParameterId");
         } else if(type=="extrude") {
@@ -1123,8 +1136,8 @@ QJsonArray CadDocument::modelLengthRows(const QJsonObject& authored) {
             const auto dims=p.value("dimensions").toArray(),effectiveDims=effective.value("dimensions").toArray();
             for(int j=0;j<dims.size();++j) {
                 const auto d=dims[j].toObject();
-                if(!d["driving"].toBool() || d["kind"]=="angle" || d["kind"]=="arcSweep")continue;
-                append("valueMm",d["kind"].toString()+" Dimension",
+                if(!d["driving"].toBool() || d["kind"]=="arcSweep" || d["kind"]=="overallSlotAngle")continue;
+                append(d["kind"]=="angle" ? "valueDeg" : "valueMm",d["kind"].toString()+" Dimension",
                     {{"featureId",featureId},{"dimensionId",d["id"]}},d,effectiveDims[j].toObject(),"parameterId");
             }
             const auto groups=p.value("openChainOffsets").toArray(),effectiveGroups=effective.value("openChainOffsets").toArray();
@@ -1148,18 +1161,20 @@ QJsonObject CadDocument::modelLengthCandidate(const QJsonObject& authored,const 
     if(selected.value("readOnly").toBool())throw std::invalid_argument("Edit this feature expression in its own command editor");
     const auto expression=arguments["expression"].toString().trimmed();
     if(expression.isEmpty())throw std::invalid_argument("Model parameter expression is required");
-    const QRegularExpression literal(QStringLiteral(R"(^([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)\s*(mm|in)?$)"),
+    const bool angular=selected["units"]=="deg";
+    const QRegularExpression literal(QStringLiteral(R"(^([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)\s*(mm|in|deg|°)?$)"),
         QRegularExpression::CaseInsensitiveOption);
     const auto match=literal.match(expression);
     QString parameterId;double value=0;
     if(match.hasMatch()) {
         bool valid=false;const double number=match.captured(1).toDouble(&valid);
         const auto units=match.captured(2).isEmpty() ? authored.value("displayUnits").toString("mm") : match.captured(2).toLower();
-        if(!valid || !std::isfinite(number))throw std::invalid_argument("Model parameter needs a finite length");
-        value=millimeters(number,units);
+        if(!valid || !std::isfinite(number))throw std::invalid_argument("Model parameter needs a finite value");
+        if(!match.captured(2).isEmpty() && angular!=(units=="deg" || units=="°"))throw std::invalid_argument("Model parameter unit mismatch");
+        value=angular ? number : millimeters(number,units);
     } else {
-        for(const auto& entry:evaluatedLengthParameters(authored))if(entry.toObject()["name"]==expression) {
-            const auto source=entry.toObject();parameterId=source["id"].toString();value=source["valueMm"].toDouble();break;
+        for(const auto& entry:evaluatedUserParameters(authored))if(entry.toObject()["name"]==expression) {
+            const auto source=entry.toObject();if(angular!=(source["units"]=="deg"))throw std::invalid_argument("Model parameter type mismatch");parameterId=source["id"].toString();value=source[angular ? "valueDeg" : "valueMm"].toDouble();break;
         }
         if(parameterId.isEmpty())throw std::invalid_argument("User length name is unavailable");
     }
@@ -1176,7 +1191,7 @@ QJsonObject CadDocument::modelLengthCandidate(const QJsonObject& authored,const 
         const auto entries=p[nestedCollection].toArray();
         for(int j=0;j<entries.size();++j)if(entries[j].toObject()["id"]==id) {nestedIndex=j;record=entries[j].toObject();break;}
         if(nestedIndex<0)throw std::invalid_argument("Model sub-parameter is unavailable");
-        field=target.contains("dimensionId") ? "valueMm" : "signedDistanceMm";
+        field=target.contains("dimensionId") ? (angular ? "valueDeg" : "valueMm") : "signedDistanceMm";
     }
     if(target.contains("dimensionId"))idKey="parameterId";
     else if(target.contains("offsetGroupId"))idKey="distanceParameterId";
@@ -2636,15 +2651,15 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
     static const QRegularExpression parameterName("^[A-Za-z_][A-Za-z0-9_]*$");
     for(const auto& entry:candidate["userParameters"].toArray()) {
         const auto p=entry.toObject();const auto id=p["id"].toString(),name=p["name"].toString(),units=p["units"].toString();
-        const bool formula=p.contains("expression");const double value=p["valueMm"].toDouble();
+        const bool formula=p.contains("expression"),angular=units=="deg";const auto key=angular ? "valueDeg" : "valueMm";const double value=p[key].toDouble();
         if(!entry.isObject() || p.size()!=(formula ? 5 : 4) || !validId(id) || ids.contains(id) || !p["name"].isString()
-            || !parameterName.match(name).hasMatch() || names.contains(name) || (units!="mm" && units!="in")
+            || !parameterName.match(name).hasMatch() || names.contains(name) || (units!="mm" && units!="in" && !angular) || (angular && formula)
             || (formula ? (!p["expression"].isString() || p["expression"].toString().trimmed().isEmpty() || !p["referenceIds"].isArray())
-                        : (!p["valueMm"].isDouble() || !std::isfinite(value) || value<0.001 || value>100000)))
-            return "User length parameters require unique IDs/names and positive finite mm/in values";
+                        : (!p[key].isDouble() || !std::isfinite(value) || value<0.001 || value>(angular ? 360 : 100000))))
+            return "User parameters require unique IDs/names and positive finite mm/in lengths or degree angles (0.001..360)";
         ids.insert(id);names.insert(name);
     }
-    try{evaluatedLengthParameters(candidate);}catch(const std::exception& error){return QString::fromUtf8(error.what());}
+    try{evaluatedUserParameters(candidate);}catch(const std::exception& error){return QString::fromUtf8(error.what());}
     if(candidate.contains("components") && !candidate["components"].isArray())return "Components must be an array";
     if(candidate.contains("occurrences") && !candidate["occurrences"].isArray())return "Occurrences must be an array";
     for(const auto& value:candidate["components"].toArray()) {
@@ -3460,8 +3475,8 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
         }
         if(type=="torus" && p["majorRadiusMm"].toDouble()<=p["minorRadiusMm"].toDouble())return "Major radius must exceed minor radius";
         int bindings=0;
-        if(type=="box")for(const auto& field:QStringList{"width","depth","height"})if(p.contains(field+"ParameterId")) {
-            if(!validId(p[field+"ParameterId"].toString()))return "Box dimension binding requires a stable parameter ID";
+        if(type=="box" || type=="cylinder")for(const auto& field:type=="box" ? QStringList{"width","depth","height"} : QStringList{"height"})if(p.contains(field+"ParameterId")) {
+            if(!validId(p[field+"ParameterId"].toString()))return "Primitive dimension binding requires a stable parameter ID";
             ++bindings;
         }
         if (p.size() != dimensions.size() + 3 + bindings) return "Unknown feature parameter";
@@ -3494,7 +3509,7 @@ QJsonObject CadDocument::state() const {
     for(const auto& point:evaluation_->constructionPoints){auto row=point.point;row["featureId"]=point.featureId;row["ownerId"]=point.ownerId;row["name"]=point.name;row["visible"]=point.visible;evaluatedPoints.append(row);}
     for(const auto& axis:evaluation_->constructionAxes){auto row=axis.line;row["featureId"]=axis.featureId;row["ownerId"]=axis.ownerId;row["name"]=axis.name;row["visible"]=axis.visible;evaluatedAxes.append(row);}
     for(const auto& plane:evaluation_->constructionPlanes)evaluatedPlanes.append(QJsonObject{{"ownerId",plane.ownerId},{"featureId",plane.featureId},{"name",plane.name},{"visible",plane.visible},{"frame",plane.frame}});
-    return {{"activeOwnerId",activeOwnerId()},{"components",authored_["components"].toArray()},{"occurrences",authored_["occurrences"].toArray()},{"namedViews",authored_["namedViews"].toArray()},{"homeCamera",authored_["homeCamera"].toObject()},{"viewConvention",authored_.value("viewConvention").toObject()},{"assembly",assemblyState()},{"userParameters",evaluatedLengthParameters(authored_)},{"modelParameters",modelLengthRows(authored_)},{"loaded", true}, {"id", authored_["documentId"]}, {"label", label()}, {"path",path_},
+    return {{"activeOwnerId",activeOwnerId()},{"components",authored_["components"].toArray()},{"occurrences",authored_["occurrences"].toArray()},{"namedViews",authored_["namedViews"].toArray()},{"homeCamera",authored_["homeCamera"].toObject()},{"viewConvention",authored_.value("viewConvention").toObject()},{"assembly",assemblyState()},{"userParameters",evaluatedUserParameters(authored_)},{"modelParameters",modelLengthRows(authored_)},{"loaded", true}, {"id", authored_["documentId"]}, {"label", label()}, {"path",path_},
         {"units", authored_["displayUnits"]}, {"canonicalLengthUnit", "mm"},
         {"revision", static_cast<qint64>(revision_)}, {"dirty", isDirty()},
         {"lastTransactionId", lastTransaction_},

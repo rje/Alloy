@@ -2059,20 +2059,21 @@ void AlloyWindow::registerCommands() {
     });
     add("document.inspect", "Inspect document", "Read authoritative authored IDs, units and ownership.", {}, [this](const auto&) { return document_->state(); });
     auto userLength=parameter("number","Positive length in supplied units.");userLength["minimum"]=0.000001;userLength["maximum"]=100000;
-    add("document.parameterAdd","Add user length","Add one document-owned length or expression with a stable identity.",
+    auto parameterUnits=units;parameterUnits["enum"]=QJsonArray{"mm","in","deg"};
+    add("document.parameterAdd","Add user parameter","Add a stable-ID mm/in length, length expression, or numeric degree angle.",
         {{"name",parameter("string","Unique direct-reference name.")},{"value",optional(userLength)},
-         {"expression",optional(parameter("string","Typed user-length arithmetic expression."))},{"units",units}},[this](const auto& a){
+         {"expression",optional(parameter("string","Typed user-length arithmetic expression."))},{"units",parameterUnits}},[this](const auto& a){
             if(!session_.isEmpty())return failure("active_command","Finish or Cancel the active command first");
             QJsonObject candidate;try{candidate=CadDocument::lengthParameterCandidate(document_->authored(),a);}catch(const std::exception& e){return failure("invalid_parameter",QString::fromUtf8(e.what()));}
-            const auto error=document_->commit(candidate,"Add user length");return error.isEmpty() ? document_->state() : failure("parameter_evaluation_failed",error);
+            const auto error=document_->commit(candidate,"Add user parameter");return error.isEmpty() ? document_->state() : failure("parameter_evaluation_failed",error);
         });
-    add("document.parameterUpdate","Edit user length","Edit one retained name, unit or value and rebuild dependent geometry atomically.",
+    add("document.parameterUpdate","Edit user parameter","Edit one retained name, unit or value and rebuild dependent geometry atomically.",
         {{"parameterId",parameter("string","Retained user parameter UUID.")},{"name",optional(parameter("string","Unique direct-reference name."))},
          {"value",optional(userLength)},{"expression",optional(parameter("string","Typed user-length arithmetic expression."))},
-         {"units",optional(units)}},[this](const auto& a){
+         {"units",optional(parameterUnits)}},[this](const auto& a){
             if(!session_.isEmpty())return failure("active_command","Finish or Cancel the active command first");
             QJsonObject candidate;try{candidate=CadDocument::lengthParameterCandidate(document_->authored(),a);}catch(const std::exception& e){return failure("invalid_parameter",QString::fromUtf8(e.what()));}
-            const auto error=document_->commit(candidate,"Edit user length");return error.isEmpty() ? document_->state() : failure("parameter_evaluation_failed",error);
+            const auto error=document_->commit(candidate,"Edit user parameter");return error.isEmpty() ? document_->state() : failure("parameter_evaluation_failed",error);
         });
     add("document.modelParameterSet","Edit model expression","Rebind an existing model length by stable target identity to a user name, or replace it with a numeric literal.",
         {{"target",parameter("object","Stable target from document state modelParameters.")},
@@ -2083,14 +2084,14 @@ void AlloyWindow::registerCommands() {
             const auto error=document_->commit(candidate,"Edit model expression");
             return error.isEmpty() ? document_->state() : failure("parameter_evaluation_failed",error);
         });
-    add("document.parametersDialog","Change Parameters","Show or close the owned user-length dialog.",
+    add("document.parametersDialog","Change Parameters","Show or close the owned typed-parameter dialog.",
         {{"visible",optional(parameter("boolean","Show (default true) or close this dialog only."))}},[this](const auto& a){
         if(!a.value("visible").toBool(true)) {
             if(lengthParametersDialog_)lengthParametersDialog_->close();
             return QJsonObject{{"visible",false}};
         }
         if(!session_.isEmpty())return failure("active_command","Finish or Cancel the active command first");
-        showLengthParameters();return QJsonObject{{"visible",true},{"userParameters",CadDocument::evaluatedLengthParameters(document_->authored())},
+        showLengthParameters();return QJsonObject{{"visible",true},{"userParameters",CadDocument::evaluatedUserParameters(document_->authored())},
             {"modelParameters",CadDocument::modelLengthRows(document_->authored())}};
     });
     add("document.settings", "Document Settings", "Open a shared display-unit editing session.", {}, [this](const auto&) { return beginSession("document.units", {}); });
@@ -2641,7 +2642,7 @@ void AlloyWindow::registerCommands() {
             {"units",optional(units)},{"name",name},{"featureId",optional(featureId)}};
         if(type=="box") {for(const auto& field:QStringList{"width","depth","height"}){
             schema[field]=optional(length);schema[field+"Parameter"]=optional(parameter("string","Direct name of a user length."));
-        }} else if(type=="cylinder")schema["radius"]=length;
+        }} else if(type=="cylinder"){schema["radius"]=length;schema["height"]=optional(length);schema["heightParameter"]=optional(parameter("string","Direct user length name or stable UUID."));}
         else if(type=="cone") {schema["baseDiameter"]=length;auto top=length;top["minimum"]=0;schema["topDiameter"]=top;}
         else {schema.remove("height");schema["majorRadius"]=length;schema["minorRadius"]=length;}
         const auto id="solid."+type;
@@ -5414,25 +5415,25 @@ void AlloyWindow::registerCommands() {
     auto dimValue=coordinate;dimValue["minimum"]=0.000001;
     add("sketch.dimension","Add sketch dimension","Create a driving/driven dimension. pointLineDistance uses pointIds plus entityId; centerlineDiameter uses two parallel line entityIds with one Centerline and a full diameter value.",
         {{"kind",kind},{"pointIds",ids},{"entityIds",ids},{"raySigns",optional(parameter("array","Angle ray signs relative to each line's authored direction."))},{"entityId",optional(parameter("string","Stable selected line, circle or arc identity."))},
-            {"value",optional(dimValue)},{"valueDeg",optional(angle)},{"parameterName",optional(parameter("string","Direct name of a user length."))},{"expression",optional(parameter("string","Same-sketch driving length expression, such as d3 + 50."))},{"units",optional(units)},{"annotation",optional(parameter("object","Optional canonical placement {uMm,vMm}."))},{"driving",optional(parameter("boolean","True drives geometry; false measures it."))},{"session",optionalSession}},[this](const auto& a){
+            {"value",optional(dimValue)},{"valueDeg",optional(angle)},{"parameterName",optional(parameter("string","Direct name of a compatible user parameter."))},{"parameterId",optional(parameter("string","Stable compatible user parameter UUID."))},{"expression",optional(parameter("string","Same-sketch driving length expression, such as d3 + 50."))},{"units",optional(units)},{"annotation",optional(parameter("object","Optional canonical placement {uMm,vMm}."))},{"driving",optional(parameter("boolean","True drives geometry; false measures it."))},{"session",optionalSession}},[this](const auto& a){
             if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
             if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
             auto args=sketchDimensionTargets(a);args["kind"]=a["kind"];args["driving"]=a.value("driving").toBool(true);
             if(a.contains("annotation"))args["annotation"]=a["annotation"];
             if(a["kind"]=="angle" && !args.contains("raySigns"))args["raySigns"]=angleRaySigns(args["entityIds"].toArray(),args.value("annotation").toObject());
             const bool angular=a["kind"]=="arcSweep" || a["kind"]=="angle";
-            if(a.contains("expression") && (angular || !args["driving"].toBool() || a.contains("value") || a.contains("valueDeg") || a.contains("parameterName")))
+            if(a.contains("expression") && (angular || !args["driving"].toBool() || a.contains("value") || a.contains("valueDeg") || a.contains("parameterName") || a.contains("parameterId")))
                 return failure("invalid_arguments","A sketch expression requires one driving length dimension");
-            if(a.contains("parameterName")) {
-                if(angular || !args["driving"].toBool() || a.contains("value") || a.contains("valueDeg"))return failure("invalid_arguments","A direct length name requires one driving length dimension");
-                const auto row=lengthParameter(a["parameterName"].toString());if(row.isEmpty())return failure("unknown_parameter","User length name is unavailable","parameterName");
+            if(a.contains("parameterName") || a.contains("parameterId")) {
+                if((angular && a["kind"]!="angle") || !args["driving"].toBool() || a.contains("value") || a.contains("valueDeg") || (a.contains("parameterName") && a.contains("parameterId")))return failure("invalid_arguments","Choose one direct compatible parameter for a driving dimension");
+                const auto row=lengthParameter(a.value("parameterId").toString(a["parameterName"].toString()),angular);if(row.isEmpty())return failure("unknown_parameter","User length name is unavailable","parameterName");
                 args["parameterId"]=row["id"];
             }
             if(a.contains(angular ? "value" : "valueDeg"))return failure("invalid_arguments","Use valueDeg for Arc Sweep and value for length dimensions");
             if(a.contains("expression")){args["expression"]=a["expression"];args["expressionUnits"]=a.value("units").toString(session_.value("inputs").toObject().value("units").toString());}
             else if(args["driving"].toBool()) {
                 const auto key=angular ? "valueDeg" : "valueMm";
-                args[key]=angular ? a.value("valueDeg").toDouble(sketchDimensionMeasure(args,a["kind"].toString()))
+                args[key]=args.contains("parameterId") ? lengthParameter(args["parameterId"].toString(),angular)[key].toDouble() : angular ? a.value("valueDeg").toDouble(sketchDimensionMeasure(args,a["kind"].toString()))
                     : a.contains("parameterName") ? lengthParameter(a["parameterName"].toString())["valueMm"].toDouble()
                     : a.contains("value") ? CadDocument::millimeters(a["value"].toDouble(),a.value("units").toString(session_.value("inputs").toObject()["units"].toString()))
                     : sketchDimensionMeasure(args,a["kind"].toString());
@@ -5440,20 +5441,21 @@ void AlloyWindow::registerCommands() {
             return publishNewDimension(session_.value("draftSketch").toObject(),args);
         });
     add("sketch.dimensionUpdate","Edit driving dimension","Solve the new dimension value before replacing the usable draft.",
-        {{"dimensionId",parameter("string","Stable authored dimension UUID.")},{"value",optional(dimValue)},{"valueDeg",optional(angle)},{"parameterName",optional(parameter("string","Direct name of a user length."))},{"expression",optional(parameter("string","Same-sketch driving length expression, such as d3 + 50."))},{"units",optional(units)},{"session",optionalSession}},[this](const auto& a){
+        {{"dimensionId",parameter("string","Stable authored dimension UUID.")},{"value",optional(dimValue)},{"valueDeg",optional(angle)},{"parameterName",optional(parameter("string","Direct name of a compatible user parameter."))},{"parameterId",optional(parameter("string","Stable compatible user parameter UUID."))},{"expression",optional(parameter("string","Same-sketch driving length expression, such as d3 + 50."))},{"units",optional(units)},{"session",optionalSession}},[this](const auto& a){
             if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
             if(a.contains("session") && a["session"]!=session_.value("id"))return failure("invalid_session","Session is no longer active");
             QJsonObject dimension;
             for(const auto& entry:session_.value("draftSketch").toObject()["parameters"].toObject()["dimensions"].toArray())if(entry.toObject()["id"]==a["dimensionId"]){dimension=entry.toObject();break;}
             const bool angular=dimension["kind"]=="arcSweep" || dimension["kind"]=="angle" || dimension["kind"]=="overallSlotAngle";
-            const int lengthInputs=int(a.contains("value"))+int(a.contains("parameterName"))+int(a.contains("expression"));
-            if(angular ? (!a.contains("valueDeg") || lengthInputs!=0) : (lengthInputs!=1 || a.contains("valueDeg")))
+            const int bindings=int(a.contains("parameterName"))+int(a.contains("parameterId"));
+            const int lengthInputs=int(a.contains("value"))+bindings+int(a.contains("expression"));
+            if(angular ? (int(a.contains("valueDeg"))+bindings!=1 || a.contains("value") || a.contains("expression") || (bindings && dimension["kind"]!="angle")) : (lengthInputs!=1 || a.contains("valueDeg")))
                 return failure("invalid_arguments","Supply one numeric value, direct length name or sketch expression");
             const auto units=a.value("units").toString(session_.value("inputs").toObject()["units"].toString());
             QJsonObject mutation{{"dimensionId",a["dimensionId"]}};
             if(a.contains("expression")){mutation["expression"]=a["expression"];mutation["expressionUnits"]=!a.contains("units") && a["expression"]==dimension.value("expression") ? dimension.value("expressionUnits") : QJsonValue(units);}
-            else if(a.contains("parameterName")) {const auto row=lengthParameter(a["parameterName"].toString());if(row.isEmpty())return failure("unknown_parameter","User length name is unavailable","parameterName");
-                mutation["parameterId"]=row["id"];mutation["valueMm"]=row["valueMm"];}
+            else if(a.contains("parameterName") || a.contains("parameterId")) {const auto row=lengthParameter(a.value("parameterId").toString(a["parameterName"].toString()),angular);if(row.isEmpty())return failure("unknown_parameter","User length name is unavailable","parameterName");
+                mutation["parameterId"]=row["id"];mutation[angular ? "valueDeg" : "valueMm"]=row[angular ? "valueDeg" : "valueMm"];}
             else mutation[angular ? "valueDeg" : "valueMm"]=angular ? a["valueDeg"].toDouble() : CadDocument::millimeters(a["value"].toDouble(),units);
             return publishSketchSolve(SketchGeometry::updateDimension(session_.value("draftSketch").toObject(),mutation,session_.value("projectionContext").toObject(),userLengthNames()));
         });
@@ -5866,7 +5868,7 @@ void AlloyWindow::registerCommands() {
             const auto unit=document_->authored()["displayUnits"].toString();const double scale=unit=="in" ? 25.4 : 1;
             QJsonObject inputs{{"featureId",feature["id"]},{"name",feature["name"]},{"units",unit}};
             for(auto it=p.begin();it!=p.end();++it)if(it.key().endsWith("Mm"))inputs[it.key().chopped(2)]=it.value().toDouble()/scale;
-            if(feature["type"]=="box")for(const auto& field:QStringList{"width","depth","height"})if(p.contains(field+"ParameterId"))
+            if(feature["type"]=="box" || feature["type"]=="cylinder")for(const auto& field:feature["type"]=="box" ? QStringList{"width","depth","height"} : QStringList{"height"})if(p.contains(field+"ParameterId"))
                 for(const auto& row:document_->authored()["userParameters"].toArray())if(row.toObject()["id"]==p[field+"ParameterId"]){inputs[field+"Parameter"]=row.toObject()["name"];break;}
             return beginSession("solid."+feature["type"].toString(),inputs);
         }
@@ -6418,7 +6420,7 @@ void AlloyWindow::registerCommands() {
             if(updates.value("extent")=="all") {inputs.remove("endSupport");inputs.remove("endOffset");inputs.remove("endOffsetParameter");session_.remove("invalidEndOffset");}
             if(updates.value("operation")=="newBody")inputs.remove("targetBodyIds");
         }
-        if(session_.value("command")=="solid.box")for(const auto& field:QStringList{"width","depth","height"}){
+        if(session_.value("command")=="solid.box" || session_.value("command")=="solid.cylinder")for(const auto& field:session_.value("command")=="solid.box" ? QStringList{"width","depth","height"} : QStringList{"height"}){
             if(updates.contains(field) && !updates.contains(field+"Parameter"))inputs.remove(field+"Parameter");
             if(updates.contains(field+"Parameter")){
                 if(updates.contains(field))return failure("invalid_arguments","Choose numeric dimension or direct length name",field);
@@ -8890,7 +8892,7 @@ QJsonObject AlloyWindow::beginExtrude(const QJsonObject& overrides) {
             for(const auto& entry:resolved.value("features").toArray())if(entry.toObject().value("id")==id){inputs["distance"]=entry.toObject().value("parameters").toObject().value("distanceMm").toDouble()/(units=="in" ? 25.4 : 1);break;}
         }
         if(savedParameters.contains("distanceParameterId") && !overrides.contains("distanceParameter") && !overrides.contains("distanceExpression") && !overrides.contains("distance"))
-            for(const auto& entry:CadDocument::evaluatedLengthParameters(document_->authored()))if(entry.toObject()["id"]==savedParameters["distanceParameterId"])
+            for(const auto& entry:CadDocument::evaluatedUserParameters(document_->authored()))if(entry.toObject()["id"]==savedParameters["distanceParameterId"])
                 {inputs["distanceParameter"]=entry.toObject()["name"];inputs["distance"]=entry.toObject()["valueMm"].toDouble()/(units=="in" ? 25.4 : 1);break;}
         if(!overrides.contains("start") && !overrides.contains("startOffset") && !overrides.contains("startOffsetParameter") && savedParameters.value("start")=="offset"){
             inputs["start"]="offset";inputs["startOffset"]=savedParameters["startOffsetMm"].toDouble()/(units=="in" ? 25.4 : 1);
@@ -9510,7 +9512,7 @@ QJsonObject AlloyWindow::beginSession(const QString& command, const QJsonObject&
         else values["radius"]=5/scale;
     }
     for (auto it = inputs.begin(); it != inputs.end(); ++it) values[it.key()] = it.value();
-    if(command=="solid.box")for(const auto& field:QStringList{"width","depth","height"})if(values.contains(field+"Parameter")){
+    if(command=="solid.box" || command=="solid.cylinder")for(const auto& field:command=="solid.box" ? QStringList{"width","depth","height"} : QStringList{"height"})if(values.contains(field+"Parameter")){
         const auto row=lengthParameter(values[field+"Parameter"].toString());if(row.isEmpty())return failure("unknown_parameter","User length name is unavailable",field+"Parameter");
         values[field]=row["valueMm"].toDouble()/(values["units"]=="in" ? 25.4 : 1);
     }
@@ -10265,14 +10267,14 @@ void AlloyWindow::showUnits() {
     unitsDialog_->show(); unitsDialog_->raise();
 }
 
-QJsonObject AlloyWindow::lengthParameter(const QString& name) const {
-    for(const auto& entry:CadDocument::evaluatedLengthParameters(document_->authored()))if(entry.toObject()["name"]==name)return entry.toObject();
+QJsonObject AlloyWindow::lengthParameter(const QString& name,bool angular) const {
+    for(const auto& entry:CadDocument::evaluatedUserParameters(document_->authored()))if((entry.toObject()["name"]==name || entry.toObject()["id"]==name) && (entry.toObject()["units"]=="deg")==angular)return entry.toObject();
     return {};
 }
 
 QSet<QString> AlloyWindow::userLengthNames() const {
     QSet<QString> names;
-    for(const auto& entry:document_->authored().value("userParameters").toArray())names.insert(entry.toObject().value("name").toString());
+    for(const auto& entry:document_->authored().value("userParameters").toArray())if(entry.toObject().value("units")!="deg")names.insert(entry.toObject().value("name").toString());
     return names;
 }
 
@@ -10281,7 +10283,7 @@ void AlloyWindow::refreshLengthParameters() {
     auto* table=lengthParametersDialog_->findChild<QTableWidget*>("parameters.table");
     auto* model=lengthParametersDialog_->findChild<QTreeWidget*>("parameters.modelTable");
     if(!table || !model)return;
-    const auto rows=CadDocument::evaluatedLengthParameters(document_->authored());
+    const auto rows=CadDocument::evaluatedUserParameters(document_->authored());
     const auto modelRows=CadDocument::modelLengthRows(document_->authored());
     const auto encoded=QJsonDocument(QJsonObject{{"user",rows},{"model",modelRows}}).toJson(QJsonDocument::Compact);
     if(table->property("parameterRows").toByteArray()==encoded)return;
@@ -10292,8 +10294,8 @@ void AlloyWindow::refreshLengthParameters() {
         const QSignalBlocker block(table);table->setRowCount(rows.size());
         for(int i=0;i<rows.size();++i) {
             const auto row=rows[i].toObject();const double scale=row["units"]=="in" ? 25.4 : 1;
-            const QStringList cells{row["name"].toString(),row["units"].toString(),QString::number(row["valueMm"].toDouble()/scale,'g',10),
-                row.contains("expression") ? row["expression"].toString() : QString::number(row["valueMm"].toDouble()/scale,'g',10)+" "+row["units"].toString()};
+            const QStringList cells{row["name"].toString(),row["units"].toString(),QString::number(row[row["units"]=="deg" ? "valueDeg" : "valueMm"].toDouble()/scale,'g',10),
+                row.contains("expression") ? row["expression"].toString() : QString::number(row[row["units"]=="deg" ? "valueDeg" : "valueMm"].toDouble()/scale,'g',10)+" "+row["units"].toString()};
             for(int j=0;j<4;++j){auto* item=new QTableWidgetItem(cells[j]);item->setData(Qt::UserRole,row["id"]);
                 if(j!=3)item->setFlags(item->flags() & ~Qt::ItemIsEditable);
                 table->setItem(i,j,item);}
@@ -10316,13 +10318,14 @@ void AlloyWindow::refreshLengthParameters() {
             }
             const double scale=row["units"]=="in" ? 25.4 : 1.0;
             auto* item=new QTreeWidgetItem(featureItems[featureId],QStringList{row["name"].toString(),
-                row["expression"].toString(),QString::number(row["valueMm"].toDouble()/scale,'g',10)+" "+row["units"].toString(),
-                row.value("readOnly").toBool() ? QString("Sketch expression") : row.contains("sourceName") ? row["sourceName"].toString()+" · "+QString::number(row["sourceValueMm"].toDouble()/scale,'g',10)+" "+row["units"].toString() : "Literal"});
+                row["expression"].toString(),QString::number(row[row["units"]=="deg" ? "valueDeg" : "valueMm"].toDouble()/scale,'g',10)+" "+row["units"].toString(),
+                row.value("readOnly").toBool() ? QString("Sketch expression") : row.contains("sourceName") ? row["sourceName"].toString()+" · "+QString::number(row[row["units"]=="deg" ? "sourceValueDeg" : "sourceValueMm"].toDouble()/scale,'g',10)+" "+row["units"].toString() : "Literal"});
             item->setFlags(row.value("readOnly").toBool() ? item->flags() & ~Qt::ItemIsEditable : item->flags() | Qt::ItemIsEditable);
             item->setData(1,Qt::UserRole,row["target"].toObject());
             if(row["target"].toObject()==selectedTarget)model->setCurrentItem(item,1);
         }
         model->expandAll();model->resizeColumnToContents(0);model->resizeColumnToContents(1);
+        model->setColumnWidth(1,model->columnWidth(1)+18);
     }
     table->setProperty("parameterRows",encoded);table->resizeColumnsToContents();
     // Refresh only table data; preserve unsaved name/value/unit editor input.
@@ -10346,17 +10349,17 @@ void AlloyWindow::showLengthParameters() {
     model->setEditTriggers(QAbstractItemView::DoubleClicked);
     model->setItemDelegate(new ModelExpressionDelegate(model));layout->addWidget(model,1);
     auto* form=new QFormLayout;auto* name=new QLineEdit(dialog);name->setObjectName("parameters.name");form->addRow("Name",name);
-    auto* unit=new QComboBox(dialog);unit->setObjectName("parameters.units");unit->addItems({"mm","in"});form->addRow("Unit",unit);
+    auto* unit=new QComboBox(dialog);unit->setObjectName("parameters.units");unit->addItems({"mm","in","deg"});form->addRow("Unit",unit);
     auto* value=new QLineEdit(dialog);value->setObjectName("parameters.value");form->addRow("Expression",value);layout->addLayout(form);
     auto* status=new QLabel(dialog);status->setObjectName("parameters.status");status->setWordWrap(true);layout->addWidget(status);
     auto* actions=new QHBoxLayout;auto* add=new QPushButton("Add",dialog);add->setObjectName("parameters.add");actions->addWidget(add);
     auto* edit=new QPushButton("Update",dialog);edit->setObjectName("parameters.update");actions->addWidget(edit);
     auto* close=new QPushButton("Close",dialog);actions->addWidget(close);layout->addLayout(actions);
     refreshLengthParameters();
-    connect(table,&QTableWidget::cellClicked,dialog,[=,this](int row,int){const auto rows=CadDocument::evaluatedLengthParameters(document_->authored());if(row<0 || row>=rows.size())return;
+    connect(table,&QTableWidget::cellClicked,dialog,[=,this](int row,int){const auto rows=CadDocument::evaluatedUserParameters(document_->authored());if(row<0 || row>=rows.size())return;
         const auto entry=rows[row].toObject();name->setText(entry["name"].toString());unit->setCurrentText(entry["units"].toString());
         value->setText(entry.contains("expression") ? entry["expression"].toString() :
-            QString::number(entry["valueMm"].toDouble()/(entry["units"]=="in" ? 25.4 : 1),'g',10));});
+            QString::number(entry[entry["units"]=="deg" ? "valueDeg" : "valueMm"].toDouble()/(entry["units"]=="in" ? 25.4 : 1),'g',10));});
     auto submit=[=,this](bool updating){bool numeric=false;const double number=value->text().trimmed().toDouble(&numeric);
         QJsonObject args{{"name",name->text()},{"units",unit->currentText()}};
         if(numeric)args["value"]=number;else args["expression"]=value->text().trimmed();
@@ -10410,7 +10413,7 @@ QJsonObject AlloyWindow::primitiveCandidate(const QString& command,const QJsonOb
         : type=="torus" ? QStringList{"majorRadius","minorRadius"} : QStringList{"radius","height"};
     for(const auto& name:dimensions){
         const auto binding=name+"Parameter";
-        if(type=="box" && inputs.contains(binding)){
+        if((type=="box" || (type=="cylinder" && name=="height")) && inputs.contains(binding)){
             const auto row=lengthParameter(inputs[binding].toString());
             if(row.isEmpty())throw std::invalid_argument("User length name is unavailable: "+binding.toStdString());
             parameters[name+"ParameterId"]=row["id"];
@@ -10464,7 +10467,7 @@ void AlloyWindow::showPrimitive() {
         : command=="solid.torus" ? QStringList{"majorRadius","minorRadius","x","y","z"}
         : QStringList{"radius","height","x","y","z"};
     for(const auto& field:fields) {
-        const bool named=command=="solid.box" && (field=="width" || field=="depth" || field=="height");
+        const bool named=(command=="solid.box" && (field=="width" || field=="depth" || field=="height")) || (command=="solid.cylinder" && field=="height");
         auto* input=named ? static_cast<QDoubleSpinBox*>(new LengthDistanceSpinBox(contents)) : new QDoubleSpinBox(contents);
         // A spinbox's full-range size hint can exceed this narrow command form.
         // Let the form allocate its available width rather than clipping the field.
@@ -10475,7 +10478,7 @@ void AlloyWindow::showPrimitive() {
             fieldInput->namedValue=[this,inputs](const QString& name)->std::optional<double>{const auto row=lengthParameter(name);if(row.isEmpty())return {};return row["valueMm"].toDouble()/(inputs["units"]=="in" ? 25.4 : 1);};
             fieldInput->showBinding(inputs.value(field+"Parameter").toString());
             connect(fieldInput,&QDoubleSpinBox::editingFinished,this,[this,field,fieldInput]{
-                if(session_.value("command")!="solid.box")return;
+                if(session_.value("command")!="solid.box" && session_.value("command")!="solid.cylinder")return;
                 const auto typed=fieldInput->enteredIdentifier();
                 if(!typed.isEmpty() && lengthParameter(typed).isEmpty()){
                     session_["invalidNamedInput"]=field;session_["previewed"]=false;view_->clearPreview();
@@ -13071,6 +13074,7 @@ QJsonObject AlloyWindow::acceptDimension(const QJsonObject& args) {
         if(args.contains(angular ? "valueDeg" : "value"))value=args.value(angular ? "valueDeg" : "value").toDouble();
         else {
             const QString text=args.value("text").toString(dimensionEditorValue_ ? dimensionEditorValue_->text() : QString{});
+            if(angular && pending["kind"]=="angle")bound=lengthParameter(text.trimmed(),true);
             if(!angular) {
                 const auto token=text.trimmed();bool local=false;
                 for(const auto& entry:session_.value("draftSketch").toObject().value("parameters").toObject().value("dimensions").toArray())
@@ -13082,7 +13086,7 @@ QJsonObject AlloyWindow::acceptDimension(const QJsonObject& args) {
                     return failure("ambiguous_parameter","This name identifies both a sketch dimension and a user parameter");
                 if(!unchangedFormula && (!local || unchangedBinding))bound=user;
             }
-            if(!bound.isEmpty()) {valueMm=bound["valueMm"].toDouble();value=units=="in" ? valueMm/25.4 : valueMm;}
+            if(!bound.isEmpty()) {valueMm=bound[angular ? "valueDeg" : "valueMm"].toDouble();value=!angular && units=="in" ? valueMm/25.4 : valueMm;}
             else {
             const QRegularExpression expression(angular ? QStringLiteral(R"(^\s*([+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)\s*(deg|°)?\s*$)")
                 : QStringLiteral(R"(^\s*([+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)\s*(mm|in)?\s*$)"),QRegularExpression::CaseInsensitiveOption);

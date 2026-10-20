@@ -1,3 +1,19 @@
+## Typed Angle/Cylinder Height candidate (2026-10-20)
+
+PAR-009/#497 adds numeric degree user parameters (`valueDeg`, stable UUID),
+driving line-pair Angle and primitive Cylinder Height binding through shared
+native/API commands and the grouped model table. Existing length helpers exclude
+angle rows; length expressions refuse them. Exact combined R10 cylinder/sector
+Cut source edits30→60° and height10→15, two-way type refusal, rename, numeric
+unbinding, history/reopen and one-component watertight STL readback pass.
+Focused core/length/model regressions and Qt native controls pass4/4 targets.
+Apple M4 DPR2 GPU solid/table captures are inspected; physical OS input,
+other fields/angle formulas and packaged-platform runtime remain separate.
+See [receipt](validation/typed-angle-cylinder-parameters.md); evidence and bound
+model/STL are external at
+`../Alloy-reference-records/validation/typed-angle-cylinder-2026-10-20/`.
+Independent review remains with root; no push, issue closure, CI or tag.
+
 ## Analytic sketch Break accepted (2026-10-20 UTC)
 
 SKT-169/#617 accepts one-crossing line/finite-arc
