@@ -1,3 +1,16 @@
+## 2026-10-20 dense sketch dimension readability accepted
+
+[SKT-190/#713](validation/sketch-dense-dimensions.md) is independently accepted
+for the five-driver retained Rotate fixture at zoom 0.55. Five full values are
+separately visible and directly editable through actual native hits; pan/resize,
+normal authored placement, supported drag Undo/Redo, exact authored/body
+save/reopen and byte-identical three-component STL pass. The view-only layout
+does not change dimension or solver authority. Four local lanes can exhaust in
+smaller viewports, so SKT-191/#714 retains the compact overflow stack as Todo.
+The earlier visual baseline had a different camera scale, and exact reference
+automatic-layout behavior is unknown. The canonical backlog has 711 issues.
+No CI/release was run; private editor closed and user PID72618 preserved.
+
 ## 2026-10-20 bounded sketch-transform family accepted
 
 Independent Astra read-only review accepted the proposed-v1 connected four-Line
@@ -7,8 +20,8 @@ geometry. `sketch.transform` row098 moves from S to E for this bounded minimum;
 arbitrary stacked transforms, other curves/planes and exact reference behavior
 remain broader or unknown, and physical/package release gates remain open.
 The multi-profile SKT-189 capture has crowded Rotate dimension labels; visual
-follow-up SKT-190/#713 is Todo with a matched-state research and native GPU
-readability gate. The canonical backlog has 710 issues. No CI/release was run.
+follow-up SKT-190/#713 is accepted above. The prior 710-issue snapshot and
+unmatched visual baseline are retained as historical context. No CI/release was run.
 
 ## 2026-10-20 SKT-186 Create Copy history research disposition
 

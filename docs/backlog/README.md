@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **710 issues**: **560 implementation, 24 research,
+The current local backlog contains **711 issues**: **561 implementation, 24 research,
 6 research/design, 22 epics, and 98 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 SKT-097/#502 accepts a bounded retained rectangular sketch-circle pattern and
@@ -31,8 +31,9 @@ accepts SKT-189/#712 after the source-size validation revealed the isolated
 candidate refusal. SKT-186/#709's external follow-up record gives the evidence
 trigger for reopening the unknown sketch-specific Copy history question.
 Independent cumulative review accepts the bounded connected four-Line XY
-`sketch.transform` minimum; SKT-190/#713 tracks crowded dimension labels in a
-zoomed-out multi-profile sketch, separate from release/platform gates.
+`sketch.transform` minimum. [SKT-190/#713](../validation/sketch-dense-dimensions.md)
+accepts directly editable, separated labels in the dense multi-profile fixture;
+SKT-191/#714 retains overflow layout when the four local lanes cannot fit.
 The [atomic Move receipt](../validation/sketch-move.md) accepts SKT-098/#503,
 and [Retained Edit Move](../validation/sketch-retained-move.md) accepts SKT-184/#707.
 The public transform contract is outside the repository.

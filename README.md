@@ -3,6 +3,11 @@
 [The bounded sketch-transform minimum](docs/validation/sketch-transform-cumulative.md)
 now covers Move, Copy, Rotate and Scale for one connected four-Line XY profile;
 independent cumulative review accepts that slice while release gates remain open.
+[Dense sketch dimension labels](docs/validation/sketch-dense-dimensions.md)
+now move to directly editable callouts when their projected text overlaps in a
+zoomed-out multi-profile view. A native five-label fixture, unchanged authored
+model and byte-identical printable STL pass independent review; very small
+viewport overflow remains tracked separately.
 
 [Atomic sketch Move](docs/validation/sketch-move.md) now translates one isolated
 closed four-Line profile through native or local controls. Two relative edits,

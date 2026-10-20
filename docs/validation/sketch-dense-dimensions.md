@@ -1,7 +1,7 @@
 # Dense sketch dimension presentation
 
-SKT-190/#713, 2026-10-20. Candidate implementation; independent compatibility
-review is still required. This is a bounded presentation improvement, with no
+SKT-190/#713, 2026-10-20. Independent Sol source/evidence review accepted
+candidate `9107e98` for the bounded five-driver fixture. This is a presentation improvement, with no
 solver, schema, dimension value or transform-authority change.
 
 The recorded multi-profile sketch previously put five driving dimension labels
