@@ -1356,7 +1356,7 @@ void ReferenceView::setZebra(const QJsonObject& state,const TopoDS_Face& face) {
         for(auto it=models_.cbegin();it!=models_.cend();++it) {
             const auto ref=modelReferences_.value(it.key());
             if(ref.value("bodyId")!=source.value("bodyId") ||
-                (source.contains("occurrenceId") && ref.value("occurrenceId")!=source.value("occurrenceId")))continue;
+                (source.contains("occurrenceId") && ref.value("occurrenceId").toString()!=source.value("occurrenceId").toString()))continue;
             if(!context_->IsDisplayed(it.value()))continue;
             target=Handle(AIS_ColoredShape)::DownCast(it.value());break;
         }
