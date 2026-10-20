@@ -5597,7 +5597,7 @@ void AlloyWindow::registerCommands() {
             if(feature["type"]=="revolve")return beginRevolve({{"featureId",feature["id"]}});
             if(feature["type"]=="loft")return beginLoft({{"featureId",feature["id"]}});
             if(feature["type"]=="boundaryFill")return beginBoundaryFill({{"featureId",feature["id"]}});
-            if(feature["type"]=="surfaceRevolve" || feature["type"]=="surfaceSweep")return beginSurfaceRevolve({{"featureId",feature["id"]}});
+            if(feature["type"]=="surfaceRevolve")return beginSurfaceRevolve({{"featureId",feature["id"]}});
             if(feature["type"]=="surfaceSweep")return beginSurfaceSweep({{"featureId",feature["id"]}});
             if(feature["type"]=="surfaceExtrude")return beginSurfaceExtrude({{"featureId",feature["id"]}});
             if(feature["type"]=="surfaceTrim")return beginSurfaceTrim({{"featureId",feature["id"]}});
