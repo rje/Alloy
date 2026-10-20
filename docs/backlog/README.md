@@ -12,7 +12,7 @@ The current local backlog contains **703 issues**: **554 implementation, 24 rese
 Use the live issue state for completion and readiness.
 SKT-097/#502 accepts a bounded retained rectangular sketch-circle pattern and
 shared ownership foundation; SKT-177/#700 accepts circular Full/Angle patterns.
-Familiar rectangular canvas picks/manipulators remain SKT-178/#701; circular
+Familiar rectangular canvas picks/manipulators are accepted under SKT-178/#701; circular
 picks/manipulators remain SKT-182/#705. Nonorthogonal rectangular axes,
 newly supported by public tutorial evidence, remain SKT-183/#706.
 Both pattern modes are required for proposed-v1 sketch patterns, with the public

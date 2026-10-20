@@ -88,4 +88,10 @@ trackpad activation, DPR1 and packaged Windows/Linux runtime are unqualified;
 Qt pointer delivery does not establish those gates. Public screenshots are not
 matched in scale/state, so exact visual parity is unknown. No CI, release, push
 or proprietary-app operation was performed. Private fixture editors closed;
-preexisting user-owned PID 72618 was preserved. Independent acceptance is pending.
+preexisting user-owned PID 72618 was preserved. Independent Sol source/artifact
+review accepted commits `e650965` and `df72cef` without a blocker. It recomputed
+all three saved grids, checked native-to-API authored continuity and both STL
+meshes, and inspected the final `label-clearance/handles-clearance.png` capture.
+The earlier `native-labels/` D2 text crossed a construction line; the final
+clearance capture corrects it. General label collision avoidance at arbitrary
+views remains unqualified.

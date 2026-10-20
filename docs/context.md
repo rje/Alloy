@@ -1,3 +1,21 @@
+## 2026-10-20 SKT-178 rectangular Pattern canvas acceptance
+
+[Bounded receipt](validation/sketch-pattern-canvas.md) accepts an actual-hit
+Create-menu route, Circle and two construction-Line viewport picks, role/hover
+feedback, four spacing/quantity GPU handles and shared numeric preview for the
+perpendicular 2×3 grid. Invalid directions/drags preserve the accepted state;
+Cancel/Escape/OK and center glyph editing pass. The native-produced six-hole
+plate is reopened by the real executable, edited upstream, saved/reopened and
+independently read as a watertight STL. The focused native gate passes 3/3, as
+do rectangular/circular controls regressions. Independent Sol review accepted
+commits `e650965` + `df72cef` after checking authored IDs, centers, meshes and
+the final D2 label-clearance capture. Build `build-preview-release`, `-j4`;
+external evidence `../Alloy-reference-records/validation/skt178-2026-10-20/`.
+SKT-178/#701 is closed/Done. Circular canvas input is SKT-182/#705 Todo;
+nonorthogonal rectangular axes are SKT-183/#706 Todo. Physical Mac pointer,
+DPR1 and packaged Windows/Linux remain separate. No CI or release was run;
+private fixture editors are closed and user-owned PID 72618 was preserved.
+
 ## 2026-10-20 SKT-177 circular Pattern acceptance
 
 [Bounded receipt](validation/sketch-circular-pattern.md) accepts one ordinary
@@ -13,7 +31,7 @@ mesh/volume without a blocker. Build is `build-preview-release`, Release/private
 Qt 6.11.2/OCCT 7.9.3, `-j4`; external evidence is under
 `../Alloy-reference-records/validation/skt177-2026-10-20/`. SKT-177/#700 is
 closed/Done. Circular canvas picks/manipulators remain SKT-182/#705 Todo;
-rectangular canvas input remains SKT-178/#701 Todo. Broader seeds, Symmetric and
+rectangular canvas input is accepted under SKT-178/#701. Broader seeds, Symmetric and
 suppression remain ADV-005. Physical/native DPR1 and packaged Windows/Linux
 runtime remain separate; no CI or release was run. Private fixture editors
 closed; the preexisting user-owned Alloy PID 72618 was preserved.

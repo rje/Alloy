@@ -5,13 +5,16 @@ now supports Full and Angle around an authored center Point through shared nativ
 numeric controls and local commands. An independent review accepted exact circle
 centers/identities, upstream edits, owner refusals, history/reopen, and a
 watertight six-hole plate STL. Circular canvas picks/manipulators remain
-SKT-182/#705; rectangular canvas interaction remains SKT-178/#701.
+SKT-182/#705. [Rectangular canvas Pattern input](docs/validation/sketch-pattern-canvas.md)
+now picks a circle and two construction directions in the viewport and drags
+four spacing/quantity handles; the native-picked six-hole plate passes editable
+history and STL checks.
 
 [Retained rectangular sketch-circle Pattern](docs/validation/sketch-rectangular-pattern.md)
 has an independently accepted bounded source-only solver and shared native/local-control command, with
 indexed identities, owner-safe refusals and a six-hole printable Cut. Core, real-app
-STL and native actual-hit/glyph/GPU checks pass; rectangular canvas
-manipulation remains SKT-178/#701.
+STL and native actual-hit/glyph/GPU checks pass; nonorthogonal axes remain
+SKT-183/#706.
 
 [Active-sketch canvas marking menu](docs/validation/canvas-marking-menu.md) has a
 bounded accepted active-sketch component with shared radial commands,
