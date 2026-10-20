@@ -1592,7 +1592,7 @@ void ReferenceView::clearSketchDraft() {
     draftEntityShapes_.clear();
     cancelSlotPointDrag();
     clearSketchDecorations();
-    decorationFeature_={};decorationPending_={};annotationLayouts_={};draggedAnnotation_.clear();
+    decorationFeature_={};decorationPending_={};annotationLayouts_={};draggedAnnotation_.clear();annotationAutoDrag_=false;
     if(!context_.IsNull()) {
         for(const auto& model:profileModels_)context_->Remove(model,false);
         if(!sketchDraft_.IsNull())context_->Remove(sketchDraft_,false);
@@ -2038,6 +2038,51 @@ QJsonObject ReferenceView::curveDimensionLayout(const QJsonObject& feature,const
     }
     return result;
 }
+QJsonArray ReferenceView::resolveDimensionLabels(QJsonArray layouts,const QString& plane) const {
+    // Pure presentation: authored anchors/strokes stay unchanged. Logical-pixel
+    // footprints are also the authoritative pointer targets below.
+    const auto bounds=[](const QJsonObject& layout){const auto l=layout.value("label").toObject();const double t=l.value("angleDegrees").toDouble()*std::numbers::pi/180,c=std::abs(std::cos(t)),s=std::abs(std::sin(t)),w=l.value("width").toDouble(),h=l.value("height").toDouble();return QRectF(l.value("x").toDouble()-(w*c+h*s)/2,l.value("y").toDouble()-(w*s+h*c)/2,w*c+h*s,w*s+h*c).adjusted(-3,-3,3,3);};
+    const auto moveLabel=[&](QJsonObject layout,QPointF center){
+        auto label=layout.value("label").toObject();const auto anchor=sketchPoint(center.x(),center.y(),plane);const auto projected=projectSketchPoint(anchor.value("uMm").toDouble(),anchor.value("vMm").toDouble(),plane);
+        label["x"]=projected.value("x");label["y"]=projected.value("y");label["angleDegrees"]=0;
+        layout["label"]=label;layout["displayAnchor"]=anchor;layout["automaticPlacement"]=true;
+        const auto original=layout.value("annotation").toObject();const auto raw=projectSketchPoint(original.value("uMm").toDouble(),original.value("vMm").toDouble(),plane);
+        const double side=projected.value("x").toDouble()>=raw.value("x").toDouble()?1:-1;
+        const double edge=std::clamp(projected.value("x").toDouble()-side*(label.value("width").toDouble()/2+3),1.0,double(width()-2));
+        layout["displayLeader"]=QJsonArray{original,sketchPoint(edge,projected.value("y").toDouble(),plane)};
+        return layout;
+    };
+    const int count=layouts.size();QVector<QRectF> raw(count);QVector<bool> fixed(count,false);QVector<int> component(count,-1);
+    for(int i=0;i<count;++i){auto layout=layouts[i].toObject();fixed[i]=layout.value("dimensionId")=="pending";
+        if(annotationAutoDrag_ && layout.value("dimensionId")==draggedAnnotation_){const auto label=layout.value("label").toObject();const QPointF now(label.value("x").toDouble(),label.value("y").toDouble());
+            // A refused owner edit leaves the old raw anchor: keep its displayed
+            // label still. A successful explicit drag adopts the visible target.
+            const auto center=QLineF(now,annotationRawPress_).length()<1 ? annotationDisplayPress_ : now;
+            if(center.x()>0 && center.y()>0 && center.x()<width()-1 && center.y()<height()-1)layouts[i]=moveLabel(layout,center);fixed[i]=true;
+        }raw[i]=bounds(layouts[i].toObject());
+    }
+    QVector<QRectF> placed;
+    for(int first=0;first<count;++first){if(component[first]>=0 || fixed[first])continue;QVector<int> group{first};component[first]=first;
+        for(int cursor=0;cursor<group.size();++cursor)for(int j=0;j<count;++j)if(!fixed[j] && component[j]<0 && raw[group[cursor]].intersects(raw[j])){component[j]=first;group.append(j);}
+        bool collision=group.size()>1;for(int i:group)for(int j=0;j<count;++j)if(fixed[j] && raw[i].intersects(raw[j]))collision=true;
+        if(!collision)continue;
+        QRectF cluster;double columnWidth=0,totalHeight=0;for(int i:group){cluster=cluster.isNull()?raw[i]:cluster.united(raw[i]);const auto l=layouts[i].toObject().value("label").toObject();columnWidth=std::max(columnWidth,l.value("width").toDouble());totalHeight+=l.value("height").toDouble()+6;}totalHeight-=6;
+        std::sort(group.begin(),group.end(),[&](int a,int b){const auto x=layouts[a].toObject(),y=layouts[b].toObject();const auto l=x.value("label").toObject(),r=y.value("label").toObject();if(l.value("y")!=r.value("y"))return l.value("y").toDouble()<r.value("y").toDouble();if(l.value("x")!=r.value("x"))return l.value("x").toDouble()<r.value("x").toDouble();return x.value("dimensionId").toString()<y.value("dimensionId").toString();});
+        const QRectF available(8,8,std::max(0,width()-16),std::max(0,height()-16)),cube(width()-190,0,190,180);
+        const double top=std::clamp(cluster.center().y()-totalHeight/2,8.0,std::max(8.0,height()-8.0-totalHeight));
+        const double middle=std::clamp(cluster.center().x()-columnWidth/2,8.0,std::max(8.0,width()-8.0-columnWidth));
+        const QVector<QPointF> candidates{{cluster.right()+24,top},{cluster.left()-24-columnWidth,top},{middle,cluster.top()-24-totalHeight},{middle,cluster.bottom()+24}};
+        bool done=false;
+        for(const auto& origin:candidates){QVector<QRectF> boxes;double y=origin.y();bool fits=true;
+            for(int i:group){const auto l=layouts[i].toObject().value("label").toObject();const QRectF box(origin.x()+(columnWidth-l.value("width").toDouble())/2,y,l.value("width").toDouble(),l.value("height").toDouble());const auto padded=box.adjusted(-3,-3,3,3);if(!available.contains(padded) || cube.intersects(padded))fits=false;
+                for(int j=0;j<count;++j)if(!group.contains(j) && raw[j].intersects(padded))fits=false;for(const auto& p:placed)if(p.intersects(padded))fits=false;boxes.append(box);y+=l.value("height").toDouble()+6;
+            }
+            if(!fits)continue;for(int n=0;n<group.size();++n){layouts[group[n]]=moveLabel(layouts[group[n]].toObject(),boxes[n].center());placed.append(bounds(layouts[group[n]].toObject()));}done=true;break;
+        }
+        if(!done)for(int i:group){auto l=layouts[i].toObject();l["crowdedUnresolved"]=true;layouts[i]=l;} // Never hide a dimension to force a fit.
+    }
+    return layouts;
+}
 QJsonObject ReferenceView::pickAnnotation(double x,double y) const {
     if(!showDimensions_)return {};
     for(auto i=annotationLayouts_.size()-1;i>=0;--i) {
@@ -2047,7 +2092,7 @@ QJsonObject ReferenceView::pickAnnotation(double x,double y) const {
         if(std::abs(dx*std::cos(angle)-dy*std::sin(angle))<=label.value("width").toDouble()/2
             && std::abs(dx*std::sin(angle)+dy*std::cos(angle))<=label.value("height").toDouble()/2)
             return {{"kind","dimension"},{"dimensionId",layout.value("dimensionId")},{"part","label"},{"annotation",layout.value("annotation")},
-                {"polygonId",layout.value("polygonId")},{"sizeBasis",layout.value("sizeBasis")},{"chamferId",layout.value("chamferId")}};
+                {"polygonId",layout.value("polygonId")},{"sizeBasis",layout.value("sizeBasis")},{"chamferId",layout.value("chamferId")},{"automaticPlacement",layout.value("automaticPlacement")},{"displayLabel",label}};
     }
     return {};
 }
@@ -2545,11 +2590,16 @@ void ReferenceView::decorateSketch(const QJsonObject& sourceFeature,const QJsonO
         const auto group=row.toObject();dimensions.append(QJsonObject{{"id",group["id"]},{"kind","polygonSize"},{"valueMm",group["sizeMm"]},{"driving",true}});
     }
     if(!pending.isEmpty() && !pending.contains("dimensionId")){auto preview=pending;preview["id"]="pending";dimensions.append(preview);}
+    QJsonArray dimensionLayouts;
     if(showDimensions_)for(const auto& entry:dimensions) {
         const auto dimension=entry.toObject();const auto measured=measurements.value(dimension.value("id").toString());
         const bool angular=dimension["kind"]=="arcSweep" || dimension["kind"]=="angle" || dimension["kind"]=="overallSlotAngle";const auto valueKey=angular ? "valueDeg" : "valueMm";
         const double value=dimension.value("id")=="pending" ? pending.value(angular ? "measuredValueDeg" : "measuredValueMm").toDouble() : measured.value(valueKey).toDouble(dimension.value(valueKey).toDouble());
-        const auto layout=dimensionLayout(layoutFeature,dimension,value,units);if(layout.isEmpty())continue;annotationLayouts_.append(layout);
+        const auto layout=dimensionLayout(layoutFeature,dimension,value,units);if(!layout.isEmpty())dimensionLayouts.append(layout);
+    }
+    dimensionLayouts=resolveDimensionLabels(dimensionLayouts,plane);
+    for(const auto& entry:dimensionLayouts){
+        const auto layout=entry.toObject();QJsonObject dimension;for(const auto& d:dimensions)if(d.toObject().value("id")==layout.value("dimensionId")){dimension=d.toObject();break;}annotationLayouts_.append(layout);
         if(layout["anchorKind"]=="center"){
             const auto anchor=layout["anchor"].toObject();
             Handle(AIS_Point) marker=new AIS_Point(new Geom_CartesianPoint(sketchWorld(plane,anchor["uMm"].toDouble(),anchor["vMm"].toDouble())));
@@ -2593,10 +2643,12 @@ aspect->ArrowAspect()->SetLength(7*size);aspect->SetArrowTailSize(8*size);aspect
             const auto edge=BRepBuilderAPI_MakeEdge(a.Translated(delta*(3*size)),b.Translated(delta*(4*size))).Edge();const auto wire=sketchPresentation(edge);
             wire->SetColor(color);wire->SetWidth(devicePixelRatioF());wire->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(wire,AIS_WireFrame,-1,false);context_->Deactivate(wire);sketchDecorations_.push_back(wire);
         }
-        const auto text=layout.value("label").toObject(),anchor=layout.value("annotation").toObject();
+        const auto leader=layout.value("displayLeader").toArray();if(leader.size()==2){const auto a=world(leader[0]),b=world(leader[1]);if(a.Distance(b)>1e-9){const auto wire=sketchPresentation(BRepBuilderAPI_MakeEdge(a,b).Edge());wire->SetColor(color);wire->SetWidth(devicePixelRatioF());wire->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(wire,AIS_WireFrame,-1,false);context_->Deactivate(wire);sketchDecorations_.push_back(wire);}}
+        const auto text=layout.value("label").toObject(),anchor=layout.value("displayAnchor").toObject(layout.value("annotation").toObject());
         Handle(AIS_TextLabel) label=new AIS_TextLabel;label->SetText(TCollection_ExtendedString(text.value("text").toString().toUtf8().constData(),true));
         label->SetPosition(sketchWorld(plane,anchor.value("uMm").toDouble(),anchor.value("vMm").toDouble()));label->SetHeight(13);label->SetFont("Arial");label->SetAngle(text.value("angleDegrees").toDouble()*std::acos(-1.0)/180);
-        label->SetHJustification(Graphic3d_HTA_CENTER);label->SetVJustification(Graphic3d_VTA_CENTER);label->SetZoomable(false);label->SetDisplayType(Aspect_TODT_NORMAL);
+        label->SetHJustification(Graphic3d_HTA_CENTER);label->SetVJustification(Graphic3d_VTA_CENTER);label->SetZoomable(false);label->SetDisplayType(layout.value("automaticPlacement").toBool()?Aspect_TODT_SUBTITLE:Aspect_TODT_NORMAL);
+        if(layout.value("automaticPlacement").toBool())label->SetColorSubTitle(Quantity_Color(1,1,1,Quantity_TOC_RGB));
         label->SetColor(color);label->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(label,0,-1,false);context_->Deactivate(label);sketchDecorations_.push_back(label);
     }
     if(showDimensions_)for(const auto& row:parameters.value("chamferGroups").toArray()){
@@ -3977,7 +4029,7 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
         const auto picked=pickAnnotation(e->position().x(),e->position().y());
             if(!picked.isEmpty()) {
                 if(!picked.value("chamferId").toString().isEmpty()){e->accept();return;}
-                draggedAnnotation_=picked.value("dimensionId").toString();annotationGestureId_=QString::number(++nextAnnotationGesture_);annotationPress_=e->position();annotationDragged_=false;
+                draggedAnnotation_=picked.value("dimensionId").toString();annotationGestureId_=QString::number(++nextAnnotationGesture_);annotationPress_=e->position();annotationDragged_=false;annotationAutoDrag_=picked.value("automaticPlacement").toBool();const auto display=picked.value("displayLabel").toObject();annotationDisplayPress_={display.value("x").toDouble(),display.value("y").toDouble()};annotationGrabOffset_=annotationAutoDrag_?e->position()-annotationDisplayPress_:QPointF{};const auto a=picked.value("annotation").toObject();const auto projected=projectSketchPoint(a.value("uMm").toDouble(),a.value("vMm").toDouble(),sketchPlane_);annotationRawPress_={projected.value("x").toDouble(),projected.value("y").toDouble()};
                 dispatch("sketch.annotationSelect",{{"dimensionId",draggedAnnotation_}});e->accept();return;
             }
         }
@@ -4141,7 +4193,7 @@ void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
         updateExtrusionDrag(e->position(),"move");e->accept();
     } else if(!draggedAnnotation_.isEmpty() && e->buttons().testFlag(Qt::LeftButton)) {
         if(QLineF(annotationPress_,e->position()).length()>3)annotationDragged_=true;
-        if(annotationDragged_) {const auto p=sketchPoint(std::clamp(e->position().x(),0.0,double(width()-1)),std::clamp(e->position().y(),0.0,double(height()-1)),sketchPlane_);dispatch("sketch.annotationMove",{{"dimensionId",draggedAnnotation_},{"uMm",p.value("uMm")},{"vMm",p.value("vMm")},{"gestureId",annotationGestureId_}});}
+        if(annotationDragged_) {const auto target=e->position()-annotationGrabOffset_;const auto p=sketchPoint(std::clamp(target.x(),0.0,double(width()-1)),std::clamp(target.y(),0.0,double(height()-1)),sketchPlane_);dispatch("sketch.annotationMove",{{"dimensionId",draggedAnnotation_},{"uMm",p.value("uMm")},{"vMm",p.value("vMm")},{"gestureId",annotationGestureId_}});}
         e->accept();
     } else if(!sketchPlane_.isEmpty()) {
         if(decorationSelection_.value("tool")=="select") {
@@ -4288,7 +4340,7 @@ void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
     }
     if(e->button()==Qt::LeftButton && !draggedAnnotation_.isEmpty()){
         if(annotationDragged_)dispatch("sketch.annotationEndGesture",{{"dimensionId",draggedAnnotation_},{"gestureId",annotationGestureId_}});
-        draggedAnnotation_.clear();annotationGestureId_.clear();annotationDragged_=false;e->accept();return;
+        draggedAnnotation_.clear();annotationGestureId_.clear();annotationDragged_=false;annotationAutoDrag_=false;sync();e->accept();return;
     }
     QWidget::mouseReleaseEvent(e);
 }
@@ -4312,7 +4364,7 @@ void ReferenceView::mouseDoubleClickEvent(QMouseEvent* e) {
     if(e->button()==Qt::LeftButton && !sketchPlane_.isEmpty()) {
         for(const auto& row:patternGlyphs_){const auto glyph=row.toObject(),b=glyph["bounds"].toObject();const QRectF bounds(b["x"].toDouble(),b["y"].toDouble(),b["width"].toDouble(),b["height"].toDouble());if(bounds.contains(e->position())){dispatch("sketch.patternEdit",{{"groupId",glyph["groupId"]}});e->accept();return;}}
         const auto picked=pickAnnotation(e->position().x(),e->position().y());
-        if(!picked.isEmpty()){draggedAnnotation_.clear();dispatch("sketch.dimensionEdit",{{"dimensionId",picked.value("dimensionId")}});e->accept();return;}
+        if(!picked.isEmpty()){draggedAnnotation_.clear();annotationAutoDrag_=false;dispatch("sketch.dimensionEdit",{{"dimensionId",picked.value("dimensionId")}});e->accept();return;}
     }
     QWidget::mouseDoubleClickEvent(e);
 }

@@ -401,6 +401,7 @@ private:
     QJsonObject lastContextMenu_;
     QJsonObject sketchSnapState_;
     std::vector<Handle(AIS_InteractiveObject)> sketchDecorations_;
+    QJsonArray resolveDimensionLabels(QJsonArray layouts,const QString& plane) const;
     QJsonArray annotationLayouts_;
     QJsonArray constraintGlyphs_;
     QJsonArray patternGlyphs_;
@@ -415,7 +416,8 @@ private:
     QString decorationUnits_, draggedAnnotation_;
     QString annotationGestureId_;
     quint64 nextAnnotationGesture_ = 0;
-    QPointF annotationPress_;
+    QPointF annotationPress_, annotationGrabOffset_, annotationRawPress_, annotationDisplayPress_;
+    bool annotationAutoDrag_ = false;
     QPointF mirrorWindowPress_;
     bool mirrorWindowActive_ = false;
     QRubberBand* mirrorWindowBand_ = nullptr;

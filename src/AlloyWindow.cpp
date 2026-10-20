@@ -13321,7 +13321,9 @@ void AlloyWindow::positionDimensionEditor() {
         point={{"uMm",first["uMm"]},{"vMm",first["vMm"]}};
     }
     const auto plane=session_.value("inputs").toObject().value("plane").toString();
-    const auto p=view_->projectSketchPoint(point.value("uMm").toDouble(),point.value("vMm").toDouble(),plane);
+    auto p=view_->projectSketchPoint(point.value("uMm").toDouble(),point.value("vMm").toDouble(),plane);
+    const auto editing=session_.value("pendingDimension").toObject();
+    if(editing.value("phase")=="editing")for(const auto& row:view_->annotations()){const auto layout=row.toObject();if(layout.value("dimensionId")==editing.value("dimensionId")){const auto label=layout.value("label").toObject();p["x"]=label.value("x");p["y"]=label.value("y");break;}}
     int editorX=qRound(p.value("x").toDouble()+12);
     if(session_.contains("pendingLineLength")){
         const auto pointer=session_.value("pointerPoint").toObject();
