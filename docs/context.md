@@ -1,3 +1,18 @@
+## 2026-10-20 SKT-188 retained Rotate source-size acceptance
+
+[Bounded receipt](validation/sketch-rotate-source-size.md) accepts numeric edits
+to existing internal driving Linear dimensions on one retained four-Line XY
+Rotate. A fixed source anchor/directed heading lets the source solve resize
+without double-applying the +30° transform; source and dimension snapshots
+change in one transaction. Native actual-hit dimension input passes 3/3,
+98-call real-app API and exact history/reopen pass, and independently read
+watertight STLs agree with 2,003.0545 and 2,026.4775 mm³ analytic volumes.
+Independent Astra read-only review accepted `294ec4f`. SKT-188/#711 is
+closed/Done; Scale SKT-181/#704 is the sole In Progress transform item.
+Unrelated Copy/Create Copy alongside an existing Rotate owner refuses and is
+preserved in Todo SKT-189/#712. The canonical backlog has 709 issues. No CI or
+release; private editors closed and user PID72618 preserved.
+
 ## 2026-10-20 SKT-180 retained Rotate acceptance
 
 [Bounded receipt](validation/sketch-rotate.md) accepts one closed four-Line XY
@@ -6,8 +21,8 @@ angle and eligible axis edits on one retained owner. Native actual-hit input,
 143-call real-app API, exact source/derived vertices, history/reopen and
 independent watertight 1,952 mm³ STL readback pass. Independent Astra read-only
 review accepted `34f36c6`; its review did not rerun the app. SKT-180/#703 is
-closed/Done. SKT-188/#711 is the sole In Progress item and owns later
-source-size composition; Scale remains SKT-181/#704. General 3D axes, physical input and Windows/Linux runtime remain
+closed/Done. Source-size composition is accepted above; Scale remains
+SKT-181/#704. General 3D axes, physical input and Windows/Linux runtime remain
 unqualified. No CI/release; private editors closed, user PID72618 preserved.
 
 ## 2026-10-20 SKT-187 normal-axis acceptance

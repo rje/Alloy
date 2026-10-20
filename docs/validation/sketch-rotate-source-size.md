@@ -63,7 +63,7 @@ claimed.
 
 External root: `../Alloy-reference-records/validation/skt188-2026-10-20/`.
 Build: existing `build-preview-release`, Release/private Qt 6.11.2 and OCCT
-7.9.3, Apple Clang, `-j4`. No new build tree, CI or push.
+7.9.3, Apple Clang, `-j4`. No new build tree or CI.
 
 - `sketch_rotate_source_size_test` passes analytic source/output vertices,
   anchor/heading, stable IDs, a legacy owner gaining its frame only on edit,
@@ -135,3 +135,10 @@ python3 tests/sketch_rotate_source_size_api.py --app build-preview-release/alloy
 ```
 
 Private fixture editors were closed; the user-owned PID 72618 was preserved.
+
+Independent Astra read-only review accepted `294ec4f` for this bounded scope.
+It checked that the source heading gauge never enters the output residual solve,
+legacy frame migration occurs only on authorized edit, source/snapshot/cache
+updates remain atomic and idempotent, branch flips refuse, and the saved
+geometry/mesh receipts agree. The reviewer did not rerun the app. Unrelated
+Copy/Create Copy coexistence is tracked as SKT-189/#712.

@@ -24,8 +24,10 @@ outside planar profiles and Extrude; native input and unchanged printable STL
 pass independent review. [Retained planar Rotate](docs/validation/sketch-rotate.md)
 now accepts a selected closed four-Line XY profile around that authored +Z
 axis, with signed angle and eligible axis edits. Independent review accepted
-the bounded native/API, history and printable solid evidence; source-size
-composition remains SKT-188/#711 and broader 3D axes remain open.
+the bounded native/API, history and printable solid evidence. [Source-size edits](docs/validation/sketch-rotate-source-size.md)
+now compose an existing internal driving dimension with that retained Rotate,
+one source frame and same-ID output; native input, history, analytic solids and
+STL readback pass independent review. Broader 3D axes remain open.
 
 [Retained circular sketch-circle Pattern](docs/validation/sketch-circular-pattern.md)
 now supports Full and Angle around an authored center Point through shared native

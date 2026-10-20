@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **708 issues**: **558 implementation, 24 research,
+The current local backlog contains **709 issues**: **559 implementation, 24 research,
 6 research/design, 22 epics, and 98 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 SKT-097/#502 accepts a bounded retained rectangular sketch-circle pattern and
@@ -23,8 +23,11 @@ accepts SKT-185/#708; its unresolved sketch-specific retained-history research
 is SKT-186/#709. [Retained planar Rotate](../validation/sketch-rotate.md)
 accepts SKT-180/#703; Scale remains Todo SKT-181/#704.
 [Normal 3D construction Line](../validation/sketch-normal-axis.md) accepts
-SKT-187/#710 as the Rotate prerequisite; SKT-188/#711 preserves later
-source-size composition.
+SKT-187/#710 as the Rotate prerequisite; [source-size composition](../validation/sketch-rotate-source-size.md)
+accepts SKT-188/#711. Scale SKT-181/#704 is the sole active transform task.
+SKT-189/#712 preserves the Copy/Create Copy refusal with an unrelated retained
+Rotate owner found during source-size validation; it is Todo and separate from
+SKT-188/#711.
 The [atomic Move receipt](../validation/sketch-move.md) accepts SKT-098/#503,
 and [Retained Edit Move](../validation/sketch-retained-move.md) accepts SKT-184/#707.
 The public transform contract is outside the repository.

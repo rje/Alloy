@@ -12081,6 +12081,24 @@
         "area:skt"
       ],
       "body": "<!-- alloy-backlog:SKT-188 -->\n**Backlog key:** `SKT-188` · **Phase:** `P2 Parametric modeling` · **Priority:** `P1` · **Kind:** `implementation`\n\n## Preserved source-edit composition for Rotate\nSKT-180/#703 owns a first retained planar Rotate whose same-ID output follows angle and eligible axis edits. This child preserves later edits to internal source size dimensions; a fixed source anchor alone leaves rotational freedom, so source orientation must be stabilized before deriving the rotated result. This is a separate solvable increment, not permission to drop source edits silently. Architecture review and public uncertainty are external in `../Alloy-reference-records/knowledge/specs/skt180-sketch-rotate-2026-10-20.md`.\n\n## Acceptance\n- Define an explicit source-frame orientation rule for the selected asymmetric four-Line loop and existing compatible internal size dimensions. Re-solve authoritative pre-Rotate source geometry after a permitted dimension edit, then derive rotated output exactly once with unchanged owner, entity, profile and downstream body IDs. Repeated evaluation must be idempotent.\n- Demonstrate a source dimension change with retained +30° angle and an axis-pivot edit, checking analytic vertices, valid 8 mm Extrude, Undo/Redo and exact authored save/reopen. Independently read watertight STL bounds/volume and inspect native/API edit and GPU state.\n- Refuse orientation ambiguity, external/fixed/placement conflicts and unsupported output edits atomically with structured reasons. Preserve broader 3D modes under ADV-005 and do not infer public Timeline semantics without evidence.\n\n## Dependencies\n- SKT-180/#703 retained planar Rotate owner.\n"
+    },
+    {
+      "key": "SKT-189",
+      "title": "Copy unrelated sketch geometry alongside retained Rotate",
+      "kind": "implementation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SKT-179",
+        "SKT-180"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P2",
+        "priority:P1",
+        "area:skt"
+      ],
+      "body": "<!-- alloy-backlog:SKT-189 -->\n**Backlog key:** `SKT-189` · **Phase:** `P2 Parametric modeling` · **Priority:** `P1` · **Kind:** `implementation`\n\n## Copy alongside an unrelated retained Rotate\nA real-app #711 validation fixture can capture an ordinary distant rectangle for Copy, but Create Copy preview in the same sketch as an unrelated retained Rotate refuses `Invalid Rotate source identity`. The isolated Copy candidate filters away the Rotate source points while retaining its owner metadata. The refusal is atomic; this issue restores the expected independent-profile workflow without broadening Rotate's source-size edit.\n\n## Acceptance\n- In one active XY sketch, retain a valid rotated four-Line profile and author a separate ordinary closed rectangle. Copy/Paste or Move/Copy Create Copy the rectangle to a nonoverlapping placement. Scope candidate isolation so the unrelated Rotate owner validates against its complete source or is excluded with its whole owned dependency set; do not weaken global Rotate validation or rewrite its source/cache.\n- Verify original owner, axis, source frame, angle, rotated profile and downstream solid keep exact IDs and geometry. The pasted/copy geometry has new independent IDs and supported internal relations, with no copied dependency on the Rotate owner. Edit either independent profile afterward and confirm the other remains unchanged.\n- Check native actual-hit and local API routes, atomic refusal for invalid overlapping ownership, Undo/Redo and authored save/reopen. Inspect a downstream multi-body solid and independently read a watertight STL if the existing Copy fixture can reuse that route. Keep focused tests and evidence proportional to this integration bug.\n\n## Dependencies\n- SKT-179/#702 independent sketch Copy; SKT-180/#703 retained planar Rotate.\n\nThis is a code interaction found in Alloy validation, not a claim about undocumented reference-product behavior.\n"
     }
   ]
 }
