@@ -1,5 +1,11 @@
 # Alloy
 
+[Retained rectangular sketch-circle Pattern](docs/validation/sketch-rectangular-pattern.md)
+has a bounded source-only solver and shared native/local-control candidate, with
+indexed identities, owner-safe refusals and a six-hole printable Cut. Core, real-app
+STL and native actual-hit/glyph/GPU checks pass; independent review is pending;
+circular Pattern remains SKT-177/#700.
+
 [Active-sketch canvas marking menu](docs/validation/canvas-marking-menu.md) has a
 bounded accepted active-sketch component with shared radial commands,
 click/gesture Line and Circle, and the selected-cap construction route. Qt

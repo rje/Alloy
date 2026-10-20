@@ -1796,7 +1796,7 @@ void ReferenceView::clearSketchDecorations() {
     if(!context_.IsNull())for(const auto& decoration:sketchDecorations_)context_->Remove(decoration,false);
     sketchDecorations_.clear();splineHandleState_={};
     annotationLayouts_={};chamferHandles_={};
-    constraintGlyphs_={};
+    constraintGlyphs_={};patternGlyphs_={};
 }
 QJsonObject ReferenceView::dimensionLayout(const QJsonObject& feature,const QJsonObject& dimension,double valueMm,const QString& units) const {
     if(view_.IsNull())return {};
@@ -2454,6 +2454,22 @@ void ReferenceView::decorateSketch(const QJsonObject& sourceFeature,const QJsonO
             }
             constraintGlyphs_.append(QJsonObject{{"constraintId",relation["id"]},{"pointIds",relation["pointIds"]},{"entityIds",relation["entityIds"]},{"anchorEntityId",target},{"kind",kind},{"contextual",kind=="coincident" || !showConstraints_},{"selected",selectedBadge},{"hovered",hoveredBadge},{"originAvoidanceApplied",originAvoidanceApplied},{"anchorMm",QJsonObject{{"uMm",u},{"vMm",v}}},{"bounds",QJsonObject{{"x",left},{"y",top},{"width",right-left},{"height",bottom-top}}},{"viewportLocal",true},{"units","logicalPixels"}});
         }
+    }
+    // Independently authored 2-by-3 grid glyph. Its identity and hit bounds
+    // belong to the retained association, never to a synthetic constraint.
+    for(const auto& row:parameters["patternGroups"].toArray()){
+        const auto group=row.toObject(),seed=entities.value(group["sourceEntityId"].toString());
+        const auto center=points.value(seed["centerPointId"].toString());if(center.isEmpty())continue;
+        const double cu=center["uMm"].toDouble(),cv=center["vMm"].toDouble();
+        const auto screen=projectSketchPoint(cu,cv,plane),unit=projectSketchPoint(cu+100,cv,plane);
+        const double pixels=std::hypot(unit["x"].toDouble()-screen["x"].toDouble(),unit["y"].toDouble()-screen["y"].toDouble());if(pixels<1e-6)continue;
+        const double size=100/pixels,u=cu+seed["radiusMm"].toDouble()+22*size,v=cv+18*size;
+        TopoDS_Compound strokes;BRep_Builder builder;builder.MakeCompound(strokes);
+        auto stroke=[&](double x1,double y1,double x2,double y2){builder.Add(strokes,BRepBuilderAPI_MakeEdge(sketchWorld(plane,u+x1*size,v+y1*size),sketchWorld(plane,u+x2*size,v+y2*size)).Edge());};
+        for(int i=0;i<3;++i)for(int j=0;j<2;++j){const double x=-8+i*6,y=-5+j*6;stroke(x,y,x+4,y);stroke(x+4,y,x+4,y+4);stroke(x+4,y+4,x,y+4);stroke(x,y+4,x,y);}
+        auto glyph=sketchPresentation(strokes);glyph->SetColor(Quantity_Color(.36,.39,.42,Quantity_TOC_sRGB));glyph->SetWidth(1.6*devicePixelRatioF());glyph->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(glyph,AIS_WireFrame,-1,false);context_->Deactivate(glyph);sketchDecorations_.push_back(glyph);
+        double left=1e100,top=1e100,right=-1e100,bottom=-1e100;for(double x:{-10.,10.})for(double y:{-8.,8.}){const auto p=projectSketchPoint(u+x*size,v+y*size,plane);left=std::min(left,p["x"].toDouble());right=std::max(right,p["x"].toDouble());top=std::min(top,p["y"].toDouble());bottom=std::max(bottom,p["y"].toDouble());}
+        patternGlyphs_.append(QJsonObject{{"groupId",group["id"]},{"sourceEntityId",group["sourceEntityId"]},{"bounds",QJsonObject{{"x",left},{"y",top},{"width",right-left},{"height",bottom-top}}},{"viewportLocal",true},{"units","logicalPixels"}});
     }
     QMap<QString,QJsonObject> measurements;
     for(const auto& entry:diagnostics["dimensionValues"].toArray()){const auto value=entry.toObject();measurements[value["id"].toString()]=value;}
@@ -3566,6 +3582,7 @@ QJsonObject ReferenceView::diagnostics() const {
          snapCue.value("target").toObject().value("kind")=="origin" ? "origin-diamond" : "endpoint-diamond") : "none";
     result.insert("sketchSnapCue",snapCue);
     result.insert("sketchConstraintGlyphs",constraintGlyphs_);
+    result.insert("sketchPatternGlyphs",patternGlyphs_);
     result.insert("splineHandles",splineHandleState_);
     result.insert("conicHandle",conicHandleState_);
     result.insert("sketchConstraintVisibility",QJsonObject{{"visible",!decorationFeature_.isEmpty()},{"editable",false}});
@@ -3880,7 +3897,7 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
             }
         }
         if(!sketchPlane_.isEmpty() && !decorationSelection_.value("tool").toString().endsWith("Polygon") && decorationSelection_.value("tool")!="point" && decorationSelection_.value("tool")!="line" && decorationSelection_.value("tool")!="rectangle" && decorationSelection_.value("tool")!="circle" && decorationSelection_.value("tool")!="twoPointCircle" && decorationSelection_.value("tool")!="threePointCircle" && decorationSelection_.value("tool")!="centerArc" && decorationSelection_.value("tool")!="threePointArc" && decorationPending_.value("phase")!="placing") {
-            const auto picked=pickAnnotation(e->position().x(),e->position().y());
+        const auto picked=pickAnnotation(e->position().x(),e->position().y());
             if(!picked.isEmpty()) {
                 if(!picked.value("chamferId").toString().isEmpty()){e->accept();return;}
                 draggedAnnotation_=picked.value("dimensionId").toString();annotationGestureId_=QString::number(++nextAnnotationGesture_);annotationPress_=e->position();annotationDragged_=false;
@@ -4199,6 +4216,7 @@ void ReferenceView::mouseDoubleClickEvent(QMouseEvent* e) {
     }
     if((freeOrbitTool_ || orbitCenterPicking_) && e->button()==Qt::LeftButton){e->accept();return;}
     if(e->button()==Qt::LeftButton && !sketchPlane_.isEmpty()) {
+        for(const auto& row:patternGlyphs_){const auto glyph=row.toObject(),b=glyph["bounds"].toObject();const QRectF bounds(b["x"].toDouble(),b["y"].toDouble(),b["width"].toDouble(),b["height"].toDouble());if(bounds.contains(e->position())){dispatch("sketch.patternEdit",{{"groupId",glyph["groupId"]}});e->accept();return;}}
         const auto picked=pickAnnotation(e->position().x(),e->position().y());
         if(!picked.isEmpty()){draggedAnnotation_.clear();dispatch("sketch.dimensionEdit",{{"dimensionId",picked.value("dimensionId")}});e->accept();return;}
     }

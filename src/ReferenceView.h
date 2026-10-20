@@ -399,6 +399,7 @@ private:
     std::vector<Handle(AIS_InteractiveObject)> sketchDecorations_;
     QJsonArray annotationLayouts_;
     QJsonArray constraintGlyphs_;
+    QJsonArray patternGlyphs_;
     QJsonObject sketchDisplayOptions_;
     bool showConstraints_ = true;
     bool showDimensions_ = true;

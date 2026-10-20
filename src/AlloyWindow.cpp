@@ -645,6 +645,8 @@ AlloyWindow::AlloyWindow() {
     auto* projectMenu=create->addMenu("Project/Include");projectMenu->setObjectName("sketch.commands.projectInclude");
     auto* projectAction=projectMenu->addAction("Project\tP");projectAction->setObjectName("sketch.action.project");
     connect(projectAction,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.projectBegin"));});
+    auto* rectangularSketchPattern=create->addAction("Rectangular Pattern");rectangularSketchPattern->setObjectName("sketch.action.rectangularPattern");
+    connect(rectangularSketchPattern,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.patternStart"));});
     create->addSeparator();toolAction(create,"Sketch Dimension\tD","dimension");
     auto* modify=sketchMenu("Modify","modify");toolAction(modify,"Fillet","fillet");auto* sketchChamferMenu=modify->addMenu("Chamfer");sketchChamferMenu->setObjectName("sketch.menu.chamfer");for(const auto& option:{std::pair{QString("Equal Distance Chamfer"),QString("equalDistance")},std::pair{QString("Two Distance Chamfer"),QString("twoDistance")},std::pair{QString("Distance And Angle Chamfer"),QString("distanceAngle")}}){
         auto* action=sketchChamferMenu->addAction(option.first);action->setObjectName(option.second=="equalDistance"?"sketch.tool.chamfer":option.second=="twoDistance"?"sketch.tool.twoDistanceChamfer":"sketch.tool.distanceAngleChamfer");
@@ -4059,6 +4061,7 @@ void AlloyWindow::registerCommands() {
     for(const auto& field:QStringList{"centerX","centerY","radius","startX","startY","endX","endY","throughX","throughY"})arcSchema[field]=optional(coordinate);
     add("sketch.addArc","Create analytic arc","Append an exact center/radius/sweep or three-point arc; through point follows start/end.",arcSchema,
         [this](const auto& a){return appendSketchCurve(a["mode"]=="center" ? "centerArc" : "threePointArc",a);});
+    registerSketchPatternCommands();
     const QJsonObject sketchMirrorSchema{{"sourceEntityIds",parameter("array","Distinct authored line, arc or open fit-spline UUIDs to reflect.")},
         {"axisEntityId",parameter("string","Authored straight line UUID used as Mirror Line.")},
         {"session",sketchSession}};
@@ -4247,7 +4250,7 @@ void AlloyWindow::registerCommands() {
         if(session_.value("command")!="sketch.edit" || (session_.value("inputs").toObject()["plane"]!="face" && session_.value("inputs").toObject()["plane"]!="construction"))
             return failure("unsupported_projection","Linked Project requires an active supported planar sketch");
         if(session_.contains("pendingProject"))return failure("project_active","Complete or cancel the current Project selection");
-        for(const auto& key:{"firstPoint","secondPoint","pendingDimension","pendingCircleDiameter","pendingLineLength","pendingTrim","pendingExtend","pendingBreak","pendingFillet","pendingSketchMirror","pendingLoopOffset","pendingSplineOffset","pendingCircleOffset"})
+        for(const auto& key:{"firstPoint","secondPoint","pendingDimension","pendingCircleDiameter","pendingLineLength","pendingTrim","pendingExtend","pendingBreak","pendingFillet","pendingSketchMirror","pendingSketchPattern","pendingLoopOffset","pendingSplineOffset","pendingCircleOffset"})
             if(session_.contains(key))return failure("pending_input_active","Complete or cancel the current sketch input before Project");
         session_["pendingProject"]=QJsonObject{{"originalDraft",session_["draftSketch"]},{"originalSelection",session_["selection"]},
             {"originalTool",session_["tool"]},{"sources",QJsonArray{}},{"previewDraft",session_["draftSketch"]}};
@@ -5283,7 +5286,7 @@ void AlloyWindow::registerCommands() {
     });
     add("sketch.lookAt","Look At sketch","Orient the view normal to the active sketch plane.",{},[this](const auto&){
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
-        const auto draft=session_.value("draftSketch").toObject();
+        const auto draft=session_.contains("pendingSketchPattern") ? session_["pendingSketchPattern"].toObject()["draft"].toObject() : session_.value("draftSketch").toObject();
         view_->lookAtSketch(session_.value("inputs").toObject()["plane"].toString(),session_.value("resolvedFrame").toObject(),
             sketchLookAtContent(draft,session_.value("resolvedFrame").toObject(),session_.value("projectionContext").toObject()));
         return QJsonObject{};
@@ -5292,6 +5295,7 @@ void AlloyWindow::registerCommands() {
         if(!session_.value("command").toString().startsWith("sketch."))return failure("no_active_sketch","Enter a sketch first");
         if(session_.contains("pendingDrivenOffer"))return failure("pending_dimension_offer","Choose Add Driven or Cancel before finishing the sketch");
         if(session_.contains("pendingProject"))return failure("pending_project","Accept or cancel Project before finishing the sketch");
+        if(session_.contains("pendingSketchPattern"))return failure("pending_pattern","Accept or cancel Rectangular Pattern before finishing the sketch");
         hideSlotEditor();
         return finishSession(session_.value("id").toString(),true);
     });
@@ -6739,7 +6743,8 @@ void AlloyWindow::registerCommands() {
         }
         if(session_.value("command").toString()=="sketch.edit") {
             const auto draft=session_.value("draftSketch").toObject();
-            const auto evaluated=evaluateSketchDraft(draft);view_->showSketchDraft(evaluated);
+            const auto presentation=session_.contains("pendingSketchPattern") ? session_["pendingSketchPattern"].toObject()["draft"].toObject() : draft;
+            const auto evaluated=evaluateSketchDraft(presentation);view_->showSketchDraft(evaluated);
             result["authoredDraft"]=draft;
             result["documentDraft"]=SketchGeometry::replaceFeature(document_->authored(),draft);
             result["sketchGeometry"]=evaluated.summary;result["geometryEvaluated"]=true;
@@ -8479,8 +8484,8 @@ void AlloyWindow::refresh() {
             session_.contains("firstPoint") ? "Click the first-side endpoint · Type first distance, then Tab · Escape exits" : "Click the first corner · Escape exits";
         else if(tool=="threePointArc")prompt=session_.contains("secondPoint") ? "Click a point on the arc" : session_.contains("firstPoint") ? "Click the arc end" : "Click the arc start";
         else if(session_.contains("firstPoint"))prompt="Click the next point · Escape stops drawing";
-        const auto mirrorPreview=session_.value("pendingSketchMirror").toObject();
-        if(!mirrorPreview.isEmpty())prompt="Mirror preview · inspect reflected geometry";
+        const auto mirrorPreview=session_.contains("pendingSketchPattern") ? session_.value("pendingSketchPattern").toObject() : session_.value("pendingSketchMirror").toObject();
+        if(!mirrorPreview.isEmpty())prompt=session_.contains("pendingSketchPattern") ? "Rectangular Pattern preview · total Quantity includes source" : "Mirror preview · inspect reflected geometry";
         if((tool=="trim" || tool=="break") && !session_.value("trimNotice").toString().isEmpty())prompt+="\n"+session_.value("trimNotice").toString();
         int standaloneCount=0,curveCount=0;
         for(const auto& e:(mirrorPreview.isEmpty() ? draft : mirrorPreview["draft"].toObject())["parameters"].toObject()["entities"].toArray()) {
@@ -12094,7 +12099,7 @@ QJsonObject AlloyWindow::publishSketchSolve(const SketchGeometry::SolveResult& s
     }
     const auto evaluated=solved.feature["parameters"].toObject().contains("loopOffsets") ? evaluateSketchDraft(solved.feature)
         : SketchGeometry::evaluateFeature(solved.feature,session_.value("resolvedFrame").toObject(),context);
-    cancelCircleDiameter();cancelCenterRectangle();cancelTwoPointRectangle();cancelCircleOffset();session_.remove("pendingSketchMirror");
+    cancelCircleDiameter();cancelCenterRectangle();cancelTwoPointRectangle();cancelCircleOffset();session_.remove("pendingSketchMirror");session_.remove("pendingSketchPattern");
     session_.remove("pendingDrivenOffer");
     recordSketchHistory(solved.feature,solved.diagnostics,journalGroup);
     session_["draftSketch"]=solved.feature;session_["solverDiagnostics"]=solved.diagnostics;session_["projectionContext"]=context;session_["previewed"]=false;
@@ -12234,6 +12239,7 @@ QJsonObject AlloyWindow::traverseSketchHistory(int direction) {
         return failure("stale_session","The document changed; cancel and restart this sketch");
     cancelConicInput();
     cancelSlotDrag();
+    if(session_.contains("pendingSketchPattern")){execute("sketch.patternCancel");return {{"action","cancelled_input"},{"changed",false},{"draftHistory",session_["draftHistory"]}};}
     if(session_.contains("pendingSketchMirror")){
         session_.remove("pendingSketchMirror");const auto draft=session_["draftSketch"].toObject();
         view_->showSketchDraft(evaluateSketchDraft(draft));displayedSketchDraft_=draft;view_->setFocus();
@@ -13382,9 +13388,11 @@ void AlloyWindow::refreshSketchControls() {
     }
     const auto loopPreview=session_.value("pendingLoopOffset").toObject();
     const auto projectPreview=session_.value("pendingProject").toObject();
-    view_->decorateSketch(!projectPreview.isEmpty() ? projectPreview["previewDraft"].toObject()
+    const auto patternPreview=session_.value("pendingSketchPattern").toObject();
+    if(!patternPreview.isEmpty())presentationSelection["entityIds"]=QJsonArray{patternPreview["draft"].toObject()["parameters"].toObject()["patternGroups"].toArray().first().toObject()["sourceEntityId"]};
+    view_->decorateSketch(!patternPreview.isEmpty() ? patternPreview["draft"].toObject() : !projectPreview.isEmpty() ? projectPreview["previewDraft"].toObject()
             : loopPreview["valid"].toBool() ? loopPreview["previewDraft"].toObject() : draft,
-        presentationSelection,session_.value("solverDiagnostics").toObject(),units,session_.value("pendingDimension").toObject());
+        presentationSelection,patternPreview.isEmpty() ? session_.value("solverDiagnostics").toObject() : patternPreview["diagnostics"].toObject(),units,session_.value("pendingDimension").toObject());
     if(sketchCurveEntry_){const auto tool=session_["tool"].toString();sketchCurveEntry_->setVisible(tool=="circle" || tool=="centerArc" || tool=="threePointArc");}
     if(sketchMirrorControls_){
         const bool active=session_.value("tool")=="mirror";sketchMirrorControls_->setVisible(active);

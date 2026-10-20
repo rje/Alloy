@@ -62,6 +62,9 @@ protected:
     void closeEvent(QCloseEvent*) override;
     bool eventFilter(QObject*, QEvent*) override;
 private:
+    void registerSketchPatternCommands();
+    void showSketchPatternControls();
+    QPointer<QDialog> sketchPatternDialog_;
     struct Command {
         QString id, title, description;
         QJsonObject parameters;

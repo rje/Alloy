@@ -25,7 +25,7 @@ message(STATUS "Qt ${Qt6_VERSION}; spikes=${ALLOY_BUILD_SPIKES}; OCCT components
 include(cmake/PlaneGCS.cmake)
 include(cmake/OndselSolver.cmake)
 include(cmake/Lib3MF.cmake)
-add_library(alloy_sketch_solver STATIC src/SketchSolver.cpp src/SketchSolver.h src/SketchMirror.cpp src/SketchMirror.h src/SketchArcSlot.cpp src/SketchArcSlot.h src/SketchEllipse.cpp src/SketchEllipse.h src/SketchPolygon.cpp src/SketchPolygon.h)
+add_library(alloy_sketch_solver STATIC src/SketchSolver.cpp src/SketchSolver.h src/SketchMirror.cpp src/SketchMirror.h src/SketchPattern.cpp src/SketchPattern.h src/SketchArcSlot.cpp src/SketchArcSlot.h src/SketchEllipse.cpp src/SketchEllipse.h src/SketchPolygon.cpp src/SketchPolygon.h)
 target_include_directories(alloy_sketch_solver PUBLIC src)
 target_link_libraries(alloy_sketch_solver PUBLIC Qt6::Core PRIVATE alloy_planegcs)
 
@@ -67,7 +67,7 @@ add_library(alloy_application STATIC
     src/SketchChamferControls.cpp
     src/ThreePointCircleControls.cpp
     src/ThreePointRectangleControls.cpp
-    src/AlloyWindow.cpp src/AlloyWindow.h src/SplitBodyControls.cpp src/AssemblyControls.cpp src/PointControls.cpp src/SplineControls.cpp src/SlotDragControls.cpp src/ConicControls.cpp src/SketchTextControls.cpp src/CommandIcons.cpp src/CommandIcons.h src/SolidFilletControls.cpp src/SolidChamferControls.cpp src/SphereControls.cpp src/SolidHoleControls.cpp src/SolidThreadControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/SurfaceExtrudeControls.cpp src/SurfaceRevolveControls.cpp src/SurfaceOffsetControls.cpp src/SurfaceRuledControls.cpp src/SurfaceExtendControls.cpp src/SurfaceSweepControls.cpp src/SurfacePatchControls.cpp src/SketchEvaluation.cpp src/FailedEditRepair.cpp src/SketchPlaneRepairControls.cpp src/BoundaryFillControls.cpp src/SurfaceTrimControls.cpp src/SurfaceUntrimControls.cpp src/RemoveBodyControls.cpp src/ThickenControls.cpp src/RevolveCommands.cpp src/SweepCommands.cpp src/SweepSelection.cpp src/PipeCommands.cpp src/RibCommands.cpp src/PatternControls.cpp src/CircularPatternControls.cpp src/SolidMirrorControls.cpp src/SolidFeatureMirrorControls.cpp src/CanvasControls.cpp src/ReferenceCanvasView.cpp src/SectionAnalysisControls.cpp src/ReferenceSection.cpp src/MoveControls.cpp src/BodyCopyControls.cpp src/ComponentCopyControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
+    src/AlloyWindow.cpp src/AlloyWindow.h src/SketchPatternControls.cpp src/SplitBodyControls.cpp src/AssemblyControls.cpp src/PointControls.cpp src/SplineControls.cpp src/SlotDragControls.cpp src/ConicControls.cpp src/SketchTextControls.cpp src/CommandIcons.cpp src/CommandIcons.h src/SolidFilletControls.cpp src/SolidChamferControls.cpp src/SphereControls.cpp src/SolidHoleControls.cpp src/SolidThreadControls.cpp src/SolidShellControls.cpp src/LoftControls.cpp src/SurfaceExtrudeControls.cpp src/SurfaceRevolveControls.cpp src/SurfaceOffsetControls.cpp src/SurfaceRuledControls.cpp src/SurfaceExtendControls.cpp src/SurfaceSweepControls.cpp src/SurfacePatchControls.cpp src/SketchEvaluation.cpp src/FailedEditRepair.cpp src/SketchPlaneRepairControls.cpp src/BoundaryFillControls.cpp src/SurfaceTrimControls.cpp src/SurfaceUntrimControls.cpp src/RemoveBodyControls.cpp src/ThickenControls.cpp src/RevolveCommands.cpp src/SweepCommands.cpp src/SweepSelection.cpp src/PipeCommands.cpp src/RibCommands.cpp src/PatternControls.cpp src/CircularPatternControls.cpp src/SolidMirrorControls.cpp src/SolidFeatureMirrorControls.cpp src/CanvasControls.cpp src/ReferenceCanvasView.cpp src/SectionAnalysisControls.cpp src/ReferenceSection.cpp src/MoveControls.cpp src/BodyCopyControls.cpp src/ComponentCopyControls.cpp src/CombineControls.cpp src/ExportControls.cpp src/StepExportControls.cpp
     src/TutorialRecorder.cpp src/TutorialRecorder.h
     src/CadDocument.cpp src/CadDocument.h src/LocalReferenceControls.cpp src/LocalReference.h
     src/RecoveryStore.cpp src/RecoveryStore.h
@@ -530,6 +530,10 @@ if(BUILD_TESTING)
     target_include_directories(sketch_circle_offset_test PRIVATE src)
     target_link_libraries(sketch_circle_offset_test PRIVATE Qt6::Gui alloy_kernel)
     add_test(NAME sketch_circle_offset COMMAND sketch_circle_offset_test)
+    add_executable(sketch_pattern_test tests/sketch_pattern.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_include_directories(sketch_pattern_test PRIVATE src)
+    target_link_libraries(sketch_pattern_test PRIVATE Qt6::Gui alloy_kernel)
+    add_test(NAME sketch_pattern COMMAND sketch_pattern_test)
     add_executable(sketch_mirror_test tests/sketch_mirror.cpp src/CadDocument.cpp src/CadDocument.h)
     target_include_directories(sketch_mirror_test PRIVATE src)
     target_link_libraries(sketch_mirror_test PRIVATE Qt6::Gui alloy_kernel)
@@ -629,6 +633,10 @@ if(BUILD_TESTING)
     target_link_libraries(body_rename_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME body_rename_controls COMMAND body_rename_controls_test)
     set_tests_properties(body_rename_controls PROPERTIES TIMEOUT 50 LABELS "widget;gpu" RUN_SERIAL TRUE)
+    add_executable(sketch_pattern_controls_test tests/sketch_pattern_controls.cpp)
+    target_link_libraries(sketch_pattern_controls_test PRIVATE alloy_application Qt6::Test)
+    add_test(NAME sketch_pattern_controls COMMAND sketch_pattern_controls_test)
+    set_tests_properties(sketch_pattern_controls PROPERTIES TIMEOUT 50 LABELS "widget;gpu" RUN_SERIAL TRUE)
     add_executable(sketch_mirror_controls_test tests/sketch_mirror_controls.cpp)
     target_link_libraries(sketch_mirror_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME sketch_mirror_controls COMMAND sketch_mirror_controls_test)
