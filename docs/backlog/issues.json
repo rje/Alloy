@@ -3706,7 +3706,8 @@
         "SRF-036",
         "SRF-037",
         "SRF-038",
-        "SRF-039"
+        "SRF-039",
+        "SRF-040"
       ],
       "labels": [
         "kind:validation",
@@ -10712,7 +10713,7 @@
         "priority:P1",
         "area:srf"
       ],
-      "body": "## Bounded result\nCreate one editable sheet patch with G0 boundary continuity from a supported closed nonplanar four-edge loop and stable boundary references.\n\nThis is a finishable child of SRF-003; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Create a sheet from one supported closed nonplanar four-edge loop and verify maximum boundary deviation is at most 0.01 mm on the fixed fixture; document this Alloy acceptance tolerance.\n- Inspect resulting surface bounds and area on a fixed fixture; do not promise tangent-continuity beyond G0.\n- Refuse disconnected or underdefined boundaries atomically.\n- Verify source edits, undo/redo, and save/reopen preserve or explicitly refuse the patch.\n\n## Preserved remainder\nLarger boundary networks, continuity classes beyond the bounded patch, and multi-face repair remain under SRF-003.\n"
+      "body": "## Bounded result\nCreate one editable sheet patch with G0 boundary continuity from a supported closed nonplanar four-edge loop and stable boundary references.\n\nThis is a finishable child of SRF-003; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Create a sheet from one supported closed nonplanar four-edge loop and verify maximum boundary deviation is at most 0.01 mm on the fixed fixture; document this Alloy acceptance tolerance.\n- Inspect resulting surface bounds and area on a fixed fixture; do not promise tangent-continuity beyond G0.\n- Refuse disconnected or underdefined boundaries atomically.\n- Verify source edits, undo/redo, and save/reopen preserve or explicitly refuse the patch.\n\n## Preserved remainder\nLarger boundary networks, continuity classes beyond the bounded patch, and multi-face repair remain under SRF-003.\n\n## Accepted bounded core and native split \u2014 2026-10-20\nCommit 8d5f199 accepts a retained nonplanar four ordinary sketch-Line G0 Patch from ordered exact source IDs, generating one degree-(1,1) bilinear face with actual output-boundary/face-iso certificates. Legacy planar Patch persistence remains intact. Focused planar/nonplanar core tests pass. Independent 64-response real-app fixture verifies skew A/B/C/D determinant 12000\u219218000 mm3, one open sheet/four-edge closed wire/zero solids, whole-boundary deviation bound 2.22e-15 mm (<0.01 mm), OCCT area 667.266502\u2192727.170867 mm2 consistent with independent quadrature, source edit, stable IDs, invalid atomic refusal, Undo/Redo/reopen and inspected Apple M4 DPR2 GPU captures. See docs/validation/surface-nonplanar-patch.md. Native canvas four-edge picking/actual-hit/1x/2x visual acceptance remain linked first-v1 Todo SRF-040 because the Mac console is locked. Arbitrary B-Rep edges, chaining, larger networks and G1/G2 remain SRF-003. Closing SRF-028 accepts bounded core/API and compiled basic controls only.\n"
     },
     {
       "key": "SRF-029",
@@ -10886,6 +10887,23 @@
         "area:srf"
       ],
       "body": "## Bounded first-v1 native workflow\nComplete and qualify user-facing selection for the retained one-loop planar Patch after SRF-027 core acceptance. A basic Sketch/Boundary Profile selector dock compiles and the real-app API geometry passes, but public Patch help describes canvas closed-profile selection. The Mac console is locked on 2026-10-20.\n\n## Acceptance criteria\n- Pick one supported simple closed ordinary-Line sketch profile by actual canvas hit, keeping the stable profile and constituent boundary IDs visible. Reject open/self-crossing/disconnected selections with actionable feedback and valid retry without inter-step focus or selection repair.\n- Inspect live one-face planar sheet preview, readable boundary/normal cue, Cancel/OK, Timeline reopen/edit, Undo/Redo and save/reopen through actual user-facing controls and shared state. Do not create a solid or infer unspecified continuity controls for sketch-curve input.\n- On an unlocked Mac run strict actual-hit receiving-widget/popup checks, inspect whole-app GPU captures at 1x and 2x against dated comparable public evidence, and close the private editor. Record physical-device input separately.\n\n## Preserved remainder\nNonplanar fill, model-edge G0/G1/G2 attachment, curved/compound loops, holes, boundary networks, exact pixel/key parity and Windows/Linux packaged runtime remain SRF-003/SRF-028 and release owners.\n"
+    },
+    {
+      "key": "SRF-040",
+      "title": "Complete and qualify native nonplanar four-edge Patch selection",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "SRF-028"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P1",
+        "area:srf"
+      ],
+      "body": "## Bounded first-v1 native workflow\nComplete user-facing ordered boundary selection for the retained nonplanar four-Line G0 Patch after SRF-028 core acceptance. Its basic four-dropdown dock and shared API pass, but public Patch controls select boundary edges on the canvas and the Mac console is locked on 2026-10-20.\n\n## Acceptance criteria\n- Pick four supported retained sketch Line edges through actual canvas hits, maintaining ordered source identities and a visible closed-loop/G0 cue. Allow wrong-order/disconnected/underdefined selections to be repaired in the active session without adding history or focus-repair clicks.\n- Inspect live nonplanar sheet preview with four visibly attached boundaries and the declared <=0.01 mm whole-boundary tolerance. Cancel/Escape preserves authored/Undo state; OK commits and Timeline reopen/edit retains sources through a z10\u219215 source edit.\n- On an unlocked Mac run strict actual-hit checks of receiving widgets and popup readiness, Undo/Redo, save/reopen and whole-app GPU captures at 1x/2x. Use an informative view for the skew sheet and compare only dated matched public evidence. Close private editor afterward.\n\n## Preserved remainder\nArbitrary B-Rep face edges, chaining, larger/mixed curved networks, G1/G2 continuity, multiple faces, exact pixel/key parity and Windows/Linux packaged runtime remain SRF-003 and release owners. This issue is distinct from planar profile selection SRF-039.\n"
     },
     {
       "key": "GEO-025",

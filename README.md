@@ -1,5 +1,7 @@
 # Alloy
 
+[Nonplanar four-edge Patch](docs/validation/surface-nonplanar-patch.md) now creates an editable skew sheet with retained source lines and a whole-boundary deviation certificate below 0.01 mm. Native canvas four-edge selection remains SRF-040.
+
 [Planar Patch](docs/validation/surface-patch.md) now creates an editable one-face sheet from a simple retained closed sketch loop, with exact area/normal/boundary and real-app history/GPU checks. Native canvas profile picking remains SRF-039.
 
 [Open-line Surface Sweep](docs/validation/surface-sweep.md) now creates editable non-solid sheets along retained Line and Arc paths, with exact endpoint/area checks, saved history and inspected GPU captures. Native canvas Profile/Path selection and interactive acceptance remain SRF-038.
