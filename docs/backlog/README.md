@@ -7,13 +7,14 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **697 issues**: **548 implementation, 24 research,
+The current local backlog contains **698 issues**: **549 implementation, 24 research,
 5 research/design, 22 epics, and 98 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
-SKT-097/#502 now owns a bounded retained rectangular sketch-circle pattern and
-shared ownership foundation; the original circular half is preserved as linked
-Todo SKT-177/#700. Both are required for proposed-v1 sketch patterns, with the
-public contract and engineering note outside the repository.
+SKT-097/#502 accepts a bounded retained rectangular sketch-circle pattern and
+shared ownership foundation; the original circular half remains linked Todo
+SKT-177/#700. Familiar rectangular canvas picks/manipulators remain SKT-178/#701.
+Both pattern modes are required for proposed-v1 sketch patterns, with the public
+contract and engineering note outside the repository.
 SKT-172/#695 accepts the [bounded illustrated-bracket visual checkpoint](../validation/bracket-visual.md). SKT-173/#696 accepts the [active-sketch canvas menu component](../validation/canvas-marking-menu.md); SKT-175/#698 accepts original icons and keyboard access, and SKT-176/#699 accepts the centered content-sized list. Native input remains SKT-171/#694, broader contexts SKT-174/#697. TUT-003/#155 still depends on its native gate.
 REL-052/#587 accepts the [native Save As Mesh sheet keyboard and return slice](../validation/mesh-export-keyboard.md);
 REL-053/#607 retains actual OS chooser Cancel/Save and independent STL readback,

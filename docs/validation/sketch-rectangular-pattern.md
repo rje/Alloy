@@ -75,9 +75,9 @@ editor remained behind its parent in Qt's active-window state. The failed
 observation is retained in `native-initial/refused-activation.txt`. A subsequent window-modal attempt also refused native activation. An embedded
 probe then exposed a QDialog window-flag promotion and edit selector type mismatch;
 explicit widget flags and QString lookups correct those product defects. The production
-editor now uses an embedded command dock in the active main window. Its initial
-keyboard focus stays in the canvas; the fixture records that state and uses
-normal actual-hit pointer steps before typing. The fixture performs only initial
+editor now uses an embedded command dock in the active main window. Final
+`activation.json` records initial focus on the source selector; the fixture
+also uses normal actual-hit pointer steps before typing other fields. It performs only initial
 application harness activation; later steps observe actual main-window activation,
 focus, hit targets and closure without repair.
 Final native input/GPU qualification and independent review are recorded below
@@ -122,5 +122,7 @@ include preserved pending geometry during generic inspection, pending-grid Look 
 explicit embedded-widget flags, attachment to the actual canvas dock host,
 QString selector restoration, and one undo item per accepted edit. Neither a
 failed earlier capture nor a matching arrangement establishes exact visual parity.
-All private test/editor processes were closed. Independent compatibility review
-remains pending with the integrating agent; no CI or release was run.
+All private test/editor processes were closed. Independent Astra source/evidence
+review accepted this bounded increment after recomputing saved indexed IDs,
+centers and STL manifold/volume. Exact reference styling, canvas picking and
+manipulators remain outside this acceptance. No CI or release was run.

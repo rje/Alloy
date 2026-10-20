@@ -1,4 +1,4 @@
-## 2026-10-20 SKT-097 rectangular Pattern candidate
+## 2026-10-20 SKT-097 rectangular Pattern acceptance
 
 [Bounded contract](validation/sketch-rectangular-pattern.md) records one retained
 ordinary circle, two explicit perpendicular construction Lines, 2 × 3 total
@@ -8,13 +8,15 @@ profile protection are implemented. Core and real-entrypoint six-hole Cut/STL
 checks pass. Native actual-hit controls/glyph edit, numeric spacing, distinct
 Create/Edit history and Apple M4 DPR2 resize/captures pass (3/3 Qt functions,
 2.617 s); the final 73-call API run and independent six-hole STL readback pass.
-Independent compatibility review remains pending. External evidence is under
+Independent Astra review accepted the bounded source, saved-ID and six-hole STL
+evidence. External evidence is under
 `validation/skt097-2026-10-20/`; accepted configuration is
 `build-preview-release`, Release/private Qt 6.11.2/OCCT 7.9.3, `-j4`.
 Final external runs: `native-candidate/` and `api-candidate/`; prior failed
 qualification receipts remain separate. Both private editors are closed.
-Circular Full/Angle is SKT-177/#700 Todo; wider seeds/modes/manipulators/suppression
-remain ADV-005. No CI, push, release, issue closure or board changes.
+SKT-097/#502 is closed/Done. Circular Full/Angle is SKT-177/#700 Todo;
+rectangular canvas picking/manipulators are SKT-178/#701 Todo. Wider
+seeds/modes/suppression remain ADV-005. No CI or release was run.
 
 ## 2026-10-20 SKT-176 centered-list acceptance
 

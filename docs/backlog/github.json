@@ -2496,7 +2496,7 @@
     "SKT-097": {
       "number": 502,
       "url": "https://github.com/rje/Alloy/issues/502",
-      "state": "open"
+      "state": "closed"
     },
     "SKT-098": {
       "number": 503,
@@ -3486,6 +3486,11 @@
     "SKT-177": {
       "number": 700,
       "url": "https://github.com/rje/Alloy/issues/700",
+      "state": "open"
+    },
+    "SKT-178": {
+      "number": 701,
+      "url": "https://github.com/rje/Alloy/issues/701",
       "state": "open"
     }
   }

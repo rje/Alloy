@@ -705,3 +705,4 @@ This is a publication snapshot. Use `python3 tools/backlog.py ready` for the liv
 | [#698 SKT-175: Refine sketch marking menu visuals and accessibility](https://github.com/rje/Alloy/issues/698) | P2 Parametric modeling | implementation | P1 | [#696](https://github.com/rje/Alloy/issues/696) |
 | [#699 SKT-176: Center and size the sketch context list under radial controls](https://github.com/rje/Alloy/issues/699) | P2 Parametric modeling | implementation | P1 | [#698](https://github.com/rje/Alloy/issues/698) |
 | [#700 SKT-177: Retain circular sketch pattern for printable holes](https://github.com/rje/Alloy/issues/700) | P2 Parametric modeling | implementation | P1 | [#502](https://github.com/rje/Alloy/issues/502) |
+| [#701 SKT-178: Pick and manipulate rectangular sketch pattern in canvas](https://github.com/rje/Alloy/issues/701) | P2 Parametric modeling | implementation | P1 | [#502](https://github.com/rje/Alloy/issues/502) |
