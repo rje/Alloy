@@ -11,7 +11,7 @@
 #include <QSignalBlocker>
 #include <QVBoxLayout>
 namespace {
-QString faceLabel(const EvaluatedBody& body,const EvaluatedSupportFace& face){return body.name+" · "+face.role+" · "+face.faceId.left(8)+(body.occurrenceId.isEmpty() ? QString{}:" · "+body.occurrenceId.left(8));}
+QString faceLabel(const EvaluatedBody& body,const EvaluatedSupportFace& face){return "Face "+face.faceId.left(8)+(body.occurrenceId.isEmpty() ? QString{}:" · "+body.occurrenceId.left(8))+" · "+body.name+" · "+face.role;}
 }
 void AlloyWindow::registerSurfaceContinuityCommands(){
     const QJsonObject schema{{"faces",QJsonObject{{"type","array"},{"required",false},{"description","Exactly two retained face objects with bodyId, faceId, producerFeatureId, and optional exact occurrenceId. Omit to use the active inspector choices."}}},
@@ -49,7 +49,7 @@ void AlloyWindow::refreshSurfaceContinuity(){
     for(int i=0;i<2;++i){auto* combo=surfaceContinuityDialog_->findChild<QComboBox*>(QString("surfaceContinuity.face%1").arg(i+1));const QSignalBlocker blocker(combo);combo->clear();combo->addItem("Choose a face",QJsonObject{});int selected=0;
         const auto ref=surfaceContinuityFaces_.size()>i ? surfaceContinuityFaces_[i].toObject():QJsonObject{};
         for(const auto& body:bodies)if(body.visible)for(const auto& face:body.supportFaces){QJsonObject source{{"bodyId",body.bodyId},{"faceId",face.faceId},{"producerFeatureId",face.producerFeatureId}};if(!body.occurrenceId.isEmpty())source["occurrenceId"]=body.occurrenceId;
-            combo->addItem(faceLabel(body,face),source);if(source==ref)selected=combo->count()-1;}
+            combo->addItem(faceLabel(body,face),source);combo->setItemData(combo->count()-1,body.name+"\nFace: "+face.faceId+"\nBody: "+body.bodyId+"\nProducer: "+face.producerFeatureId+"\nOccurrence: "+body.occurrenceId,Qt::ToolTipRole);if(source==ref)selected=combo->count()-1;}
         combo->setCurrentIndex(selected);
     }
     auto* edgeCombo=surfaceContinuityDialog_->findChild<QComboBox*>("surfaceContinuity.edge");const QSignalBlocker blocker(edgeCombo);edgeCombo->clear();edgeCombo->addItem("Choose the shared edge",QString{});int selected=0;

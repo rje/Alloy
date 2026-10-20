@@ -7069,13 +7069,14 @@ void AlloyWindow::registerCommands() {
             : session_.value("command").toString() == "solid.combine" ? combinePanel_
             : session_.value("command").toString().startsWith("solid.") ? primitivePanel_
             : session_.value("command").toString().startsWith("sketch.") ? sketchPanel_ : unitsDialog_;
-        if(surfaceContinuityDialog_ && session_.isEmpty())dialog=surfaceContinuityDialog_;
+        const bool continuityDialog=surfaceContinuityDialog_ && surfaceContinuityDialog_->isVisible() && session_.isEmpty();
+        if(continuityDialog)dialog=surfaceContinuityDialog_;
         const auto* activeModal=QApplication::activeModalWidget();
         const bool planeDialog=activeModal && (activeModal->objectName()=="constructionPlaneDialog" || activeModal->objectName()=="mesh.export.dialog" || activeModal->objectName()=="step.export.dialog"
             || activeModal->objectName()=="component.reparent.dialog" || activeModal->objectName()=="component.rename.dialog"
             || activeModal->objectName()=="body.rename.dialog" || activeModal==lengthParametersDialog_.data());
         if(planeDialog)dialog=QApplication::activeModalWidget();
-        if ((!planeDialog && session_.isEmpty()) || !dialog || !dialog->isVisible()) return failure("no_active_dialog", "No active dialog to capture");
+        if ((!planeDialog && !continuityDialog && session_.isEmpty()) || !dialog || !dialog->isVisible()) return failure("no_active_dialog", "No active dialog to capture");
         const auto pixels = dialog->grab(); QSaveFile file(path);
         if (!file.open(QIODevice::WriteOnly) || !pixels.save(&file, "PNG") || !file.commit()) return failure("capture_failed", "Could not save active dialog");
         return QJsonObject{{"path", path}, {"source", "active QWidget dialog"}, {"sessionId", session_.value("id")},
