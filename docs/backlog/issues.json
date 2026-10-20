@@ -12193,7 +12193,8 @@
       "phase": "P3 Shape/import/print breadth",
       "priority": "P1",
       "depends_on": [
-        "SRF-056"
+        "SRF-056",
+        "SRF-058"
       ],
       "labels": [
         "kind:validation",
@@ -12201,7 +12202,24 @@
         "priority:P1",
         "area:srf"
       ],
-      "body": "<!-- alloy-backlog:SRF-057 -->\n**Backlog key:** `SRF-057` · **Phase:** `P3 Shape/import/print breadth` · **Priority:** `P1` · **Kind:** `validation`\n\n## First-v1 native Stitch gate\nAfter SRF-056, qualify the bounded two-sheet Stitch through actual user-facing controls and a cumulative real-Alloy workflow. The public contract is external at `../Alloy-reference-records/knowledge/specs/srf006-stitch-2026-10-20.md`.\n\n## Acceptance\n- Select two supported sheet faces/bodies via actual canvas hits, display their identity, preview the candidate seam and free boundaries, edit the declared tolerance, and show measured gap and sewn/free-edge counts in a readable dock. Commit and Cancel must use the same authored command as automation; no harness focus or selection repair between demonstrated steps.\n- Exercise exact and sub-tolerance successful cases plus an excessive-gap refusal, valid retry, source edit, Undo/Redo and save/reopen. Independently inspect B-rep shell validity/classification and output geometry after each committed state.\n- Capture and inspect whole-app GPU frames at effective DPR 1 and 2 on an unlocked Mac, including selection, preview, result and error state; compare only comparable public screenshots and label unknown visual parity. Close the private editor. No Windows/Linux package claim.\n\n## Dependency\n- SRF-056/#716. This closes first-v1 native Stitch input/display only; general networks, tolerance/healing modes and closed-solid promotion remain SRF-006/#65.\n\n## Observed visual mismatch — 2026-10-20\nThe accepted SRF-056 API fixture renders exact-gap preview cleanly, but `preview-gap-0.005.png` and `reopened-gap-0.005.png` in `../Alloy-reference-records/validation/surface-stitch-2026-10-20/` show visible coplanar fill striping. Reproduce and resolve or bound the actual cause before native visual acceptance; the source-sketch/profile overlay explanation is an inference. The readable basic dock does not close this gate.\n"
+      "body": "<!-- alloy-backlog:SRF-057 -->\n**Backlog key:** `SRF-057` · **Phase:** `P3 Shape/import/print breadth` · **Priority:** `P1` · **Kind:** `validation`\n\n## First-v1 native Stitch gate\nAfter SRF-056, qualify the bounded two-sheet Stitch through actual user-facing controls and a cumulative real-Alloy workflow. The public contract is external at `../Alloy-reference-records/knowledge/specs/srf006-stitch-2026-10-20.md`.\n\n## Acceptance\n- Select two supported sheet faces/bodies via actual canvas hits, display their identity, preview the candidate seam and free boundaries, edit the declared tolerance, and show measured gap and sewn/free-edge counts in a readable dock. Commit and Cancel must use the same authored command as automation; no harness focus or selection repair between demonstrated steps.\n- Exercise exact and sub-tolerance successful cases plus an excessive-gap refusal, valid retry, source edit, Undo/Redo and save/reopen. Independently inspect B-rep shell validity/classification and output geometry after each committed state.\n- Capture and inspect whole-app GPU frames at effective DPR 1 and 2 on an unlocked Mac, including selection, preview, result and error state; compare only comparable public screenshots and label unknown visual parity. Close the private editor. No Windows/Linux package claim.\n\n## Dependency\n- SRF-056/#716. This closes first-v1 native Stitch input/display only; general networks, tolerance/healing modes and closed-solid promotion remain SRF-006/#65.\n\n## Observed visual mismatch — 2026-10-20\nThe accepted SRF-056 API fixture renders exact-gap preview cleanly, but `preview-gap-0.005.png` and `reopened-gap-0.005.png` in `../Alloy-reference-records/validation/surface-stitch-2026-10-20/` show visible coplanar fill striping. Reproduce and resolve or bound the actual cause before native visual acceptance; the source-sketch/profile overlay explanation is an inference. The readable basic dock does not close this gate.\n\n## Linked visual fix — 2026-10-20\nSRF-058/#718 owns the observed 0.005 mm preview/reopen fill striping as a finishable implementation child. Its matched GPU evidence must be accepted before this native visual gate closes.\n"
+    },
+    {
+      "key": "SRF-058",
+      "title": "Remove sub-tolerance Stitch fill striping",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "SRF-056"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P1",
+        "area:srf"
+      ],
+      "body": "<!-- alloy-backlog:SRF-058 -->\n**Backlog key:** `SRF-058` · **Phase:** `P3 Shape/import/print breadth` · **Priority:** `P1` · **Kind:** `implementation`\n\n## Observed defect\nThe accepted two-sheet Stitch core (#716) gives a valid sub-tolerance open shell, but `preview-gap-0.005.png` and `reopened-gap-0.005.png` in `../Alloy-reference-records/validation/surface-stitch-2026-10-20/` show visible coplanar fill striping. The exact-gap preview is clean. A source-sketch/profile overlay is only a hypothesis; establish the cause in Alloy's own GPU scene, not by changing geometry to hide it.\n\n## Bounded result\nRender the supported 0.005 mm Stitch preview and reopened result cleanly at the same camera/viewport while preserving a visible seam and correct two-face sheet identity. Keep the source and result authored/evaluated geometry, IDs, tolerance and operation outputs unchanged.\n\n## Acceptance\n- Reproduce the known visual state through the real app; isolate the actors/material/depth or triangulation condition and make the smallest targeted fix.\n- Compare matched before/after Apple M4 GPU framebuffer captures for preview and reopen; confirm no fill striping, readable seam, source sketch visibility behavior and stable resize/Home behavior. Verify actual graphics diagnostics.\n- Reuse the SRF-056 analytic fixture to confirm 400 mm², two faces, one sewn/six free edges, exact/sub-tolerance gap reports and saved model identity remain unchanged. Run focused tests only; no paid CI.\n- Record the cause, fix, evidence and remaining native/physical limits. SRF-057/#717 still owns actual-hit selection, tolerance input, 1x/2x native visual parity and cumulative workflow acceptance.\n\n## Dependency\n- SRF-056/#716 accepted. This is a bounded child of SRF-057/#717, not a blocker on the broader SRF-006/#65 parent.\n"
     }
   ]
 }
