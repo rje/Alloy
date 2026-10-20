@@ -4,8 +4,10 @@
 now supports Full and Angle around an authored center Point through shared native
 numeric controls and local commands. An independent review accepted exact circle
 centers/identities, upstream edits, owner refusals, history/reopen, and a
-watertight six-hole plate STL. Circular canvas picks/manipulators remain
-SKT-182/#705. [Rectangular canvas Pattern input](docs/validation/sketch-pattern-canvas.md)
+watertight six-hole plate STL. [Circular canvas Pattern input](docs/validation/sketch-circular-pattern-canvas.md)
+now adds source/center picks and Full/Angle quantity/sweep handles, with a second
+independent review of native input, saved geometry and export.
+[Rectangular canvas Pattern input](docs/validation/sketch-pattern-canvas.md)
 now picks a circle and two construction directions in the viewport and drags
 four spacing/quantity handles; the native-picked six-hole plate passes editable
 history and STL checks.

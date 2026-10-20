@@ -101,4 +101,8 @@ suppression and arbitrary seeds remain ADV-005; nonorthogonal rectangular axes
 remain SKT-183/#706. Physical AppKit pointer/trackpad activation, native DPR1 and
 packaged Windows/Linux runtime are unqualified release gates. No CI, tag, release
 or push was run. Private fixture editors closed; user-owned PID 72618 preserved.
-Independent acceptance is pending.
+Independent Sol review accepted `f93ad4c` without a blocker after checking the
+actual-hit route, native-final and API-edited authored identities/centers, both
+manifold STLs, regression logs and the corrected arc-attached Quantity grip.
+The API edited the native-initial saved model; native-final independently
+qualifies final handle placement and invalid-count rollback.

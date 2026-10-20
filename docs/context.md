@@ -1,3 +1,23 @@
+## 2026-10-20 SKT-182 circular Pattern canvas acceptance
+
+[Bounded receipt](validation/sketch-circular-pattern-canvas.md) accepts real
+Create-menu activation, Circle/standalone-Point viewport hover and picks,
+Full Quantity and Angle sweep handles, numeric preview, invalid count/angle
+rollback, Cancel/Escape/OK and center-glyph editing. The native actual-hit
+gate passes 3/3. A real-executable run reopens its native-produced six-hole
+model, edits source/pivot, refuses a missing downstream Cut profile, preserves
+history/reopen and independently reads a watertight STL. Independent Sol review
+accepted commit `f93ad4c` after recomputing identities/centers, STL topology and
+the final arc-attached Quantity grip. External evidence is under
+`../Alloy-reference-records/validation/skt182-2026-10-20/`; build is
+`build-preview-release` with `-j4`. SKT-182/#705 is closed/Done. Skewed
+rectangular axes remain SKT-183/#706 Todo; broader modes ADV-005. Positive
+sketch-UV rotation is an Alloy policy; sign parity with a third-party clockwise
+description is unknown for unmatched plane/camera states. A native rectangular
+regression close-prompt stall was a test teardown issue and passes after explicit
+discard. Physical AppKit, DPR1 and packaged Windows/Linux remain separate;
+no CI or release run. Private fixture editors closed; user PID 72618 preserved.
+
 ## 2026-10-20 SKT-178 rectangular Pattern canvas acceptance
 
 [Bounded receipt](validation/sketch-pattern-canvas.md) accepts an actual-hit
@@ -11,7 +31,7 @@ do rectangular/circular controls regressions. Independent Sol review accepted
 commits `e650965` + `df72cef` after checking authored IDs, centers, meshes and
 the final D2 label-clearance capture. Build `build-preview-release`, `-j4`;
 external evidence `../Alloy-reference-records/validation/skt178-2026-10-20/`.
-SKT-178/#701 is closed/Done. Circular canvas input is SKT-182/#705 Todo;
+SKT-178/#701 is closed/Done. Circular canvas input is accepted under SKT-182/#705;
 nonorthogonal rectangular axes are SKT-183/#706 Todo. Physical Mac pointer,
 DPR1 and packaged Windows/Linux remain separate. No CI or release was run;
 private fixture editors are closed and user-owned PID 72618 was preserved.
@@ -30,7 +50,7 @@ Independent Astra review recomputed centers, 32 UUIDv5 fields and manifold
 mesh/volume without a blocker. Build is `build-preview-release`, Release/private
 Qt 6.11.2/OCCT 7.9.3, `-j4`; external evidence is under
 `../Alloy-reference-records/validation/skt177-2026-10-20/`. SKT-177/#700 is
-closed/Done. Circular canvas picks/manipulators remain SKT-182/#705 Todo;
+closed/Done. Circular canvas picks/manipulators are accepted under SKT-182/#705;
 rectangular canvas input is accepted under SKT-178/#701. Broader seeds, Symmetric and
 suppression remain ADV-005. Physical/native DPR1 and packaged Windows/Linux
 runtime remain separate; no CI or release was run. Private fixture editors
