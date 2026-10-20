@@ -329,6 +329,15 @@ private:
     void displaySweepSelection();
     QDockWidget* sweepDock_=nullptr;
     QShortcut* sweepEscape_=nullptr;
+    QJsonObject surfaceUntrimCandidate(const QJsonObject& inputs) const;
+    QJsonObject beginSurfaceUntrim(const QJsonObject& overrides={});
+    QJsonObject previewSurfaceUntrim();
+    QJsonObject selectSurfaceUntrimFace(const QJsonObject& face);
+    void showSurfaceUntrim();
+    void refreshSurfaceUntrimControls();
+    QDockWidget* surfaceUntrimDock_=nullptr;
+    QShortcut* surfaceUntrimEscape_=nullptr;
+    bool surfaceUntrimPreviewSuppressed_=false;
     QJsonObject surfaceExtendCandidate(const QJsonObject& inputs) const;
     QJsonObject beginSurfaceExtend(const QJsonObject& overrides={});
     QJsonObject previewSurfaceExtend();
