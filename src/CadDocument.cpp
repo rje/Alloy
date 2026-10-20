@@ -287,6 +287,15 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
             if(!positions.contains(sketch) || positions[sketch]>=i || features[positions[sketch]].toObject()["type"]!="sketch")
                 return {{"featureId",feature["id"]},{"featureType",feature["type"]},{"code","surface_source_unavailable"},{"message","Surface Sweep path sketch must precede the feature"}};
         }
+        if(feature["type"]=="surfaceUntrim") {
+            const auto p=feature.value("parameters").toObject(),ref=p.value("sourceFace").toObject();
+            const auto trim=p.value("trimFeatureId").toString(),body=ref.value("bodyId").toString();
+            if(!positions.contains(trim) || positions.value(trim)>=i || features[positions.value(trim)].toObject().value("type")!="surfaceTrim"
+                || features[positions.value(trim)].toObject().value("parameters").toObject().value("targetBodyId")!=body
+                || ref.value("producerFeatureId")!=trim || !bodyPositions.contains(body) || bodyPositions.value(body)>=i)
+                return {{"featureId",feature.value("id")},{"featureType","surfaceUntrim"},{"sourceFace",ref},{"trimFeatureId",trim},
+                    {"code","untrim_history_unavailable"},{"message","Untrim requires an exact earlier Trim on its retained source body"}};
+        }
         if(feature["type"]=="surfaceTrim") {
             const auto p=feature["parameters"].toObject();const auto sketch=p["toolSketchId"].toString();
             const auto body=p["targetBodyId"].toString();
@@ -1928,6 +1937,22 @@ QJsonObject CadDocument::loftCandidate(const QJsonObject& authored,const QJsonOb
     if(index<0)features.append(feature);else features[index]=feature;candidate["features"]=features;return candidate;
 }
 
+QJsonObject CadDocument::surfaceUntrimCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
+    const QSet<QString> allowed{"sourceFace","trimFeatureId","untrimType","featureId","newFeatureId","ownerId","name"};
+    for(auto i=arguments.begin();i!=arguments.end();++i)if(!allowed.contains(i.key()))throw std::invalid_argument("Unknown Untrim argument");
+    if(arguments.contains("featureId") && (arguments.contains("newFeatureId") || arguments.contains("ownerId")))throw std::invalid_argument("Untrim edit retains feature and owner identities");
+    auto candidate=authored;auto rows=candidate.value("features").toArray();QJsonObject feature;int index=-1;
+    if(arguments.contains("featureId")){
+        for(int i=0;i<rows.size();++i)if(rows[i].toObject().value("id")==arguments.value("featureId")){feature=rows[i].toObject();index=i;break;}
+        if(index<0 || feature.value("type")!="surfaceUntrim")throw std::invalid_argument("Untrim feature unavailable");
+    }else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",arguments.value("ownerId").toString(authored.value("documentId").toString())},{"type","surfaceUntrim"},{"name","Untrim"},{"visible",true}};
+    auto params=feature.value("parameters").toObject();if(params.isEmpty())params={{"untrimType","externalEdges"}};
+    for(const auto& key:{"sourceFace","trimFeatureId","untrimType"})if(arguments.contains(key))params[key]=arguments.value(key);
+    feature["parameters"]=params;if(arguments.contains("name"))feature["name"]=arguments.value("name");
+    if(index<0)rows.append(feature);else rows[index]=feature;candidate["features"]=rows;
+    const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
+}
+
 QJsonObject CadDocument::surfaceExtendCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
     const QSet<QString> allowed{"sourceEdge","distanceMm","extendType","edgeAlignment","chaining","featureId","newFeatureId","ownerId","name"};
     for(auto i=arguments.begin();i!=arguments.end();++i)if(!allowed.contains(i.key()))throw std::invalid_argument("Unknown Extend argument");
@@ -3008,6 +3033,13 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
                 || p["entityId"]==p["pathEntityId"] || p["extent"]!="full" || p["orientation"]!="perpendicular" || p["operation"]!="newBody"
                 || !p["isSolid"].isBool() || p["isSolid"].toBool())return "Surface Sweep requires retained Line section, distinct Line/Arc path and endpoint, full Perpendicular non-solid New Body";
             ids.insert(feature["bodyId"].toString());continue;
+        }
+        if(type=="surfaceUntrim") {
+            const auto ref=p.value("sourceFace").toObject();
+            if(feature.contains("bodyId") || p.size()!=3 || ref.size()!=3 || !validId(ref.value("bodyId").toString()) || !validId(ref.value("producerFeatureId").toString()) || !validId(ref.value("faceId").toString())
+                || !validId(p.value("trimFeatureId").toString()) || p.value("untrimType")!="externalEdges")
+                return "Untrim requires one exact retained face, its Trim UUID and External Edges with no new body";
+            continue;
         }
         if(type=="surfaceExtend") {
             const auto ref=p.value("sourceEdge").toObject();

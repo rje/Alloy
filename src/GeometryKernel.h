@@ -77,6 +77,8 @@ struct EvaluatedDocument {
     QMap<QString,std::vector<EvaluatedSupportFace>> joinFeatureCaps;
     QMap<QString,std::vector<EvaluatedJoinToolBase>> joinFeatureBases;
     QMap<QString,std::vector<EvaluatedSolidEdge>> finishFeatureInputs;
+    // Exact, disposable pre-Trim stages, rebuilt from authored history on reopen.
+    QMap<QString,EvaluatedBody> surfaceTrimInputs;
     QString recompute = "full_ordered";
 };
 

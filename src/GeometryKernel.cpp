@@ -27,6 +27,7 @@
 #include "SurfacePatch.h"
 #include "BoundaryFill.h"
 #include "SurfaceTrim.h"
+#include "SurfaceUntrim.h"
 #include "SolidThicken.h"
 #include "SolidRevolve.h"
 #include "SolidSweep.h"
@@ -1341,7 +1342,14 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                 const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),
                     [&](const auto& body){return body.bodyId==parameters["targetBodyId"].toString();});
                 if(target==evaluated.bodies.end())reject("trim_target_unavailable","Trim target must be active earlier in history");
+                evaluated.surfaceTrimInputs[id]=*target;
                 SurfaceTrim::evaluate(*target,feature,evaluated);
+            } else if(type=="surfaceUntrim") {
+                const auto ref=parameters.value("sourceFace").toObject();
+                const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& body){return body.bodyId==ref.value("bodyId").toString();});
+                if(target==evaluated.bodies.end())throw EvaluationError({{"featureId",id},{"featureType",type},{"sourceFace",ref},{"trimFeatureId",parameters.value("trimFeatureId")},{"code","surface_source_unavailable"},{"message","Untrim requires an active earlier trimmed sheet"}});
+                if(!target->ownerId.isEmpty() && target->ownerId!=feature.value("ownerId").toString())reject("unsupported_instance_edit","Untrim requires a same-owner local sheet");
+                SurfaceUntrim::evaluate(*target,feature,evaluated);
             } else if(type=="removeBody") {
                 const auto bodyId=parameters["bodyId"].toString();
                 const auto target=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),
@@ -1711,6 +1719,7 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
         reject("renamed_body_unavailable","Renamed local body is no longer active; repair or undo the upstream edit");
     for(auto it=sketchOwners.begin();it!=sketchOwners.end();++it)if(!currentSketches.contains(it.key()))
         reject("reparent_sketch_unavailable","Reparented sketch is no longer available; repair or undo the upstream edit");
+    for(auto& source:evaluated.surfaceTrimInputs){source.ownerId=bodyOwners.value(source.bodyId).toString(owners[source.featureId]);source.summary["ownerId"]=source.ownerId;}
     for(auto& plane:evaluated.constructionPlanes)plane.ownerId=owners[plane.featureId];
     return evaluated;
 }
