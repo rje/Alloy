@@ -797,7 +797,7 @@ void ReferenceView::rebindDocument() {
     for(const auto& model:finishedProfileModels_)context_->Remove(model,false);
     for(const auto& model:finishedPointModels_)context_->Remove(model,false);
     finishedPointModels_.clear();selectedFinishedPoint_={};
-    models_.clear();modelReferences_.clear();bodyVisibility_.clear();sketchModels_.clear();constructionSketchModels_.clear();centerlineSketchModels_.clear();constructionPlaneModels_.clear();constructionPlanes_.clear();finishedProfileModels_.clear();finishedSketches_.clear();
+    models_.clear();modelReferences_.clear();bodyVisibility_.clear();stitchedProfileBodies_.clear();patchSourceProfiles_.clear();sketchModels_.clear();constructionSketchModels_.clear();centerlineSketchModels_.clear();constructionPlaneModels_.clear();constructionPlanes_.clear();finishedProfileModels_.clear();finishedSketches_.clear();
     modelRevision_=std::numeric_limits<quint64>::max();sketchRevision_=modelRevision_;constructionPlaneRevision_=modelRevision_;
 }
 void ReferenceView::initialize() {
@@ -1008,9 +1008,17 @@ void ReferenceView::sync() {
     updateCubeControls();
     view_->Redraw();
 }
-void ReferenceView::setBodies(const std::vector<EvaluatedBody>& bodies,quint64 revision) {
+void ReferenceView::setBodies(const std::vector<EvaluatedBody>& bodies,quint64 revision,const QJsonArray& features) {
     if(context_.IsNull() || modelRevision_==revision)return;
     hoverSupportFace({});
+    patchSourceProfiles_.clear();
+    for(const auto& row:features) {
+        const auto feature=row.toObject();
+        if(feature.value("type")!="surfacePatch")continue;
+        const auto parameters=feature.value("parameters").toObject();
+        const auto profileId=parameters.value("profileId").toString();
+        if(!profileId.isEmpty())patchSourceProfiles_[feature.value("id").toString()]=profileId;
+    }
     documentBodies_=bodies;modelRevision_=revision;
     if(bodyStageKey_.isEmpty())displayBodies(documentBodies_);
 }
@@ -1042,7 +1050,7 @@ void ReferenceView::displayBodies(const std::vector<EvaluatedBody>& bodies) {
     QElapsedTimer timer;if(trace)timer.start();
     clearZebraPresentation();
     for(const auto& model:models_)context_->Remove(model,false);
-    models_.clear();modelReferences_.clear();bodyVisibility_.clear();
+    models_.clear();modelReferences_.clear();bodyVisibility_.clear();stitchedProfileBodies_.clear();
     for(const auto& body:bodies) {
         Handle(AIS_Shape) model=new AIS_ColoredShape(body.shape);model->SetDisplayMode(AIS_Shaded);
         // Bound screen presentation detail separately from export accuracy.
@@ -1071,6 +1079,12 @@ void ReferenceView::displayBodies(const std::vector<EvaluatedBody>& bodies) {
         if(!sectionClip_.IsNull())model->AddClipPlane(sectionClip_);
         const auto key=presentationBodyKey(body);
         models_[key]=model;bodyVisibility_[key]=body.visible;
+        if(body.summary.value("operation")=="surfaceStitch")
+            for(const auto& row:body.summary.value("sourceFaces").toArray()) {
+                const auto source=row.toObject();
+                const auto profileId=patchSourceProfiles_.value(source.value("producerFeatureId").toString());
+                if(!profileId.isEmpty())stitchedProfileBodies_[profileId].append(key);
+            }
         modelReferences_[key]={{"bodyId",body.bodyId},{"occurrenceId",body.occurrenceId},{"definitionId",body.definitionId}};
     }
     applyEditDisplay();
@@ -1245,7 +1259,16 @@ void ReferenceView::applyEditDisplay(bool redraw) {
             // Diagnostic face shading must not compete with a coplanar source
             // profile fill. Keep sketch outlines; restore profile fills on Off.
             const bool coveredByZebra=!zebraModel_.IsNull() && profile.face.IsSame(zebraFace_);
-            if(visible && !coveredBySolidPreview && !coveredByZebra)context_->Display(fill,false);else context_->Erase(fill,false);
+            // Sewn copies no longer share the profile's tessellation. Its
+            // transparent coplanar fill then fights the sheet depth buffer.
+            // Suppress only known Patch-source fills under a visible Stitch;
+            // retain all sketch strokes and restore the fill when it is hidden.
+            bool coveredByStitch=false;
+            for(const auto& key:stitchedProfileBodies_.value(profile.profileId)) {
+                const auto bodyId=modelReferences_.value(key).value("bodyId").toString();
+                if((bodyVisibility_.value(key) || bodyId==previewReplacedBody_) && !hiddenBodyIds_.contains(bodyId))coveredByStitch=true;
+            }
+            if(visible && !coveredBySolidPreview && !coveredByZebra && !coveredByStitch)context_->Display(fill,false);else context_->Erase(fill,false);
         }
     }
     for(auto i=models_.begin();i!=models_.end();++i) {

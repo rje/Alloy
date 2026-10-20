@@ -8189,7 +8189,7 @@ void AlloyWindow::refresh() {
         timelineLayout_->addStretch();timelineLayout_->activate();
         if(!revealFeature.isEmpty())showTimelineFeature(revealFeature);
         bodiesNode_->setExpanded(true);
-        view_->setBodies(presentationBodies(),++presentationRevision_);
+        view_->setBodies(presentationBodies(),++presentationRevision_,document_->authored().value("features").toArray());
         refreshCanvasPresentation();
         const auto solvedAssembly=presentationAssembly();
         const auto assembly=solvedAssembly["joints"].toArray();

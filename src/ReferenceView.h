@@ -104,7 +104,7 @@ public:
     // Only these explicitly worker-prepared shapes may bypass AIS remeshing.
     // Replaced on the next Thread result; unrelated/changed shapes use normal AIS.
     void setPreparedThreadMeshes(const std::vector<TopoDS_Shape>& shapes);
-    void setBodies(const std::vector<EvaluatedBody>& bodies, quint64 revision);
+    void setBodies(const std::vector<EvaluatedBody>& bodies, quint64 revision, const QJsonArray& features = {});
     void setBodyStage(const std::vector<EvaluatedBody>& bodies, const QString& stageKey);
     void clearBodyStage();
     void setSketches(const std::vector<EvaluatedSketch>& sketches, quint64 revision);
@@ -442,6 +442,8 @@ private:
     quint64 modelRevision_ = 0;
     std::vector<EvaluatedBody> documentBodies_;
     QString bodyStageKey_;
+    QMap<QString,QString> patchSourceProfiles_;
+    QMap<QString,QStringList> stitchedProfileBodies_;
     double gridCenterU_ = 0, gridCenterV_ = 0, gridStep_ = 10;
     double gridWidth_ = 200, gridHeight_ = 200;
     bool adaptiveGrid_ = false;
