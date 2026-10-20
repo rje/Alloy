@@ -657,6 +657,7 @@ AlloyWindow::AlloyWindow() {
     auto* sketchMoveAction=modify->addAction("Move/Copy\tM");sketchMoveAction->setObjectName("sketch.action.moveCopy");
     connect(sketchMoveAction,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.moveStart"));});
     auto* sketchMoveKey=new QShortcut(QKeySequence(Qt::Key_M),view_);sketchMoveKey->setContext(Qt::WidgetShortcut);connect(sketchMoveKey,&QShortcut::activated,this,[this]{if(session_["command"]=="sketch.edit")sketchResponse(execute("sketch.moveStart"));});
+    auto* editSketchMove=modify->addAction("Edit Move");editSketchMove->setObjectName("sketch.action.editMove");connect(editSketchMove,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.moveEdit"));});
     auto* sketchMirrorAction=modify->addAction("Mirror");sketchMirrorAction->setObjectName("sketch.action.mirror");
     connect(sketchMirrorAction,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.mirrorStart"));});
     auto* construction=modify->addAction("Normal/Construction\tX");construction->setObjectName("sketch.action.constructionToggle");
@@ -5757,6 +5758,7 @@ void AlloyWindow::registerCommands() {
             auto candidate=document_->authored();auto features=candidate["features"].toArray();bool found=false,isSketch=false;
             for(int i=0;i<features.size();++i) {auto feature=features[i].toObject();if(feature["id"]!=a["featureId"]) continue;
                 auto parameters=feature["parameters"].toObject();const auto edits=a["parameters"].toObject();
+                if(!parameters["moveGroups"].toArray().isEmpty())for(const auto& key:{"points","entities","constraints","dimensions","moveGroups"})if(edits.contains(key))return failure("retained_move_owned","Edit retained Move displacement or source size through sketch commands");
                 for(auto it=edits.begin();it!=edits.end();++it) parameters[it.key()]=it.value();
                 feature["parameters"]=parameters;features[i]=feature;found=true;isSketch=feature.value("type")=="sketch";break;
             }
@@ -13333,6 +13335,7 @@ void AlloyWindow::dimensionSelectionChanged() {
 }
 
 void AlloyWindow::refreshSketchControls() {
+    if(auto* action=findChild<QAction*>("sketch.action.editMove"))action->setEnabled(session_.value("command")=="sketch.edit" && !session_["draftSketch"].toObject()["parameters"].toObject()["moveGroups"].toArray().isEmpty());
     if(session_.value("tool")!="twoTangentCircle" && tangentCircleRadius_)tangentCircleRadius_->hide();
     if(!sketchSelectionTree_ || session_.value("command")!="sketch.edit")return;
     if(auto* cue=sketchPanel_->findChild<QLabel*>("sketch.selectionIdentity")) {

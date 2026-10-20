@@ -8,6 +8,7 @@
 #include "RoundedLoopOffset.h"
 #include "SketchMirror.h"
 #include "SketchPattern.h"
+#include "SketchMove.h"
 #include "SketchArcSlot.h"
 #include "SketchSplineOffset.h"
 #include "SketchOpenChainOffset.h"
@@ -1665,6 +1666,7 @@ SketchGeometry::SolveResult SketchGeometry::deleteEntities(const QJsonObject& dr
     try {
         validateDraft(draft);
         auto parameters=draft["parameters"].toObject();
+        if(SketchMove::touches(parameters,entityIds) || SketchMove::touches(parameters,pointIds))reject("Move owns this profile; edit its displacement or source size rather than Delete");
         for(const auto& row:parameters.value("patternGroups").toArray()){
             const auto group=row.toObject();QSet<QString> protectedEntities{group["sourceEntityId"].toString(),group["direction1EntityId"].toString(),group["direction2EntityId"].toString()};
             protectedEntities.unite(SketchPattern::resultIds(parameters));
@@ -2101,7 +2103,7 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
         try {return validateParameters(expandedProjectionFeature({{"parameters",parameters}},{{"lines",lines},{"circles",circles},{"points",resolvedPoints}})["parameters"].toObject(),authoredIds,referenceIds);}
         catch(const std::exception& error){return QString::fromUtf8(error.what());}
     }
-    const QSet<QString> allowed{"plane", "planeId", "originConvention", "points", "entities", "constraints", "dimensions", "nextDimensionNameIndex", "originPointId", "support", "texts", "loopOffsets", "openChainOffsets", "closedRectOffsets", "roundedRectangleIntent", "mirrorGroups", "slotGroups", "arcSlotGroups", "polygonGroups", "chamferGroups", "patternGroups"};
+    const QSet<QString> allowed{"plane", "planeId", "originConvention", "points", "entities", "constraints", "dimensions", "nextDimensionNameIndex", "originPointId", "support", "texts", "loopOffsets", "openChainOffsets", "closedRectOffsets", "roundedRectangleIntent", "mirrorGroups", "slotGroups", "arcSlotGroups", "polygonGroups", "chamferGroups", "patternGroups", "moveGroups"};
     for (auto it = parameters.begin(); it != parameters.end(); ++it)
         if (!allowed.contains(it.key())) return "Unknown sketch parameter: " + it.key();
     if (!parameters["points"].isArray() || !parameters["entities"].isArray()) return "Sketch requires points and entities";
@@ -2649,6 +2651,10 @@ QString SketchGeometry::validateParameters(const QJsonObject& parameters, QSet<Q
                     return "Invalid line constraint references";
             } else return "Unsupported sketch constraint type";
         }
+        if(parameters.contains("moveGroups")){
+            const auto error=SketchMove::validate(parameters);if(!error.isEmpty())return error;
+            for(const auto& value:parameters["moveGroups"].toArray())if(!claimId(value.toObject()["id"].toString()))return "Invalid or duplicate Move group UUID";
+        }
         if(parameters.contains("patternGroups")){
             const auto error=SketchPattern::validate(parameters);if(!error.isEmpty())return error;
             for(const auto& value:parameters["patternGroups"].toArray())if(!claimId(value.toObject()["id"].toString()))return "Invalid or duplicate Pattern group UUID";
@@ -2794,9 +2800,11 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& source
         lockedPoints.unite(closedRectOffsetPointIds(draft["parameters"].toObject()));
         if(!initialReferencePointId.isEmpty())lockedPoints.insert(initialReferencePointId);
         validateDraft(expanded,derivedPoints);
-        const auto result=SketchSolver::solve(SketchPattern::sourceOnly(expanded["parameters"].toObject()),lockedPoints);
+        lockedPoints.unite(SketchMove::anchors(draft["parameters"].toObject()));
+        const auto result=SketchSolver::solve(SketchPattern::sourceOnly(SketchMove::source(expanded["parameters"].toObject())),lockedPoints);
         if(!result.accepted)return {false,sourceDraft,result.diagnostics,result.error};
         auto solved=draft;auto parameters=SketchPattern::derive(deriveClosedRectOffsets(SketchOpenChainOffset::derive(result.parameters)));
+        parameters=SketchMove::materialize(parameters,draft["parameters"].toObject()["moveGroups"].toArray());
         QJsonArray points,entities,dimensions;
         for(const auto& value:parameters["points"].toArray())if(!externalLockedPoints.contains(value.toObject()["id"].toString()))points.append(value);
         for(const auto& value:parameters["entities"].toArray())if(!virtualEntities.contains(value.toObject()["id"].toString()))entities.append(value);
@@ -2837,6 +2845,10 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& source
             if(group["type"]=="circular")constrained &= pointFreedom.value(group["centerPointId"].toString()).toObject().value("fullyConstrained").toBool();
             const QJsonObject freedom{{"fullyConstrained",constrained},{"derived",true},{"ownerId",group["id"]}};
             for(const auto& value:group["instances"].toArray()){const auto instance=value.toObject();entityFreedom[instance["entityId"].toString()]=freedom;pointFreedom[instance["pointId"].toString()]=freedom;}
+        }
+        for(const auto& row:parameters["moveGroups"].toArray()){
+            const auto g=row.toObject();for(const auto& id:g["entityIds"].toArray()){auto freedom=entityFreedom[id.toString()].toObject();freedom["derived"]=true;freedom["ownerId"]=g["id"];freedom["sourceSpace"]=true;entityFreedom[id.toString()]=freedom;}
+            for(const auto& row:g["sourcePoints"].toArray()){const auto id=row.toObject()["pointId"].toString();auto freedom=pointFreedom[id].toObject();freedom["derived"]=true;freedom["ownerId"]=g["id"];pointFreedom[id]=freedom;}
         }
         diagnostics["entityFreedom"]=entityFreedom;diagnostics["pointFreedom"]=pointFreedom;
         // Presentation roles are semantic labels, never per-entity DOF counts.
@@ -2964,6 +2976,7 @@ SketchGeometry::SolveResult SketchGeometry::addConstraint(const QJsonObject& dra
     try {
         validateDraft(draft);
         checkFields(arguments, {"type", "pointIds", "entityIds", "side", "origin", "endpoint"});
+        if(SketchMove::touches(draft["parameters"].toObject(),arguments))reject("Move outputs cannot acquire constraints; edit source size dimensions or Move");
         if(arguments.contains("endpoint") && (arguments["type"]!="tangent" ||
             !QStringList{"start","end","start:start","start:end","end:start","end:end"}.contains(arguments["endpoint"].toString())))reject("Tangent endpoint must be start or end");
         auto constraint = arguments;
@@ -4170,6 +4183,17 @@ SketchGeometry::SolveResult SketchGeometry::updateAnnotation(const QJsonObject& 
     } catch (const std::exception& error) { return invalidDraft(draft, QString::fromUtf8(error.what())); }
 }
 
+SketchGeometry::SolveResult SketchGeometry::retainedMove(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext){
+    try{
+        validateDraft(draft);checkFields(arguments,{"entityIds","deltaUMm","deltaVMm","groupId"});const double du=coordinate(arguments,"deltaUMm"),dv=coordinate(arguments,"deltaVMm");
+        if(!arguments.contains("groupId")){
+            const auto qualified=translateProfile(draft,{{"entityIds",arguments["entityIds"]},{"deltaUMm",du},{"deltaVMm",dv}},projectionContext);
+            if(!qualified.ok)return qualified;
+        }
+        auto candidate=draft;candidate["parameters"]=SketchMove::create(draft["parameters"].toObject(),arguments["entityIds"].toArray(),du,dv,arguments["groupId"].toString());const auto solved=solveDraft(candidate,projectionContext);return solved.ok ? solved : SolveResult{false,draft,solved.diagnostics,solved.error};
+    }catch(const std::exception& e){return invalidDraft(draft,QString::fromUtf8(e.what()));}
+}
+
 SketchGeometry::SolveResult SketchGeometry::translateProfile(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext) {
     try {
         validateDraft(draft);checkFields(arguments,{"entityIds","deltaUMm","deltaVMm"});
@@ -4212,6 +4236,7 @@ SketchGeometry::SolveResult SketchGeometry::movePoint(const QJsonObject& draft, 
         coordinate(arguments, "uMm"); coordinate(arguments, "vMm");
         auto parameters = draft["parameters"].toObject();
         if (arguments["pointId"]==parameters.value("originPointId") && parameters.contains("originPointId")) reject("Sketch origin reference cannot be moved");
+        if(SketchMove::owned(parameters,true).contains(arguments["pointId"].toString()))reject("Move output is derived; edit Move displacement or an existing source size dimension");
         if(SketchPattern::resultIds(parameters,true).contains(arguments["pointId"].toString()))reject("Pattern result is derived; move its source or edit the Pattern");
         if(SketchArcSlot::derivedPointIds(parameters).contains(arguments["pointId"].toString()))
             reject("Arc slot tangent contact is derived; move a path endpoint instead");
@@ -4371,6 +4396,7 @@ EvaluatedSketch SketchGeometry::evaluateFeature(const QJsonObject& feature, cons
     if(parameters.contains("chamferGroups"))summary["chamferGroups"]=parameters.value("chamferGroups");
     if(parameters.contains("mirrorGroups"))summary["mirrorGroups"]=parameters.value("mirrorGroups");
     if(parameters.contains("patternGroups"))summary["patternGroups"]=parameters.value("patternGroups");
+    if(parameters.contains("moveGroups"))summary["moveGroups"]=parameters.value("moveGroups");
     // Downstream chain topology needs authored contact identity, not proximity.
     summary["constraints"]=solution.feature.value("parameters").toObject().value("constraints").toArray();
     auto profileFeature=solution.feature;

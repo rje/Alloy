@@ -159,6 +159,7 @@ public:
     // Presentation intent in canonical sketch millimeters; never changes the measurement.
     static SolveResult updateAnnotation(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});
     // Atomic rigid edit of one isolated closed four-Line loop; no retained Move.
+    static SolveResult retainedMove(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext = {});
     static SolveResult translateProfile(const QJsonObject& draft,const QJsonObject& arguments,const QJsonObject& projectionContext = {});
     static SolveResult movePoint(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});
     static QString validateParameters(const QJsonObject& parameters, QSet<QString>& authoredIds, const QSet<QString>& derivedPointIds = {});
