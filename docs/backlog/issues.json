@@ -3696,7 +3696,8 @@
         "SOL-065",
         "DOC-037",
         "HIS-013",
-        "SOL-090"
+        "SOL-090",
+        "SOL-091"
       ],
       "labels": [
         "kind:validation",
@@ -10564,7 +10565,7 @@
         "priority:P1",
         "area:sol"
       ],
-      "body": "## Bounded result\nGeometry-based Align places one source body against one target planar face using a declared frame and flip choice, with retained transform and preview cancellation.\n\nThis is a finishable child of SOL-008; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Select source and target and expose the target frame, orientation, and flip choice in the preview.\n- Commit one valid alignment and verify measured face relationship and retained transform after recompute.\n- Cancel without modifying placement; refuse ambiguous or unsupported references atomically.\n- Verify undo/redo, save/reopen, and independent body selection.\n\n## Preserved remainder\nEdge/axis and multi-reference alignment and generalized assembly placement remain under SOL-008/component owners.\n"
+      "body": "## Bounded result\nGeometry-based Align places one source body against one target planar face using a declared frame and flip choice, with retained transform and preview cancellation.\n\nThis is a finishable child of SOL-008; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Select source and target and expose the target frame, orientation, and flip choice in the preview.\n- Commit one valid alignment and verify measured face relationship and retained transform after recompute.\n- Cancel without modifying placement; refuse ambiguous or unsupported references atomically.\n- Verify undo/redo, save/reopen, and independent body selection.\n\n## Preserved remainder\nEdge/axis and multi-reference alignment and generalized assembly placement remain under SOL-008/component owners.\n\n## Accepted bounded core and native split \u2014 2026-10-20\nCommit 23f985e accepts exact retained planar From/To face references on two distinct root solids, a declared retained-UV full-frame transform, Flip, disposable API preview/Cancel/commit/edit, transported source face/edge lineage, source-edit recompute, stationary target, Undo/Redo and save/reopen. Focused core and a 38-response real-application fixture pass, including downstream Offset Face and atomic same-body/lost-face refusal. Independent Sol review found no core/API blocker; see docs/validation/align.md. Native command-first selection, visible frame/Flip cue, Timeline edit, actual-hit Cancel/OK and GPU 1x/2x visual gate remain linked first-v1 Todo SOL-091/#653 because the Mac session is locked. Broader Align geometry, Angle modes and assemblies remain SOL-008. Closing SOL-084 accepts the bounded core only, not native or packaged parity.\n"
     },
     {
       "key": "SOL-085",
@@ -11042,6 +11043,23 @@
         "area:solid"
       ],
       "body": "## Bounded first-v1 native gate\nQualify the actual-hit Browser body Copy \u2192 root Bodies Paste and placement controls for the accepted independent snapshot core SOL-083/#621. The strict test is implemented, but the 2026-10-20 validation session reported `consoleLocked=true` before any native step. Keep this Todo until an unlocked Mac run supplies native evidence.\n\n## Acceptance criteria\n- Run `tools/native_input_preflight.py` and record an unlocked, active/key-window prerequisite separately from the demonstrated workflow. Do not unlock or repair focus/selection between user steps.\n- Deliver actual hits to the body row Copy action, root Bodies Paste action, XYZ fields, Cancel and OK. Observe popup and dialog activation/closure before the next input; assert rendered widget receivers.\n- Verify preview shows the distinct snapshot and explicit +30 mm X placement, Cancel leaves byte-equivalent authored state, and repeat OK creates two selectable body rows with distinct identities. Inspect geometry, history, save/reopen and ordinary selection through shared API after native input.\n- Capture and inspect whole-app GPU presentation at 1\u00d7 and 2\u00d7 backing scale, including unobstructed preview and committed pair. Record physical device delivery separately if tested. Close every private editor after evidence.\n- Reuse the accepted SOL-083 core/API/export fixture as needed for cumulative validity; do not rerun an exhaustive suite or weaken the strict native test to simulate success.\n\n## Preserved remainder\nRotation/manipulator placement, editing the initial paste feature, copied-face/edge lineage, multi-body and cross-document copy remain SOL-008 or later bounded owners. Windows/Linux packaged runtime remains release-gate work.\n"
+    },
+    {
+      "key": "SOL-091",
+      "title": "Qualify native planar body Align selection, preview and history",
+      "kind": "validation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-084"
+      ],
+      "labels": [
+        "kind:validation",
+        "phase:P2",
+        "priority:P1",
+        "area:solid"
+      ],
+      "body": "## Bounded first-v1 native gate\nQualify command-first face-to-face body Align through the actual Mac controls, preserving the native presentation and interaction remainder of SOL-084. The core/API evidence alone does not satisfy this gate; the 2026-10-20 Mac console is locked.\n\n## Acceptance criteria\n- Run strict unlocked Mac preflight, with initial harness activation separate from the demonstrated workflow. Use Modify > Align, source body/planar face and distinct target planar face through actual viewport or panel hits; verify correct widget receivers and native popup/dialog readiness. Do not repair focus or selection between user steps.\n- Expose source/target selection and the declared in-plane frame/normal cue; actual Flip changes the preview orientation visibly while retaining the fixed target. Cancel/Escape must leave authored state and undo stack unchanged; repeat OK creates one retained Align feature.\n- Reopen Align from its Timeline feature, change Flip, and verify preview, recomputed exact placement and independent source/target selection. Verify Undo/Redo and save/reopen through the shared API after native input.\n- Capture and visually inspect whole-app GPU presentation at 1x and 2x backing scale with a comparable public source where possible; record unmatched reference behavior and physical-device input separately. Close private editor instances after evidence.\n\n## Preserved remainder\nEdge/axis/coordinate-system and multiple-reference Align, 90-degree Angle option, component/assembly placement, exact pixel/key parity and Windows/Linux packaged runtime remain with SOL-008 and release owners.\n"
     }
   ]
 }
