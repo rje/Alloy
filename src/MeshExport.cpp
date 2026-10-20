@@ -63,20 +63,29 @@ QJsonObject MeshExport::writeStl(const std::vector<EvaluatedBody>& bodies,const 
     if(!destination.isAbsolute() || destination.fileName().isEmpty() || !destination.dir().exists())
         reject("invalid_path","Choose an absolute STL path in an existing directory");
     if(bodies.empty())reject("solid_required","Select at least one valid closed solid");
-    QSet<QString> distinct;QJsonArray bodyIds,instances;
+    QSet<QString> distinct;QJsonArray bodyIds,instances;bool openSurface=false;
     for(const auto& body:bodies) {
         const auto key=body.occurrenceId+":"+body.bodyId;
         if(body.bodyId.isEmpty() || distinct.contains(key))reject("invalid_body_selection","Select distinct body instances");
         distinct.insert(key);bodyIds.append(body.bodyId);
         instances.append(QJsonObject{{"occurrenceId",body.occurrenceId},{"definitionId",body.definitionId},{"bodyId",body.bodyId},{"boundsMm",body.summary["boundsMm"]}});
+        if(body.shape.IsNull())reject("invalid_export_body","Selected body has no evaluated geometry: "+body.bodyId);
         const auto summary=GeometryKernel::summarize(body.shape);
+        const auto topology=summary.value("topology").toObject();
+        const bool sheet=summary.value("valid").toBool() && !summary.value("closed").toBool()
+            && topology.value("solids").toInt()==0 && topology.value("faces").toInt()>0
+            && std::isfinite(summary.value("areaMm2").toDouble()) && summary.value("areaMm2").toDouble()>0;
+        if(sheet){
+            if(bodies.size()!=1)reject("solid_required","Open-surface STL requires exactly one surface body; mixed or multiple-body selection includes: "+body.bodyId);
+            openSurface=true;continue;
+        }
         if(!summary.value("valid").toBool() || !summary.value("closed").toBool()
             || summary.value("topology").toObject().value("solids").toInt()!=1
             || summary.value("volumeMm3").toDouble()<=0)
             reject("solid_required","Each selected export body must be one valid closed solid: "+body.bodyId);
     }
 
-    // Each solid keeps its world placement. No Boolean union or topology healing:
+    // Each body keeps its world placement. No Boolean union or topology healing:
     // separate material bodies remain separate triangle components in the STL.
     BRep_Builder builder;TopoDS_Compound compound;builder.MakeCompound(compound);
     qint64 triangles=0, collapsedTriangles=0;int faces=0;int mesherStatus=0;
@@ -90,7 +99,7 @@ QJsonObject MeshExport::writeStl(const std::vector<EvaluatedBody>& bodies,const 
         for(TopExp_Explorer it(detached,TopAbs_FACE);it.More();it.Next()) {
             TopLoc_Location location;
             const auto mesh=BRep_Tool::Triangulation(TopoDS::Face(it.Current()),location);
-            if(mesh.IsNull() || mesh->NbTriangles()==0)reject("mesh_failed","A selected solid face has no export triangles");
+            if(mesh.IsNull() || mesh->NbTriangles()==0)reject("mesh_failed","A selected body face has no export triangles");
             // Binary STL stores float coordinates. Tiny pole triangles can
             // collapse only at that precision, so discard them on the detached
             // export mesh before asking OCCT to write normals and facets.
@@ -242,6 +251,14 @@ QJsonObject MeshExport::writeStl(const std::vector<EvaluatedBody>& bodies,const 
         {"surfaceDeviationMm",surfaceDeviationMm},{"normalDeviationDeg",normalDeviationDeg},
         {"triangles",triangles},{"collapsedTrianglesRemoved",collapsedTriangles},{"serializedCollapsedTrianglesRemoved",serializedCollapsed},{"faces",faces},{"bytes",outputBytes},
         {"mesherStatus",mesherStatus},{"authoredChanged",false}};
+    result["bodyType"]=openSurface ? "openSurface" : "solid";
+    result["solid"]=!openSurface;result["closedVolume"]=!openSurface;
+    result["coordinateScaleFromMm"]=units=="in" ? 1.0/25.4 : 1.0;
+    if(openSurface){
+        result["label"]="Open surface — non-solid";
+        result["warnings"]=QJsonArray{"This STL contains an open, zero-thickness surface. It is not a closed volume and is not a printable solid."};
+        result["boundsMm"]=GeometryKernel::summarize(bodies.front().shape).value("boundsMm");
+    }
     if(bodies.size()==1)result["bodyId"]=bodies.front().bodyId;
     return result;
 }
@@ -575,6 +592,10 @@ QJsonObject MeshExport::writeBatch(const std::vector<EvaluatedBody>& bodies,cons
         reject("invalid_path","Choose a new absolute output folder whose parent already exists");
     if(destinationExists(directory))reject("destination_exists","Batch output folder already exists; choose a new folder: "+directory);
     if(placements.size()!=bodies.size())reject("invalid_transform","Each batch body requires one placement");
+    for(const auto& body:bodies){
+        if(body.shape.IsNull() || GeometryKernel::summarize(body.shape).value("type")!="solid")
+            reject("solid_required","Per-body mesh batches require closed solid bodies; surface body: "+body.bodyId);
+    }
     auto plan=batchPlan(bodies,final.absoluteFilePath(),format);
     QTemporaryDir staging(final.dir().filePath(".alloy-mesh-XXXXXX"));
     if(!staging.isValid())reject("export_failed","Cannot create private batch staging folder");

@@ -8,6 +8,7 @@
 #include <QFile>
 #include <QJsonDocument>
 #include <iostream>
+#include <cmath>
 #include <stdexcept>
 
 int main(int argc,char** argv) {
@@ -26,6 +27,29 @@ int main(int argc,char** argv) {
         const auto protectedPath=output.filePath("preserved.stl");QFile sentinel(protectedPath);
         if(!sentinel.open(QIODevice::WriteOnly) || sentinel.write("preserve")!=8)throw std::runtime_error("Sentinel creation failed");sentinel.close();
         EvaluatedBody invalid;invalid.bodyId="invalid";invalid.shape=BRepBuilderAPI_MakeFace(gp_Pln(gp_Pnt(0,0,0),gp_Dir(0,0,1)),-2,2,-2,2).Face();
+        for(const auto& units:QStringList{"mm","in"})for(const bool binary:{false,true}){
+            const auto path=output.filePath("sheet-"+units+(binary ? "-binary.stl" : "-ascii.stl"));
+            const auto surface=MeshExport::writeStl(invalid,path,units,binary,.1,10);
+            if(surface.value("bodyType")!="openSurface" || surface.value("solid")!=false || surface.value("closedVolume")!=false
+                || surface.value("triangles")!=2 || surface.value("warnings").toArray().size()!=1)
+                throw std::runtime_error("Open surface must be explicitly non-solid with final triangle count");
+            const auto prepared=MeshExport::prepare(invalid,gp_Trsf{},binary ? "binary" : "ascii",units,.1,10);
+            if(prepared->facetsMm.size()!=6 || prepared->metadata.value("solid")!=false)
+                throw std::runtime_error("Surface preview must preserve serialized geometry and classification");
+            for(const auto& point:prepared->facetsMm)if(std::abs(point.X())>2.00001 || std::abs(point.Y())>2.00001 || std::abs(point.Z())>1e-10)
+                throw std::runtime_error("Surface preview units changed model-space bounds");
+        }
+        for(int failure=0;failure<4;++failure){
+            bool rejected=false;
+            try{
+                if(failure==0)MeshExport::writeStl(invalid,protectedPath,"cm",true,.1,10);
+                if(failure==1)MeshExport::writeStl(invalid,protectedPath,"mm",true,0,10);
+                if(failure==2)MeshExport::writeStl(invalid,protectedPath,"mm",true,.1,10,[]{return false;});
+                if(failure==3)MeshExport::write3mf({invalid},{gp_Trsf{}},protectedPath,.1,10);
+            }catch(const GeometryKernel::EvaluationError&){rejected=true;}
+            if(!rejected || !sentinel.open(QIODevice::ReadOnly) || sentinel.readAll()!="preserve")throw std::runtime_error("Surface failure must preserve destination");
+            sentinel.close();
+        }
         bool refused=false;try {MeshExport::writeStl(std::vector<EvaluatedBody>{first,invalid},protectedPath,"mm",true,0.1,10);}
         catch(const GeometryKernel::EvaluationError& error){refused=error.diagnostics()["code"]=="solid_required";}
         if(!refused || !sentinel.open(QIODevice::ReadOnly) || sentinel.readAll()!="preserve")throw std::runtime_error("Invalid second body must preserve destination");

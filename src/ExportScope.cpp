@@ -56,7 +56,7 @@ ExportScope::Selection ExportScope::select(const QJsonObject& authored,
     if(!ids.isEmpty())for(auto it=selectedCounts.begin();it!=selectedCounts.end();++it)
         if(it.value()>1)reject("ambiguous_body","A selected body has linked instances; choose an occurrence or all visible bodies");
     if(!bodyId.isEmpty() && result.bodies.empty() || !ids.isEmpty() && found!=requested)
-        reject("stale_body","A selected solid no longer exists");
-    if(result.bodies.empty())reject("solid_required","Select at least one committed visible solid");
+        reject("stale_body","A selected body no longer exists");
+    if(result.bodies.empty())reject("solid_required","Select at least one committed visible body");
     return result;
 }

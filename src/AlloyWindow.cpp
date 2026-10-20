@@ -2509,8 +2509,8 @@ void AlloyWindow::registerCommands() {
             {"objectOwners",document_->authored().value("objectOwners")},{"bodies",bodies},{"sketches",sketches},
             {"importedAssemblies",imported}};
     });
-    add("document.previewMesh","Preview Mesh","Prepare one committed solid's exact final serialized STL/Core 3MF bytes and GPU facets without publishing.",
-        {{"bodyId",parameter("string","Exact evaluated solid body UUID.")},{"occurrenceId",optional(parameter("string","Exact local occurrence qualifier."))},
+    add("document.previewMesh","Preview Mesh","Prepare one committed body's exact final mesh bytes and GPU facets; open non-solid surfaces support STL only.",
+        {{"bodyId",parameter("string","Exact evaluated body UUID; open surfaces are non-solid and support STL only.")},{"occurrenceId",optional(parameter("string","Exact local occurrence qualifier."))},
          {"format",parameter("string","binary, ascii or 3mf.")},{"units",units},{"preset",optional(parameter("string","Low, Medium, High or Custom. Alloy policy values; defaults to Custom."))},
          {"surfaceDeviationMm",meshDeviation},{"normalDeviationDeg",meshAngle}},[this](const auto& a){return previewMesh(a);});
     add("document.meshPreview","Inspect Mesh Preview","Inspect current prepared-artifact token, settings and exact serialized count/hash.",
@@ -2519,8 +2519,8 @@ void AlloyWindow::registerCommands() {
         {{"previewId",parameter("string","Current completed preview token.")},{"path",parameter("string","Absolute output path.")}},[this](const auto& a){return saveMeshPreview(a.value("previewId").toString(),a.value("path").toString());});
     add("document.clearMeshPreview","Cancel Mesh Preview","Discard current/late prepared work and transient facets without publishing or changing history.",
         {{"previewId",optional(parameter("string","Optional current preview token."))}},[this](const auto& a){return clearMeshPreview(a.value("previewId").toString());});
-    add("document.exportStl","Export STL","Export selected committed solids preserving world placement; STL does not embed units.",
-        {{"path",parameter("string","Absolute output STL path.")},{"occurrenceId",optional(parameter("string","Local component occurrence UUID; export its visible bodies, excluding root bodies."))},{"bodyId",optional(parameter("string","Stable evaluated solid body UUID."))},
+    add("document.exportStl","Export STL","Export committed solids or one explicit open surface body preserving world placement; surfaces are non-solid and STL does not embed units.",
+        {{"path",parameter("string","Absolute output STL path.")},{"occurrenceId",optional(parameter("string","Local component occurrence UUID; export its visible bodies, excluding root bodies."))},{"bodyId",optional(parameter("string","Stable evaluated body UUID; one explicit open surface body is non-solid."))},
          {"bodyIds",optional(parameter("array","Distinct evaluated solid body UUIDs."))},{"allVisible",optional(parameter("boolean","Export all active visible bodies."))},
          {"structure",optional(parameter("string","oneFile (default) or oneBodyPerFile; per-body path is a NEW output directory whose parent exists."))},{"units",units},{"format",meshFormat},{"surfaceDeviationMm",meshDeviation},{"normalDeviationDeg",meshAngle}},[this](const auto& a){
             if(!session_.isEmpty())return failure("active_command","Finish or Cancel the active command before exporting");
@@ -2558,7 +2558,7 @@ void AlloyWindow::registerCommands() {
                 return beginMeshExport(selected.bodies,a,selected.label,"obj");
             }catch(const GeometryKernel::EvaluationError& error){return QJsonObject{{"ok",false},{"error",error.diagnostics()}};}
         });
-    add("document.exportMeshDialog","Save As Mesh…","Export chosen committed solids to a local STL, OBJ or 3MF file.",
+    add("document.exportMeshDialog","Save As Mesh…","Export committed solids to STL, OBJ or 3MF; one open surface body supports STL with a non-solid warning.",
         {{"bodyId",optional(parameter("string","Optional initially selected body UUID."))},
          {"bodyIds",optional(parameter("array","Initially checked body UUIDs."))},{"allVisible",optional(parameter("boolean","Initially choose all active visible bodies."))}},[this](const auto& a){
             if(!sliderPreviewAuthored_.isEmpty() || !jointGraphStage_.isEmpty() || transientSliderPosition_.has_value() || pendingReferenceEvaluation_)

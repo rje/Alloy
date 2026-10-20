@@ -44,7 +44,7 @@ public:
 QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& bodyIds,bool allVisible) {
     auto error=[](const QString& code,const QString& message){return QJsonObject{{"ok",false},{"error",QJsonObject{{"code",code},{"message",message}}}};};
     if(!session_.isEmpty())return error("active_command","Finish or Cancel the active command before exporting");
-    if(document_->bodies().empty())return error("solid_required","Create or import a solid first");
+    if(document_->bodies().empty())return error("body_required","Create or import a body first");
     if(auto* existing=findChild<QDialog*>("mesh.export.dialog")){existing->raise();existing->activateWindow();return QJsonObject{{"visible",true}};}
     auto* dialog=new MeshExportDialog(this);dialog->setObjectName("mesh.export.dialog");dialog->setWindowTitle("Save As Mesh");
     dialog->setAttribute(Qt::WA_DeleteOnClose);dialog->setWindowModality(Qt::WindowModal);
@@ -67,7 +67,7 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
     }
     for(const auto& body:document_->bodies()){
         int instances=0;for(const auto& placed:presentationBodies())if(placed.bodyId==body.bodyId)++instances;
-        if(instances==1)bodies->addItem(body.name,body.bodyId);
+        if(instances==1)bodies->addItem(body.name+(body.summary.value("type")=="surface" ? " · Open surface — non-solid" : ""),body.bodyId);
     }
     if(const int index=bodies->findData(bodyId);index>=0)bodies->setCurrentIndex(index);
     const auto occurrences=LocalOccurrences::inspect(document_->authored(),document_->evaluation())["occurrences"].toArray();
@@ -84,7 +84,7 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
     form->addRow("Bodies / Component",bodies);
     auto* selected=new QListWidget(dialog);selected->setObjectName("mesh.export.bodyIds");
     for(const auto& body:document_->bodies()) {
-        auto* item=new QListWidgetItem(body.name+(body.visible ? QString{} : " (Hidden)"),selected);
+        auto* item=new QListWidgetItem(body.name+(body.summary.value("type")=="surface" ? " · Open surface — non-solid" : "")+(body.visible ? QString{} : " (Hidden)"),selected);
         item->setData(Qt::UserRole,body.bodyId);item->setFlags(item->flags()|Qt::ItemIsUserCheckable);
         item->setCheckState(bodyIds.contains(body.bodyId) || body.bodyId==bodyId ? Qt::Checked : Qt::Unchecked);
     }
@@ -97,6 +97,7 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
     auto* structure=new QComboBox;structure->setObjectName("mesh.export.structure");structure->setFocusPolicy(Qt::StrongFocus);
     structure->addItem("One File","oneFile");structure->addItem("One Body Per File","oneBodyPerFile");form->addRow("Structure",structure);
     auto* selectionSummary=new QLabel;selectionSummary->setObjectName("mesh.export.selectionCount");selectionSummary->setWordWrap(true);layout->addWidget(selectionSummary);
+    auto* surfaceWarning=new QLabel;surfaceWarning->setObjectName("mesh.export.surfaceWarning");surfaceWarning->setWordWrap(true);
     auto* parentRow=new QWidget;auto* parentLayout=new QHBoxLayout(parentRow);parentLayout->setContentsMargins(0,0,0,0);
     auto* parentDirectory=new QLineEdit(QDir::homePath());parentDirectory->setObjectName("mesh.export.parentDirectory");
     auto* browse=new QPushButton("Browse…");browse->setObjectName("mesh.export.browse");browse->setFocusPolicy(Qt::StrongFocus);
@@ -159,7 +160,7 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
     auto* previewButton=new QPushButton("Preview");previewButton->setObjectName("mesh.export.preview");layout->addWidget(previewButton);
     auto* count=new QLabel("Triangle Count: —");count->setObjectName("mesh.export.triangleCount");layout->addWidget(count);
     auto* policy=new QLabel("Alloy presets: Low 0.5 mm / 25° · Medium 0.1 mm / 10° · High 0.02 mm / 5°.\nMaximum Edge Length and Aspect Ratio are not yet available.");policy->setWordWrap(true);layout->addWidget(policy);
-    auto* status=new QLabel;status->setObjectName("mesh.export.status");status->setWordWrap(true);layout->addWidget(status);
+    auto* status=new QLabel;status->setObjectName("mesh.export.status");status->setWordWrap(true);layout->addWidget(status);layout->addWidget(surfaceWarning);
     auto* buttons=new QDialogButtonBox(QDialogButtonBox::Save|QDialogButtonBox::Cancel);layout->addWidget(buttons);
     connect(buttons,&QDialogButtonBox::rejected,dialog,&QDialog::reject);
     const auto settings=[=]{
@@ -176,12 +177,18 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
         const bool obj=format->currentData()=="obj";int size=0;QStringList bodyNames;std::vector<EvaluatedBody> chosen;
         try{chosen=ExportScope::select(document_->authored(),presentationBodies(),settings()).bodies;size=int(chosen.size());for(const auto& body:chosen)bodyNames.append(body.name);}
         catch(const GeometryKernel::EvaluationError& error){status->setText(error.diagnostics().value("message").toString());}
+        const bool hasSurface=std::any_of(chosen.begin(),chosen.end(),[](const auto& body){return body.summary.value("type")=="surface";});
+        const bool surfaceSupported=!hasSurface || (size==1 && (format->currentData()=="binary" || format->currentData()=="ascii"));
+        surfaceWarning->setVisible(hasSurface);
+        surfaceWarning->setText(surfaceSupported
+            ? "Open surface — non-solid\nThis STL contains an open, zero-thickness surface. It is not a closed volume and is not a printable solid."
+            : "Open surface — non-solid\nSelect exactly one open surface body and STL format. Mixed selections and surface OBJ/3MF export are not supported.");
         selectionSummary->setText(QString("Selected bodies: %1 · %2").arg(size).arg(bodyNames.join(", ")));
         structure->setEnabled(!obj && size>1);
         if((obj || size<=1) && structure->currentIndex()!=0){const QSignalBlocker blocker(structure);structure->setCurrentIndex(0);}
         updateFormat();
         const bool perBody=!obj && structure->currentData()=="oneBodyPerFile";
-        const bool preview=!obj && size==1 && !perBody;
+        const bool preview=surfaceSupported && !obj && size==1 && !perBody;
         dialog->setProperty("requiresMeshPreview",preview);
         previewButton->setVisible(preview);count->setVisible(preview);
         for(auto* field:QList<QWidget*>{parentRow,folderName,directory}){field->setVisible(perBody);if(auto* label=form->labelForField(field))label->setVisible(perBody);}
@@ -191,7 +198,7 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
             names->setText("New folder only; its parent must exist. Existing files, folders and symlinks are refused.\n"+files.join("\n"));}
         const auto invalidDestination=perBody ? destinationError() : QString{};
         if(perBody)status->setText(invalidDestination);
-        buttons->button(QDialogButtonBox::Save)->setEnabled(size>0 && !preview && invalidDestination.isEmpty());
+        buttons->button(QDialogButtonBox::Save)->setEnabled(surfaceSupported && size>0 && !preview && invalidDestination.isEmpty());
     };
     const auto invalidate=[=,this]{clearMeshPreview();dialog->setProperty("meshPreviewId",QString{});dialog->setProperty("meshPreviewPhase",QString{});count->setText("Triangle Count: —");updateScope();};
     connect(structure,&QComboBox::currentIndexChanged,dialog,invalidate);
@@ -212,7 +219,7 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
         // Resolve the sheet's legacy selectors to one exact instance at the shared boundary.
         QJsonObject exact=inputs;
         try{const auto chosen=ExportScope::select(document_->authored(),presentationBodies(),inputs);
-            if(chosen.bodies.size()!=1){status->setText("Preview supports exactly one committed solid instance.");return;}
+            if(chosen.bodies.size()!=1){status->setText("Preview supports exactly one committed body instance.");return;}
             exact.remove("bodyIds");exact.remove("allVisible");exact["bodyId"]=chosen.bodies.front().bodyId;
             if(!chosen.bodies.front().occurrenceId.isEmpty())exact["occurrenceId"]=chosen.bodies.front().occurrenceId;
         }catch(const GeometryKernel::EvaluationError& error){status->setText(error.diagnostics().value("message").toString());return;}
@@ -232,7 +239,7 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
             dialog->setProperty("meshPreviewPhase",phase);
             if(ready)status->setText("Preview ready.");
             else if(phase=="failed")status->setText(state.value("error").toObject().value("message").toString());
-            else if(phase!="pending")status->setText("Preview invalidated. Preview the current solid and settings again.");
+            else if(phase!="pending")status->setText("Preview invalidated. Preview the current body and settings again.");
         }
     });previewUi->start();
     connect(dialog,&QDialog::finished,this,[this]{clearMeshPreview();});
@@ -298,6 +305,11 @@ QJsonObject AlloyWindow::showMeshExport(const QString& bodyId,const QJsonArray& 
 
 QJsonObject AlloyWindow::beginMeshExport(const std::vector<EvaluatedBody>& bodies,const QJsonObject& inputs,const QString& label,const QString& format) {
     const auto structure=inputs.value("structure").toString("oneFile");
+    const bool hasSurface=std::any_of(bodies.begin(),bodies.end(),[](const auto& body){return body.summary.value("type")=="surface";});
+    if(format=="stl" && hasSurface && (bodies.size()!=1 || inputs.value("bodyId").toString().isEmpty() || structure!="oneFile")){
+        QJsonArray selected;for(const auto& body:bodies)selected.append(QJsonObject{{"bodyId",body.bodyId},{"bodyType",body.summary.value("type")}});
+        return {{"ok",false},{"error",QJsonObject{{"code","surface_scope_unsupported"},{"message","Open-surface STL requires one explicit bodyId and One File; mixed selections and surface batches are not supported"},{"selectedBodies",selected}}}};
+    }
     if(structure!="oneFile" && structure!="oneBodyPerFile")return {{"ok",false},{"error",QJsonObject{{"code","invalid_structure"},{"message","Structure must be oneFile or oneBodyPerFile"}}}};
     auto task=std::make_shared<GeometryEvaluation>();task->command=format=="3mf" ? "document.export3mf" : format=="obj" ? "document.exportObj" : "document.exportStl";task->phase="export";
     task->document=document_;task->documentId=document_->authored().value("documentId").toString();
@@ -510,8 +522,10 @@ QJsonObject AlloyWindow::previewMesh(const QJsonObject& args) {
     if(preset!="Custom" && (deviation!=presetDeviation || angle!=presetAngle))return fail("invalid_preset","Preset tolerances must match the explicit Alloy values");
     try {
         const auto selected=ExportScope::select(document_->authored(),presentationBodies(),args);
-        if(selected.bodies.size()!=1)return fail("single_solid_required","Preview supports exactly one committed solid instance");
-        const auto& body=selected.bodies.front();BRepBuilderAPI_Copy copy(body.shape,true,false);
+        if(selected.bodies.size()!=1)return fail("single_solid_required","Preview supports exactly one committed body instance");
+        const auto& body=selected.bodies.front();
+        if(body.summary.value("type")=="surface" && args.value("bodyId").toString().isEmpty())return fail("surface_scope_unsupported","Open-surface STL requires one explicit bodyId");
+        BRepBuilderAPI_Copy copy(body.shape,true,false);
         if(!copy.IsDone())return fail("export_failed","Cannot detach preview geometry");
         EvaluatedBody detached;detached.shape=copy.Shape();detached.bodyId=body.bodyId;detached.name=body.name;detached.occurrenceId=body.occurrenceId;detached.definitionId=body.definitionId;detached.summary=body.summary;
         gp_Trsf placement;

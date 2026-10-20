@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include "AlloyWindow.h"
 #include "AlloyTheme.h"
+#include "SketchGeometry.h"
 #include <QApplication>
 #include <QTest>
 #include <QTemporaryDir>
@@ -40,6 +41,32 @@ class MeshExportControlsTest final:public QObject {
  }
  void drain(AlloyWindow& w){QTRY_VERIFY_WITH_TIMEOUT(w.geometryEvaluationRunning_->ready.load(std::memory_order_acquire),10000);w.pollGeometryEvaluation();QVERIFY(!w.geometryEvaluationRunning_);}
 private slots:
+ void openSurfaceWarningAndPreview(){
+  QTemporaryDir dir;QVERIFY(dir.isValid());AlloyTheme::apply(*qApp);AlloyWindow w;w.resize(1400,900);w.show();QVERIFY(QTest::qWaitForWindowExposed(&w));
+  auto sketch=SketchGeometry::newFeature(w.document_->authored().value("documentId").toString(),"XY","Surface source");
+  sketch=SketchGeometry::addLine(sketch,{{"u1Mm",0},{"v1Mm",0},{"u2Mm",40},{"v2Mm",0}});
+  auto authored=w.document_->authored();auto features=authored.value("features").toArray();features.append(sketch);authored["features"]=features;
+  QVERIFY(w.document_->commit(authored,"Source").isEmpty());
+  const auto entity=sketch.value("parameters").toObject().value("entities").toArray().first().toObject().value("id");
+  authored=CadDocument::surfaceExtrudeCandidate(w.document_->authored(),{{"sketchId",sketch.value("id")},{"entityIds",QJsonArray{entity}},{"sideOneMm",5.0},{"sideTwoMm",5.0},{"name","Open sheet"}});
+  QVERIFY(w.document_->commit(authored,"Surface").isEmpty());
+  const auto body=w.document_->bodies().front().bodyId;call(w,"view.fit");const auto before=call(w,"document.inspect");
+  const auto evidence=qEnvironmentVariable("ALLOY_TEST_EVIDENCE_DIR");
+  call(w,"document.exportMeshDialog",{{"bodyId",body}});QPointer<QDialog> dialog=w.findChild<QDialog*>("mesh.export.dialog");QVERIFY(dialog);
+  auto* warning=dialog->findChild<QLabel*>("mesh.export.surfaceWarning");QVERIFY(warning && warning->isVisible());
+  QVERIFY(warning->text().contains("Open surface — non-solid"));QVERIFY(warning->text().contains("not a printable solid"));
+  QVERIFY(dialog->findChild<QComboBox*>("mesh.export.body")->currentText().contains("non-solid"));
+  auto* save=dialog->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Save);QVERIFY(!save->isEnabled());
+  if(!evidence.isEmpty())call(w,"capture.screenshot",{{"path",evidence+"/surface-warning.png"}});
+  QTest::mouseClick(dialog->findChild<QPushButton*>("mesh.export.preview"),Qt::LeftButton);
+  QTRY_VERIFY_WITH_TIMEOUT(save->isEnabled(),15000);QVERIFY(warning->isVisible());
+  if(!evidence.isEmpty())call(w,"capture.screenshot",{{"path",evidence+"/surface-preview.png"}});
+  const auto prepared=call(w,"document.meshPreview");QCOMPARE(prepared.value("bodyType").toString(),QString("openSurface"));QCOMPARE(prepared.value("solid"),QJsonValue(false));
+  const auto result=call(w,"document.saveMeshPreview",{{"previewId",prepared.value("previewId")},{"path",dir.filePath("sheet.stl")}});
+  QCOMPARE(result.value("closedVolume"),QJsonValue(false));QVERIFY(QFile::exists(dir.filePath("sheet.stl")));QCOMPARE(call(w,"document.inspect"),before);
+  auto* format=dialog->findChild<QComboBox*>("mesh.export.format");format->setCurrentIndex(format->findData("3mf"));QVERIFY(!save->isEnabled());QVERIFY(warning->text().contains("not supported"));
+  dialog->reject();QTRY_VERIFY(dialog.isNull());QCOMPARE(call(w,"document.inspect"),before);
+ }
  void preparedPreviewLifecycle(){
   QTemporaryDir dir;QVERIFY(dir.isValid());AlloyWindow w;
   call(w,"solid.box",{{"width",20},{"depth",10},{"height",15},{"units","mm"}});
