@@ -7,8 +7,8 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **712 issues**: **562 implementation, 24 research,
-6 research/design, 22 epics, and 98 validation gates**. Counts describe decomposition, not coverage.
+The current local backlog contains **714 issues**: **563 implementation, 24 research,
+6 research/design, 22 epics, and 99 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 [Connected-Line Surface Revolve](../validation/surface-revolve-chain.md) accepts
 the joined-Line first-v1 minimum under SRF-037/#660. Canvas selection and angle

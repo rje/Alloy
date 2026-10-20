@@ -1,3 +1,14 @@
+## 2026-10-20 two-sheet Stitch work started
+
+The first-v1 [Surface Stitch minimum](v1/open-row-disposition.md) has a dated
+public/OCCT contract outside git under
+`../Alloy-reference-records/knowledge/specs/srf006-stitch-2026-10-20.md`.
+SRF-056/#716 owns one retained two-sheet matching-edge open-shell kernel/API
+slice; SRF-057/#717 owns native selection, preview, gap/tolerance display and
+physical/GPU qualification. Both are open and unverified. SRF-006/#65 retains
+general networks, healing choices and closed-solid promotion. The canonical
+backlog has 714 issues; no paid CI or release was run.
+
 ## 2026-10-20 connected-Line Surface Revolve accepted
 
 [SRF-037/#660](validation/surface-revolve-chain.md) accepts one retained connected
