@@ -3715,7 +3715,8 @@
         "SRF-047",
         "SRF-048",
         "SRF-049",
-        "SRF-050"
+        "SRF-050",
+        "SRF-054"
       ],
       "labels": [
         "kind:validation",
@@ -10826,7 +10827,7 @@
         "priority:P1",
         "area:srf"
       ],
-      "body": "## Bounded result\nReport sampled positional and tangent continuity with an explicit method and units for one supported shared boundary.\n\nThis is a finishable child of SRF-008; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Measure positional and tangent deviation for one known continuous and one known discontinuous face pair.\n- Report sample method/count, units, and numeric values independently from any display overlay.\n- Verify source edits update measurements and inspection leaves authored geometry/history unchanged.\n- Verify deterministic results on save/reopen for the same model and sampling settings.\n\n## Preserved remainder\nG2/advanced continuity analysis, curvature-comb tooling, and broad sampling controls remain under SRF-008.\n"
+      "body": "## Bounded result\nReport sampled positional and tangent-plane continuity for two distinct retained planar faces on one exact shared straight topological edge of the same current visible body occurrence. This is a finishable child of SRF-008, not a claim of all boundary-pair workflows or exact reference UI parity.\n\n## Acceptance criteria\n- Require two explicit exact current face references and one explicit retained edge ID. Verify that the same edge belongs to both actual faces and the current body, with unique occurrence resolution; refuse guesses, stale registries and unsupported topology.\n- At nine documented shared-edge parameter samples, independently evaluate each face's pcurve and world-space surface point/normal. Report every positional gap in mm, unoriented tangent-plane angle in degrees, maxima, face-orientation diagnostic, sample count/method and explicit provisional Alloy thresholds of 0.001 mm and 0.1 degrees. No finite sample set proves whole-boundary continuity.\n- Verify one coplanar G0/G1 pair and one exact shared-edge kink where G0 passes but G1 fails. Source edits update numeric results; inspection is independent of Zebra and leaves authored geometry, dirty state and history unchanged. Save/reopen reproduces deterministic numeric fields.\n- Provide shared UI/API selection and a readable result; GPU and native interaction evidence must be stated separately.\n\n## Linked remainder\nSRF-052 owns two distinct near-coincident boundary edges and a positive-gap G0 failure fixture; SRF-053 owns curved/shared-edge families; SRF-054 owns actual-hit native panel/selection and 1x/2x visual qualification under the locked Mac console. G2, curvature combs and broad sampling controls remain SRF-008.\n"
     },
     {
       "key": "SRF-036",
@@ -11423,6 +11424,36 @@
       "depends_on": ["SRF-034"],
       "labels": ["kind:implementation", "phase:P4", "priority:P2", "area:srf"],
       "body": "## Documented workflow remainder\nPublic instructions describe body selection through Inspect > Zebra Analysis, a saved Browser > Analysis result, visibility toggle, Edit and Direction, Repeats, Opacity, Lock Stripes and High Quality settings. Implement that body-level retained workflow with explicit research of defaults and visual behavior before coding. Keep analysis metadata distinct from modeled geometry and feature history.\n\n## Acceptance criteria\n- Select supported body faces through the shared native/API workflow, preview settings, OK to create one saved analysis record, edit settings/target and toggle its Browser visibility. Save/reopen retains the analysis and Undo/Redo behavior is documented and verified.\n- Exercise horizontal/vertical direction, repeats, opacity, camera-relative Lock Stripes and quality/performance setting on planar and curved bodies. Compare actual GPU captures at matched public state where evidence allows; record unknown defaults or mismatch rather than asserting exact parity.\n- Preserve original geometry and existing feature history, verify independent saved-model state, and keep numeric continuity under SRF-035.\n\n## Preserved remainder\nCurvature maps/combs, broader sampling and advanced continuity remain SRF-008.\n"
+    },
+    {
+      "key": "SRF-052",
+      "title": "Measure positional gap across distinct paired surface boundaries",
+      "kind": "implementation",
+      "phase": "P4 Full replacement",
+      "priority": "P2",
+      "depends_on": ["SRF-035"],
+      "labels": ["kind:implementation", "phase:P4", "priority:P2", "area:srf"],
+      "body": "## Preserved distinct-edge continuity work\nSRF-035's first slice requires one exact shared topological edge; such a boundary cannot represent an independently separated gap. Extend inspection to two distinct explicitly selected retained boundary edges without guessing correspondence. This is a broader Alloy analysis proposal, not a documented direct-reference numeric workflow.\n\n## Acceptance criteria\n- Resolve two current exact face/edge pairs, require unambiguous endpoint orientation and normalized arc-length correspondence, and report per-sample positional gap and tangent-plane angle with method, units, thresholds and finite-sampling limits. Refuse unequal/ambiguous or stale pairs atomically.\n- Verify a known 0.02 mm separated planar pair, a 5 degree kink and a zero-gap continuation independently. Source edits, Undo/Redo and save/reopen update the values without authoring geometry/history.\n- Expose the paired-edge selection through the shared control API and native UI, with qualified actual-hit selection and GPU visual cue before claiming native completion.\n\n## Preserved remainder\nCurved/unequal-parameter families remain SRF-053; G2 and broad controls remain SRF-008.\n"
+    },
+    {
+      "key": "SRF-053",
+      "title": "Measure continuity on curved and nonuniform shared boundaries",
+      "kind": "implementation",
+      "phase": "P4 Full replacement",
+      "priority": "P2",
+      "depends_on": ["SRF-035"],
+      "labels": ["kind:implementation", "phase:P4", "priority:P2", "area:srf"],
+      "body": "## Preserved curved continuity work\nExtend the SRF-035 analytic shared-straight-edge method to supported curved surfaces and nonuniform shared boundaries with explicit correspondence and sampling error limits. Do not reuse straight-edge uniform-parameter spacing as an unstated arc-length method.\n\n## Acceptance criteria\n- Research permitted public curved continuity workflows and choose one retained cylinder/plane or two-curved-face boundary with known G0/G1 values. Resolve exact current face/edge identities, seams and orientations; sample by declared arc-length or bounded adaptive method, reporting locations, deviations, units, tolerances and limitations.\n- Independently verify a known smooth and kinked case, source-edit refresh, refusal on singular/ambiguous correspondence, passive history/Undo and deterministic reopen through the real app.\n- Qualify the native selection and GPU cue at supported scale separately from numeric evidence.\n\n## Preserved remainder\nG2 curvature, broad surface families and user sampling controls remain SRF-008.\n"
+    },
+    {
+      "key": "SRF-054",
+      "title": "Qualify native shared-edge continuity selection and numeric panel",
+      "kind": "validation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": ["SRF-035"],
+      "labels": ["kind:validation", "phase:P3", "priority:P1", "area:srf"],
+      "body": "## Bounded first-v1 native inspection gate\nSRF-035 owns a read-only sampled G0/G1 report for two retained planar faces on one exact shared straight edge. Qualify its actual user-facing selections and numeric panel when the Mac console is unlocked; do not use Zebra stripes as numeric proof.\n\n## Acceptance criteria\n- Through the actual Inspect action, select the two distinct face widgets and the exact shared edge by physical viewport hits with clear first/second/edge feedback, no implicit first-common-edge guess and no harness focus repair. Verify pending, valid, stale and unsupported states plus Cancel/close/readiness.\n- Inspect readable max-gap/max-angle values, units, sample count/method, threshold and orientation diagnostics at 1x/2x in whole-app GPU captures; the panel must not cover the selected seam or contradict the API result.\n- Exercise coplanar and kinked source edits, Undo/Redo and save/reopen from native input, checking authored/revision/dirty/Undo invariance for inspection. Record vendor/renderer/version/framebuffer and public-reference limits; close the private editor.\n\n## Preserved remainder\nDistinct-edge gaps SRF-052, curved boundaries SRF-053 and G2/advanced controls SRF-008; Windows/Linux packaged runtime stays GATE-050.\n"
     }
   ]
 }
