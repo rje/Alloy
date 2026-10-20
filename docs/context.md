@@ -1,11 +1,11 @@
-## 2026-10-20 SKT-172 bounded visual candidate
+## 2026-10-20 SKT-172 bounded visual acceptance
 
 [Bracket A2 visual receipt](validation/bracket-visual.md) records supported
 linear context-menu grouping, blue authored sketch-curve selection and local
-midpoint/tangent badge anchors with shared hit bounds. Candidate verification
-uses `build-preview-release` Release/private Qt and external
-`validation/skt172-2026-10-20/qt-final2/`; independent review is pending.
-Full public marking-menu shell/layout remains mismatch SKT-173; native physical
+midpoint/tangent badge anchors with shared hit bounds. Independent Sol review
+accepted the Qt actual-hit, focused core and Apple M4 GPU evidence from
+`build-preview-release` and external `validation/skt172-2026-10-20/qt-final2/`.
+Full public marking-menu shell/layout remains mismatch SKT-173/#696; native physical
 activation/right-click remains SKT-171/#694. Neither is silently accepted.
 
 ## 2026-10-20 SKT-170 bounded bracket end-circle acceptance

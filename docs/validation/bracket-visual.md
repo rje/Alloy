@@ -1,9 +1,10 @@
 # Bracket Activity 2 visual checkpoints
 
-SKT-172/#695 bounded candidate, 2026-10-20; independent review pending.
+SKT-172/#695 bounded increment accepted 2026-10-20. Independent Sol
+source/evidence review found no blocker for the recorded scope.
 This refines the existing [A2 geometry/input fixture](bracket-midpoint.md).
-Full public marking-menu layout remains a mismatch requiring the linked
-SKT-173 follow-up before the original visual requirement can be considered closed.
+Full public marking-menu layout remains a mismatch under SKT-173/#696 before
+the original visual requirement can be considered closed.
 Strict native activation/physical input remains SKT-171/#694.
 
 The compact before/after specification is external:
@@ -62,7 +63,7 @@ prior and candidate captures without shipping any reference assets.
 | Checkpoint | Result | Evidence and remaining limits |
 |---|---|---|
 | Construction menu supported sketch order | Matched | Dimension, construction and the supported relation order match the observed linear block; actual action hit still converts both caps. |
-| Full context/marking layout | Mismatch | The radial shell, broader navigation/modeling commands, icons and compact row metrics are absent/different; SKT-173 owns a separate bounded implementation/research pass. |
+| Full context/marking layout | Mismatch | The radial shell, broader navigation/modeling commands, icons and compact row metrics are absent/different; SKT-173/#696 owns the separate bounded implementation. |
 | Selected end caps | Matched category | Blue selected caps replace orange; IDs and additive selection remain exact. Exact color/line-width parity is unknown. |
 | Construction | Matched category | Dashed source caps remain separate from solid profile edges and excluded from profile detection. Exact dash metrics are unknown. |
 | Inference cues | Matched category | Existing midpoint triangle and tangent square remain at actual inferred inputs; the final relations are inspected independently. |
@@ -75,3 +76,10 @@ Fit then 0.75 zoom, unchanged fixture and camera. Public images are cropped
 canvases with unspecified version, platform, DPR and viewport scale. The
 comparison establishes categories/order/readability, never pixel-exact parity.
 No CI, tag, push or release was performed.
+
+The independent review inspected both archived public checkpoints and actual
+final Apple GPU captures, checked the shared command routes and test-only JSON
+ownership fix, and accepted the supported order, color category and badge
+placement. It did not qualify physical native right-click, DPR1, other-platform
+runtime or exact pixel identity. Those remaining requirements stay in
+SKT-171/#694, SKT-173/#696 and the release gates.
