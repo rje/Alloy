@@ -1,3 +1,4 @@
+#include "BodyCopy.h"
 #include "PlanarFaces.h"
 #include "PrimitiveTopology.h"
 #include "SolidFillet.h"
@@ -1197,6 +1198,8 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                         throw;
                     }
                 } else evaluated.sketches.push_back(SketchGeometry::evaluateFeature(feature,resolvedFrame,projectionContext(evaluated,feature)));
+            } else if(type=="bodyCopy") {
+                evaluated.bodies.push_back(BodyCopy::evaluate(feature));
             } else if (type == "stepImport" || type == "stepAssemblyImport") {
                 const auto failStep=[&](const QString& code,const QString& message) {
                     auto details=context;details["code"]=code;details["message"]=message;

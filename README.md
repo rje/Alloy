@@ -1,5 +1,7 @@
 # Alloy
 
+[Independent Body Copy](docs/validation/body-copy.md) has a bounded root-solid snapshot candidate with explicit XYZ placement, independent source/copy edits, retained history/reopen and checked STEP/STL exports. Native Browser input is pending the locked-console gate.
+
 Current direction: [printable-part v1 plan](https://alloy-v1-review.rjevans1.chatgpt.site) and [versioned inventory](docs/v1/README.md). The user reviewed the design as a reasonable working direction; individual gaps still require bounded completion and verification. The corrected iron and the [cumulative adapted enclosure tutorial](docs/validation/enclosure-cumulative-gate.md) are accepted, with their documented limits.
 
 [Polygon solid Extrude taper](docs/validation/extrude-taper.md) has a bounded signed-angle New Body candidate: convex/concave preview/edit, positive-cap downstream recompute, native angle/Cancel/OK and checked STL pass. Independent review remains pending.

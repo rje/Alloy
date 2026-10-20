@@ -90,6 +90,12 @@ private:
     void registerCylindricalCommands();
     void registerLocalReferenceCommands();
     void registerComponentCopyCommands();
+    void registerBodyCopyCommands();
+    QJsonObject bodyCopyCandidate(const QJsonObject& args) const;
+    QJsonObject beginBodyCopy(const QJsonObject& args);
+    QJsonObject previewBodyCopy();
+    QJsonObject bodyClipboard_;
+    QDockWidget* bodyCopyDock_=nullptr;
     QJsonObject beginComponentCopy(const QJsonObject& args);
     QJsonObject previewComponentCopy();
     QJsonObject updateComponentCopy(const QJsonObject& changes);

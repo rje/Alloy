@@ -123,6 +123,7 @@ public:
     static QJsonObject mirrorCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QJsonObject featureMirrorCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QJsonObject reorderCandidate(const QJsonObject& authored,const QString& featureId,const QString& afterFeatureId);
+    static QJsonObject bodyCopyCandidate(const QJsonObject& authored,const QJsonObject& snapshot,const QJsonObject& arguments);
     static QJsonObject moveCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QJsonObject booleanCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QString validate(const QJsonObject& candidate);

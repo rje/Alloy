@@ -1,3 +1,4 @@
+#include "BodyCopy.h"
 #include "SolidFillet.h"
 #include "CadDocument.h"
 #include "SurfaceExtrude.h"
@@ -2209,6 +2210,18 @@ QJsonObject CadDocument::featureMirrorCandidate(const QJsonObject& authored,cons
     if(index>=0)features[index]=feature;else features.append(feature);candidate["features"]=features;
     const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
 }
+QJsonObject CadDocument::bodyCopyCandidate(const QJsonObject& authored,const QJsonObject& snapshot,const QJsonObject& arguments) {
+    const QSet<QString> allowed{"ownerId","name","xMm","yMm","zMm","newFeatureId","newBodyId"};
+    for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Body Copy argument");
+    QJsonObject parameters{{"snapshot",snapshot}};
+    for(const auto* key:{"xMm","yMm","zMm"})parameters[key]=arguments.contains(key)?arguments[key]:QJsonValue(0.0);
+    const auto error=BodyCopy::validate(parameters);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());
+    QJsonObject feature{{"id",arguments.value("newFeatureId").toString(newId())},{"bodyId",arguments.value("newBodyId").toString(newId())},
+        {"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","bodyCopy"},
+        {"name",arguments.value("name").toString("Body Copy")},{"visible",true},{"parameters",parameters}};
+    auto candidate=authored;auto features=authored["features"].toArray();features.append(feature);candidate["features"]=features;
+    const auto structure=validateStructure(candidate);if(!structure.isEmpty())throw std::invalid_argument(structure.toStdString());return candidate;
+}
 QJsonObject CadDocument::moveCandidate(const QJsonObject& authored, const QJsonObject& arguments) {
     const QSet<QString> allowed{"ownerId","targetBodyId","xMm","yMm","zMm","xDeg","yDeg","zDeg","pivotXMm","pivotYMm","pivotZMm","name","featureId","newFeatureId","steps"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Move argument");
@@ -2443,6 +2456,10 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             if(!pinnedOccurrenceId.isEmpty())return "This slice supports one root Pin";
             pinnedOccurrenceId=p["occurrenceId"].toString();
             continue;
+        }
+        if(type=="bodyCopy") {
+            const auto body=feature["bodyId"].toString();if(!validId(body) || ids.contains(body))return "Invalid or duplicate Body Copy body UUID";
+            ids.insert(body);const auto error=BodyCopy::validate(p);if(!error.isEmpty())return error;continue;
         }
         if (type == "stepImport" || type == "stepAssemblyImport") {
             const auto bodyId=feature["bodyId"].toString();

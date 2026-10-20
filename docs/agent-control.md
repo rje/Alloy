@@ -1135,3 +1135,14 @@ The shared evaluator normalizes them to one shifted prism and preserves the
 positive-cap support ID. Existing One Side defaults and signed offsets remain.
 Use numeric fields; `solid.extrudeDrag` explicitly refuses the new modes.
 See [bounded workflow](research/commands/extrude-symmetric-two-sides.md).
+
+### Independent root-body snapshot
+
+`body.copySelection {bodyId}` freezes one committed root solid immediately.
+`body.pasteDialog {name?,xMm?,yMm?,zMm?}` opens numeric XYZ placement using the
+shared command lifecycle; `body.paste` directly commits the same frozen snapshot.
+Distances are canonical millimeters and default to zero. The clipboard is scoped
+to the same design/tab and does not follow source edits. Inspect `bodyCopy` authored
+IDs/snapshot digest and evaluated bodies with `document.inspect`. Copied topology
+is not named; explicit body-targeted Cut/Move remains available. See
+[the bounded contract and qualification](validation/body-copy.md).

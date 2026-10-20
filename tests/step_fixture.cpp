@@ -46,13 +46,23 @@ int main(int argc,char** argv) {
             printJson({{"written",true},{"units",args[3]},{"solidCount",args[4]=="multi" ? 2 : 1}});
             return 0;
         }
-        require(args[1]=="read" && args.size()==3,"read takes one path");
+        require((args[1]=="read" || args[1]=="read-all") && args.size()==3,"read or read-all takes one path");
         STEPControl_Reader reader;require(reader.ReadFile(path.constData())==IFSelect_RetDone,"STEP read failed");
         TColStd_SequenceOfAsciiString length,angle,solidAngle;reader.FileUnits(length,angle,solidAngle);
         QJsonArray units;for(Standard_Integer index=1;index<=length.Length();++index)units.append(QString::fromUtf8(length.Value(index).ToCString()));
         reader.SetSystemLengthUnit(1.0);const auto roots=reader.NbRootsForTransfer();
         const auto transferred=reader.TransferRoots();require(transferred==roots,"incomplete transfer");
         const auto shape=reader.OneShape();TopTools_IndexedMapOfShape solids;TopExp::MapShapes(shape,TopAbs_SOLID,solids);
+        if(args[1]=="read-all"){
+            QJsonArray records;
+            for(int index=1;index<=solids.Extent();++index){
+                const auto solid=solids(index);Bnd_Box bounds;BRepBndLib::Add(solid,bounds);
+                Standard_Real x1,y1,z1,x2,y2,z2;bounds.Get(x1,y1,z1,x2,y2,z2);
+                GProp_GProps mass;BRepGProp::VolumeProperties(solid,mass);
+                records.append(QJsonObject{{"valid",BRepCheck_Analyzer(solid).IsValid()},{"boundsMm",QJsonArray{x1,y1,z1,x2,y2,z2}},{"volumeMm3",mass.Mass()}});
+            }
+            printJson({{"solidCount",solids.Extent()},{"solids",records},{"fileLengthUnits",units},{"rootCount",roots},{"transferredRoots",transferred}});return 0;
+        }
         require(solids.Extent()==1,"expected exactly one independent solid");
         const auto solid=solids(1);Bnd_Box bounds;BRepBndLib::Add(solid,bounds);
         Standard_Real x1,y1,z1,x2,y2,z2;bounds.Get(x1,y1,z1,x2,y2,z2);
