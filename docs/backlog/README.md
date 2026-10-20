@@ -11,8 +11,9 @@ The current local backlog contains **702 issues**: **553 implementation, 24 rese
 5 research/design, 22 epics, and 98 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 SKT-097/#502 accepts a bounded retained rectangular sketch-circle pattern and
-shared ownership foundation; the original circular half remains linked Todo
-SKT-177/#700. Familiar rectangular canvas picks/manipulators remain SKT-178/#701; circular picks/manipulators remain SKT-182/#705.
+shared ownership foundation; SKT-177/#700 accepts circular Full/Angle patterns.
+Familiar rectangular canvas picks/manipulators remain SKT-178/#701; circular
+picks/manipulators remain SKT-182/#705.
 Both pattern modes are required for proposed-v1 sketch patterns, with the public
 contract and engineering note outside the repository. SKT-098/#503 now owns
 Move alone; Copy, Rotate and Scale remain linked Todo SKT-179–181/#702–704.

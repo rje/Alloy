@@ -5297,7 +5297,7 @@ void AlloyWindow::registerCommands() {
         if(!session_.value("command").toString().startsWith("sketch."))return failure("no_active_sketch","Enter a sketch first");
         if(session_.contains("pendingDrivenOffer"))return failure("pending_dimension_offer","Choose Add Driven or Cancel before finishing the sketch");
         if(session_.contains("pendingProject"))return failure("pending_project","Accept or cancel Project before finishing the sketch");
-        if(session_.contains("pendingSketchPattern"))return failure("pending_pattern","Accept or cancel Rectangular Pattern before finishing the sketch");
+        if(session_.contains("pendingSketchPattern"))return failure("pending_pattern","Accept or cancel the sketch pattern before finishing the sketch");
         hideSlotEditor();
         return finishSession(session_.value("id").toString(),true);
     });

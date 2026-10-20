@@ -41,7 +41,7 @@ void AlloyWindow::registerSketchPatternCommands(){
   return QJsonObject{{"pending",true},{"authoredChange",false},{"quantitySemantics","Total includes source"},{"patternGroup",solved.feature["parameters"].toObject()["patternGroups"].toArray().first()},{"sketchGeometry",geometry.summary},{"diagnostics",solved.diagnostics}};
  });
  add("sketch.patternAccept","Accept Sketch Pattern",{},[this](const auto&){
-  const auto pending=session_["pendingSketchPattern"].toObject();if(pending.isEmpty())return failure("pattern_preview_required","Preview Rectangular Pattern first");
+  const auto pending=session_["pendingSketchPattern"].toObject();if(pending.isEmpty())return failure("pattern_preview_required","Preview a sketch pattern first");
   if(pending["base"]!=session_["draftSketch"])return failure("stale_pattern_preview","The sketch changed; preview again");
   return publishSketchSolve(SketchGeometry::solveDraft(pending["draft"].toObject(),session_["projectionContext"].toObject()));
  });

@@ -89,7 +89,7 @@ Clang, `-j4`. No CI, tag or release was run. External evidence:
   independently assigns 864 wall-vertex samples to each of the six analytically
   predicted centers, radius 2 and full thickness 0..5. The mesh has 3492 triangles;
   mesh volume is 13373.12848875577 mm³ and is separately reported in `report.json`.
-- `sketch_circular_pattern_controls_test`: normal actual-hit Create/Cancel/OK,
+- `sketch_circular_pattern_controls_test`: action-triggered Create opening, then actual-hit Cancel/OK,
   center glyph double-click, Quantity 6→8, Angular Spacing native popup selection,
   four-instance 120-degree Angle, typed 150-degree edit, Cancel, commit and distinct
   Undo/Redo. The fixture observes popup readiness/closure and actual focus before
@@ -97,14 +97,16 @@ Clang, `-j4`. No CI, tag or release was run. External evidence:
   selection repair. Final native run: 3/3 Qt functions pass in 5.470 seconds, including
   exact glyph-center pixel alignment and a disabled Full-mode Total Angle field.
 - Existing rectangular actual-hit shared-controls regression: 3/3 Qt functions
-  pass in the initial 4.164-second run. This is separate from the circular native workflow.
+  pass in the final 4.143-second run. This is separate from the circular native workflow.
 
 Actual Full/Angle controls, center glyph, analytic-circle profiles and six-hole
 solid GPU captures were inspected. Apple M4 / Apple, OpenGL `4.1 Metal - 90.5`,
 DPR2 and native FBO dimensions are recorded. No new renderer/backend policy was
 introduced. These are Qt-delivered component inputs and local macOS GPU evidence;
 physical OS input, native DPR1 and packaged Windows/Linux runtime remain release
-gates. Independent compatibility review remains pending with root.
+gates. Independent Astra source/evidence review accepted the bounded candidate,
+recomputing Full/Angle/final centers to 1.8e-15 mm maximum error, 32 UUIDv5
+fields and independent STL topology/volume. This review found no blocker.
 
 ## Explicit remainder
 

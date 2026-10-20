@@ -1,3 +1,23 @@
+## 2026-10-20 SKT-177 circular Pattern acceptance
+
+[Bounded receipt](validation/sketch-circular-pattern.md) accepts one ordinary
+source Circle patterned around a standalone authored Point in Full/Angle modes,
+with explicit total Quantity, Total Angle, source-only solve, stable indexed
+instances, owner-safe refusals and a center-glyph edit route. The shared numeric
+native/API command passes a 90-call real-executable six-hole plate, source and
+center edits, history/reopen, missing-profile refusal and independent watertight
+STL readback. Circular Qt actual-hit controls/glyph pass 3/3; its Create action
+was triggered by the fixture. Rectangular shared-controls regression passes 3/3.
+Independent Astra review recomputed centers, 32 UUIDv5 fields and manifold
+mesh/volume without a blocker. Build is `build-preview-release`, Release/private
+Qt 6.11.2/OCCT 7.9.3, `-j4`; external evidence is under
+`../Alloy-reference-records/validation/skt177-2026-10-20/`. SKT-177/#700 is
+closed/Done. Circular canvas picks/manipulators remain SKT-182/#705 Todo;
+rectangular canvas input remains SKT-178/#701 Todo. Broader seeds, Symmetric and
+suppression remain ADV-005. Physical/native DPR1 and packaged Windows/Linux
+runtime remain separate; no CI or release was run. Private fixture editors
+closed; the preexisting user-owned Alloy PID 72618 was preserved.
+
 ## 2026-10-20 SKT-097 rectangular Pattern acceptance
 
 [Bounded contract](validation/sketch-rectangular-pattern.md) records one retained
@@ -14,7 +34,7 @@ evidence. External evidence is under
 `build-preview-release`, Release/private Qt 6.11.2/OCCT 7.9.3, `-j4`.
 Final external runs: `native-candidate/` and `api-candidate/`; prior failed
 qualification receipts remain separate. Both private editors are closed.
-SKT-097/#502 is closed/Done. Circular Full/Angle is SKT-177/#700 Todo;
+SKT-097/#502 is closed/Done. Circular Full/Angle is accepted under SKT-177/#700;
 rectangular canvas picking/manipulators are SKT-178/#701 Todo. Wider
 seeds/modes/suppression remain ADV-005. No CI or release was run.
 
