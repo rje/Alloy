@@ -52,7 +52,9 @@ OCCT 7.9.3, Apple Clang, `-j4`. External evidence is under
   Cancel/Escape/OK, distinct Undo/Redo, actual glyph edit/Cancel, six-profile
   through Cut, save/exact authored reopen and STL. Initial run: 3/3 functions,
   12.692 s. The label-placement follow-up repeats the complete gate: 3/3,
-  12.690 s, with evidence in `native-labels/`.
+  12.690 s, with evidence in `native-labels/`. A final text-only D2 offset
+  clears the vertical construction Line; `label-clearance/handles-clearance.png`
+  captures the reopened real-app editor after that adjustment.
 - `native-initial/` holds source-hover, four-handle, invalid-drag and printable
   six-hole solid captures, native-picked model/STL and full report/transcript.
   Input is delivered to the widget receiving the real hit. The fixture verifies
