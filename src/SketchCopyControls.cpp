@@ -1,0 +1,55 @@
+// SPDX-License-Identifier: MIT
+#include "AlloyWindow.h"
+#include "ReferenceView.h"
+#include <QDialog>
+#include <QDialogButtonBox>
+#include <QDockWidget>
+#include <QDoubleSpinBox>
+#include <QFormLayout>
+#include <QLabel>
+#include <QPushButton>
+#include <QShortcut>
+#include <QSignalBlocker>
+#include <QUuid>
+#include <QVBoxLayout>
+namespace {
+QJsonObject fail(const QString& code,const QString& message){return {{"ok",false},{"error",QJsonObject{{"code",code},{"message",message}}}};}
+class PasteDock final:public QDockWidget{public:using QDockWidget::QDockWidget;std::function<void()> closed;protected:void closeEvent(QCloseEvent* e)override{if(closed)closed();QDockWidget::closeEvent(e);}};
+}
+void AlloyWindow::closeSketchPasteControls(){
+ session_.remove("pasteInteraction");session_.remove("pendingSketchPaste");auto* panel=sketchPasteDialog_.data();sketchPasteDialog_=nullptr;
+ if(panel){QObject::disconnect(panel,SIGNAL(rejected()),panel,nullptr);panel->hide();if(auto* dock=dynamic_cast<PasteDock*>(panel->parentWidget())){dock->closed={};dock->hide();dock->deleteLater();}else panel->deleteLater();}
+ if(session_["command"]=="sketch.edit"){view_->showSketchDraft(evaluateSketchDraft(session_["draftSketch"].toObject()));refreshSketchControls();if(sketchDock_)sketchDock_->raise();view_->setFocus(Qt::OtherFocusReason);}
+}
+void AlloyWindow::registerSketchCopyCommands(){
+ auto add=[this](const QString& id,const QJsonObject& schema,std::function<QJsonObject(const QJsonObject&)> run){commands_.push_back({id,id,"Independent in-sketch four-Line Copy/Paste",schema,true,std::move(run)});};
+ const QJsonObject number{{"type","number"},{"minimum",-100000},{"maximum",100000}};const QJsonObject optionalNumber{{"type","number"},{"minimum",-100000},{"maximum",100000},{"required",false}};
+ add("sketch.copy",{{"entityIds",QJsonObject{{"type","array"},{"required",false}}}},[this](const auto& a){
+  if(session_["command"]!="sketch.edit")return fail("no_active_sketch","Copy requires an active XY sketch");if(session_.value("tool")!="select")return fail("pending_input_active","Return to Select before Copy");if(session_.contains("pasteInteraction") || session_.value("moveInteraction").toObject().value("active").toBool())return fail("active_sketch_input","Accept or cancel the active placement first");
+  const auto ids=a.contains("entityIds") ? a["entityIds"].toArray() : session_["selection"].toObject()["entityIds"].toArray();const auto captured=SketchGeometry::copyProfileSelection(session_["draftSketch"].toObject(),ids,session_["projectionContext"].toObject());if(!captured.ok)return fail("sketch_copy_failed",captured.error);
+  sketchClipboard_=captured.diagnostics["clipboard"].toObject();sketchClipboard_["documentId"]=document_->authored()["documentId"];return QJsonObject{{"copied",true},{"entityIds",ids},{"clipboard",sketchClipboard_},{"authoredChange",false}};
+ });
+ add("sketch.clipboardInspect",{},[this](const auto&){return QJsonObject{{"available",!sketchClipboard_.isEmpty()},{"clipboard",sketchClipboard_},{"authoredChange",false}};});
+ add("sketch.pastePreview",{{"x",number},{"y",number},{"units",QJsonObject{{"type","string"},{"enum",QJsonArray{"mm","in"}},{"required",false}}}},[this](const auto& a){
+  if(session_["command"]!="sketch.edit" || !session_.contains("pasteInteraction"))return fail("no_paste_input","Invoke Paste first");auto interaction=session_["pasteInteraction"].toObject();const auto units=a["units"].toString(interaction["units"].toString("mm"));interaction["xMm"]=CadDocument::millimeters(a["x"].toDouble(),units);interaction["yMm"]=CadDocument::millimeters(a["y"].toDouble(),units);session_["pasteInteraction"]=interaction;
+  const auto solved=SketchGeometry::pasteProfile(session_["draftSketch"].toObject(),interaction["clipboard"].toObject(),{{"copyId",interaction["copyId"]},{"deltaUMm",interaction["xMm"]},{"deltaVMm",interaction["yMm"]}},session_["projectionContext"].toObject());
+  QString error=solved.error;if(solved.ok && !session_["inputs"].toObject()["sketchId"].toString().isEmpty())try{GeometryKernel::evaluateDocument(SketchGeometry::replaceFeature(document_->authored(),solved.feature));}catch(const std::exception& e){error=QString::fromUtf8(e.what());}
+  if(!solved.ok || !error.isEmpty()){session_.remove("pendingSketchPaste");view_->showSketchDraft(evaluateSketchDraft(session_["draftSketch"].toObject()));if(sketchPasteDialog_){sketchPasteDialog_->findChild<QLabel*>("sketch.paste.status")->setText(error);sketchPasteDialog_->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok)->setEnabled(false);}refreshSketchControls();return fail("sketch_copy_failed",error);}
+  session_["pendingSketchPaste"]=QJsonObject{{"base",session_["draftSketch"]},{"draft",solved.feature},{"diagnostics",solved.diagnostics}};view_->showSketchDraft(evaluateSketchDraft(solved.feature));if(sketchPasteDialog_){sketchPasteDialog_->findChild<QLabel*>("sketch.paste.status")->setText("Preview · independent copy · click or Enter to place");sketchPasteDialog_->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok)->setEnabled(true);}refreshSketchControls();return QJsonObject{{"pending",true},{"authoredChange",false},{"draft",solved.feature},{"diagnostics",solved.diagnostics}};
+ });
+ add("sketch.pasteAccept",{},[this](const auto&){const auto pending=session_["pendingSketchPaste"].toObject();if(pending.isEmpty())return fail("paste_preview_required","Place a valid nonoverlapping copy first");if(pending["base"]!=session_["draftSketch"])return fail("stale_paste_preview","The sketch changed; preview Paste again");const auto result=publishSketchSolve({true,pending["draft"].toObject(),pending["diagnostics"].toObject(),{}});if(!result.contains("error")){auto selection=session_["selection"].toObject();selection["entityIds"]=pending["diagnostics"].toObject()["copiedEntityIds"];selection["pointIds"]=QJsonArray{};selection["profileIds"]=QJsonArray{};session_["selection"]=selection;closeSketchPasteControls();}return result;});
+ add("sketch.pasteCancel",{},[this](const auto&){closeSketchPasteControls();return QJsonObject{{"cancelled",true},{"authoredChange",false}};});
+ add("sketch.paste",{{"x",optionalNumber},{"y",optionalNumber}},[this](const auto& a){
+  if(session_["command"]!="sketch.edit")return fail("no_active_sketch","Paste requires the active source XY sketch");if(session_.value("tool")!="select")return fail("pending_input_active","Return to Select before Paste");if(sketchClipboard_.isEmpty() || sketchClipboard_["documentId"]!=document_->authored()["documentId"] || sketchClipboard_["sketchId"]!=session_["draftSketch"].toObject()["id"])return fail("sketch_clipboard_unavailable","Copy an isolated four-Line profile in this sketch first");if(session_.value("moveInteraction").toObject().value("active").toBool() || session_.value("patternInteraction").toObject().value("active").toBool())return fail("active_sketch_input","Accept or cancel the active transform first");if(session_.contains("pasteInteraction"))return fail("active_paste","Accept or cancel the current Paste first");
+  session_["pasteInteraction"]=QJsonObject{{"active",true},{"copyId",QUuid::createUuid().toString(QUuid::WithoutBraces)},{"clipboard",sketchClipboard_},{"units",session_["inputs"].toObject()["units"].toString("mm")},{"xMm",0},{"yMm",0}};showSketchPasteControls();if(a.contains("x") && a.contains("y"))execute("sketch.pastePointer",a);return QJsonObject{{"active",true},{"copyId",session_["pasteInteraction"].toObject()["copyId"]}};
+ });
+ add("sketch.pastePointer",{{"x",number},{"y",number}},[this](const auto& a){
+  if(!session_.contains("pasteInteraction"))return fail("no_paste_input","Invoke Paste first");const auto xy=view_->sketchPoint(a["x"].toDouble(),a["y"].toDouble(),"XY",session_["resolvedFrame"].toObject());double u=100000,v=100000;for(const auto& row:session_["pasteInteraction"].toObject()["clipboard"].toObject()["parameters"].toObject()["points"].toArray()){u=std::min(u,row.toObject()["uMm"].toDouble());v=std::min(v,row.toObject()["vMm"].toDouble());}const double dx=std::round((xy["uMm"].toDouble()-u)*10)/10,dy=std::round((xy["vMm"].toDouble()-v)*10)/10;
+  if(sketchPasteDialog_)for(const auto& axis:{QString("x"),QString("y")}){auto* spin=sketchPasteDialog_->findChild<QDoubleSpinBox*>("sketch.paste."+axis);QSignalBlocker block(spin);spin->setValue((axis=="x"?dx:dy)/(session_["pasteInteraction"].toObject()["units"]=="in"?25.4:1));}return execute("sketch.pastePreview",{{"x",dx},{"y",dy},{"units","mm"}});
+ });
+}
+void AlloyWindow::showSketchPasteControls(){
+ auto* dock=new PasteDock("Paste",canvasWindow_);dock->setObjectName("sketch.paste.dock");auto* dialog=new QDialog(dock);dialog->setWindowFlags(Qt::Widget);dialog->setObjectName("sketch.paste.dialog");sketchPasteDialog_=dialog;auto* layout=new QVBoxLayout(dialog);auto* text=new QLabel("Independent sketch copy · XY translation\nPointer places the lower-left source bound.\nCanvas placement snaps to 0.1 mm; fields are exact.");text->setWordWrap(true);layout->addWidget(text);auto* form=new QFormLayout;layout->addLayout(form);const auto units=session_["pasteInteraction"].toObject()["units"].toString();auto* x=new QDoubleSpinBox;auto* y=new QDoubleSpinBox;for(auto* spin:{x,y}){spin->setRange(-100000,100000);spin->setDecimals(3);spin->setSuffix(" "+units);}x->setObjectName("sketch.paste.x");y->setObjectName("sketch.paste.y");form->addRow("X Distance",x);form->addRow("Y Distance",y);auto* status=new QLabel("Choose a nonoverlapping placement · current offset (0,0) overlaps source");status->setWordWrap(true);status->setObjectName("sketch.paste.status");layout->addWidget(status);layout->addStretch();auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel);buttons->button(QDialogButtonBox::Ok)->setEnabled(false);layout->addWidget(buttons);
+ auto preview=[this,x,y,units]{execute("sketch.pastePreview",{{"x",x->value()},{"y",y->value()},{"units",units}});};connect(x,&QDoubleSpinBox::valueChanged,dialog,preview);connect(y,&QDoubleSpinBox::valueChanged,dialog,preview);connect(buttons,&QDialogButtonBox::accepted,dialog,[this]{execute("sketch.pasteAccept");});connect(buttons,&QDialogButtonBox::rejected,dialog,[this]{execute("sketch.pasteCancel");});connect(dialog,&QDialog::rejected,dialog,[this]{closeSketchPasteControls();});dock->closed=[this]{closeSketchPasteControls();};for(const auto key:{Qt::Key_Escape,Qt::Key_Return,Qt::Key_Enter}){auto* shortcut=new QShortcut(QKeySequence(key),dialog);shortcut->setContext(Qt::WidgetWithChildrenShortcut);connect(shortcut,&QShortcut::activated,dialog,[this,key]{execute(key==Qt::Key_Escape?"sketch.pasteCancel":"sketch.pasteAccept");});}
+ dock->setWidget(dialog);canvasWindow_->addDockWidget(Qt::RightDockWidgetArea,dock);if(sketchDock_)canvasWindow_->tabifyDockWidget(sketchDock_,dock);dock->show();dock->raise();dialog->show();refreshSketchControls();view_->setFocus(Qt::OtherFocusReason);
+}

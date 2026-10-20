@@ -62,6 +62,11 @@ protected:
     void closeEvent(QCloseEvent*) override;
     bool eventFilter(QObject*, QEvent*) override;
 private:
+    void registerSketchCopyCommands();
+    void showSketchPasteControls();
+    void closeSketchPasteControls();
+    QPointer<QDialog> sketchPasteDialog_;
+    QJsonObject sketchClipboard_;
     void registerSketchMoveCommands();
     void closeSketchMoveControls();
     void showSketchMoveControls();

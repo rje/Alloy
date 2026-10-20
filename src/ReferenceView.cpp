@@ -2183,6 +2183,7 @@ void ReferenceView::decorateSketch(const QJsonObject& sourceFeature,const QJsonO
         const auto edge=SketchGeometry::analyticEdge(parameters,entity,sketchFrame_);
         const auto highlight=entity.value("construction").toBool() ? constructionPresentation(edge,true) : entity.value("centerline").toBool() ? centerlinePresentation(edge,true) : sketchPresentation(edge);
         if(!entity.value("construction").toBool() && !entity.value("centerline").toBool()){highlight->SetColor(selection.value("tool")=="chamfer" ? Quantity_Color(0.88,0.16,0.12,Quantity_TOC_RGB) : Quantity_Color(0.08,0.43,0.91,Quantity_TOC_sRGB));highlight->SetWidth(4);}
+        if(selection.value("pasteInteraction").toObject().value("active").toBool()){highlight->SetColor(Quantity_Color(.98,.43,.08,Quantity_TOC_RGB));highlight->SetWidth(4*devicePixelRatioF());}
         if(selection["patternInteraction"].toObject()["hoveredEntityId"]==entity["id"]){highlight->SetColor(Quantity_Color(.98,.62,.08,Quantity_TOC_sRGB));highlight->SetWidth(4*devicePixelRatioF());}
         highlight->SetZLayer(Graphic3d_ZLayerId_Topmost);
         context_->Display(highlight,AIS_WireFrame,-1,false);context_->Deactivate(highlight);sketchDecorations_.push_back(highlight);
@@ -3724,6 +3725,7 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
             setFocus(Qt::MouseFocusReason);e->accept();return;
         }
     }
+    if(e->button()==Qt::LeftButton && e->modifiers()==Qt::NoModifier && navigationTool_=="select" && decorationSelection_.value("pasteInteraction").toObject().value("active").toBool()){pasteSuppressRelease_=true;dispatch("sketch.pasteAccept",{});setFocus(Qt::MouseFocusReason);e->accept();return;}
     // Delay an ambiguous curve click until release so holding it can open
     // Select Other without transiently changing the authoritative selection.
     if(e->button()==Qt::LeftButton && e->modifiers()==Qt::NoModifier && navigationTool_=="select"
@@ -3975,6 +3977,7 @@ void ReferenceView::mousePressEvent(QMouseEvent* e) {
     else QWidget::mousePressEvent(e);
 }
 void ReferenceView::mouseMoveEvent(QMouseEvent* e) {
+    if(decorationSelection_["pasteInteraction"].toObject()["active"].toBool() && e->buttons()==Qt::NoButton){dispatch("sketch.pastePointer",{{"x",e->position().x()},{"y",e->position().y()}});e->accept();return;}
     if(sketchSelectOtherPending_ && !sketchSelectOtherOpened_) {
         if(QLineF(e->position(),sketchSelectOtherPress_).length()>QApplication::startDragDistance()) {
             sketchSelectOtherTimer_->stop();sketchSelectOtherPending_=false;
@@ -4177,7 +4180,9 @@ void ReferenceView::keyReleaseEvent(QKeyEvent* e) {
     QWidget::keyReleaseEvent(e);
 }
 void ReferenceView::mouseReleaseEvent(QMouseEvent* e) {
+    if(e->button()==Qt::LeftButton && pasteSuppressRelease_){pasteSuppressRelease_=false;e->accept();return;}
     if(e->button()==Qt::LeftButton && !patternHandleDrag_.isEmpty()){patternHandleDrag_={};dispatch("sketch.patternHandle",{{"phase","end"}});e->accept();return;}
+    if(e->button()==Qt::LeftButton && decorationSelection_["pasteInteraction"].toObject()["active"].toBool()){e->accept();return;}
     if(e->button()==Qt::LeftButton && decorationSelection_["moveInteraction"].toObject()["active"].toBool()){e->accept();return;}
     if(e->button()==Qt::LeftButton && decorationSelection_["patternInteraction"].toObject()["active"].toBool()){e->accept();return;}
 
@@ -4379,6 +4384,10 @@ void ReferenceView::contextMenuEvent(QContextMenuEvent* e) {
             auto* menu=new CanvasMarkingMenu(this,[this](const QString& command,const QJsonObject& args){dispatch(command,args);},!entities.isEmpty() || !points.isEmpty());
             menu->setObjectName("context.sketchGeometry");
             const bool hasSelection=!entities.isEmpty() || !points.isEmpty();
+            auto* copyAction=menu->addAction("Copy");copyAction->setObjectName("sketch.action.copy");copyAction->setEnabled(!entities.isEmpty() && points.isEmpty());
+            auto* pasteAction=menu->addAction("Paste");pasteAction->setObjectName("sketch.action.paste");
+            connect(copyAction,&QAction::triggered,this,[this,entities]{QTimer::singleShot(0,this,[this,entities]{dispatch("sketch.copy",{{"entityIds",entities}});});});
+            connect(pasteAction,&QAction::triggered,this,[this,at=e->pos()]{QTimer::singleShot(0,this,[this,at]{dispatch("sketch.paste",{{"x",at.x()},{"y",at.y()}});});});
             auto* remove=menu->addAction("Delete");remove->setObjectName("sketch.action.deleteGeometry");remove->setVisible(hasSelection);
             QAction* breakLink=nullptr;
             if(entities.size()==1&&points.isEmpty())for(const auto& value:decorationFeature_.value("parameters").toObject().value("entities").toArray()){

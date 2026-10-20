@@ -247,6 +247,7 @@ protected:
     bool event(QEvent*) override;
     bool eventFilter(QObject*,QEvent*) override;
 private:
+    bool pasteSuppressRelease_=false;
     QMap<QString,Handle(AIS_Shape)> canvasModels_;
     QJsonArray canvasState_;
     QJsonObject canvasStamp_;
