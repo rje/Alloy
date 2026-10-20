@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include "AlloyWindow.h"
 #include "ReferenceView.h"
+#include "SurfaceOffset.h"
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialogButtonBox>
@@ -58,8 +59,8 @@ QJsonObject AlloyWindow::previewSurfaceOffset() {
     const auto source=edit.isEmpty() ? document_->evaluation() : document_->evaluationBefore(edit);
     if(!edit.isEmpty())view_->setBodyStage(source.bodies,"surface-offset-source:"+session_.value("id").toString());
     const auto ref=inputs.value("sourceFace").toObject();
-    if(ref.isEmpty())return reject("selection_required","Select one retained planar face in the canvas");
-    try{const auto face=GeometryKernel::resolveSketchSupport(source,ref);view_->selectSupportFace(ref,face.face);}
+    if(ref.isEmpty())return reject("selection_required","Select one retained planar or partial cylindrical Surface Revolve face in the canvas");
+    try{const auto face=SurfaceOffset::resolveSource(source,ref);view_->selectSupportFace(ref,face.face);}
     catch(const std::exception& e){return reject("surface_source_unavailable",QString::fromUtf8(e.what()),{{"sourceFace",ref},{"faceId",ref.value("faceId")}});}
     QJsonObject candidate;try{candidate=surfaceOffsetCandidate(inputs);}catch(const std::exception& e){return reject("invalid_arguments",QString::fromUtf8(e.what()));}
     const auto evaluated=CadDocument::evaluateCandidate(candidate);if(!evaluated.ok)return reject("evaluation_failed",evaluated.error,evaluated.diagnostics);
@@ -70,7 +71,7 @@ QJsonObject AlloyWindow::previewSurfaceOffset() {
     }
     for(const auto& body:stage->bodies)if(body.featureId==id){view_->showPreview(body.shape,edit.isEmpty() ? QString{}:body.bodyId,true);
         session_["geometry"]=body.summary;session_["featureId"]=id;session_["bodyId"]=body.bodyId;
-        try{const auto face=GeometryKernel::resolveSketchSupport(source,ref);view_->showFaceOffsetCue(face,inputs.value("distanceMm").toDouble(),document_->authored().value("displayUnits").toString(),"surface.offset");}catch(const std::exception&){} }
+        try{const auto face=SurfaceOffset::resolveSource(source,ref);view_->showFaceOffsetCue(face,inputs.value("distanceMm").toDouble(),document_->authored().value("displayUnits").toString(),"surface.offset");}catch(const std::exception&){} }
     session_["documentDraft"]=candidate;session_["previewed"]=true;session_["geometryEvaluated"]=true;
     session_.remove("previewError");refreshSurfaceOffsetControls();return session_;
 }
@@ -106,7 +107,7 @@ void AlloyWindow::showSurfaceOffset(){
     auto* distance=new QDoubleSpinBox;distance->setObjectName("surfaceOffset.distance");distance->setDecimals(4);distance->setRange(-100000/scale,100000/scale);distance->setSuffix(scale==1.?" mm":" in");distance->setKeyboardTracking(false);form->addRow("Distance",distance);
     connect(distance,&QDoubleSpinBox::valueChanged,panel,[update,distance,scale]{update({{"distanceMm",distance->value()*scale}});});
     form->addRow("Operation",new QLabel("New Body"));
-    auto* hint=new QLabel("Select one planar face. Positive follows the normal arrow; negative reverses it. Zero makes a coincident sheet.");hint->setWordWrap(true);form->addRow(hint);
+    auto* hint=new QLabel("Select one planar or partial cylindrical Surface Revolve face. Positive follows the oriented face normal; negative reverses it. Cylindrical offsets use numeric distance. Zero makes a coincident sheet.");hint->setWordWrap(true);form->addRow(hint);
     auto* error=new QLabel;error->setObjectName("surfaceOffset.error");error->setWordWrap(true);error->setStyleSheet("color:#b3261e");form->addRow(error);
     auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel);form->addRow(buttons);
     connect(buttons,&QDialogButtonBox::accepted,panel,[this,sessionId]{execute("command.commit",{{"session",sessionId}});});

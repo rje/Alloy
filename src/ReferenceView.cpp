@@ -10,6 +10,7 @@
 #include <BRep_Builder.hxx>
 #include <TopoDS_Compound.hxx>
 #include "ReferenceView.h"
+#include <BRepAdaptor_Surface.hxx>
 #include "SketchGeometry.h"
 #include "SketchSpline.h"
 #include "GeometryKernel.h"
@@ -3144,6 +3145,9 @@ QJsonObject ReferenceView::faceOffsetCueState() const {
 void ReferenceView::showFaceOffsetCue(const EvaluatedSupportFace& sourceFace,double distanceMm,const QString& units,const QString& command) {
     // This baseline always comes from the source history stage, never the moved
     // candidate face. Presentation replacement must not restart an active drag.
+    // Curved normal manipulator geometry is outside the bounded numeric-input
+    // continuation. Never place a planar centroid/normal cue on a curved face.
+    if(BRepAdaptor_Surface(sourceFace.face).GetType()!=GeomAbs_Plane){clearExtrusionCue();return;}
     GProp_GProps properties;BRepGProp::SurfaceProperties(sourceFace.face,properties);
     const auto start=properties.CentreOfMass();
     const auto frame=sourceFace.frame;const auto n=frame.value("normal").toArray();

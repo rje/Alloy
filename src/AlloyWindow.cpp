@@ -2819,12 +2819,12 @@ void AlloyWindow::registerCommands() {
     });
 
     auto surfaceOffsetDistance=optional(parameter("number","Signed normal offset in mm, including zero; default 0."));surfaceOffsetDistance["minimum"]=-100000.;surfaceOffsetDistance["maximum"]=100000.;
-    QJsonObject surfaceOffsetSchema{{"sourceFace",optional(parameter("object","Exactly {bodyId,producerFeatureId,faceId} for one earlier retained planar face."))},{"distanceMm",surfaceOffsetDistance},{"featureId",optional(featureId)},{"name",optional(parameter("string","Offset name."))}};
-    add("surface.offset","Offset","Create or edit a new sheet from one retained planar face along its oriented normal.",surfaceOffsetSchema,[this](const auto& a){
+    QJsonObject surfaceOffsetSchema{{"sourceFace",optional(parameter("object","Exactly {bodyId,producerFeatureId,faceId} for one earlier retained planar or partial cylindrical Surface Revolve face."))},{"distanceMm",surfaceOffsetDistance},{"featureId",optional(featureId)},{"name",optional(parameter("string","Offset name."))}};
+    add("surface.offset","Offset","Create or edit a new sheet from one retained planar or partial cylindrical Surface Revolve face along its oriented normal.",surfaceOffsetSchema,[this](const auto& a){
         QJsonObject candidate;try{candidate=surfaceOffsetCandidate(a);}catch(const std::exception& e){return failure("invalid_arguments",QString::fromUtf8(e.what()));}
         const auto error=document_->commit(candidate,"Surface Offset");if(!error.isEmpty()){auto result=failure("evaluation_failed",error);auto detail=result.value("error").toObject();detail["diagnostics"]=document_->lastEvaluationError();result["error"]=detail;return result;}return document_->state();
     });
-    add("surface.offsetDialog","Offset","Select one planar face and preview signed normal distance as New Body.",surfaceOffsetSchema,[this](const auto& a){return beginSurfaceOffset(a);});
+    add("surface.offsetDialog","Offset","Select one planar or partial cylindrical Surface Revolve face and preview signed normal distance as New Body.",surfaceOffsetSchema,[this](const auto& a){return beginSurfaceOffset(a);});
     auto surfaceAngle=optional(parameter("number","Partial One Side angle in degrees, strictly between 0 and 360; default 90."));
     surfaceAngle["minimum"]=-360.;surfaceAngle["maximum"]=360.;
     QJsonObject surfaceRevolveSchema{{"sketchId",optional(parameter("string","Earlier solved source sketch UUID."))},
@@ -5995,7 +5995,7 @@ void AlloyWindow::registerCommands() {
         if(session_.value("command")=="surface.offset") {
             const auto edit=session_.value("inputs").toObject().value("featureId").toString();
             const auto hit=view_->pickSupportFace(a.value("x").toDouble(),a.value("y").toDouble(),edit.isEmpty()?document_->bodies():document_->evaluationBefore(edit).bodies);
-            if(hit.isEmpty())return failure("face_required","Click one retained planar face");
+            if(hit.isEmpty())return failure("face_required","Click one retained planar or partial cylindrical Surface Revolve face");
             return selectSurfaceOffsetFace(hit);
         }
         if(session_.value("command")=="solid.faceOffset") {
