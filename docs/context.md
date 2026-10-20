@@ -1,4 +1,4 @@
-## Typed Angle/Cylinder Height candidate (2026-10-20)
+## Typed Angle/Cylinder Height accepted (2026-10-20)
 
 PAR-009/#497 adds numeric degree user parameters (`valueDeg`, stable UUID),
 driving line-pair Angle and primitive Cylinder Height binding through shared
@@ -7,12 +7,16 @@ angle rows; length expressions refuse them. Exact combined R10 cylinder/sector
 Cut source edits30→60° and height10→15, two-way type refusal, rename, numeric
 unbinding, history/reopen and one-component watertight STL readback pass.
 Focused core/length/model regressions and Qt native controls pass4/4 targets.
+Independent Astra review found one native User Parameters edit defect: the
+displayed `30 deg` literal could not be edited as `60 deg`. The focused fix and
+actual-hit cell regression pass, including `2 in` length-cell preservation;
+Astra accepted the corrected bounded result.
 Apple M4 DPR2 GPU solid/table captures are inspected; physical OS input,
 other fields/angle formulas and packaged-platform runtime remain separate.
 See [receipt](validation/typed-angle-cylinder-parameters.md); evidence and bound
 model/STL are external at
 `../Alloy-reference-records/validation/typed-angle-cylinder-2026-10-20/`.
-Independent review remains with root; no push, issue closure, CI or tag.
+No paid CI or tag was run.
 
 ## Analytic sketch Break accepted (2026-10-20 UTC)
 

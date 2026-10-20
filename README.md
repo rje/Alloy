@@ -4,7 +4,8 @@
 now bind a driving line-pair sketch Angle and primitive Height to stable typed
 user parameters. A combined printable wedge-cut cylinder passes exact geometry,
 source edits, atomic mismatch refusal, native controls, history/reopen and
-independent watertight STL readback. Independent review is pending.
+independent watertight STL readback. Astra's independent source/evidence review
+accepted the bounded result after the degree-cell editing correction.
 
 [Analytic sketch Break](docs/validation/sketch-break.md) splits a line
 or finite arc at one crossing and a circle at two secant intersections, preserving

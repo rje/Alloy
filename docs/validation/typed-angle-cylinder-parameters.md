@@ -1,6 +1,11 @@
 # Typed Angle and Cylinder Height parameters — PAR-009/#497
 
-Status: bounded local candidate, 2026-10-20; independent review pending.
+Accepted bounded result: 2026-10-20. Independent Astra source/evidence review
+accepted `ad2aafd` plus degree-cell correction `d448cba` with no remaining
+blocker. The review checked typed lookup guards, stable-ID rename/unbind,
+atomic refusal and native/API authority; the correction passed a focused
+actual-cell regression. Wider field families and physical/package input remain
+separate gates.
 
 The external source/specification is
 `../Alloy-reference-records/knowledge/specs/par009-angle-solid-2026-10-20.md`.
@@ -95,8 +100,7 @@ reference propagation and separate Expression/Value presentation within this
 bounded pairing. **Unknown** for exact reference field style, suggestions,
 default degree unit, unbind gesture and mismatch text. Native Qt input, analytic
 solid evidence and STL readback are separate receipts; no broad exact-match
-claim follows from the captures. Independent source/evidence review remains with
-root before issue closure.
+claim follows from the captures.
 
 ## Independent-review correction: degree Expression-cell round trip
 
