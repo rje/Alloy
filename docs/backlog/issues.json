@@ -3717,7 +3717,8 @@
         "SRF-048",
         "SRF-049",
         "SRF-050",
-        "SRF-054"
+        "SRF-054",
+        "GEO-031"
       ],
       "labels": [
         "kind:validation",
@@ -10978,7 +10979,7 @@
         "priority:P1",
         "area:geo"
       ],
-      "body": "## Bounded result\nCreate a datum Axis using exactly either two retained points or one declared supported edge constructor.\n\nThis is a finishable child of GEO-001; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Document and implement the two-point and single-edge source forms; reject unsupported references explicitly.\n- Create both constructors on fixtures and verify axis origin/direction against source geometry.\n- Edit source references and update or refuse without silently rebinding.\n- Verify undo/redo and save/reopen.\n\n## Preserved remainder\nOther axis constructors and inferred reference combinations remain under GEO-001.\n"
+      "body": "## Bounded result\nCreate one retained datum Axis from either two earlier authored standalone sketch Point entities or one earlier authored straight sketch Line. This is a finishable supported-source slice of the documented Through Two Points and Through Edge methods and a child of GEO-001. Preserve the exact point or ordered Line IDs; direction from first to second is an explicit Alloy policy because public evidence does not establish orientation.\n\n## Acceptance criteria\n- Create/edit both source forms through one shared UI/API session with explicit constructor, preview, Cancel/OK and Timeline/Browser edit. An Axis creates reference geometry, not a body or exported mesh.\n- Resolve exact solved world coordinates; verify axis origin/direction and source incidence on analytic fixtures. Recompute after point/Line edits, or refuse unavailable, coincident, changed-order, non-Line, curved, stale or unsupported references atomically without nearest-entity rebinding.\n- Inspect authored refs and evaluated infinite line separately from finite GPU display. Verify visibility, downstream inspection, Undo/Redo and save/reopen through the real app, plus readable compiled controls and hardware viewport captures.\n\n## Linked remainders\nGEO-031 owns physical native point/Line actual-hit selection, preview/selection cue and 1x/2x visual gate while the Mac console is locked. GEO-032 owns retained straight model-edge source. GEO-033 owns documented Extent Type and Resize display controls. GEO-034 owns model vertices and snap/other point source classes. Other Axis constructors remain GEO-001. Public help does not settle initial extent/default or positive direction; record Alloy policy and unknown parity explicitly.\n"
     },
     {
       "key": "GEO-027",
@@ -11412,8 +11413,15 @@
       "kind": "validation",
       "phase": "P3 Shape/import/print breadth",
       "priority": "P1",
-      "depends_on": ["SRF-034"],
-      "labels": ["kind:validation", "phase:P3", "priority:P1", "area:srf"],
+      "depends_on": [
+        "SRF-034"
+      ],
+      "labels": [
+        "kind:validation",
+        "phase:P3",
+        "priority:P1",
+        "area:srf"
+      ],
       "body": "## Bounded first-v1 native inspection gate\nQualify the SRF-034 transient selected-face Zebra Analysis slice through physical Mac input and real GPU presentation. The console was locked on 2026-10-20; keep this Todo until an unlocked run.\n\n## Acceptance criteria\n- Use the actual Inspect entrypoint and physical viewport hits to select a planar then a curved face, toggle zebra on/off and change selection without harness focus repair. Observe native dialog/action activation and closure before the next input.\n- Inspect whole-app GPU frames at 1x and 2x in declared theme/camera/window states, including open-sheet front/back, seam/edge visibility, camera orbit, resize, source edit and exact ordinary-material restoration after off. Record vendor/renderer/version/framebuffer and compare only matched public evidence.\n- Confirm native controls and shared API report one state; toggle, selection and camera leave authored geometry, dirty status, revision and Undo stack unchanged. Reopen resets the intentionally transient overlay and preserves the model. Close the private editor.\n\n## Preserved remainder\nDocumented saved body-level Analysis, browser visibility/Edit and full stripe controls remain SRF-051. Other-platform packaged runtime remains GATE-050.\n"
     },
     {
@@ -11422,8 +11430,15 @@
       "kind": "implementation",
       "phase": "P4 Full replacement",
       "priority": "P2",
-      "depends_on": ["SRF-034"],
-      "labels": ["kind:implementation", "phase:P4", "priority:P2", "area:srf"],
+      "depends_on": [
+        "SRF-034"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P4",
+        "priority:P2",
+        "area:srf"
+      ],
       "body": "## Documented workflow remainder\nPublic instructions describe body selection through Inspect > Zebra Analysis, a saved Browser > Analysis result, visibility toggle, Edit and Direction, Repeats, Opacity, Lock Stripes and High Quality settings. Implement that body-level retained workflow with explicit research of defaults and visual behavior before coding. Keep analysis metadata distinct from modeled geometry and feature history.\n\n## Acceptance criteria\n- Select supported body faces through the shared native/API workflow, preview settings, OK to create one saved analysis record, edit settings/target and toggle its Browser visibility. Save/reopen retains the analysis and Undo/Redo behavior is documented and verified.\n- Exercise horizontal/vertical direction, repeats, opacity, camera-relative Lock Stripes and quality/performance setting on planar and curved bodies. Compare actual GPU captures at matched public state where evidence allows; record unknown defaults or mismatch rather than asserting exact parity.\n- Preserve original geometry and existing feature history, verify independent saved-model state, and keep numeric continuity under SRF-035.\n\n## Preserved remainder\nCurvature maps/combs, broader sampling and advanced continuity remain SRF-008.\n"
     },
     {
@@ -11432,8 +11447,15 @@
       "kind": "implementation",
       "phase": "P4 Full replacement",
       "priority": "P2",
-      "depends_on": ["SRF-035"],
-      "labels": ["kind:implementation", "phase:P4", "priority:P2", "area:srf"],
+      "depends_on": [
+        "SRF-035"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P4",
+        "priority:P2",
+        "area:srf"
+      ],
       "body": "## Preserved distinct-edge continuity work\nSRF-035's first slice requires one exact shared topological edge; such a boundary cannot represent an independently separated gap. Extend inspection to two distinct explicitly selected retained boundary edges without guessing correspondence. This is a broader Alloy analysis proposal, not a documented direct-reference numeric workflow.\n\n## Acceptance criteria\n- Resolve two current exact face/edge pairs, require unambiguous endpoint orientation and normalized arc-length correspondence, and report per-sample positional gap and tangent-plane angle with method, units, thresholds and finite-sampling limits. Refuse unequal/ambiguous or stale pairs atomically.\n- Verify a known 0.02 mm separated planar pair, a 5 degree kink and a zero-gap continuation independently. Source edits, Undo/Redo and save/reopen update the values without authoring geometry/history.\n- Expose the paired-edge selection through the shared control API and native UI, with qualified actual-hit selection and GPU visual cue before claiming native completion.\n\n## Preserved remainder\nCurved/unequal-parameter families remain SRF-053; G2 and broad controls remain SRF-008.\n"
     },
     {
@@ -11442,8 +11464,15 @@
       "kind": "implementation",
       "phase": "P4 Full replacement",
       "priority": "P2",
-      "depends_on": ["SRF-035"],
-      "labels": ["kind:implementation", "phase:P4", "priority:P2", "area:srf"],
+      "depends_on": [
+        "SRF-035"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P4",
+        "priority:P2",
+        "area:srf"
+      ],
       "body": "## Preserved curved continuity work\nExtend the SRF-035 analytic shared-straight-edge method to supported curved surfaces and nonuniform shared boundaries with explicit correspondence and sampling error limits. Do not reuse straight-edge uniform-parameter spacing as an unstated arc-length method.\n\n## Acceptance criteria\n- Research permitted public curved continuity workflows and choose one retained cylinder/plane or two-curved-face boundary with known G0/G1 values. Resolve exact current face/edge identities, seams and orientations; sample by declared arc-length or bounded adaptive method, reporting locations, deviations, units, tolerances and limitations.\n- Independently verify a known smooth and kinked case, source-edit refresh, refusal on singular/ambiguous correspondence, passive history/Undo and deterministic reopen through the real app.\n- Qualify the native selection and GPU cue at supported scale separately from numeric evidence.\n\n## Preserved remainder\nG2 curvature, broad surface families and user sampling controls remain SRF-008.\n"
     },
     {
@@ -11452,8 +11481,15 @@
       "kind": "validation",
       "phase": "P3 Shape/import/print breadth",
       "priority": "P1",
-      "depends_on": ["SRF-035"],
-      "labels": ["kind:validation", "phase:P3", "priority:P1", "area:srf"],
+      "depends_on": [
+        "SRF-035"
+      ],
+      "labels": [
+        "kind:validation",
+        "phase:P3",
+        "priority:P1",
+        "area:srf"
+      ],
       "body": "## Bounded first-v1 native inspection gate\nSRF-035 owns a read-only sampled G0/G1 report for two retained planar faces on one exact shared straight edge. Qualify its actual user-facing selections and numeric panel when the Mac console is unlocked; do not use Zebra stripes as numeric proof.\n\n## Acceptance criteria\n- Through the actual Inspect action, select the two distinct face widgets and the exact shared edge by physical viewport hits with clear first/second/edge feedback, no implicit first-common-edge guess and no harness focus repair. Verify pending, valid, stale and unsupported states plus Cancel/close/readiness.\n- Inspect readable max-gap/max-angle values, units, sample count/method, threshold and orientation diagnostics at 1x/2x in whole-app GPU captures; the panel must not cover the selected seam or contradict the API result.\n- Exercise coplanar and kinked source edits, Undo/Redo and save/reopen from native input, checking authored/revision/dirty/Undo invariance for inspection. Record vendor/renderer/version/framebuffer and public-reference limits; close the private editor.\n\n## Preserved remainder\nDistinct-edge gaps SRF-052, curved boundaries SRF-053 and G2/advanced controls SRF-008; Windows/Linux packaged runtime stays GATE-050.\n"
     },
     {
@@ -11462,8 +11498,15 @@
       "kind": "validation",
       "phase": "P3 Shape/import/print breadth",
       "priority": "P1",
-      "depends_on": ["GEO-025"],
-      "labels": ["kind:validation", "phase:P3", "priority:P1", "area:geo"],
+      "depends_on": [
+        "GEO-025"
+      ],
+      "labels": [
+        "kind:validation",
+        "phase:P3",
+        "priority:P1",
+        "area:geo"
+      ],
       "body": "## Bounded first-v1 native workflow\nGEO-025 owns the retained authored-Line plus origin/construction-plane numeric core and compiled panel. Complete and qualify the physical Plane At Angle workflow when the Mac console is unlocked. Public instructions document selecting a linear axis and using a numeric box or rotation handle; exact source-plane pick order and Flip default are unknown.\n\n## Acceptance criteria\n- Start Construct > Plane At Angle without preselection. Physically pick one authored straight sketch Line and explicit source plane through actual canvas/browser hit targets; expose selected IDs, angle, Flip Side Alloy policy and readable plane preview. No focus or selection repair between steps.\n- Drive the same retained angle using a discoverable in-canvas rotation handle and exact typed field. Cancel/Escape preserves authored/history; OK creates one feature; Timeline and Browser Edit restore sources/angle/side and allow valid retry after invalid input.\n- Verify +30/flip -30 plane equation, source edit, downstream sketch, Undo/Redo and save/reopen through native input and shared API. Inspect whole-app GPU captures at 1x/2x with vendor/renderer/version/framebuffer and comparable public evidence; explicitly label unmatched visual/default/gesture behavior. Close the private editor.\n\n## Preserved remainder\nStraight model-edge/planar-face references remain GEO-029; Offset/Extent Type/Resize options GEO-030; other constructions GEO-001. Other-platform packaged runtime remains GATE-050.\n"
     },
     {
@@ -11472,8 +11515,15 @@
       "kind": "implementation",
       "phase": "P4 Full replacement",
       "priority": "P2",
-      "depends_on": ["GEO-025"],
-      "labels": ["kind:implementation", "phase:P4", "priority:P2", "area:geo"],
+      "depends_on": [
+        "GEO-025"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P4",
+        "priority:P2",
+        "area:geo"
+      ],
       "body": "## Preserved documented reference forms\nPublic current API documentation identifies a linear pivot entity and planar face or construction-plane angular reference; public UI help selects a straight edge or axis. Extend GEO-025's authored-Line/plane first slice to one retained straight B-rep edge and one retained planar B-rep face with exact lineage and unambiguous oriented pivot. Do not infer a direction from unstable OCCT edge traversal.\n\n## Acceptance criteria\n- Research and record exact public source forms and current selection semantics. Resolve a retained current straight model edge and planar support face through persistent references, with a documented deterministic pivot direction and no guessing after topology edits. Reject curved/stale/ambiguous/off-plane sources atomically.\n- Create/edit +30/flip results, source edits and downstream sketch support; independently verify plane equation, history, Undo/Redo, save/reopen and GPU preview through the real app.\n- Qualify native canvas selection and 1x/2x visuals separately; preserve the original sketch-Line mode.\n\n## Preserved remainder\nOther edges/axes, profile references, arbitrary face-derived combinations and broad repairs remain GEO-001.\n"
     },
     {
@@ -11482,9 +11532,84 @@
       "kind": "implementation",
       "phase": "P4 Full replacement",
       "priority": "P2",
-      "depends_on": ["GEO-025"],
-      "labels": ["kind:implementation", "phase:P4", "priority:P2", "area:geo"],
+      "depends_on": [
+        "GEO-025"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P4",
+        "priority:P2",
+        "area:geo"
+      ],
       "body": "## Preserved documented command options\nPublic Plane At Angle help names optional Offset, Extent Type and Resize with Default/Extended display sizes. The first GEO-025 slice has fixed extent and no offset control. Research the actual extent choices/defaults and offset direction from permitted public evidence before claiming compatibility; do not invent exact reference values.\n\n## Acceptance criteria\n- Define retained numeric offset along the evaluated angled-plane normal with explicit units/sign and independently checked plane equation; preserve source/angle/side through edit and source updates.\n- Expose documented Extent Type choices and Resize Default/Extended presentation distinctly from infinite geometric plane evaluation. Preview/Cancel/OK, Timeline edit, Undo/Redo and save/reopen share one authoritative command.\n- Inspect GPU preview and native controls at declared sizes, compare only matched public evidence, and refuse unsupported combinations visibly rather than ignoring them.\n\n## Preserved remainder\nOther plane constructors and arbitrary interactive manipulation remain GEO-001.\n"
+    },
+    {
+      "key": "GEO-031",
+      "title": "Qualify native datum Axis selection and visual workflow",
+      "kind": "validation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "GEO-026"
+      ],
+      "labels": [
+        "kind:validation",
+        "phase:P3",
+        "priority:P1",
+        "area:geo"
+      ],
+      "body": "## Bounded first-v1 native workflow\nGEO-026 owns exact authored standalone sketch-Point and straight sketch-Line core/API and compiled controls. Public instructions show two successive point picks or one linear edge/sketch-line pick, preview and OK; precise focus, overlap and styling remain unknown.\n\n## Acceptance criteria\n- Start each Axis method through Construct without preselection. Physically pick two standalone sketch Points or one straight authored sketch Line through actual canvas hit targets, with stable IDs, readable source feedback and no focus/selection repair between demonstrated steps.\n- Preview an axis that visibly traverses the selected source(s); Cancel/Escape leaves authored/history unchanged; OK adds one datum feature; Timeline/Browser Edit restores the exact source form and allows valid retry after invalid input.\n- Verify source edit, wrong/overlapping hits, Undo/Redo and save/reopen through native input and shared API. Inspect whole-app GPU captures at 1x/2x, vendor/renderer/version and framebuffer. State matched or unknown public visual details. Close the private editor.\n\n## Preserved remainder\nStraight B-rep model edges remain GEO-032, vertices/snap points GEO-034, Extent Type/Resize GEO-033 and other Axis methods GEO-001.\n"
+    },
+    {
+      "key": "GEO-032",
+      "title": "Support retained straight model-edge datum Axis references",
+      "kind": "implementation",
+      "phase": "P4 Full replacement",
+      "priority": "P2",
+      "depends_on": [
+        "GEO-026"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P4",
+        "priority:P2",
+        "area:geo"
+      ],
+      "body": "## Preserved documented edge form\nExtend the initial authored sketch-Line Axis to one exact retained straight B-rep model edge, including producer/body/edge identity and occurrence where needed. Do not infer identity or direction from unstable edge traversal.\n\n## Acceptance criteria\n- Research allowed public linear-edge and axis source behavior. Resolve exact straight B-rep topology and deterministic Alloy orientation; explicitly refuse curved, stale, ambiguous or changed-lineage sources.\n- Create/edit on an analytic solid edge, independently verify line incidence and parallel direction, source-edit propagation/refusal, Undo/Redo and save/reopen without exporting datum geometry.\n- Qualify native canvas selection and GPU presentation separately while preserving both original source forms.\n\n## Preserved remainder\nOther edge/axis families and inferred references remain GEO-001; point-class breadth is GEO-034.\n"
+    },
+    {
+      "key": "GEO-033",
+      "title": "Add datum Axis Extent Type and Resize controls",
+      "kind": "implementation",
+      "phase": "P4 Full replacement",
+      "priority": "P2",
+      "depends_on": [
+        "GEO-026"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P4",
+        "priority:P2",
+        "area:geo"
+      ],
+      "body": "## Preserved documented command options\nPublic current help shows Extent Type before picks and optional Resize Default/Extended; Default fits selected geometry and Extended fills the current view. Exact extent choices and initial selections require further permitted public evidence. Keep infinite geometric Axis distinct from finite presentation.\n\n## Acceptance criteria\n- Research and record exact documented Extent Type choices and initial/default behavior or state uncertainty. Implement supported choices with explicit preview, shared UI/API, Timeline/Browser edit, Undo/Redo and save/reopen.\n- Persist Resize Default/Extended with the feature and prove it affects viewport display size without changing evaluated infinite line, downstream references or exported geometry.\n- Inspect 1x/2x GPU captures and actual controls; refuse unsupported combinations visibly instead of ignoring them.\n\n## Preserved remainder\nOther Axis methods and reference families stay GEO-001/GEO-032/GEO-034.\n"
+    },
+    {
+      "key": "GEO-034",
+      "title": "Support retained vertex and snap-point datum Axis sources",
+      "kind": "implementation",
+      "phase": "P4 Full replacement",
+      "priority": "P2",
+      "depends_on": [
+        "GEO-026"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P4",
+        "priority:P2",
+        "area:geo"
+      ],
+      "body": "## Preserved documented two-point source breadth\nPublic Two Points instructions permit vertices and snap points, including mixed picks. The first GEO-026 slice supports exact authored standalone sketch Points only. Add one source class at a time with stable identity, explicit behavior on topology changes and no coordinate-nearest rebinding.\n\n## Acceptance criteria\n- Research supported model vertices, sketch endpoints and snap/derived point classes. Implement at least one retained B-rep vertex and one documented snap-point class with exact owner/feature/topology identity, including a mixed valid pair.\n- Independently verify analytic axis incidence, coincident/wrong-type/ambiguous refusal, source edit, history, Undo/Redo and save/reopen. Qualify native picker/visuals separately.\n- Keep every deferred source class explicitly tracked under GEO-001 or a linked child.\n"
     }
   ]
 }
