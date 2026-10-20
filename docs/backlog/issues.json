@@ -3713,7 +3713,8 @@
         "SRF-043",
         "SRF-044",
         "SRF-047",
-        "SRF-048"
+        "SRF-048",
+        "SRF-049"
       ],
       "labels": [
         "kind:validation",
@@ -10794,7 +10795,7 @@
         "priority:P1",
         "area:srf"
       ],
-      "body": "## Bounded result\nDisplay evaluated normals for selected supported faces with clear scale/orientation and no authored geometry changes.\n\nThis is a finishable child of SRF-008; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Enable normal display for one selected planar and one curved face.\n- Verify displayed directions against analytic normals at the documented sample points.\n- Verify visibility toggling and selection changes do not modify model/history state.\n- Capture the GPU viewport result at a declared scale/theme and verify save/reopen state if display settings persist.\n\n## Preserved remainder\nBroader diagnostic glyph controls and other analysis display modes remain under SRF-008.\n"
+      "body": "## Bounded result\nDisplay evaluated normals for selected supported faces with clear scale/orientation and no authored geometry changes.\n\nThis is a finishable child of SRF-008; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Enable normal display for one selected planar and one curved face.\n- Verify displayed directions against analytic normals at the documented sample points.\n- Verify visibility toggling and selection changes do not modify model/history state.\n- Capture the GPU viewport result at a declared scale/theme and verify save/reopen state if display settings persist.\n\n## Preserved remainder\nBroader diagnostic glyph controls and other analysis display modes remain under SRF-008.\n\n## Linked native remainder\nSRF-049 owns actual-hit face selection, Inspect toggle and viewport visual qualification at 1x/2x on an unlocked Mac. Public evidence documents normal evaluation but does not establish a matching native vector-glyph command; the first glyph display is an explicit Alloy inspection proposal. This issue can accept bounded core/API/GPU evidence without claiming physical input or exact reference UI parity.\n"
     },
     {
       "key": "SRF-034",
@@ -11384,6 +11385,23 @@
         "area:srf"
       ],
       "body": "## Bounded first-v1 native workflow\nSRF-032 owns the retained crossing-sheet Trim to one-face External Edges Untrim core/API and compiled dock. Complete the documented face-selection and External Edges presentation through actual user input, using the same authoritative command and retained history. The Mac console was locked on 2026-10-20; keep native acceptance Todo until an unlocked run.\n\n## Acceptance criteria\n- Open Surface > Modify > Untrim and select the one exact retained Trim-result face with a physical viewport hit. Show the selected face and External Edges type unambiguously; the command must not guess an earlier face or substitute geometry.\n- Expose the documented face-scope options truthfully, marking unsupported All/Internal/Manual, optional extension distance and Keep Copy unavailable rather than pretending they work. For the bounded External Edges mode, preview the finite 400\u2192800 mm\u00b2 restoration, Cancel/Escape without document mutation, OK as one editable feature, and Timeline reopen/edit.\n- Implement the documented macOS Command / Windows Ctrl preview suppression during selection adjustment, or record a bounded compatibility mismatch with a follow-up owner before claiming parity. Invalid/stale/ambiguous ancestry gives actionable feedback and valid retry without inter-step focus repair.\n- On an unlocked Mac run actual-hit widget/popup readiness checks and inspect whole-app GPU captures at 1x/2x, including source-visible and source-hidden states. Exercise source edit, Undo/Redo and save/reopen after native input; compare only matched public evidence and record unmatched styling/gesture unknowns. Close the private editor.\n\n## Preserved remainder\nGeneral Internal/All/Manual loops, multiple-edge histories, Keep Copy, extension distance, imported/curved surfaces and broad recovery remain SRF-005; Windows/Linux packaged runtime stays a release gate.\n"
+    },
+    {
+      "key": "SRF-049",
+      "title": "Qualify native selected-face normal overlay and GPU presentation",
+      "kind": "validation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "SRF-033"
+      ],
+      "labels": [
+        "kind:validation",
+        "phase:P3",
+        "priority:P1",
+        "area:srf"
+      ],
+      "body": "## Bounded first-v1 native inspection gate\nSRF-033 owns a transient Alloy Show Face Normals overlay on selected supported planar and curved faces. Public evidence establishes B-rep normal evaluation, but does not document a matching native vector-glyph command or exact UI styling. Verify the Alloy proposal through real physical input and honest visual comparison. The Mac console was locked on 2026-10-20; leave this Todo until an unlocked run.\n\n## Acceptance criteria\n- From the actual Inspect action, select a supported planar face by a physical viewport hit, toggle normals on/off, then select a supported partial-cylinder face and confirm the arrow follows the current selection without focus or selection repair. A null/stale selection must clear the glyph rather than leave an old arrow.\n- Verify arrow tail on the evaluated surface, oriented tip, scale/readability at 1x and 2x, resize/camera changes, color contrast on selected and unselected materials, and that its GPU presentation does not intercept picking. Capture whole-app frames with vendor/renderer/version/framebuffer evidence and compare only matched public material; exact reference vector styling remains unknown.\n- Confirm toolbar/menu activation and API inspection share one state; toggle/selection leaves authored JSON, revision, dirty status and Undo stack unchanged. Save/reopen resets the intentionally transient overlay while preserving model state. Close the private editor after evidence.\n\n## Preserved remainder\nDense glyph fields, more face families and user controls stay SRF-008; other-platform packaged runtime stays GATE-050.\n"
     }
   ]
 }
