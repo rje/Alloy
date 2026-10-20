@@ -10,8 +10,9 @@ translated face/edge identities when the source recomputes.
 Public Surface > Create > Offset describes signed distance and face selection;
 this is distinct from solid Offset Face. The basic dock has a typed signed
 field, one-face selector and a visible +N cue. Canvas face picking and a
-draggable normal handle remain SRF-041. A planar face cannot fold, so inward
-curved radius-collapse refusal remains SRF-042.
+draggable normal handle remain SRF-041. A planar face cannot fold; the
+subsequent retained partial-cylinder collapse case is recorded under
+[SRF-042](surface-offset-cylinder.md).
 
 ## Evidence
 
@@ -49,6 +50,7 @@ proprietary runtime was operated.
 The Mac console is locked. Actual-hit native face selection, normal drag,
 physical input, 1×/2× interactive controls and matched public visual
 comparison are **not accepted**; SRF-041 owns them. Curved-face inward
-collapse/self-intersection refusal is **not accepted** by planar tests and
-remains SRF-042. Multi-face/chained offsets and broader curved families
+collapse is outside this planar fixture; a separate retained partial-cylinder
+result is [accepted](surface-offset-cylinder.md). Multi-face/chained offsets
+and broader curved families
 remain SRF-004; Windows/Linux packaged runtime remains a release gate.

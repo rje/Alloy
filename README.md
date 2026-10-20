@@ -1,6 +1,8 @@
 # Alloy
 
-[Planar Surface Offset](docs/validation/surface-offset.md) now creates an editable signed new sheet from one retained face, with exact source/downstream recompute and real-app GPU evidence. Native pick/drag and curved collapse refusal remain SRF-041/042.
+[Cylindrical Surface Offset](docs/validation/surface-offset-cylinder.md) now handles one retained partial-cylinder sheet with signed numeric distance, exact lineage and atomic inward radius-collapse refusal. Independent real-app and B-rep checks pass. Curved native face pick/normal drag remains SRF-043; planar native interaction remains SRF-041.
+
+[Planar Surface Offset](docs/validation/surface-offset.md) creates an editable signed new sheet from one retained face, with exact source/downstream recompute and real-app GPU evidence. Planar native pick/drag remains SRF-041.
 
 [Nonplanar four-edge Patch](docs/validation/surface-nonplanar-patch.md) now creates an editable skew sheet with retained source lines and a whole-boundary deviation certificate below 0.01 mm. Native canvas four-edge selection remains SRF-040.
 
