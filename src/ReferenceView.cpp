@@ -2183,7 +2183,7 @@ void ReferenceView::decorateSketch(const QJsonObject& sourceFeature,const QJsonO
         const auto edge=SketchGeometry::analyticEdge(parameters,entity,sketchFrame_);
         const auto highlight=entity.value("construction").toBool() ? constructionPresentation(edge,true) : entity.value("centerline").toBool() ? centerlinePresentation(edge,true) : sketchPresentation(edge);
         if(!entity.value("construction").toBool() && !entity.value("centerline").toBool()){highlight->SetColor(selection.value("tool")=="chamfer" ? Quantity_Color(0.88,0.16,0.12,Quantity_TOC_RGB) : Quantity_Color(0.08,0.43,0.91,Quantity_TOC_sRGB));highlight->SetWidth(4);}
-        if(selection.value("pasteInteraction").toObject().value("active").toBool()){highlight->SetColor(Quantity_Color(.98,.43,.08,Quantity_TOC_RGB));highlight->SetWidth(4*devicePixelRatioF());}
+        if(selection.value("pasteInteraction").toObject().value("active").toBool() || selection.value("createCopyPreviewEntityIds").toArray().contains(entity["id"])){highlight->SetColor(Quantity_Color(.98,.43,.08,Quantity_TOC_RGB));highlight->SetWidth(4*devicePixelRatioF());}
         if(selection["patternInteraction"].toObject()["hoveredEntityId"]==entity["id"]){highlight->SetColor(Quantity_Color(.98,.62,.08,Quantity_TOC_sRGB));highlight->SetWidth(4*devicePixelRatioF());}
         highlight->SetZLayer(Graphic3d_ZLayerId_Topmost);
         context_->Display(highlight,AIS_WireFrame,-1,false);context_->Deactivate(highlight);sketchDecorations_.push_back(highlight);

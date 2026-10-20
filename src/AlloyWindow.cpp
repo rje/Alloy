@@ -3273,7 +3273,8 @@ void AlloyWindow::registerCommands() {
         return previewMove();
     });
     add("viewport.moveHandles","Inspect Move handles","Projected native manipulator handles for reproducible input.",{},[this](const auto&){return view_->moveCueState();});
-    add("solid.moveDialog","Move/Copy","Open Free Move body controls; copy and align are outside this slice.",moveSchema,[this](const auto& a){
+    add("solid.moveDialog","Move/Copy","Open Sketch Objects Translate in an active sketch, otherwise Free Move body controls.",moveSchema,[this](const auto& a){
+        if(session_.value("command")=="sketch.edit" && a.isEmpty())return execute("sketch.moveStart");
         if(copiedBodyDefinition(document_->authored(),document_->evaluation(),a["targetBodyId"].toString()))
             return failure("linked_instance_unavailable","Use Copy Component placement; Move Body would edit the shared definition");
         return beginMove(a);});
@@ -13419,7 +13420,9 @@ void AlloyWindow::refreshSketchControls() {
     presentationSelection["pasteInteraction"]=session_.value("pasteInteraction");
     if(!pastePreview.isEmpty())presentationSelection["entityIds"]=pastePreview["diagnostics"].toObject()["copiedEntityIds"];
     presentationSelection["moveInteraction"]=session_.value("moveInteraction");
+    if(movePreview.value("createCopy").toBool()){presentationSelection["entityIds"]=movePreview["sourceEntityIds"];presentationSelection["createCopyPreviewEntityIds"]=movePreview["diagnostics"].toObject()["copiedEntityIds"];}
     if(session_["moveInteraction"].toObject()["active"].toBool())presentationSelection["entityIds"]=session_["moveInteraction"].toObject()["entityIds"];
+    for(const auto& id:presentationSelection.value("createCopyPreviewEntityIds").toArray()){auto ids=presentationSelection["entityIds"].toArray();ids.append(id);presentationSelection["entityIds"]=ids;}
     presentationSelection["patternInteraction"]=session_.value("patternInteraction");
     if(!patternPreview.isEmpty())presentationSelection["entityIds"]=QJsonArray{patternPreview["draft"].toObject()["parameters"].toObject()["patternGroups"].toArray().first().toObject()["sourceEntityId"]};
     for(const auto& id:session_["patternInteraction"].toObject()["pickedPointIds"].toArray()){auto ids=presentationSelection["pointIds"].toArray();if(!ids.contains(id))ids.append(id);presentationSelection["pointIds"]=ids;}
