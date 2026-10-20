@@ -51,7 +51,7 @@ private slots:
         auto* result=dialog->findChild<QLabel*>("interference.result");QVERIFY(result);QVERIFY(result->text().contains("32 mm³"));
         state=call(window,"inspect.interferenceState");QCOMPARE(state.value("result").toObject().value("kind"),QJsonValue("overlap"));
         QCOMPARE(call(window,"document.inspect").value("authored"),before.value("authored"));
-        const auto evidence=qEnvironmentVariable("ALLOY_INTERFERENCE_EVIDENCE");if(!evidence.isEmpty()){QVERIFY(QDir().mkpath(evidence));QVERIFY(window.grab().save(evidence+"/native-overlap.png"));QVERIFY(dialog->grab().save(evidence+"/native-panel.png"));}
+        const auto evidence=qEnvironmentVariable("ALLOY_INTERFERENCE_EVIDENCE");if(!evidence.isEmpty()){QVERIFY(QDir().mkpath(evidence));const auto capture=call(window,"capture.screenshot",{{"path",evidence+"/native-overlap.png"}});QCOMPARE(capture.value("source"),QJsonValue("QWidget chrome + OCCT OpenGL framebuffer"));qInfo()<<"GPU capture:"<<QJsonDocument(capture).toJson(QJsonDocument::Compact);QVERIFY(dialog->grab().save(evidence+"/native-panel.png"));}
         auto* clear=dialog->findChild<QPushButton*>("interference.clear");click(clear,clear->rect().center());QCOMPARE(call(window,"inspect.interferenceState").value("sources").toArray().size(),0);QVERIFY(result->text().contains("Compute"));
         auto* close=dialog->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Close);click(close,close->rect().center());QTRY_VERIFY(!dialog || !dialog->isVisible());QTRY_VERIFY(view->hasFocus());
         QCOMPARE(call(window,"document.inspect").value("authored"),before.value("authored"));QVERIFY(!call(window,"inspect.interferenceState").value("active").toBool());

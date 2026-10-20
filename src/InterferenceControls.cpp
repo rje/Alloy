@@ -69,10 +69,11 @@ void AlloyWindow::refreshInterference(){
         if(i<interferenceSources_.size()){
             const auto identity=Interference::resolve(presentationBodies(),interferenceSources_[i].toObject());
             if(identity.contains("error"))text=identity.value("error").toObject().value("message").toString();
-            else {text=QString("Selection %1: %2\n%3").arg(i+1).arg(identity.value("bodyName").toString(),identity.value("bodyId").toString());
+            else {text=QString("Selection %1: %2").arg(i+1).arg(identity.value("bodyName").toString());
                 QString componentName="Root";for(const auto& entry:document_->authored().value("components").toArray())if(entry.toObject().value("id")==identity.value("componentId"))componentName=entry.toObject().value("name").toString();
                 text+="\nComponent: "+componentName;
-                if(identity.contains("occurrenceId"))text+="\nOccurrence: "+identity.value("occurrenceId").toString();}
+                if(identity.contains("occurrenceId")){QString occurrenceName=identity.value("occurrenceId").toString().left(8);for(const auto& entry:document_->authored().value("occurrences").toArray())if(entry.toObject().value("id")==identity.value("occurrenceId") && !entry.toObject().value("name").toString().isEmpty())occurrenceName=entry.toObject().value("name").toString();text+="\nOccurrence: "+occurrenceName;}
+                interferenceDialog_->findChild<QLabel*>(QString("interference.selection%1").arg(i+1))->setToolTip(QString("Body: %1\nComponent: %2\nOccurrence: %3").arg(identity.value("bodyId").toString(),identity.value("componentId").toString(),identity.value("occurrenceId").toString("Root")));}
         }
         interferenceDialog_->findChild<QLabel*>(QString("interference.selection%1").arg(i+1))->setText(text);
     }
