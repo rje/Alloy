@@ -39,7 +39,8 @@ void definition(const QJsonObject& p,const QJsonObject& g){
  }else{
  require(count(g,"quantity1")*count(g,"quantity2")<=64,"Pattern supports at most 64 total circles");
  for(const auto* key:{"spacing1Mm","spacing2Mm"})require(g[key].isDouble() && std::isfinite(g[key].toDouble()) && g[key].toDouble()>=.001 && g[key].toDouble()<=100000,"Pattern Spacing must be finite and positive in 0.001..100000 mm");
- const auto a=direction(g,"direction1EntityId",es,ps),b=direction(g,"direction2EntityId",es,ps);require(std::abs(QPointF::dotProduct(a,b))<1e-7,"Pattern requires perpendicular directions in this slice");
+ require(g["direction1EntityId"]!=g["direction2EntityId"],"Choose two distinct nonparallel construction Lines for Pattern directions");
+ const auto a=direction(g,"direction1EntityId",es,ps),b=direction(g,"direction2EntityId",es,ps);require(std::abs(a.x()*b.y()-a.y()*b.x())>1e-7,"Pattern directions are parallel; choose two nonparallel construction Lines");
  }
  require(g["instances"].isArray() && g["instances"].toArray()==instances(g),"Pattern indexed result identities changed");
 }

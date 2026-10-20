@@ -67,7 +67,7 @@ void AlloyWindow::showSketchPatternControls(){
  auto* dock=new PatternDock(title,canvasWindow_);dock->setObjectName("sketch.pattern.dock");dock->setAttribute(Qt::WA_DeleteOnClose);
  auto* dialog=new QDialog(dock);dialog->setWindowFlags(Qt::Widget);sketchPatternDialog_=dialog;dialog->setObjectName("sketch.pattern.dialog");dialog->setWindowTitle(title);
  auto* layout=new QVBoxLayout(dialog);auto* form=new QFormLayout;layout->addLayout(form);
- auto* policy=new QLabel(circular ? "Full / Angle · positive sketch UV rotation\nQuantity includes the source circle" : "Spacing · One Direction\nQuantity includes the source circle");policy->setWordWrap(true);form->addRow(policy);
+ auto* policy=new QLabel(circular ? "Full / Angle · positive sketch UV rotation\nQuantity includes the source circle" : "Spacing · One Direction · follows Line start → end\nPositive distances · Quantity includes the source circle");policy->setWordWrap(true);form->addRow(policy);
  auto* source=new QComboBox;source->setObjectName("sketch.pattern.source");auto* d1=new QComboBox;d1->setObjectName("sketch.pattern.direction1");auto* d2=new QComboBox;d2->setObjectName("sketch.pattern.direction2");
  auto* center=new QComboBox;center->setObjectName("sketch.pattern.center");
  auto* mode=new QComboBox;mode->setObjectName("sketch.pattern.mode");mode->addItem("Full","full");mode->addItem("Angle","angle");
