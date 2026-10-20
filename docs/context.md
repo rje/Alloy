@@ -1,3 +1,16 @@
+## 2026-10-20 SKT-185 Create Copy evidence boundary
+
+SKT-185/#708 is the sole In Progress issue for a second active-sketch Move/Copy
+Create Copy route over the accepted independent Copy geometry authority. Public
+research in `../Alloy-reference-records/knowledge/specs/skt185-create-copy-2026-10-20.md`
+confirms Sketch Objects and Create Copy/Translate, but does not establish
+sketch-specific retained Timeline/constraint/source semantics. Independent Astra
+architecture review recommends a command-local source capture and stable preview
+IDs, mutually exclusive with Retain Move; no new retained Copy owner without
+evidence. The unresolved retained-history question is linked Todo SKT-186/#709.
+The canonical backlog now has 706 issues. #708 implementation/verification is
+pending; no parity is claimed for the unknown history behavior.
+
 ## 2026-10-20 SKT-179 sketch Copy/Paste acceptance
 
 [Bounded receipt](validation/sketch-copy.md) accepts selected four-Line
@@ -25,7 +38,7 @@ the bounded slice. Public sources conflict or omit copied constraints, identity,
 history and preview defaults, so the spec labels independent-copy semantics as
 Alloy policy. The separate Move/Copy > Sketch Objects > Create Copy route is
 preserved in Todo SKT-185/#708 with a dependency on #702 and #707. The canonical
-backlog has 705 issues; the general route and Rotate/Scale remain open.
+backlog has since grown to 706 issues; the general route and Rotate/Scale remain open.
 
 ## 2026-10-20 SKT-184 retained Move acceptance
 
