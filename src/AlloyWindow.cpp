@@ -649,7 +649,7 @@ AlloyWindow::AlloyWindow() {
     auto* modify=sketchMenu("Modify","modify");toolAction(modify,"Fillet","fillet");auto* sketchChamferMenu=modify->addMenu("Chamfer");sketchChamferMenu->setObjectName("sketch.menu.chamfer");for(const auto& option:{std::pair{QString("Equal Distance Chamfer"),QString("equalDistance")},std::pair{QString("Two Distance Chamfer"),QString("twoDistance")},std::pair{QString("Distance And Angle Chamfer"),QString("distanceAngle")}}){
         auto* action=sketchChamferMenu->addAction(option.first);action->setObjectName(option.second=="equalDistance"?"sketch.tool.chamfer":option.second=="twoDistance"?"sketch.tool.twoDistanceChamfer":"sketch.tool.distanceAngleChamfer");
         connect(action,&QAction::triggered,this,[this,type=option.second]{sketchResponse(execute("sketch.chamferMode",{{"type",type}}));});
-    }toolAction(modify,"Trim","trim");toolAction(modify,"Extend","extend");toolAction(modify,"Offset\tO","offset");
+    }toolAction(modify,"Trim","trim");toolAction(modify,"Extend","extend");toolAction(modify,"Break","break");toolAction(modify,"Offset\tO","offset");
     auto* sketchMirrorAction=modify->addAction("Mirror");sketchMirrorAction->setObjectName("sketch.action.mirror");
     connect(sketchMirrorAction,&QAction::triggered,this,[this]{sketchResponse(execute("sketch.mirrorStart"));});
     auto* construction=modify->addAction("Normal/Construction\tX");construction->setObjectName("sketch.action.constructionToggle");
@@ -4246,7 +4246,7 @@ void AlloyWindow::registerCommands() {
         if(session_.value("command")!="sketch.edit" || (session_.value("inputs").toObject()["plane"]!="face" && session_.value("inputs").toObject()["plane"]!="construction"))
             return failure("unsupported_projection","Linked Project requires an active supported planar sketch");
         if(session_.contains("pendingProject"))return failure("project_active","Complete or cancel the current Project selection");
-        for(const auto& key:{"firstPoint","secondPoint","pendingDimension","pendingCircleDiameter","pendingLineLength","pendingTrim","pendingExtend","pendingFillet","pendingSketchMirror","pendingLoopOffset","pendingSplineOffset","pendingCircleOffset"})
+        for(const auto& key:{"firstPoint","secondPoint","pendingDimension","pendingCircleDiameter","pendingLineLength","pendingTrim","pendingExtend","pendingBreak","pendingFillet","pendingSketchMirror","pendingLoopOffset","pendingSplineOffset","pendingCircleOffset"})
             if(session_.contains(key))return failure("pending_input_active","Complete or cancel the current sketch input before Project");
         session_["pendingProject"]=QJsonObject{{"originalDraft",session_["draftSketch"]},{"originalSelection",session_["selection"]},
             {"originalTool",session_["tool"]},{"sources",QJsonArray{}},{"previewDraft",session_["draftSketch"]}};
@@ -4297,7 +4297,7 @@ void AlloyWindow::registerCommands() {
         const auto draft=session_["draftSketch"].toObject();view_->showSketchDraft(evaluateSketchDraft(draft));displayedSketchDraft_=draft;
         refreshSketchControls();view_->setFocus(Qt::OtherFocusReason);return QJsonObject{{"pending",false},{"authoredChange",false}};
     });
-    auto sketchTool=parameter("string","Drawing tool in the active sketch context.");sketchTool["enum"]=QJsonArray{"select","point","line","rectangle","centerRectangle","threePointRectangle","overallSlot","centerPointSlot","centerToCenterSlot","centerPointArcSlot","centerPointEllipse","inscribedPolygon","circumscribedPolygon","edgePolygon","circle","twoPointCircle","threePointCircle","twoTangentCircle","threeTangentCircle","centerArc","threePointArc","dimension","fillet","chamfer","trim","extend","offset","mirror","fitSpline","controlSpline","insertFitPoint","conic"};
+    auto sketchTool=parameter("string","Drawing tool in the active sketch context.");sketchTool["enum"]=QJsonArray{"select","point","line","rectangle","centerRectangle","threePointRectangle","overallSlot","centerPointSlot","centerToCenterSlot","centerPointArcSlot","centerPointEllipse","inscribedPolygon","circumscribedPolygon","edgePolygon","circle","twoPointCircle","threePointCircle","twoTangentCircle","threeTangentCircle","centerArc","threePointArc","dimension","fillet","chamfer","trim","extend","break","offset","mirror","fitSpline","controlSpline","insertFitPoint","conic"};
     add("sketch.tool","Sketch drawing tool","Choose a tool and clear its pending first point.",{{"tool",sketchTool}},[this](const auto& a){
         if(session_.value("command").toString()!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
         if(session_.contains("pendingProject"))execute("sketch.projectCancel");
@@ -4333,7 +4333,7 @@ void AlloyWindow::registerCommands() {
         }
         if(session_.value("tool")=="constraint" || leavingFillet || a["tool"]=="fillet")
             session_["selection"]=QJsonObject{{"pointIds",QJsonArray{}},{"entityIds",QJsonArray{}},{"profileIds",QJsonArray{}}};
-        session_.remove("pendingSplinePoints");session_.remove("splineInsertEntityId");session_.remove("pendingSplineDrag");session_.remove("pendingTrim");session_.remove("pendingExtend");session_.remove("trimNotice");session_["tool"]=a["tool"];sketchHistoryGroup_.clear();session_.remove("constraintType");session_.remove("constraintPrompt");session_.remove("constraintPickStatus");session_.remove("firstPoint");session_.remove("secondPoint");session_.remove("thirdPoint");session_.remove("pointerPoint");session_.remove("gestureSweepDeg");session_.remove("snap");view_->clearSketchCursor();
+        session_.remove("pendingSplinePoints");session_.remove("splineInsertEntityId");session_.remove("pendingSplineDrag");session_.remove("pendingTrim");session_.remove("pendingExtend");session_.remove("pendingBreak");session_.remove("trimNotice");session_["tool"]=a["tool"];sketchHistoryGroup_.clear();session_.remove("constraintType");session_.remove("constraintPrompt");session_.remove("constraintPickStatus");session_.remove("firstPoint");session_.remove("secondPoint");session_.remove("thirdPoint");session_.remove("pointerPoint");session_.remove("gestureSweepDeg");session_.remove("snap");view_->clearSketchCursor();
         if(a["tool"]=="fillet" && sketchFilletRadius_) {
             const QSignalBlocker block(sketchFilletRadius_);
             sketchFilletRadius_->setText(QString::number(10.0/(session_.value("inputs").toObject()["units"]=="in" ? 25.4 : 1.0),'g',8));
@@ -4436,6 +4436,17 @@ void AlloyWindow::registerCommands() {
         [this](const auto& a){return updateLoopOffset(a);});
     auto trimCoordinate=parameter("number","Canonical sketch-plane coordinate in millimeters.");trimCoordinate["minimum"]=-100000;trimCoordinate["maximum"]=100000;
     const QJsonObject trimSchema{{"entityId",parameter("string","Authored line to trim.")},{"uMm",trimCoordinate},{"vMm",trimCoordinate}};
+    auto breakSchema=trimSchema;breakSchema["entityId"]=parameter("string","Independent authored analytic curve to split.");
+    add("sketch.breakPreview","Preview Break","Preview exact intersection markers without changing authored geometry.",breakSchema,[this](const auto& a){return previewBreak(a);});
+    add("sketch.break","Break","Split a line or arc at one interior crossing, or a circle at two secant intersections.",breakSchema,[this](const auto& a){
+        if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+        const auto solved=SketchGeometry::breakCurve(session_.value("draftSketch").toObject(),a,session_.value("projectionContext").toObject());
+        if(!solved.ok)return failure("sketch_break_unavailable",solved.error);
+        const auto response=publishSketchSolve(solved);if(response.value("ok").isBool() && !response.value("ok").toBool())return response;
+        session_.remove("pendingBreak");view_->clearSketchCursor();
+        session_["trimNotice"]=QString("Break removed %1 constraints and %2 dimensions").arg(solved.diagnostics.value("removedConstraintIds").toArray().size()).arg(solved.diagnostics.value("removedDimensionIds").toArray().size());
+        auto result=response;result["breakDiagnostics"]=solved.diagnostics;return result;
+    });
     add("sketch.trimPreview","Preview Trim","Highlight one removable line interval without changing the sketch or history.",trimSchema,[this](const auto& a){return previewTrim(a);});
     add("sketch.extendPreview","Preview Extend","Preview one retained straight-line endpoint reaching its nearest finite line intersection without changing the sketch or history.",trimSchema,[this](const auto& a){return previewExtend(a);});
     add("sketch.extend","Extend","Move one retained straight-line endpoint to its nearest unambiguous forward finite line intersection.",trimSchema,[this](const auto& a){
@@ -4720,6 +4731,7 @@ void AlloyWindow::registerCommands() {
             return response;
         }
         if(tool=="trim") {const auto inputs=trimPointerInput(a);if(inputs.isEmpty())return failure("trim_target_required","Pick an authored line interval");const auto response=execute("sketch.trim",inputs);return response["ok"].toBool() ? response["result"].toObject() : response;}
+        if(tool=="break") {const auto inputs=breakPointerInput(a);if(inputs.isEmpty())return failure("break_target_required","Pick an authored analytic curve");const auto response=execute("sketch.break",inputs);return response.value("ok").toBool()?response.value("result").toObject():response;}
         if(tool=="extend") {const auto inputs=trimPointerInput(a);if(inputs.isEmpty())return failure("extend_target_required","Pick an authored straight line near the endpoint to extend");const auto response=execute("sketch.extend",inputs);return response["ok"].toBool() ? response["result"].toObject() : response;}
         if(tool=="chamfer")return chamferGesture(a,true);
         if(tool=="fillet") {
@@ -5090,6 +5102,7 @@ void AlloyWindow::registerCommands() {
         if(tool=="fitSpline" || tool=="controlSpline" || tool=="insertFitPoint")return splinePointer(a,false);
         if(((tool=="circle" || tool=="twoPointCircle") && session_.contains("pendingCircleDiameter")) || (tool=="centerRectangle" && session_.contains("pendingCenterRectangle")))
             return QJsonObject{{"authoredChange",false}};
+        if(tool=="break") {const auto inputs=breakPointerInput(a);if(inputs.isEmpty()){session_.remove("pendingBreak");view_->clearSketchCursor();return QJsonObject{{"authoredChange",false}};}return previewBreak(inputs);}
         if(tool=="trim") {const auto inputs=trimPointerInput(a);if(inputs.isEmpty()){session_.remove("pendingTrim");view_->clearSketchCursor();return QJsonObject{{"authoredChange",false}};}return previewTrim(inputs);}
         if(tool=="extend") {const auto inputs=trimPointerInput(a);if(inputs.isEmpty()){session_.remove("pendingExtend");view_->clearSketchCursor();return QJsonObject{{"authoredChange",false}};}return previewExtend(inputs);}
         if(tool=="chamfer")return chamferGesture(a,false);
@@ -8426,6 +8439,7 @@ void AlloyWindow::refresh() {
             : session_.contains("pendingLineLength") ? "Type length · Tab locks · Point sets H/V · Click places" :
                 session_.contains("firstPoint") ? "Type a length or click the next point · Escape ends chain" : "Click the line start";
         else if(tool=="trim")prompt="Click the highlighted segment to remove · Escape or Enter exits";
+        else if(tool=="break")prompt="Hover curve · Click to split · Enter exits";
         else if(tool=="extend")prompt="Hover line end · Click extension · Enter exits";
         else if(tool=="mirror"){
             const auto chosen=session_.value("mirrorSelection").toObject();
@@ -8465,7 +8479,7 @@ void AlloyWindow::refresh() {
         else if(session_.contains("firstPoint"))prompt="Click the next point · Escape stops drawing";
         const auto mirrorPreview=session_.value("pendingSketchMirror").toObject();
         if(!mirrorPreview.isEmpty())prompt="Mirror preview · inspect reflected geometry";
-        if(tool=="trim" && !session_.value("trimNotice").toString().isEmpty())prompt+="\n"+session_.value("trimNotice").toString();
+        if((tool=="trim" || tool=="break") && !session_.value("trimNotice").toString().isEmpty())prompt+="\n"+session_.value("trimNotice").toString();
         int standaloneCount=0,curveCount=0;
         for(const auto& e:(mirrorPreview.isEmpty() ? draft : mirrorPreview["draft"].toObject())["parameters"].toObject()["entities"].toArray()) {
             if(e.toObject()["type"]=="point")++standaloneCount;else ++curveCount;
@@ -11840,6 +11854,23 @@ QJsonObject AlloyWindow::resolveFilletCorner(double x,double y,const QString& pl
     return result;
 }
 
+QJsonObject AlloyWindow::breakPointerInput(const QJsonObject& pixels) const {
+    auto draft=session_.value("draftSketch").toObject();auto p=draft.value("parameters").toObject();QJsonArray analytic;
+    for(auto v:p.value("entities").toArray())if(QSet<QString>{"line","arc","circle"}.contains(v.toObject().value("type").toString()))analytic.append(v);
+    p["entities"]=analytic;draft["parameters"]=p;
+    const auto hit=view_->pickSketch(draft,pixels.value("x").toDouble(),pixels.value("y").toDouble(),"entity");if(hit.isEmpty()||hit.value("projected").toBool())return {};
+    const auto point=view_->sketchPoint(pixels.value("x").toDouble(),pixels.value("y").toDouble(),p.value("plane").toString());
+    return {{"entityId",hit.value("entityId")},{"uMm",point.value("uMm")},{"vMm",point.value("vMm")}};
+}
+QJsonObject AlloyWindow::previewBreak(const QJsonObject& inputs) {
+    view_->clearSketchCursor();session_.remove("pendingBreak");
+    if(session_.value("command")!="sketch.edit")return failure("no_active_sketch","Enter a sketch first");
+    const auto result=SketchGeometry::breakCurve(session_.value("draftSketch").toObject(),inputs,session_.value("projectionContext").toObject());
+    if(!result.ok)return failure("sketch_break_unavailable",result.error);
+    session_["pendingBreak"]=QJsonObject{{"inputs",inputs},{"diagnostics",result.diagnostics}};
+    view_->showBreakPreview(session_.value("inputs").toObject().value("plane").toString(),result.diagnostics.value("breakPoints").toArray());
+    return {{"authoredChange",false},{"breakPreview",session_.value("pendingBreak")}};
+}
 QJsonObject AlloyWindow::trimPointerInput(const QJsonObject& pixels) const {
     auto onlyLines=session_.value("draftSketch").toObject();auto parameters=onlyLines["parameters"].toObject();QJsonArray lines;
     for(const auto& entry:parameters["entities"].toArray())if(entry.toObject()["type"]=="line")lines.append(entry);parameters["entities"]=lines;onlyLines["parameters"]=parameters;

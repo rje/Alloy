@@ -1,3 +1,14 @@
+## Analytic sketch Break candidate (2026-10-20 UTC)
+
+SKT-169/#617 has a bounded local candidate for one-crossing line/finite-arc
+splits and two-intersection circle-to-two-arcs splitting with complete locus
+coverage. Shared native/API commands provide red-X hover preview, repeat picks,
+Enter/Escape, atomic refusal and explicit annotation-retirement diagnostics.
+Core, real-app API/profile/history/reopen and actual-hit Qt native checks pass;
+independent review/integration remain pending. The circle's endpoint pairs are
+independent IDs to avoid redundant radial equations; no live relation to the
+crossing boundary is added. See [candidate receipt](validation/sketch-break.md).
+
 # Continuation context
 
 ## Current v1 delivery direction (2026-10-19)

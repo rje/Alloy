@@ -46,7 +46,7 @@ add_library(alloy_kernel STATIC
     src/GeometryKernel.cpp src/GeometryKernel.h src/SketchPlaneRepair.cpp src/SketchPlaneRepair.h src/PrimitiveTopology.cpp src/PrimitiveTopology.h src/PlanarFaces.cpp src/PlanarFaces.h src/JoinRootEdges.cpp src/JoinRootEdges.h src/SolidFillet.cpp src/SolidFillet.h src/RuledCornerFillet.cpp src/RuledCornerFillet.h src/HalfThicknessFillet.cpp src/HalfThicknessFillet.h src/SolidChamfer.cpp src/SolidChamfer.h src/SolidShell.cpp src/SolidShell.h src/SolidThicken.cpp src/SolidThicken.h src/ClosedBlendShell.cpp src/ClosedBlendShell.h src/SolidSplit.cpp src/SolidSplit.h src/RevolvedShellCap.cpp src/RevolvedShellCap.h src/SolidSphere.cpp src/SolidSphere.h src/SolidHole.cpp src/SolidHole.h src/SolidLoft.cpp src/SolidLoft.h src/SurfaceClosedLoft.cpp src/SurfaceClosedLoft.h src/SurfaceRailLoft.cpp src/SurfaceRailLoft.h src/SurfaceExtrude.cpp src/SurfaceExtrude.h src/SurfaceRevolve.cpp src/SurfaceRevolve.h src/SurfaceOffset.cpp src/SurfaceOffset.h src/SurfaceRuled.cpp src/SurfaceRuled.h src/SurfaceExtend.cpp src/SurfaceExtend.h src/SurfaceSweep.cpp src/SurfaceSweep.h src/SurfacePatch.cpp src/SurfacePatch.h src/BoundaryFill.cpp src/BoundaryFill.h src/SurfaceTrim.cpp src/SurfaceTrim.h src/SurfaceUntrim.cpp src/SurfaceUntrim.h src/SolidRevolve.cpp src/SolidRevolve.h src/SolidSweep.cpp src/SolidSweep.h src/RetainedSweepPath.cpp src/RetainedSweepPath.h src/SolidPipe.cpp src/SolidPipe.h src/SolidRib.cpp src/SolidRib.h src/FeaturePattern.cpp src/FeaturePattern.h src/BodyCopy.cpp src/BodyCopy.h src/SolidMirror.cpp src/SolidTransform.cpp src/CircularPattern.cpp src/RectangularBodyPattern.cpp src/SolidMirror.h src/JoinResults.cpp
     src/MeshExport.cpp src/MeshExport.h src/ExportScope.cpp src/ExportScope.h
     src/StepExchange.cpp src/StepExchange.h
-    src/SketchSpline.cpp src/SketchSpline.h src/SketchSplineOffset.cpp src/SketchSplineOffset.h src/SketchOpenChainOffset.cpp src/SketchOpenChainOffset.h src/SketchConic.cpp src/SketchConic.h src/SketchGeometry.cpp src/SketchChamfer.cpp src/SketchChamfer.h src/SketchTrim.cpp src/SketchExtend.cpp src/SketchGeometry.h src/SketchText.cpp src/SketchText.h src/RoundedLoopOffset.cpp src/RoundedLoopOffset.h src/PlanarBoundaryInset.cpp src/PlanarBoundaryInset.h
+    src/SketchSpline.cpp src/SketchSpline.h src/SketchSplineOffset.cpp src/SketchSplineOffset.h src/SketchOpenChainOffset.cpp src/SketchOpenChainOffset.h src/SketchConic.cpp src/SketchConic.h src/SketchGeometry.cpp src/SketchChamfer.cpp src/SketchChamfer.h src/SketchTrim.cpp src/SketchExtend.cpp src/SketchBreak.cpp src/SketchGeometry.h src/SketchText.cpp src/SketchText.h src/RoundedLoopOffset.cpp src/RoundedLoopOffset.h src/PlanarBoundaryInset.cpp src/PlanarBoundaryInset.h
     src/SketchProfiles.cpp src/SketchProfiles.h src/SketchRegions.cpp)
 target_include_directories(alloy_kernel PUBLIC src)
 target_include_directories(alloy_kernel SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
@@ -841,6 +841,14 @@ if(BUILD_TESTING)
     target_include_directories(sketch_trim_test PRIVATE src)
     target_link_libraries(sketch_trim_test PRIVATE Qt6::Gui alloy_kernel)
     add_test(NAME sketch_trim COMMAND sketch_trim_test)
+    add_executable(sketch_break_test tests/sketch_break.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_include_directories(sketch_break_test PRIVATE src)
+    target_link_libraries(sketch_break_test PRIVATE Qt6::Gui alloy_kernel)
+    add_test(NAME sketch_break COMMAND sketch_break_test)
+    add_executable(sketch_break_controls_test tests/sketch_break_controls.cpp)
+    target_link_libraries(sketch_break_controls_test PRIVATE alloy_application Qt6::Test)
+    add_test(NAME sketch_break_controls COMMAND sketch_break_controls_test)
+    set_tests_properties(sketch_break_controls PROPERTIES TIMEOUT 90 LABELS "widget;gpu" RUN_SERIAL TRUE)
     add_executable(sketch_extend_test tests/sketch_extend.cpp src/CadDocument.cpp src/CadDocument.h)
     target_include_directories(sketch_extend_test PRIVATE src)
     target_link_libraries(sketch_extend_test PRIVATE Qt6::Gui alloy_kernel)

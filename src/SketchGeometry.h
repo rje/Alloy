@@ -103,6 +103,7 @@ public:
     static SolveResult trimLine(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});
     // Move one retained line endpoint to the nearest forward finite-line
     // intersection. Existing constraints and identities remain authoritative.
+    static SolveResult breakCurve(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});
     static SolveResult extendLine(const QJsonObject& draft, const QJsonObject& arguments, const QJsonObject& projectionContext = {});
     // Retained equal setbacks are evaluated after the source sketch solver;
     // source dimensions/relations keep their original support geometry.

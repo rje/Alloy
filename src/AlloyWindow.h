@@ -269,6 +269,8 @@ private:
     bool updatingExtrudePreview_ = false;
     bool updatingFaceOffsetPreview_ = false;
     QString pendingBrowserVisibility_;
+    QJsonObject breakPointerInput(const QJsonObject& pixels) const;
+    QJsonObject previewBreak(const QJsonObject& inputs);
     QJsonObject trimPointerInput(const QJsonObject& pixels) const;
     QJsonObject previewTrim(const QJsonObject& inputs);
     QJsonObject previewExtend(const QJsonObject& inputs);

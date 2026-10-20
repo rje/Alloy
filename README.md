@@ -1,5 +1,10 @@
 # Alloy
 
+[Analytic sketch Break candidate](docs/validation/sketch-break.md) splits a line
+or finite arc at one crossing and a circle at two secant intersections, preserving
+its full locus. Shared native/API preview, history and reopen checks pass;
+independent review is pending.
+
 [Retained Rib](docs/validation/solid-rib.md) now joins a symmetric thickness sketch Line to a full planar support face as an editable solid feature. An independent U-channel fixture confirms wall and thickness edits, history, native controls, GPU presentation and a watertight STL.
 
 [Intentional open-surface STL](docs/validation/open-surface-stl.md) now exports one retained sheet with an explicit non-solid warning, shared preview and independent curved-surface triangle readback. It does not claim the zero-thickness mesh is printable.

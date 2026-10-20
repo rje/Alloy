@@ -2673,6 +2673,15 @@ QJsonObject ReferenceView::projectSketchPoint(double uMm,double vMm,const QStrin
     int x,y;view_->Convert(world.X(),world.Y(),world.Z(),x,y);
     const auto scale=windowScale();return {{"x",x/scale.x()},{"y",y/scale.y()},{"viewportLocal",true},{"units","logicalPixels"}};
 }
+void ReferenceView::showBreakPreview(const QString& plane,const QJsonArray& points) {
+    clearSketchCursor();if(context_.IsNull() || points.isEmpty())return;
+    TopoDS_Compound compound;BRep_Builder builder;builder.MakeCompound(compound);
+    const double size=view_->Camera()->Scale()*5.0/std::max(height(),1);
+    for(auto value:points){const auto p=value.toObject();const double u=p.value("uMm").toDouble(),v=p.value("vMm").toDouble();
+        for(double sign:{-1.0,1.0})builder.Add(compound,BRepBuilderAPI_MakeEdge(sketchWorld(plane,u-size,v-sign*size),sketchWorld(plane,u+size,v+sign*size)).Edge());}
+    sketchCursor_=new AIS_Shape(compound);sketchCursor_->SetColor(Quantity_Color(.86,.12,.10,Quantity_TOC_sRGB));sketchCursor_->SetWidth(3);sketchCursor_->SetZLayer(Graphic3d_ZLayerId_Topmost);
+    context_->Display(sketchCursor_,AIS_WireFrame,-1,false);context_->Deactivate(sketchCursor_);context_->UpdateCurrentViewer();
+}
 void ReferenceView::showTrimPreview(const QString& plane,const QJsonObject& segment) {
     clearSketchCursor();if(context_.IsNull() || segment.isEmpty())return;
     const auto a=sketchWorld(plane,segment["u1Mm"].toDouble(),segment["v1Mm"].toDouble()),b=sketchWorld(plane,segment["u2Mm"].toDouble(),segment["v2Mm"].toDouble());

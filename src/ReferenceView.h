@@ -171,6 +171,7 @@ public:
     bool lookAtFinishedSketch(const EvaluatedSketch& sketch);
     QJsonObject sketchPoint(double x, double y, const QString& plane, const QJsonObject& resolvedFrame = {}) const;
     QJsonObject projectSketchPoint(double uMm, double vMm, const QString& plane, const QJsonObject& resolvedFrame = {}) const;
+    void showBreakPreview(const QString& plane,const QJsonArray& points);
     void showTrimPreview(const QString& plane,const QJsonObject& segment);
     void showExtendPreview(const QString& plane,const QJsonObject& segment);
     void showSketchCursor(const QString& plane, const QPointF& first, const QPointF& second, bool rectangle, bool centered = false);
