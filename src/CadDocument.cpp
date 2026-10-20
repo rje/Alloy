@@ -1942,7 +1942,12 @@ QJsonObject CadDocument::ribCandidate(const QJsonObject& authored,const QJsonObj
     if(index<0){index=features.size();features.append(feature);}else features[index]=feature;candidate["features"]=features;
     const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());
     if(parameters["supportFaceIds"].toArray().isEmpty()){
-        const auto evaluated=evaluateCandidate(candidate);
+        // Resolve this feature's own support pair before any later modifier can
+        // replace the target body's summary (or depend on the edited feature).
+        auto prefix=candidate;QJsonArray prefixFeatures;
+        for(int i=0;i<=index;++i)prefixFeatures.append(features[i]);
+        prefix["features"]=prefixFeatures;
+        const auto evaluated=evaluateCandidate(prefix);
         if(evaluated.ok)for(const auto& body:evaluated.evaluation->bodies)if(body.bodyId==parameters["targetBodyId"]){parameters["supportFaceIds"]=body.summary["ribSupportFaceIds"];feature["parameters"]=parameters;features[index]=feature;candidate["features"]=features;}
     }return candidate;
 }
