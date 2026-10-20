@@ -165,3 +165,18 @@ and assistive-technology operation remain unqualified.
 
 This is a candidate pending independent review and issue scope reconciliation.
 No CI, tag, push or release was performed. All private validation windows closed.
+
+### Independent-review Backtab correction
+
+The first candidate's reverse cycle handled Shift-modified Tab but omitted Qt's
+separate `Key_Backtab` encoding. Independent review rejected that keyboard gap.
+The narrow correction handles both encodings through the same reverse traversal.
+A direct `Qt::Key_Backtab` fixture now wraps the first radial control to the last
+list row, traverses list rows, then crosses the first row back to the last radial
+control, delivering each next key to the naturally focused widget without repair.
+The affected `bracket_midpoint_controls_test` target rebuilt with `-j4`; the full
+focused fixture passes **4/4 in 19.3 seconds**, preserving real-app input and
+bracket geometry/history/reopen coverage. Latest external receipt/captures/log:
+`validation/skt175-2026-10-20/backtab/`; build log: `backtab-build.log`.
+Independent re-review remains pending. The lower-list-width mismatch and physical
+input/accessibility/platform limits above are unchanged. Private editor closed.

@@ -3,10 +3,10 @@
 [Menu receipt](validation/canvas-marking-menu.md#2026-10-20-skt-175-visualaccess-candidate)
 records original icons, transparent compact radial targets, screen clamping and
 explicit radial/list keyboard traversal. `build-preview-release` real-app fixture
-passes 4/4 in 19.1s; component actual-hit checks cover all command buttons/eight
+passes 4/4 in 19.3s after the review-requested direct Qt Key_Backtab correction; component actual-hit checks cover all command buttons/eight
 gesture octants/accessibility interfaces, while real Alloy covers keyboard Line,
 five tool clicks and the full retained bracket route. External captures/receipt:
-`validation/skt175-2026-10-20/final2/`. DPR2 Apple M4 and actual focus-state
+`validation/skt175-2026-10-20/backtab/`. DPR2 Apple M4 and actual focus-state
 captures inspected; physical hover/input/VoiceOver and native DPR1 remain
 unqualified. Lower list still spans radial width, unlike the narrower centered
 public screenshot: explicit Todo remainder proposed. Independent review and

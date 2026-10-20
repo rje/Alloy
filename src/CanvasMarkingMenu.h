@@ -169,7 +169,7 @@ private:
         if(event->type()==QEvent::KeyPress) {
             auto* key=static_cast<QKeyEvent*>(event);
             if(key->key()==Qt::Key_Escape){close();return true;}
-            if(key->key()==Qt::Key_Tab){return traverse(key->modifiers().testFlag(Qt::ShiftModifier) ? -1 : 1);}
+            if(key->key()==Qt::Key_Tab||key->key()==Qt::Key_Backtab){return traverse(key->key()==Qt::Key_Backtab||key->modifiers().testFlag(Qt::ShiftModifier) ? -1 : 1);}
             if(panel_->isAncestorOf(QApplication::focusWidget())) {
                 if(key->key()==Qt::Key_Left||key->key()==Qt::Key_Up)return traverse(-1);
                 if(key->key()==Qt::Key_Right||key->key()==Qt::Key_Down)return traverse(1);

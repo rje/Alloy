@@ -234,6 +234,10 @@ private slots:
       QTest::keyClick(m,Qt::Key_Tab);check(m->activeAction()->objectName()=="test.construction","Tab traverses list");
       QTest::keyClick(m,Qt::Key_Tab);check(QApplication::focusWidget()->objectName()=="context.radial.redo","Tab wraps to radial");
       QTest::keyClick(QApplication::focusWidget(),Qt::Key_Tab,Qt::ShiftModifier);check(m->activeAction()->objectName()=="test.construction","reverse traversal");
+      QTest::keyClick(m,Qt::Key_Tab);check(QApplication::focusWidget()->objectName()=="context.radial.redo","forward returns to first radial");
+      QTest::keyClick(QApplication::focusWidget(),Qt::Key_Backtab);check(m->activeAction()&&m->activeAction()->objectName()=="test.construction","Key_Backtab wraps radial to list");
+      QTest::keyClick(QApplication::focusWidget(),Qt::Key_Backtab);check(m->activeAction()&&m->activeAction()->objectName()=="test.dimension","Key_Backtab traverses list");
+      QTest::keyClick(QApplication::focusWidget(),Qt::Key_Backtab);check(QApplication::focusWidget()->objectName()=="context.radial.dismiss","Key_Backtab crosses list to radial");
       QTest::keyClick(m,Qt::Key_Escape);QTest::qWait(50);check(!QApplication::activePopupWidget()&&result.isEmpty(),"keyboard cancellation");
       m=open();QTest::keyClick(m,Qt::Key_Tab);
       QTest::keyClick(QApplication::focusWidget(),Qt::Key_Right);
