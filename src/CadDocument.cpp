@@ -1928,6 +1928,24 @@ QJsonObject CadDocument::loftCandidate(const QJsonObject& authored,const QJsonOb
     if(index<0)features.append(feature);else features[index]=feature;candidate["features"]=features;return candidate;
 }
 
+QJsonObject CadDocument::surfaceOffsetCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
+    const QSet<QString> allowed{"sourceFace","distanceMm","featureId","newFeatureId","newBodyId","ownerId","name"};
+    for(auto i=arguments.begin();i!=arguments.end();++i)if(!allowed.contains(i.key()))throw std::invalid_argument("Unknown Surface Offset argument");
+    if(arguments.contains("featureId") && (arguments.contains("newFeatureId") || arguments.contains("newBodyId") || arguments.contains("ownerId")))
+        throw std::invalid_argument("Surface Offset edit retains feature, body and owner identities");
+    auto candidate=authored;auto rows=candidate["features"].toArray();QJsonObject feature;int index=-1;
+    if(arguments.contains("featureId")){
+        for(int i=0;i<rows.size();++i)if(rows[i].toObject()["id"]==arguments["featureId"]){feature=rows[i].toObject();index=i;break;}
+        if(index<0 || feature["type"]!="surfaceOffset")throw std::invalid_argument("Surface Offset feature unavailable");
+    }else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"bodyId",arguments.value("newBodyId").toString(newId())},
+        {"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","surfaceOffset"},{"name","Offset"},{"visible",true}};
+    auto params=feature["parameters"].toObject();if(params.isEmpty())params={{"operation","newBody"},{"isSolid",false},{"distanceMm",0.}};
+    for(const auto& key:{"sourceFace","distanceMm"})if(arguments.contains(key))params[key]=arguments[key];
+    feature["parameters"]=params;if(arguments.contains("name"))feature["name"]=arguments["name"];
+    if(index<0)rows.append(feature);else rows[index]=feature;candidate["features"]=rows;
+    const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
+}
+
 QJsonObject CadDocument::surfaceRevolveCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
     const QSet<QString> allowed{"sketchId","entityId","axisEntityId","angleDeg","reverseDirection","featureId","newFeatureId","newBodyId","ownerId","name"};
     for(auto i=arguments.begin();i!=arguments.end();++i)if(!allowed.contains(i.key()))throw std::invalid_argument("Unknown Surface Revolve argument");
@@ -2956,6 +2974,15 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
                 || p["entityId"]==p["pathEntityId"] || p["extent"]!="full" || p["orientation"]!="perpendicular" || p["operation"]!="newBody"
                 || !p["isSolid"].isBool() || p["isSolid"].toBool())return "Surface Sweep requires retained Line section, distinct Line/Arc path and endpoint, full Perpendicular non-solid New Body";
             ids.insert(feature["bodyId"].toString());continue;
+        }
+        if(type=="surfaceOffset") {
+            const auto ref=p.value("sourceFace").toObject();
+            if(!validId(feature.value("bodyId").toString()) || ids.contains(feature.value("bodyId").toString()) || p.size()!=4
+                || ref.size()!=3 || !validId(ref.value("bodyId").toString()) || !validId(ref.value("producerFeatureId").toString()) || !validId(ref.value("faceId").toString())
+                || p.value("operation")!="newBody" || !p.value("isSolid").isBool() || p.value("isSolid").toBool()
+                || !p.value("distanceMm").isDouble() || !std::isfinite(p.value("distanceMm").toDouble()) || std::abs(p.value("distanceMm").toDouble())>100000)
+                return "Surface Offset requires one exact retained face, finite signed distance within 100000 mm and non-solid New Body";
+            ids.insert(feature.value("bodyId").toString());continue;
         }
         if(type=="surfaceRevolve") {
             if(!validId(feature["bodyId"].toString()) || ids.contains(feature["bodyId"].toString()) || p.size()!=9

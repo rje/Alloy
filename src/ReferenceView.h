@@ -208,7 +208,7 @@ public:
     void showSurfaceTrimPreview(const TopoDS_Shape& splitShape, const QString& replacedBody,
         const std::vector<TopoDS_Face>& removedRegions);
     void clearExtrusionCue();
-    void showFaceOffsetCue(const EvaluatedSupportFace& sourceFace, double distanceMm, const QString& units);
+    void showFaceOffsetCue(const EvaluatedSupportFace& sourceFace, double distanceMm, const QString& units, const QString& command="solid.faceOffset");
     QJsonObject faceOffsetCueState() const;
     void showExtrudeHandle(const EvaluatedProfile& profile,const QJsonArray& sourceProfileIds,const QString& units,const QString& operation,double distanceMm = 0,double startOffsetMm = 0);
     void showRevolveCue(const QJsonObject& geometry,const EvaluatedProfile& profile);

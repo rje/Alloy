@@ -329,6 +329,14 @@ private:
     void displaySweepSelection();
     QDockWidget* sweepDock_=nullptr;
     QShortcut* sweepEscape_=nullptr;
+    QJsonObject surfaceOffsetCandidate(const QJsonObject& inputs) const;
+    QJsonObject beginSurfaceOffset(const QJsonObject& overrides={});
+    QJsonObject previewSurfaceOffset();
+    QJsonObject selectSurfaceOffsetFace(const QJsonObject& face);
+    void showSurfaceOffset();
+    void refreshSurfaceOffsetControls();
+    QDockWidget* surfaceOffsetDock_=nullptr;
+    QShortcut* surfaceOffsetEscape_=nullptr;
     QJsonObject surfaceRevolveCandidate(const QJsonObject& inputs) const;
     QJsonObject beginSurfaceRevolve(const QJsonObject& overrides={});
     QJsonObject previewSurfaceRevolve();
