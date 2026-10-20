@@ -8,8 +8,10 @@
 #include <QDialogButtonBox>
 #include <QFormLayout>
 #include <QLabel>
+#include <QScreen>
 #include <QSignalBlocker>
 #include <QVBoxLayout>
+#include <algorithm>
 namespace {
 QString faceLabel(const EvaluatedBody& body,const EvaluatedSupportFace& face){return "Face "+face.faceId.left(8)+(body.occurrenceId.isEmpty() ? QString{}:" · "+body.occurrenceId.left(8))+" · "+body.name+" · "+face.role;}
 }
@@ -24,8 +26,9 @@ void AlloyWindow::registerSurfaceContinuityCommands(){
     commands_.push_back({"inspect.surfaceContinuity","Surface Continuity","Open a transient sampled G0 / tangent-plane G1 inspector. Choose two planar faces and their exact shared straight edge. Fixed nine samples; no saved analysis or shortcut.",schema,true,[this](const QJsonObject& args){
         if(!session_.isEmpty())return QJsonObject{{"status","unavailable"},{"error",QJsonObject{{"code","active_command"},{"message","Finish the active command before inspecting continuity"}}}};
         if(surfaceContinuityDialog_ && (surfaceContinuityDocument_!=document_ || surfaceContinuityDocumentId_!=document_->authored().value("documentId").toString()))surfaceContinuityDialog_->close();
+        const bool created=!surfaceContinuityDialog_;
         if(!surfaceContinuityDialog_){surfaceContinuityFaces_={};surfaceContinuityEdgeId_.clear();surfaceContinuityDocument_=document_;surfaceContinuityDocumentId_=document_->authored().value("documentId").toString();
-            auto* dialog=new QDialog(this);surfaceContinuityDialog_=dialog;dialog->setObjectName("surfaceContinuity.dialog");dialog->setWindowTitle("Surface Continuity");dialog->setAttribute(Qt::WA_DeleteOnClose);dialog->resize(430,360);
+            auto* dialog=new QDialog(this);surfaceContinuityDialog_=dialog;dialog->setObjectName("surfaceContinuity.dialog");dialog->setWindowTitle("Surface Continuity");dialog->setAttribute(Qt::WA_DeleteOnClose);dialog->resize(360,360);
             auto* layout=new QVBoxLayout(dialog);auto* explanation=new QLabel("Choose two planar faces on one body and their shared straight edge.",dialog);explanation->setWordWrap(true);layout->addWidget(explanation);
             auto* form=new QFormLayout;layout->addLayout(form);
             for(int i=0;i<2;++i){auto* combo=new QComboBox(dialog);combo->setObjectName(QString("surfaceContinuity.face%1").arg(i+1));combo->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);combo->setMinimumContentsLength(24);form->addRow(QString("Face %1").arg(i+1),combo);
@@ -39,6 +42,17 @@ void AlloyWindow::registerSurfaceContinuityCommands(){
         }
         if(args.contains("faces") || args.contains("edgeId")){surfaceContinuityFaces_=args.value("faces").toArray();surfaceContinuityEdgeId_=args.value("edgeId").toString();}
         refreshSurfaceContinuity();surfaceContinuityDialog_->show();surfaceContinuityDialog_->raise();
+        if(created){
+            // Start beside the Browser, leaving the central model and shared
+            // seam visible. Refreshes and repeated commands preserve user moves.
+            auto* dialog=surfaceContinuityDialog_.data();
+            auto position=mapToGlobal(QPoint(std::min(browser_->width()+12,std::max(12,width()-dialog->width()-12)),
+                std::min(180,std::max(12,height()-dialog->height()-12))));
+            const auto available=dialog->screen()->availableGeometry();
+            position.setX(std::clamp(position.x(),available.left()+12,std::max(available.left()+12,available.right()-dialog->frameGeometry().width()-12)));
+            position.setY(std::clamp(position.y(),available.top()+12,std::max(available.top()+12,available.bottom()-dialog->frameGeometry().height()-12)));
+            dialog->move(position);
+        }
         return SurfaceContinuity::evaluate(presentationBodies(),surfaceContinuityFaces_,surfaceContinuityEdgeId_,document_->authored().value("displayUnits").toString("mm"));
     }});
 }
