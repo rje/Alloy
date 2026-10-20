@@ -2832,12 +2832,15 @@ void AlloyWindow::registerCommands() {
     add("surface.revolveDialog","Revolve","Select an open Line and construction axis, preview a partial surface, then OK or Cancel.",surfaceRevolveSchema,[this](const auto& a){return beginSurfaceRevolve(a);});
     QJsonObject surfacePatchSchema{{"sketchId",optional(parameter("string","Earlier solved planar sketch UUID."))},
         {"profileId",optional(parameter("string","One simple closed ordinary-Line profile UUID."))},
+        {"boundaryMode",optional(parameter("string","planarProfile or fourEdges. Four-edge mode requires a nonplanar cyclic loop."))},
+        {"boundaryEdges",optional(parameter("array","Exactly four ordered objects {sketchId, entityId} retaining earlier ordinary straight Lines."))},
+        {"continuity",optional(parameter("string","g0 (Connected), for four-edge mode only."))},
         {"featureId",optional(featureId)},{"name",optional(parameter("string","Patch name."))}};
-    add("surface.patch","Patch","Create or edit one planar surface from a retained simple closed ordinary-Line profile, New Body.",surfacePatchSchema,[this](const auto& a){
+    add("surface.patch","Patch","Create or edit one planar profile or exact nonplanar four-Line G0 surface, New Body.",surfacePatchSchema,[this](const auto& a){
         QJsonObject candidate;try{candidate=surfacePatchCandidate(a);}catch(const std::exception& error){return failure("invalid_arguments",QString::fromUtf8(error.what()));}
         const auto error=document_->commit(candidate,"Patch");if(!error.isEmpty()){auto result=failure("evaluation_failed",error);auto detail=result["error"].toObject();detail["diagnostics"]=document_->lastEvaluationError();result["error"]=detail;return result;}return document_->state();
     });
-    add("surface.patchDialog","Patch","Select one closed planar profile, preview a Patch, then OK or Cancel.",surfacePatchSchema,[this](const auto& a){return beginSurfacePatch(a);});
+    add("surface.patchDialog","Patch","Select one planar profile or four ordered nonplanar Lines, preview a Patch, then OK or Cancel.",surfacePatchSchema,[this](const auto& a){return beginSurfacePatch(a);});
     QJsonObject surfaceSweepSchema{{"sketchId",optional(parameter("string","Earlier solved source sketch UUID."))},
         {"entityId",optional(parameter("string","One ordinary open straight Line UUID."))},
         {"pathSketchId",optional(parameter("string","Earlier solved path sketch UUID."))},

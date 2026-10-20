@@ -274,10 +274,13 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
             }
         }
         if(feature["type"]=="surfacePatch" || feature["type"]=="surfaceExtrude" || feature["type"]=="surfaceRevolve" || feature["type"]=="surfaceSweep") {
-            const auto sketch=feature["parameters"].toObject()["sketchId"].toString();
-            if(!positions.contains(sketch) || positions[sketch]>=i || features[positions[sketch]].toObject()["type"]!="sketch")
-                return {{"featureId",feature["id"]},{"featureType",feature["type"]},
-                    {"code","surface_source_unavailable"},{"message","Surface source sketch must precede the feature"}};
+            const auto params=feature.value("parameters").toObject();
+            QJsonArray refs=params.value("boundaryMode")=="fourEdges" ? params.value("boundaryEdges").toArray() : QJsonArray{QJsonObject{{"sketchId",params.value("sketchId")}}};
+            for(const auto& value:refs){const auto sketch=value.toObject().value("sketchId").toString();
+                if(!positions.contains(sketch) || positions[sketch]>=i || features[positions[sketch]].toObject()["type"]!="sketch")
+                    return {{"featureId",feature["id"]},{"featureType",feature["type"]},
+                        {"code","surface_source_unavailable"},{"message","Surface source sketches must precede the feature"}};
+            }
         }
         if(feature["type"]=="surfaceSweep") {
             const auto sketch=feature["parameters"].toObject()["pathSketchId"].toString();
@@ -1944,7 +1947,7 @@ QJsonObject CadDocument::surfaceRevolveCandidate(const QJsonObject& authored,con
 }
 
 QJsonObject CadDocument::surfacePatchCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
-    const QSet<QString> allowed{"sketchId","profileId","featureId","newFeatureId","newBodyId","ownerId","name"};
+    const QSet<QString> allowed{"sketchId","profileId","boundaryMode","boundaryEdges","continuity","featureId","newFeatureId","newBodyId","ownerId","name"};
     for(auto i=arguments.begin();i!=arguments.end();++i)if(!allowed.contains(i.key()))throw std::invalid_argument("Unknown Patch argument");
     if(arguments.contains("featureId") && (arguments.contains("newFeatureId") || arguments.contains("newBodyId") || arguments.contains("ownerId")))
         throw std::invalid_argument("Patch edit retains feature, body and owner identities");
@@ -1955,7 +1958,15 @@ QJsonObject CadDocument::surfacePatchCandidate(const QJsonObject& authored,const
     }else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"bodyId",arguments.value("newBodyId").toString(newId())},
         {"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","surfacePatch"},{"name","Patch"},{"visible",true}};
     auto params=feature["parameters"].toObject();if(params.isEmpty())params={{"operation","newBody"},{"isSolid",false}};
-    for(const auto& key:{"sketchId","profileId"})if(arguments.contains(key))params[key]=arguments[key];
+    if(arguments.contains("boundaryMode") && arguments.value("boundaryMode")!=params.value("boundaryMode")){
+        params={{"operation","newBody"},{"isSolid",false}};
+    }
+    if(arguments.value("boundaryMode")=="fourEdges" || params.value("boundaryMode")=="fourEdges"){
+        params["boundaryMode"]="fourEdges";if(!params.contains("continuity"))params["continuity"]="g0";
+    }
+    for(const auto& key:{"sketchId","profileId","boundaryMode","boundaryEdges","continuity"})if(arguments.contains(key))params[key]=arguments[key];
+    // The legacy planar encoding intentionally has no mode field.
+    if(params.value("boundaryMode")=="planarProfile")params.remove("boundaryMode");
     feature["parameters"]=params;if(arguments.contains("name"))feature["name"]=arguments["name"];
     if(index<0)rows.append(feature);else rows[index]=feature;candidate["features"]=rows;
     const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
@@ -2921,10 +2932,21 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             ids.insert(feature["bodyId"].toString());continue;
         }
         if(type=="surfacePatch") {
-            if(!validId(feature["bodyId"].toString()) || ids.contains(feature["bodyId"].toString()) || p.size()!=4
-                || !validId(p["sketchId"].toString()) || !validId(p["profileId"].toString())
+            if(!validId(feature["bodyId"].toString()) || ids.contains(feature["bodyId"].toString())
                 || p["operation"]!="newBody" || !p["isSolid"].isBool() || p["isSolid"].toBool())
-                return "Patch requires one retained closed planar sketch profile and non-solid New Body";
+                return "Patch requires a distinct non-solid New Body";
+            if(p.value("boundaryMode")=="fourEdges"){
+                if(p.size()!=5 || p.value("continuity")!="g0" || !p.value("boundaryEdges").isArray() || p.value("boundaryEdges").toArray().size()!=4)
+                    return "Four-edge Patch requires exactly four ordered retained Line references and Connected (G0)";
+                QSet<QString> selected;
+                for(const auto& value:p.value("boundaryEdges").toArray()){
+                    const auto ref=value.toObject();const auto key=ref.value("sketchId").toString()+"/"+ref.value("entityId").toString();
+                    if(!value.isObject() || ref.size()!=2 || !validId(ref.value("sketchId").toString()) || !validId(ref.value("entityId").toString()) || selected.contains(key))
+                        return "Four-edge Patch needs distinct exact sketch/Line UUID references";
+                    selected.insert(key);
+                }
+            }else if(p.size()!=4 || !validId(p["sketchId"].toString()) || !validId(p["profileId"].toString()))
+                return "Patch requires one retained closed planar sketch profile";
             ids.insert(feature["bodyId"].toString());continue;
         }
         if(type=="surfaceSweep") {

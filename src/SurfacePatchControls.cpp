@@ -33,7 +33,7 @@ QJsonObject AlloyWindow::beginSurfacePatch(const QJsonObject& overrides) {
             const auto f=value.toObject();if(f.value("id")!=overrides.value("featureId"))continue;
             if(f.value("type")!="surfacePatch")return failure("stale_entity","Patch feature unavailable");
             const auto p=f.value("parameters").toObject();
-            for(const auto& key:{"sketchId","profileId"})inputs[key]=p.value(key);
+            for(const auto& key:{"sketchId","profileId","boundaryMode","boundaryEdges","continuity"})if(p.contains(key))inputs[key]=p.value(key);
             inputs["featureId"]=f.value("id");inputs["name"]=f.value("name");found=true;break;
         }
         if(!found)return failure("stale_entity","Patch feature unavailable");
@@ -57,8 +57,11 @@ QJsonObject AlloyWindow::previewSurfacePatch() {
     const auto inputs=session_.value("inputs").toObject();const auto edit=inputs.value("featureId").toString();
     const auto source=edit.isEmpty() ? document_->evaluation() : document_->evaluationBefore(edit);
     if(!edit.isEmpty())view_->setBodyStage(source.bodies,"surface-patch-source:"+session_.value("id").toString());
-    const auto sketchId=inputs.value("sketchId").toString();view_->setCommandSketches(QSet<QString>{sketchId});
-    for(const auto& key:{"sketchId","profileId"})if(inputs.value(key).toString().isEmpty())return reject("selection_required","Select one closed planar profile");
+    QSet<QString> sketches;const bool four=inputs.value("boundaryMode")=="fourEdges";
+    if(four){for(const auto& value:inputs.value("boundaryEdges").toArray())sketches.insert(value.toObject().value("sketchId").toString());}
+    else sketches.insert(inputs.value("sketchId").toString());view_->setCommandSketches(sketches);
+    if(four){if(inputs.value("boundaryEdges").toArray().size()!=4)return reject("selection_required","Select four ordinary Lines in cyclic boundary order");}
+    else for(const auto& key:{"sketchId","profileId"})if(inputs.value(key).toString().isEmpty())return reject("selection_required","Select one closed planar profile");
     QJsonObject candidate;try{candidate=surfacePatchCandidate(inputs);}catch(const std::exception& e){return reject("invalid_arguments",QString::fromUtf8(e.what()));}
     const auto evaluated=CadDocument::evaluateCandidate(candidate);if(!evaluated.ok)return reject("evaluation_failed",evaluated.error,evaluated.diagnostics);
     auto stage=evaluated.evaluation;const auto id=edit.isEmpty() ? session_.value("newFeatureId").toString() : edit;
@@ -75,8 +78,18 @@ void AlloyWindow::refreshSurfacePatchControls(){
     if(!surfacePatchDock_ || session_.value("command")!="surface.patch")return;
     const auto inputs=session_.value("inputs").toObject();const auto id=inputs.value("featureId").toString();
     const auto source=id.isEmpty() ? document_->evaluation() : document_->evaluationBefore(id);
+    const bool four=inputs.value("boundaryMode")=="fourEdges";
+    auto* mode=surfacePatchDock_->findChild<QComboBox*>("surfacePatch.boundaryMode");{const QSignalBlocker blocker(mode);mode->setCurrentIndex(four?1:0);}
+    for(int i=0;i<4;++i){auto* list=surfacePatchDock_->findChild<QComboBox*>("surfacePatch.edge"+QString::number(i));const QSignalBlocker blocker(list);list->clear();list->addItem("Select",QString{});list->setEnabled(four);qobject_cast<QFormLayout*>(surfacePatchDock_->widget()->layout())->setRowVisible(list,four);
+        const auto refs=inputs.value("boundaryEdges").toArray();const auto ref=i<refs.size()?refs[i].toObject():QJsonObject{};const auto selected=ref.value("sketchId").toString()+"/"+ref.value("entityId").toString();
+        for(const auto& sketch:source.sketches){if(sketch.ownerId!=document_->activeOwnerId() && sketch.featureId!=ref.value("sketchId"))continue;
+            for(const auto& value:sketch.summary.value("entities").toArray()){const auto e=value.toObject();if(e.value("type")!="line" || e.value("construction").toBool() || !sketch.entityEdges.contains(e.value("id").toString()))continue;
+                list->addItem(sketch.name+" · Line "+e.value("id").toString().left(8),sketch.featureId+"/"+e.value("id").toString());}}
+        list->setCurrentIndex(std::max(0,list->findData(selected)));
+    }
+    surfacePatchDock_->findChild<QLabel*>("surfacePatch.continuity")->setText(four?"Connected (G0)":"Sketch boundary");
     for(const auto& role:{"sketchId","profileId"}){
-        auto* list=surfacePatchDock_->findChild<QComboBox*>("surfacePatch."+QString(role));const QSignalBlocker blocker(list);list->clear();list->addItem("Select",QString{});
+        auto* list=surfacePatchDock_->findChild<QComboBox*>("surfacePatch."+QString(role));const QSignalBlocker blocker(list);list->clear();list->addItem("Select",QString{});list->setEnabled(!four);qobject_cast<QFormLayout*>(surfacePatchDock_->widget()->layout())->setRowVisible(list,!four);
         const QString r(role);const auto selectedSketch=inputs.value("sketchId").toString();
         for(const auto& sketch:source.sketches){
             if(sketch.ownerId!=document_->activeOwnerId() && sketch.featureId!=selectedSketch)continue;
@@ -96,13 +109,18 @@ void AlloyWindow::showSurfacePatch(){
     auto update=[this,sessionId](const QJsonObject& inputs){if(session_.value("id")!=sessionId)return;execute("command.update",{{"session",sessionId},{"inputs",inputs}});};
     auto* name=new QLineEdit(session_.value("inputs").toObject().value("name").toString());name->setObjectName("surfacePatch.name");form->addRow("Name",name);
     connect(name,&QLineEdit::editingFinished,panel,[update,name]{update({{"name",name->text()}});});
+    auto* mode=new QComboBox;mode->setObjectName("surfacePatch.boundaryMode");mode->addItem("Planar Profile","planarProfile");mode->addItem("Four Line Edges","fourEdges");form->addRow("Boundary Type",mode);
+    connect(mode,&QComboBox::activated,panel,[this,mode,update]{auto inputs=session_.value("inputs").toObject();for(const auto& key:{"sketchId","profileId","boundaryEdges","continuity"})inputs.remove(key);session_["inputs"]=inputs;update({{"boundaryMode",mode->currentData().toString()}});});
     for(const auto& role:{"sketchId","profileId"}){
         auto* list=new QComboBox;list->setObjectName("surfacePatch."+QString(role));list->setMinimumContentsLength(22);list->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
         const QString r(role);form->addRow(r=="sketchId"?"Sketch":"Boundary Profile",list);
         connect(list,&QComboBox::activated,panel,[this,list,r,update]{auto inputs=session_.value("inputs").toObject();if(r=="sketchId")inputs.remove("profileId");session_["inputs"]=inputs;update({{r,list->currentData().toString()}});});
     }
+    for(int i=0;i<4;++i){auto* list=new QComboBox;list->setObjectName("surfacePatch.edge"+QString::number(i));list->setMinimumContentsLength(22);list->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);form->addRow("Boundary Edge "+QString::number(i+1),list);
+        connect(list,&QComboBox::activated,panel,[this,list,i,update]{auto refs=session_.value("inputs").toObject().value("boundaryEdges").toArray();while(refs.size()<=i)refs.append(QJsonObject{});const auto key=list->currentData().toString().split('/');refs[i]=key.size()==2?QJsonObject{{"sketchId",key[0]},{"entityId",key[1]}}:QJsonObject{};update({{"boundaryEdges",refs}});});}
+    auto* continuity=new QLabel;continuity->setObjectName("surfacePatch.continuity");form->addRow("Continuity",continuity);
     form->addRow("Operation",new QLabel("New Body"));
-    auto* hint=new QLabel("One simple closed planar ordinary-Line profile. Creates one surface face, without holes or solids.");hint->setWordWrap(true);form->addRow(hint);
+    auto* hint=new QLabel("One planar profile, or four ordered nonplanar ordinary Lines with exact connected endpoints. Connected (G0) only; one surface face without holes or solids.");hint->setWordWrap(true);form->addRow(hint);
     auto* error=new QLabel;error->setObjectName("surfacePatch.error");error->setWordWrap(true);error->setStyleSheet("color:#b3261e");form->addRow(error);
     auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel);form->addRow(buttons);
     connect(buttons,&QDialogButtonBox::accepted,panel,[this,sessionId]{if(session_.value("id")==sessionId)execute("command.commit",{{"session",sessionId}});});
