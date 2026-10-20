@@ -183,9 +183,9 @@ bracket geometry/history/reopen coverage. Latest external receipt/captures/log:
 Independent re-review accepted the corrected path. The lower-list-width mismatch and physical
 input/accessibility/platform limits above are unchanged. Private editor closed.
 
-## 2026-10-20 SKT-176 centered-list candidate
+## 2026-10-20 SKT-176 centered-list acceptance
 
-SKT-176/#699 has a local candidate; independent review is pending. The compact
+SKT-176/#699 is accepted after independent Sol source/evidence review. The compact
 external contract is `knowledge/specs/skt176-centered-menu-2026-10-20.md`, reusing
 SKT173-R1/R2 and the archived Activity 2 image/provenance. No reference application
 was operated and no reference asset is shipped.
@@ -241,10 +241,12 @@ radial target, corrected by centering the panel from post-popup dimensions.
 `narrow/` and `narrow-focus/` record an unsuccessful Escape-to-current-focus
 probe after harness window resize; the popup did not own keyboard focus.
 The successful narrow bound/hit sequence uses actual center dismissal without
-focus repair. This does not qualify resized-window natural Escape or establish
+focus repair. The reviewer confirmed the centered silhouette, native row hits,
+keyboard routes and exact bracket lifecycle, while retaining this failed probe.
+This does not qualify resized-window natural Escape or establish
 an ordinary physical-input defect; the existing strict native gate remains.
 The earlier corrected ordinary fixture passed at `final/`, and the full narrow
 fixture passed at `qualified/` before moving whole-app captures to the upper
 corner. Qt capture warnings and inactive AppKit flags remain as in SKT-175.
-No new broad exact-match claim is made. No CI, tag, push, release, issue closure
-or board update was performed. All private validation windows closed.
+No new broad exact-match claim is made. No CI, tag or release was performed.
+All private validation windows closed.

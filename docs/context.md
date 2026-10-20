@@ -1,17 +1,17 @@
-## 2026-10-20 SKT-176 centered-list candidate
+## 2026-10-20 SKT-176 centered-list acceptance
 
-[Menu receipt](validation/canvas-marking-menu.md#2026-10-20-skt-176-centered-list-candidate)
+[Menu receipt](validation/canvas-marking-menu.md#2026-10-20-skt-176-centered-list-acceptance)
 records a content-sized native QMenu list centered below an independent radial
 panel. Selected/unselected rows measure 180/165 logical pixels within 356/355
 pixel popups, retaining icon/label/shortcut columns and real action hit bounds.
 The focused real-app Qt fixture passes 4/4 with ordinary 1500×950 and narrow
 1050×750 window captures, canvas-corner bounds/hit checks, direct Backtab and
 full construction/circle/history/reopen coverage. External final evidence:
-`validation/skt176-2026-10-20/final2/`. Independent review pending; #699 remains
-open. Failed resize keyboard-focus probes are preserved separately without
+`validation/skt176-2026-10-20/final2/`. Independent Sol review accepted the
+bounded menu layout. Failed resize keyboard-focus probes are preserved separately without
 interstep focus repair; narrow checks use actual center-button dismissal.
-Apple M4 DPR2 only; physical/native activation remains SKT-171/#694. No CI,
-push, release or board change. Private editor closed after validation.
+Apple M4 DPR2 only; physical/native activation remains SKT-171/#694. No CI or
+release. Private editor closed after validation.
 
 ## 2026-10-20 SKT-175 bounded visual/access acceptance
 
