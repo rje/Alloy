@@ -27,9 +27,10 @@ accepts SKT-181/#704.
 SKT-187/#710 as the Rotate prerequisite; [source-size composition](../validation/sketch-rotate-source-size.md)
 accepts SKT-188/#711. Copy/Rotate coexistence SKT-189/#712 is the sole active
 transform integration task.
-SKT-189/#712 preserves the Copy/Create Copy refusal with an unrelated retained
-Rotate owner found during source-size validation; it is Todo and separate from
-SKT-188/#711.
+[Copy/Create Copy beside retained Rotate](../validation/sketch-copy-rotate-coexistence.md)
+accepts SKT-189/#712 after the source-size validation revealed the isolated
+candidate refusal. SKT-186/#709 is the sole active transform-family research
+item for sketch-specific retained Copy history.
 The [atomic Move receipt](../validation/sketch-move.md) accepts SKT-098/#503,
 and [Retained Edit Move](../validation/sketch-retained-move.md) accepts SKT-184/#707.
 The public transform contract is outside the repository.

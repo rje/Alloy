@@ -14,8 +14,10 @@ history/reopen and two checked printable solids pass independent review.
 The [general Move/Copy Create Copy route](docs/validation/sketch-create-copy.md)
 now uses the same independent Copy geometry with a separate command-local
 preview and untouched clipboard. Native input, mode switching, history and
-two checked solids pass independent review. Scale remains Todo;
-sketch-specific Create Copy Timeline semantics are a research Todo.
+two checked solids pass independent review. [Copy alongside retained Rotate](docs/validation/sketch-copy-rotate-coexistence.md)
+now preserves the Rotate owner while duplicating unrelated geometry through
+either Copy route; four independent watertight solids pass readback. Sketch-specific
+Create Copy history semantics remain a research task.
 
 [Normal 3D sketch construction Line](docs/validation/sketch-normal-axis.md)
 now provides the researched axis prerequisite for sketch Rotate on an XY

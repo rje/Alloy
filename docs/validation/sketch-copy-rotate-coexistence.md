@@ -74,5 +74,9 @@ ALLOY_COPY_ROTATE_EVIDENCE=/absolute/evidence/path ./build-preview-release/sketc
 python3 tests/sketch_copy_rotate_api.py --app build-preview-release/alloy.app/Contents/MacOS/alloy --output /absolute/evidence/path/api
 ```
 
-Independent Sol compatibility review and integration remain pending. No issue
-or project-board status change is included in this candidate.
+Independent Sol read-only review accepted `753f2c8` for this bounded scope. It
+checked the disposable clipboard-derived model against unchanged full-sketch
+Rotate validation, both Copy routes, saved identities/history and independent
+STL readback. The reviewer did not rerun the app. Crowded Rotate annotations
+in the cumulative capture are disclosed above; matched visual parity remains
+unknown. SKT-189/#712 is closed/Done.

@@ -1,3 +1,16 @@
+## 2026-10-20 SKT-189 Copy/Rotate coexistence acceptance
+
+[Bounded receipt](validation/sketch-copy-rotate-coexistence.md) accepts ordinary
+Copy/Paste and Move/Copy Create Copy alongside an unrelated retained Rotate.
+Only the disposable copy-profile check now uses the qualified clipboard model;
+the complete sketch still passes strict Rotate validation. Native actual-hit
+input passes 3/3, real-app API passes 70 calls, identities/history/reopen stay
+stable and independent STL readback finds four watertight components totaling
+7,712 mm³. Independent Sol read-only review accepted `753f2c8`.
+SKT-189/#712 is closed/Done. SKT-186/#709 is the sole In Progress research item
+for sketch-specific Create Copy history. The canonical backlog remains 709
+issues. No CI/release; private editors closed and user PID72618 preserved.
+
 ## 2026-10-20 SKT-181 active-sketch Scale acceptance
 
 [Bounded receipt](validation/sketch-scale.md) accepts uniform factor Scale for
@@ -6,9 +19,9 @@ actual-hit controls pass 3/3, real-app API passes 188 calls, source/cache and
 same-owner edits keep identities/history stable, and independently read STLs
 are watertight at 3,762 and 3,510 mm³. Independent Sol read-only review found
 and verified the Pattern-input/Scale-accept lifecycle correction in `0c7a457`
-after initial candidate `3569a46`. SKT-181/#704 is closed/Done. SKT-189/#712
-is the sole In Progress transform integration item for Copy alongside retained
-Rotate; SKT-186/#709 remains research Todo for sketch Create Copy history.
+after initial candidate `3569a46`. SKT-181/#704 is closed/Done. Copy/Rotate
+coexistence is accepted above; SKT-186/#709 remains active research for sketch
+Create Copy history.
 No CI/release; private editors closed, user PID72618 preserved.
 
 ## 2026-10-20 SKT-188 retained Rotate source-size acceptance
