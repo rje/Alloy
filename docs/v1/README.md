@@ -2,7 +2,7 @@
 
 Private review site: https://alloy-v1-review.rjevans1.chatgpt.site
 
-The user reviewed this as a reasonable working direction on 2026-10-17. REL-030 still tracks reconciliation of every inventory row with a finishable implementation owner and the final release gate; this is not a claim that the listed gaps are complete. The long-term full noncloud product contract remains intact.
+The user reviewed this as a reasonable working direction on 2026-10-17. The [2026-10-20 planning freeze](scope-reconciliation-2026-10-20.md) selects the first-v1 minimums and release owners across all 134 proposed rows, including the [27 formerly open-owner rows](open-row-disposition.md). This fixes planning scope, not feature or package readiness; the execution gates remain open. The long-term full noncloud product contract remains intact. Older audit narrative below records how the plan was assembled and should be read as dated history.
 
 The 2026-10-19 all-row audit found and corrected a release dependency contradiction: required Core 3MF **export** now enters GATE-040 through XCH-011 without making later 3MF import under XCH-005 a transitive prerequisite. Exact accepted import subsets, native exchange, all-platform packages and STL/STEP/3MF readback still need execution. REL-054/#615 is the stable-v1 exit after REL-049's post-packaging intrinsic-cost audit; earlier preview packages remain separate. The [private review site](https://alloy-v1-review.rjevans1.chatgpt.site) now serves the synchronized planning data; source/data checks and private deployment succeeded, while browser visual inspection remains open.
 
@@ -36,6 +36,8 @@ also passes the [body Browser export path](../validation/native-browser-mesh.md)
 
 - [Inventory reconciliation](inventory-reconciliation.md): all 150 rows, remaining broad owners, stale evidence and cumulative release acceptance.
 - [Release execution ledger](release-execution-ledger.md): row/subset owners and open native, geometry, save/reopen, export, GPU, package and three-platform evidence slots.
+- [Planning scope freeze](scope-reconciliation-2026-10-20.md): required dependency repairs, bounded option choices, outside-closure dispositions and external platform-test handoff.
+- [Open-owner-row minimums](open-row-disposition.md): selected first-v1 slice and retained remainder for the 27 rows the dated audit labeled `O`.
 - [Command inventory](command-inventory.json): 150 capability rows and 397 IDs in its dated original runtime snapshot, with newer bounded capability amendments and explicit gaps. The added `document.export3mf` command was validated separately in the real app.
 - [Inventory notes](inventory-notes.md): definitions and verification limits.
 - [Backlog map](backlog-map.json) and [workstreams](backlog-notes.md): dated 484-issue reconciled snapshot, not a live board. It includes corrected TUT-018/TUT-034 acceptance, bounded TUT-035 clearance acceptance and the earlier REL-033–041 responsiveness state. REL-037 has a newer [final Open receipt](../validation/open-final-presentation.md).
