@@ -1,5 +1,7 @@
 # Alloy
 
+[Rectangular Body Pattern](docs/validation/rectangular-body-pattern.md) now has a retained one/two-direction row/grid core and shared local API. Native Bodies selection, preview controls and Timeline edit remain SOL-092/#654.
+
 [Retained planar-face Align](docs/validation/align.md) has a bounded exact-frame core and shared local API. Native From/To selection, Flip presentation, Timeline edit and GPU visual acceptance remain SOL-091/#653.
 
 [Independent Body Copy](docs/validation/body-copy.md) has a bounded root-solid snapshot candidate with explicit XYZ placement, independent source/copy edits, retained history/reopen and checked STEP/STL exports. Native Browser input is pending the locked-console gate.

@@ -3697,7 +3697,8 @@
         "DOC-037",
         "HIS-013",
         "SOL-090",
-        "SOL-091"
+        "SOL-091",
+        "SOL-092"
       ],
       "labels": [
         "kind:validation",
@@ -10583,7 +10584,7 @@
         "priority:P1",
         "area:sol"
       ],
-      "body": "## Bounded result\nAdd retained one- or two-direction rectangular patterning for one committed body seed on supported retained straight axes; existing additive and Hole feature-seed pattern slices are covered elsewhere.\n\nThis is a finishable child of SOL-009; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Expose body seed, supported retained straight axes, direction counts, and spacing in the command contract.\n- Create and edit one- and two-direction patterns and verify occurrence count, spacing, placement, and stable instance identity.\n- Refuse zero/negative spacing and unsupported axes atomically without changing the source or prior pattern.\n- Verify recompute, undo/redo, save/reopen, and independent geometry/placement readback.\n\n## Preserved remainder\nOther seed kinds, unsupported axes, optimized patterns, and additional pattern objects remain under SOL-009.\n"
+      "body": "## Bounded result\nAdd retained one- or two-direction rectangular patterning for one committed body seed on supported retained straight axes; existing additive and Hole feature-seed pattern slices are covered elsewhere.\n\nThis is a finishable child of SOL-009; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Expose body seed, supported retained straight axes, direction counts, and spacing in the command contract.\n- Create and edit one- and two-direction patterns and verify occurrence count, spacing, placement, and stable instance identity.\n- Refuse zero/negative spacing and unsupported axes atomically without changing the source or prior pattern.\n- Verify recompute, undo/redo, save/reopen, and independent geometry/placement readback.\n\n## Preserved remainder\nOther seed kinds, unsupported axes, optimized patterns, and additional pattern objects remain under SOL-009.\n\n## Accepted bounded core and native split \u2014 2026-10-20\nCommit f5c84b8 accepts a retained rectangular Body Pattern with one root source, one/two nonparallel retained straight-edge directions, positive spacing, integer counts including the seed, stable coordinate-pair instance identities, exact independently selectable copies, source-edit recompute, downstream removed-instance atomic refusal and shared preview/Cancel/commit/edit. Focused core and unchanged feature-pattern regression pass; a 53-call real-application API fixture checks row/grid, oblique placement, Undo/Redo/reopen and independent eight-component watertight STL readback. Independent Sol review found and resolved an initial perpendicular-only mismatch; see docs/validation/rectangular-body-pattern.md. Native Bodies mode, axis picks, count/spacing fields, grid preview, Timeline edit and 1x/2x GPU visual acceptance remain linked first-v1 Todo SOL-092/#654 because the Mac console is locked. Wider reference families, Extent/symmetric distribution and components remain SOL-009. Closing SOL-085 accepts the bounded core only, not native or packaged parity.\n"
     },
     {
       "key": "SOL-086",
@@ -11060,6 +11061,23 @@
         "area:solid"
       ],
       "body": "## Bounded first-v1 native gate\nQualify command-first face-to-face body Align through the actual Mac controls, preserving the native presentation and interaction remainder of SOL-084. The core/API evidence alone does not satisfy this gate; the 2026-10-20 Mac console is locked.\n\n## Acceptance criteria\n- Run strict unlocked Mac preflight, with initial harness activation separate from the demonstrated workflow. Use Modify > Align, source body/planar face and distinct target planar face through actual viewport or panel hits; verify correct widget receivers and native popup/dialog readiness. Do not repair focus or selection between user steps.\n- Expose source/target selection and the declared in-plane frame/normal cue; actual Flip changes the preview orientation visibly while retaining the fixed target. Cancel/Escape must leave authored state and undo stack unchanged; repeat OK creates one retained Align feature.\n- Reopen Align from its Timeline feature, change Flip, and verify preview, recomputed exact placement and independent source/target selection. Verify Undo/Redo and save/reopen through the shared API after native input.\n- Capture and visually inspect whole-app GPU presentation at 1x and 2x backing scale with a comparable public source where possible; record unmatched reference behavior and physical-device input separately. Close private editor instances after evidence.\n\n## Preserved remainder\nEdge/axis/coordinate-system and multiple-reference Align, 90-degree Angle option, component/assembly placement, exact pixel/key parity and Windows/Linux packaged runtime remain with SOL-008 and release owners.\n"
+    },
+    {
+      "key": "SOL-092",
+      "title": "Qualify native rectangular body pattern selection, preview and history",
+      "kind": "validation",
+      "phase": "P2 Parametric modeling",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-085"
+      ],
+      "labels": [
+        "kind:validation",
+        "phase:P2",
+        "priority:P1",
+        "area:solid"
+      ],
+      "body": "## Bounded first-v1 native gate\nQualify actual-hit Rectangular Pattern in Bodies object mode, retaining the native selection/presentation remainder of SOL-085. The core/API fixture alone cannot satisfy this gate; the 2026-10-20 Mac console is locked.\n\n## Acceptance criteria\n- Run strict unlocked Mac preflight, then use actual Solid > Pattern > Rectangular Pattern controls. Select Objects: Bodies, one source body, a retained straight axis and optionally a second supported axis through actual viewport/Browser hits. Assert correct widget receivers, popup readiness/closure and no inter-step focus or selection repair.\n- Enter independent Quantity and positive Spacing for Axis 1 and Axis 2; show full row/grid preview with readable seed, axis directions and instance count. Cancel/Escape must leave authored state and Undo unchanged; repeat OK commits one editable Timeline feature.\n- Reopen the Timeline feature and change count/spacing, verify stable existing body identities and exact positions with the shared API, Undo/Redo and save/reopen. Exercise visible atomic invalid-input feedback.\n- Capture and inspect whole-app GPU presentation at 1x and 2x backing scale with a comparable public screenshot where possible. Record physical-device input separately if tested; close every private editor after evidence.\n\n## Preserved remainder\nExtent and symmetric distributions, Faces/Components and wider feature options, manipulator parity, exact pixel/key styling, and Windows/Linux packaged runtime remain SOL-009 and release owners.\n"
     }
   ]
 }
