@@ -1,5 +1,7 @@
 # Alloy
 
+[One-face solid Draft](docs/validation/solid-draft.md) now has a bounded signed-angle prism core and shared local API, including a downstream drafted-face Cut. Native selection, angle/flip presentation and GPU visual acceptance remain SOL-093/#655.
+
 [Rectangular Body Pattern](docs/validation/rectangular-body-pattern.md) now has a retained one/two-direction row/grid core and shared local API. Native Bodies selection, preview controls and Timeline edit remain SOL-092/#654.
 
 [Retained planar-face Align](docs/validation/align.md) has a bounded exact-frame core and shared local API. Native From/To selection, Flip presentation, Timeline edit and GPU visual acceptance remain SOL-091/#653.

@@ -3698,7 +3698,8 @@
         "HIS-013",
         "SOL-090",
         "SOL-091",
-        "SOL-092"
+        "SOL-092",
+        "SOL-093"
       ],
       "labels": [
         "kind:validation",
@@ -10599,7 +10600,7 @@
         "priority:P1",
         "area:sol"
       ],
-      "body": "## Bounded result\nApply one editable angle Draft to a supported solid side face about a retained neutral plane with explicit pull direction.\n\nThis is a finishable child of SOL-013; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Select one supported side face and retained neutral plane and preview a declared signed draft angle.\n- Verify face direction and measured angle on the resulting geometry.\n- Edit the angle and verify downstream references recompute; refuse invalid angles atomically.\n- Verify undo/redo, save/reopen, and STL bounds.\n\n## Preserved remainder\nMulti-face/group Draft, alternate neutral references, and broader topology remain under SOL-013.\n"
+      "body": "## Bounded result\nApply one editable angle Draft to a supported solid side face about a retained neutral plane with explicit pull direction.\n\nThis is a finishable child of SOL-013; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Select one supported side face and retained neutral plane and preview a declared signed draft angle.\n- Verify face direction and measured angle on the resulting geometry.\n- Edit the angle and verify downstream references recompute; refuse invalid angles atomically.\n- Verify undo/redo, save/reopen, and STL bounds.\n\n## Preserved remainder\nMulti-face/group Draft, alternate neutral references, and broader topology remain under SOL-013.\n\n## Accepted bounded core and native split \u2014 2026-10-20\nCommit 54606ae accepts one-face signed Draft on an orthogonal rectangular prism with an earlier cap-coincident retained construction plane, explicit pull Flip, exact face lineage/rotated support frame and shared preview/Cancel/commit/edit API. A downstream circle sketch and blind Cut follow the drafted face through 5\u00b0\u21923\u00b0 edit. Focused core plus prior Offset Face regression and a 70-response real-app fixture pass \u00b1angle/pull, analytic hinge/volume, 80\u00b0 atomic refusal, Undo/Redo/reopen, and independent watertight STL readback. Astra reviewed the core geometry without a blocker; see docs/validation/solid-draft.md. Changed edge lineage is explicitly unavailable and broader face/reference families remain SOL-013. Native Modify/selection, angle/Flip controls, Timeline edit, actual-hit Cancel/OK and 1x/2x GPU acceptance remain first-v1 Todo SOL-093/#655 because the Mac console is locked. Closing SOL-086 accepts the bounded core only, not native or packaged parity.\n"
     },
     {
       "key": "SOL-087",
@@ -11078,6 +11079,23 @@
         "area:solid"
       ],
       "body": "## Bounded first-v1 native gate\nQualify actual-hit Rectangular Pattern in Bodies object mode, retaining the native selection/presentation remainder of SOL-085. The core/API fixture alone cannot satisfy this gate; the 2026-10-20 Mac console is locked.\n\n## Acceptance criteria\n- Run strict unlocked Mac preflight, then use actual Solid > Pattern > Rectangular Pattern controls. Select Objects: Bodies, one source body, a retained straight axis and optionally a second supported axis through actual viewport/Browser hits. Assert correct widget receivers, popup readiness/closure and no inter-step focus or selection repair.\n- Enter independent Quantity and positive Spacing for Axis 1 and Axis 2; show full row/grid preview with readable seed, axis directions and instance count. Cancel/Escape must leave authored state and Undo unchanged; repeat OK commits one editable Timeline feature.\n- Reopen the Timeline feature and change count/spacing, verify stable existing body identities and exact positions with the shared API, Undo/Redo and save/reopen. Exercise visible atomic invalid-input feedback.\n- Capture and inspect whole-app GPU presentation at 1x and 2x backing scale with a comparable public screenshot where possible. Record physical-device input separately if tested; close every private editor after evidence.\n\n## Preserved remainder\nExtent and symmetric distributions, Faces/Components and wider feature options, manipulator parity, exact pixel/key styling, and Windows/Linux packaged runtime remain SOL-009 and release owners.\n"
+    },
+    {
+      "key": "SOL-093",
+      "title": "Qualify native one-face Draft selection, pull and angle workflow",
+      "kind": "validation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-086"
+      ],
+      "labels": [
+        "kind:validation",
+        "phase:P3",
+        "priority:P1",
+        "area:solid"
+      ],
+      "body": "## Bounded first-v1 native gate\nQualify actual-hit one-face Fixed Plane Draft on a supported prism after the SOL-086 core is accepted. The 2026-10-20 Mac console is locked, so API geometry evidence is separate from this native workflow.\n\n## Acceptance criteria\n- Run strict unlocked Mac preflight, then open Solid > Modify > Draft through actual UI hits. Select Fixed Plane, retained neutral/pull plane, one supported side face, One Side, explicit pull Flip and signed angle. Hit-test user-facing controls and observe popup/dialog readiness; do not repair focus or selection between steps.\n- Show legible selected face, fixed hinge, pull-direction arrow, signed-angle preview and error state. Cancel/Escape leaves committed authored state and Undo unchanged; repeat OK creates one editable Timeline feature.\n- Reopen Draft from Timeline, change angle and Flip, verify exact geometry and retained downstream face attachment through the shared API, Undo/Redo and save/reopen. Exercise native invalid-angle feedback and valid retry.\n- Capture/inspect whole-app GPU presentation at 1x and 2x backing scale against the dated public tutorial illustration where comparable; note unmatched theme/size and physical-input status. Close private editors after evidence.\n\n## Preserved remainder\nMulti-face/tangent-chain and parting-line Draft, alternate neutral references, broader topology, exact pixel/key parity and Windows/Linux packaged runtime remain SOL-013 and release owners.\n"
     }
   ]
 }

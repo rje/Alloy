@@ -115,7 +115,7 @@ Status codes follow the 2026-10-19 independent audit: **S** minimum/owner bounda
 | 105 | `solid.cone-torus` | O — Plausible open owner; finalize required subset and wider boundary. JSON accepted-slice text is stale. | `ADV-005 (o), SOL-062 (c), SOL-077 (c)` | [cone-torus.md](../../docs/validation/cone-torus.md) |
 | 106 | `solid.rib-web` | O — Plausible open owner; finalize required subset and wider boundary. | `ADV-006 (o), SOL-066 (o)` | — receipt needed |
 | 107 | `solid.emboss` | O — Plausible open owner; finalize required subset and wider boundary. | `ADV-005 (o), SOL-063 (o)` | — receipt needed |
-| 108 | `solid.draft` | S — Proposed minimum now has bounded Todo child owner(s); implementation and release qualification open. | `SOL-013 (o), SOL-086 (o)` | — receipt needed |
+| 108 | `solid.draft` | S — One-face rectangular-prism core/API accepted with downstream face attachment; native controls and visual gate remain Todo. | `SOL-013 (o), SOL-086 (c), SOL-093 (o)` | [solid-draft.md](../../docs/validation/solid-draft.md) |
 | 109 | `solid.scale` | S — Proposed minimum now has bounded Todo child owner(s); implementation and release qualification open. | `SOL-013 (o), SOL-087 (o)` | — receipt needed |
 | 110 | `solid.align` | S — Exact planar-face core/API accepted; native From/To, Flip, frame cue, Timeline edit and visual gate remain Todo. | `SOL-008 (o), SOL-084 (c), SOL-091 (o)` | [align.md](../../docs/validation/align.md) |
 | 111 | `solid.body-copy` | S — Frozen root-solid/API minimum accepted; native Browser Copy/Paste gate remains Todo after locked-console preflight. | `SOL-008 (o), SOL-083 (c), SOL-090 (o)` | [body-copy.md](../../docs/validation/body-copy.md) |
