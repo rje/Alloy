@@ -3695,7 +3695,8 @@
         "SOL-070",
         "SOL-065",
         "DOC-037",
-        "HIS-013"
+        "HIS-013",
+        "SOL-090"
       ],
       "labels": [
         "kind:validation",
@@ -10548,7 +10549,7 @@
         "priority:P1",
         "area:sol"
       ],
-      "body": "## Bounded result\nCopy one committed body as an independently editable snapshot with explicit placement and non-aliased authored identity; later source edits do not propagate.\n\nThis is a finishable child of SOL-008; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Document independent snapshot semantics: the copied authored state is fixed at copy time and later source edits do not propagate.\n- Create an independent snapshot copy with explicit placement and distinct stable body/feature IDs; later source edits do not change the copy, and the copy can be edited independently.\n- Edit the source after copying and verify the snapshot copy remains unchanged, then edit the copy and verify the source remains unchanged.\n- Verify undo/redo, save/reopen, and independent export readback preserve both bodies and placements.\n\n## Preserved remainder\nCross-document copy, linked/unique component semantics, multi-body copy and broader dependency transfer remain under SOL-008 or component owners.\n"
+      "body": "## Bounded result\nCopy one committed body as an independently editable snapshot with explicit placement and non-aliased authored identity; later source edits do not propagate.\n\nThis is a finishable child of SOL-008; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Document independent snapshot semantics: the copied authored state is fixed at copy time and later source edits do not propagate.\n- Create an independent snapshot copy with explicit placement and distinct stable body/feature IDs; later source edits do not change the copy, and the copy can be edited independently.\n- Edit the source after copying and verify the snapshot copy remains unchanged, then edit the copy and verify the source remains unchanged.\n- Verify undo/redo, save/reopen, and independent export readback preserve both bodies and placements.\n\n## Preserved remainder\nCross-document copy, linked/unique component semantics, multi-body copy and broader dependency transfer remain under SOL-008 or component owners.\n\n## Accepted bounded core and explicit native split \u2014 2026-10-20\nCommit ba6e678 accepts one root-body frozen BRep snapshot at Browser Copy time, independent body/feature IDs, XYZ placement, source-edit isolation before and after Paste, independent copy Cut/Move, Undo/Redo, save/reopen, and selected/all-visible STEP/STL readback. Focused core and an 80-response real-app fixture pass; Apple M4 GPU captures show both staged and committed bodies. Independent Sol review found no core blocker; see docs/validation/body-copy.md. Strict native Browser Copy/Paste/field/Cancel/OK qualification did not run because macOS preflight reported `consoleLocked=true`. Linked required first-v1 child SOL-090 owns that native remainder and is Todo; broader modes remain SOL-008. Closing this issue accepts the completed core only, not the native or package gate.\n"
     },
     {
       "key": "SOL-084",
@@ -11024,6 +11025,23 @@
         "area:his"
       ],
       "body": "## Bounded first-v1 result\nQualify the real Timeline Roll History Marker Here and Move to End controls through native actual-hit input on macOS, and repair any product defect found. This preserves the native-control remainder from HIS-012/#646.\n\n## Acceptance criteria\n- Diagnose the preserved standalone Qt probe crash before attributing it to Alloy. Use a valid app/window lifetime and hit-test the control actually under each click; initial activation is separate and there is no focus/selection repair between steps.\n- On a Box followed by an Offset Face, open the later feature's Timeline menu, activate Roll History Marker Here, and verify the earlier geometry and inactive later tile through the shared API and native GPU capture.\n- Use Move to End through an actual hit and verify full geometry/body identity, unchanged authored history and Undo stack, and no stale future-face highlight. Check camera navigation and one read-only edit refusal during rollback.\n- Record actual native steps, captures, exact app/build hashes and any remaining unmatched public visual behavior. If the console prevents first input, retain a candidate and keep this issue open.\n\n## Preserved remainder\nPhysical device input, exact reference-product pixel parity, Windows/Linux runtime and assembly-history rollback remain under existing navigation/history/release owners. Public-source references remain outside git in Alloy-reference-records.\n\n## Accepted bounded native gate \u2014 2026-10-19\nCommit d69775b qualifies actual-hit Timeline menu rollback and Move to End through a corrected Qt QWindow driver. The prior crash was a test pointer-lifetime error after a menu action rebuilt the original tile; no product defect was demonstrated. Native popup activation/closure, exact 3000\u21924500 mm\u00b3 Box/Offset state, unchanged authoring/history, camera/read-only behavior and clean Apple M4 GPU captures passed. See docs/validation/history-rollback.md and external native/manifest.json. Physical input, Windows/Linux runtime, assembly rollback and exact pixel parity remain open under existing owners.\n"
+    },
+    {
+      "key": "SOL-090",
+      "title": "Qualify native Body Copy/Paste placement on an unlocked Mac",
+      "kind": "validation",
+      "phase": "P1 Geometry/document",
+      "priority": "P1",
+      "depends_on": [
+        "SOL-083"
+      ],
+      "labels": [
+        "kind:validation",
+        "phase:P1",
+        "priority:P1",
+        "area:solid"
+      ],
+      "body": "## Bounded first-v1 native gate\nQualify the actual-hit Browser body Copy \u2192 root Bodies Paste and placement controls for the accepted independent snapshot core SOL-083/#621. The strict test is implemented, but the 2026-10-20 validation session reported `consoleLocked=true` before any native step. Keep this Todo until an unlocked Mac run supplies native evidence.\n\n## Acceptance criteria\n- Run `tools/native_input_preflight.py` and record an unlocked, active/key-window prerequisite separately from the demonstrated workflow. Do not unlock or repair focus/selection between user steps.\n- Deliver actual hits to the body row Copy action, root Bodies Paste action, XYZ fields, Cancel and OK. Observe popup and dialog activation/closure before the next input; assert rendered widget receivers.\n- Verify preview shows the distinct snapshot and explicit +30 mm X placement, Cancel leaves byte-equivalent authored state, and repeat OK creates two selectable body rows with distinct identities. Inspect geometry, history, save/reopen and ordinary selection through shared API after native input.\n- Capture and inspect whole-app GPU presentation at 1\u00d7 and 2\u00d7 backing scale, including unobstructed preview and committed pair. Record physical device delivery separately if tested. Close every private editor after evidence.\n- Reuse the accepted SOL-083 core/API/export fixture as needed for cumulative validity; do not rerun an exhaustive suite or weaken the strict native test to simulate success.\n\n## Preserved remainder\nRotation/manipulator placement, editing the initial paste feature, copied-face/edge lineage, multi-body and cross-document copy remain SOL-008 or later bounded owners. Windows/Linux packaged runtime remains release-gate work.\n"
     }
   ]
 }

@@ -97,8 +97,8 @@
     },
     "byImplementation": {
       "present": 27,
-      "partial": 78,
-      "missing": 45
+      "partial": 79,
+      "missing": 44
     }
   },
   "tools": [
@@ -3664,19 +3664,30 @@
       "label": "Independent body Copy",
       "category": "Solid modify",
       "scope": "proposed-v1",
-      "implementation": "missing",
+      "implementation": "partial",
       "nativeEvidence": "unknown",
-      "gap": "Linked component copies are implemented; general independent body copying is not established.",
-      "apiIds": [],
+      "gap": "One root solid frozen at Copy time and Pasted with XYZ translation passes shared API, source/copy independent Cut/Move, history/reopen and STEP/STL. Native actual-hit Browser placement remains SOL-090 Todo after locked-console preflight; copied-face lineage, rotation/manipulator and wider ownership remain open.",
+      "apiIds": [
+        "body.copySelection",
+        "body.pasteDialog",
+        "body.paste"
+      ],
       "issueKeys": [
         "SOL-008",
-        "SOL-083"
+        "SOL-083",
+        "SOL-090"
       ],
       "sourceFiles": [
-        "docs/backlog/issues.json"
+        "docs/backlog/issues.json",
+        "src/BodyCopy.cpp",
+        "src/BodyCopyControls.cpp",
+        "src/CadDocument.cpp",
+        "src/AlloyWindow.cpp"
       ],
-      "receipts": [],
-      "planningStatus": "Existing scope owners; verify accepted subset before pulling"
+      "receipts": [
+        "docs/validation/body-copy.md"
+      ],
+      "planningStatus": "Bounded snapshot core accepted; required native control gate SOL-090 Todo"
     },
     {
       "id": "solid.face-offset",

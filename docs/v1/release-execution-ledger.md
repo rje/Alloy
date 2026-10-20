@@ -118,7 +118,7 @@ Status codes follow the 2026-10-19 independent audit: **S** minimum/owner bounda
 | 108 | `solid.draft` | S — Proposed minimum now has bounded Todo child owner(s); implementation and release qualification open. | `SOL-013 (o), SOL-086 (o)` | — receipt needed |
 | 109 | `solid.scale` | S — Proposed minimum now has bounded Todo child owner(s); implementation and release qualification open. | `SOL-013 (o), SOL-087 (o)` | — receipt needed |
 | 110 | `solid.align` | S — Proposed minimum now has bounded Todo child owner(s); implementation and release qualification open. | `SOL-008 (o), SOL-084 (o)` | — receipt needed |
-| 111 | `solid.body-copy` | S — Proposed minimum now has bounded Todo child owner(s); implementation and release qualification open. | `SOL-008 (o), SOL-083 (o)` | — receipt needed |
+| 111 | `solid.body-copy` | S — Frozen root-solid/API minimum accepted; native Browser Copy/Paste gate remains Todo after locked-console preflight. | `SOL-008 (o), SOL-083 (c), SOL-090 (o)` | [body-copy.md](../../docs/validation/body-copy.md) |
 | 112 | `solid.face-offset` | S — Proposed minimum/later text present; finishability or accepted-only disposition pending. | `ADV-001 (o), SOL-016 (o), SOL-067 (c), SOL-072 (c), SOL-073 (c), SOL-074 (c), SOL-075 (o), SOL-076 (c)` | [face-offset.md](../../docs/validation/face-offset.md) |
 | 113 | `solid.face-edit` | O — Plausible open owner; finalize required subset and wider boundary. | `ADV-001 (o), SOL-068 (o), SOL-069 (o), SOL-070 (o)` | — receipt needed |
 | 114 | `solid.advanced-fillet` | O — Plausible open owner; finalize required subset and wider boundary. Exact advanced mode undecided. | `SOL-003 (o), ADV-005 (o), SOL-064 (o)` | — receipt needed |

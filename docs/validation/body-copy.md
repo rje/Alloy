@@ -1,6 +1,6 @@
 # Independent retained Body Copy
 
-SOL-083/#621 implements a bounded root-body snapshot candidate. Public behavior
+SOL-083/#621 accepts a bounded root-body snapshot core. Public behavior
 is indexed by the external dated workflow contract
 [`sol083-body-copy-2026-10-19.md`](../../../Alloy-reference-records/knowledge/specs/sol083-body-copy-2026-10-19.md).
 That contract records source attribution, retrieval date, documented Copy → Paste
@@ -56,7 +56,7 @@ in `tests/body_copy_controls.cpp` and builds. It is **unverified**: strict initi
 window activation failed before the first input; saved session preflight confirms
 `consoleLocked=true`. No inter-step focus repair or unlock was attempted. The
 session owner must unlock the console before rerunning that unchanged native
-gate. API-driven QWidget/Apple M4 framebuffer captures are separate evidence.
+gate under SOL-090/#652. API-driven QWidget/Apple M4 framebuffer captures are separate evidence.
 Public references do not establish matched-size visual styling or key/focus parity.
 
 This slice accepts root local solids only and XYZ translation only. Copied face
@@ -79,6 +79,10 @@ staged solids are fully framed and all placement fields/buttons are readable.
 | Frozen snapshot, explicit XYZ, Undo/Redo, reopen and exports | Matched to the Alloy issue contract |
 | Native actual-hit selection/menu/typing/Cancel/OK | Unknown; session prerequisite blocked before first input |
 | Matched public layout, typography, styling and physical keyboard behavior | Unknown; no matched public capture or physical-input qualification |
+
+Independent Sol review accepted the frozen snapshot/API/export core and inspected
+the fully framed preview and independent solids. SOL-090 retains the strict
+native interaction requirement; the locked session cannot satisfy it.
 
 Reproduce the qualified checks locally:
 
