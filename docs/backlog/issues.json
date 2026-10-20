@@ -3714,7 +3714,8 @@
         "SRF-044",
         "SRF-047",
         "SRF-048",
-        "SRF-049"
+        "SRF-049",
+        "SRF-050"
       ],
       "labels": [
         "kind:validation",
@@ -10810,7 +10811,7 @@
         "priority:P1",
         "area:srf"
       ],
-      "body": "## Bounded result\nProvide a zebra display for selected supported surfaces as a visual inspection aid, without changing geometry or history.\n\nThis is a finishable child of SRF-008; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Enable and disable zebra display on planar and curved fixtures with stable visual settings.\n- Verify the view follows surface edits and does not change geometry or history.\n- Record the display method and limits; do not use its appearance as a numeric continuity claim.\n- Capture the GPU viewport result and verify the view remains readable at the supported UI scale.\n\n## Preserved remainder\nCurvature Map, curvature combs, broad sampling controls, and advanced continuity analysis remain under SRF-008.\n"
+      "body": "## Bounded result\nProvide a zebra display for selected supported surfaces as a visual inspection aid, without changing geometry or history.\n\nThis is a finishable child of SRF-008; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Enable and disable zebra display on planar and curved fixtures with stable visual settings.\n- Verify the view follows surface edits and does not change geometry or history.\n- Record the display method and limits; do not use its appearance as a numeric continuity claim.\n- Capture the GPU viewport result and verify the view remains readable at the supported UI scale.\n\n## Preserved remainder\nCurvature Map, curvature combs, broad sampling controls, and advanced continuity analysis remain under SRF-008.\n\n## Linked first-v1 native remainder\nSRF-050 owns physical actual-hit Inspect activation, face-selection switching and 1x/2x viewport qualification on an unlocked Mac. This issue may accept bounded core/API/GPU evidence while the console is locked.\n\n## Linked documented workflow remainder\nPublic instructions describe a body-selected, saved Analysis result with browser visibility, Edit and Direction, Repeats, Opacity, Lock Stripes and High Quality controls. SRF-051 retains that wider workflow. This first slice is an explicitly named Alloy transient selected-face policy, not an exact parity claim.\n"
     },
     {
       "key": "SRF-035",
@@ -11402,6 +11403,26 @@
         "area:srf"
       ],
       "body": "## Bounded first-v1 native inspection gate\nSRF-033 owns a transient Alloy Show Face Normals overlay on selected supported planar and curved faces. Public evidence establishes B-rep normal evaluation, but does not document a matching native vector-glyph command or exact UI styling. Verify the Alloy proposal through real physical input and honest visual comparison. The Mac console was locked on 2026-10-20; leave this Todo until an unlocked run.\n\n## Acceptance criteria\n- From the actual Inspect action, select a supported planar face by a physical viewport hit, toggle normals on/off, then select a supported partial-cylinder face and confirm the arrow follows the current selection without focus or selection repair. A null/stale selection must clear the glyph rather than leave an old arrow.\n- Verify arrow tail on the evaluated surface, oriented tip, scale/readability at 1x and 2x, resize/camera changes, color contrast on selected and unselected materials, and that its GPU presentation does not intercept picking. Capture whole-app frames with vendor/renderer/version/framebuffer evidence and compare only matched public material; exact reference vector styling remains unknown.\n- Confirm toolbar/menu activation and API inspection share one state; toggle/selection leaves authored JSON, revision, dirty status and Undo stack unchanged. Save/reopen resets the intentionally transient overlay while preserving model state. Close the private editor after evidence.\n\n## Preserved remainder\nDense glyph fields, more face families and user controls stay SRF-008; other-platform packaged runtime stays GATE-050.\n"
+    },
+    {
+      "key": "SRF-050",
+      "title": "Qualify native zebra selection, Inspect controls and 1x/2x viewport",
+      "kind": "validation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": ["SRF-034"],
+      "labels": ["kind:validation", "phase:P3", "priority:P1", "area:srf"],
+      "body": "## Bounded first-v1 native inspection gate\nQualify the SRF-034 transient selected-face Zebra Analysis slice through physical Mac input and real GPU presentation. The console was locked on 2026-10-20; keep this Todo until an unlocked run.\n\n## Acceptance criteria\n- Use the actual Inspect entrypoint and physical viewport hits to select a planar then a curved face, toggle zebra on/off and change selection without harness focus repair. Observe native dialog/action activation and closure before the next input.\n- Inspect whole-app GPU frames at 1x and 2x in declared theme/camera/window states, including open-sheet front/back, seam/edge visibility, camera orbit, resize, source edit and exact ordinary-material restoration after off. Record vendor/renderer/version/framebuffer and compare only matched public evidence.\n- Confirm native controls and shared API report one state; toggle, selection and camera leave authored geometry, dirty status, revision and Undo stack unchanged. Reopen resets the intentionally transient overlay and preserves the model. Close the private editor.\n\n## Preserved remainder\nDocumented saved body-level Analysis, browser visibility/Edit and full stripe controls remain SRF-051. Other-platform packaged runtime remains GATE-050.\n"
+    },
+    {
+      "key": "SRF-051",
+      "title": "Add saved body-level zebra analysis and documented controls",
+      "kind": "implementation",
+      "phase": "P4 Full replacement",
+      "priority": "P2",
+      "depends_on": ["SRF-034"],
+      "labels": ["kind:implementation", "phase:P4", "priority:P2", "area:srf"],
+      "body": "## Documented workflow remainder\nPublic instructions describe body selection through Inspect > Zebra Analysis, a saved Browser > Analysis result, visibility toggle, Edit and Direction, Repeats, Opacity, Lock Stripes and High Quality settings. Implement that body-level retained workflow with explicit research of defaults and visual behavior before coding. Keep analysis metadata distinct from modeled geometry and feature history.\n\n## Acceptance criteria\n- Select supported body faces through the shared native/API workflow, preview settings, OK to create one saved analysis record, edit settings/target and toggle its Browser visibility. Save/reopen retains the analysis and Undo/Redo behavior is documented and verified.\n- Exercise horizontal/vertical direction, repeats, opacity, camera-relative Lock Stripes and quality/performance setting on planar and curved bodies. Compare actual GPU captures at matched public state where evidence allows; record unknown defaults or mismatch rather than asserting exact parity.\n- Preserve original geometry and existing feature history, verify independent saved-model state, and keep numeric continuity under SRF-035.\n\n## Preserved remainder\nCurvature maps/combs, broader sampling and advanced continuity remain SRF-008.\n"
     }
   ]
 }
