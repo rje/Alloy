@@ -58,7 +58,7 @@ double separation(const QString& kind, const GCS::Point& a, const GCS::Point& b)
 }
 }
 
-SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QSet<QString>& lockedPointIds) {
+SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QSet<QString>& lockedPointIds, const std::optional<SourceOrientation>& orientation) {
     Result result;
     result.parameters = parameters;
     result.diagnostics = {{"solver", "PlaneGCS"}, {"status", "invalid"}, {"dof", -1},
@@ -267,6 +267,13 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
         solver.dogLegGaussStep = GCS::LeastNormFullPivLU;
         result.diagnostics["dogLegStep"] = "least_norm_full_piv_lu";
         QSet<int> internalTags;int internalRuleCount=0;
+        if(orientation){
+            require(std::isfinite(orientation->angleRad) && orientation->anchorPointId!=orientation->headingPointId && lockedPointIds.contains(orientation->anchorPointId),"Source orientation needs a fixed anchor and distinct heading point");
+            const int t=tagIds.size()+1;tagIds[t]="source_orientation";internalTags.insert(t);++internalRuleCount;
+            solver.addConstraintP2PAngle(point(orientation->anchorPointId),point(orientation->headingPointId),constant(orientation->angleRad),t);
+            result.diagnostics["sourceOrientation"]=QJsonObject{{"transient",true},{"anchorPointId",orientation->anchorPointId},{"headingPointId",orientation->headingPointId},{"angleRad",orientation->angleRad}};
+        }
+
         for(auto& [id,arc]:arcMap) {if(mirrorSources.contains(id) || derivedArcIds.contains(id))continue;const int t=tagIds.size()+1;tagIds[t]=id;internalTags.insert(t);solver.addConstraintArcRules(arc,t);internalRuleCount+=4;}
         for(const auto& value:entities) {
             const auto e=value.toObject();if(e["type"]!="circle" || !e.contains("diameterStartPointId"))continue;
@@ -519,14 +526,14 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                 auto base=parameters;QJsonArray kept;
                 for(const auto& value:constraints)if(value.toObject()["type"]!="concentric")kept.append(value);
                 base["constraints"]=kept;
-                const auto baseline=SketchSolver::solve(base,lockedPointIds);
+                const auto baseline=SketchSolver::solve(base,lockedPointIds,orientation);
                 scopedConcentricRedundancy=baseline.accepted;
             }
             bool scopedFixedGeometryRedundancy=false;
             if(!redundant.empty() && conflicts.empty() && status==GCS::SolveStatus::Success) {
                 auto base=parameters;QJsonArray kept;bool hasFixedGeometry=false;
                 for(const auto& value:constraints)if(value.toObject()["type"]=="fixedLine" || value.toObject()["type"]=="fixedCircle" || value.toObject()["type"]=="fixedArc")hasFixedGeometry=true;else kept.append(value);
-                if(hasFixedGeometry){base["constraints"]=kept;scopedFixedGeometryRedundancy=SketchSolver::solve(base,lockedPointIds).accepted;}
+                if(hasFixedGeometry){base["constraints"]=kept;scopedFixedGeometryRedundancy=SketchSolver::solve(base,lockedPointIds,orientation).accepted;}
             }
             if(scopedFixedGeometryRedundancy)result.diagnostics["acceptedFixedGeometryDependentRedundancyIds"]=mapped(redundant);
             if(scopedConcentricRedundancy)result.diagnostics["acceptedConcentricDependentRedundancyIds"]=mapped(redundant);
@@ -567,7 +574,7 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
                     auto base=parameters;QJsonArray kept;
                     for(const auto& value:constraints)if(value.toObject()["id"]!=referenceCoincidenceId)kept.append(value);
                     base["constraints"]=kept;
-                    const auto baseline=SketchSolver::solve(base,lockedPointIds);
+                    const auto baseline=SketchSolver::solve(base,lockedPointIds,orientation);
                     // The horizontal helper already supplies the vertical
                     // component of this corner coincidence. Accept that single
                     // dependent equation only if the corner removes exactly one
@@ -906,6 +913,7 @@ SketchSolver::Result SketchSolver::solve(const QJsonObject& parameters, const QS
             check(coordinates[2*i]-number(points[i].toObject(),"uMm"),lengthTolerance);
             check(coordinates[2*i+1]-number(points[i].toObject(),"vMm"),lengthTolerance);
         }
+        if(orientation){const auto& a=point(orientation->anchorPointId);const auto& b=point(orientation->headingPointId);const double u=*b.x-*a.x,v=*b.y-*a.y;require(std::hypot(u,v)>=1e-6,"Source heading collapsed");check(std::remainder(std::atan2(v,u)-orientation->angleRad,2*std::acos(-1.0)),1e-8);}
         result.parameters["entities"]=solvedEntities;
         QJsonArray solvedPoints;
         for (qsizetype i=0;i<points.size();++i) {auto p=points[i].toObject();p["uMm"]=coordinates[2*i];p["vMm"]=coordinates[2*i+1];solvedPoints.append(p);}

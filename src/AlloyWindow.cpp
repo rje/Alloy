@@ -12105,6 +12105,7 @@ double AlloyWindow::sketchDimensionMeasure(const QJsonObject& targets,const QStr
 }
 
 QJsonObject AlloyWindow::publishSketchSolve(const SketchGeometry::SolveResult& solved,const QString& journalGroup) {
+    if(solved.diagnostics.value("rotateSourceSize").toBool() && (!session_.value("pendingSketchMove").toObject().isEmpty() || !session_.value("pendingSketchPaste").toObject().isEmpty() || session_.value("moveInteraction").toObject().value("active").toBool() || session_.value("pasteInteraction").toObject().value("active").toBool()))return failure("pending_transform","Accept or cancel the active transform before resizing Rotate source");
     if(session_.value("pendingSketchMove").toObject().value("rotate").toBool() && solved.feature!=session_.value("pendingSketchMove").toObject().value("draft"))return failure("pending_rotate","Accept or cancel Rotate before editing other sketch geometry");
     if(session_.value("pasteInteraction").toObject().value("active").toBool() && solved.feature!=session_.value("pendingSketchPaste").toObject().value("draft"))return failure("pending_paste","Accept or cancel Paste before editing other sketch geometry");
     if(session_.contains("pendingSlotDrag"))cancelSlotDrag();
@@ -12122,6 +12123,7 @@ QJsonObject AlloyWindow::publishSketchSolve(const SketchGeometry::SolveResult& s
     }
     const auto candidate=SketchGeometry::replaceFeature(document_->authored(),solved.feature);const auto error=CadDocument::validate(candidate);
     if(!error.isEmpty())return failure("invalid_sketch",error);
+    if(solved.diagnostics.value("rotateSourceSize").toBool())try{GeometryKernel::evaluateDocument(candidate);}catch(const std::exception& error){return failure("rotate_source_dependency",QString::fromUtf8(error.what()));}
     auto context=session_.value("projectionContext").toObject();
     if(solved.feature["parameters"].toObject()["plane"]=="face" || solved.feature["parameters"].toObject()["plane"]=="construction")try {
         const auto editId=session_.value("inputs").toObject().value("sketchId").toString();

@@ -2809,14 +2809,16 @@ SketchGeometry::SolveResult SketchGeometry::solveDraft(const QJsonObject& source
         validateDraft(expanded,derivedPoints);
         lockedPoints.unite(SketchMove::anchors(draft["parameters"].toObject()));
         auto planar=SketchPattern::sourceOnly(SketchMove::source(SketchRotate::source(expanded["parameters"].toObject())));planar.remove("constructionLines3d");
-        const auto result=SketchSolver::solve(planar,lockedPoints);
+        lockedPoints.unite(SketchRotate::anchors(draft["parameters"].toObject()));
+        const auto result=SketchSolver::solve(planar,lockedPoints,SketchRotate::orientation(draft["parameters"].toObject()));
         if(!result.accepted)return {false,sourceDraft,result.diagnostics,result.error};
+        SketchRotate::verifySource(draft["parameters"].toObject(),result.parameters);
         auto solved=draft;auto parameters=SketchPattern::derive(deriveClosedRectOffsets(SketchOpenChainOffset::derive(result.parameters)));
         parameters=SketchMove::materialize(parameters,draft["parameters"].toObject()["moveGroups"].toArray());
         if(draft["parameters"].toObject().contains("constructionLines3d"))parameters["constructionLines3d"]=draft["parameters"].toObject()["constructionLines3d"];
         parameters=SketchRotate::materialize(parameters,draft["parameters"].toObject()["rotateGroups"].toArray());
         if(!parameters.value("rotateGroups").toArray().isEmpty()){
-            auto post=parameters;post.remove("rotateGroups");post.remove("constructionLines3d");const auto checked=SketchSolver::solve(post,lockedPoints);
+            auto post=parameters;post.remove("rotateGroups");post.remove("constructionLines3d");auto outputLocks=lockedPoints;outputLocks.subtract(SketchRotate::anchors(draft["parameters"].toObject()));const auto checked=SketchSolver::solve(post,outputLocks);
             if(!checked.accepted)return {false,sourceDraft,checked.diagnostics,"Rotate output violates a preserved relation: "+checked.error};
             const auto wanted=parameters["points"].toArray(),actual=checked.parameters["points"].toArray();if(actual.size()!=wanted.size())reject("Rotate output changed point membership");
             for(int n=0;n<wanted.size();++n)for(const auto* key:{"uMm","vMm"})if(std::abs(wanted[n].toObject()[key].toDouble()-actual[n].toObject()[key].toDouble())>1e-6)reject("Rotate output conflicts with a preserved relation; no geometry changed");
@@ -4127,6 +4129,11 @@ SketchGeometry::SolveResult SketchGeometry::updateDimension(const QJsonObject& d
     try {
         validateDraft(draft);
         checkFields(arguments, {"dimensionId", "valueMm", "valueDeg", "parameterId", "expression", "expressionUnits"});
+        for(const auto& v:draft["parameters"].toObject()["rotateGroups"].toArray())for(const auto& row:v.toObject()["dimensions"].toArray())if(row.toObject()["id"]==arguments["dimensionId"]){
+            if(arguments.size()!=2 || !arguments.contains("valueMm"))reject("Rotate source-size editing accepts only a numeric value for an existing unbound Linear dimension");
+            auto candidate=draft;candidate["parameters"]=SketchRotate::resizeSource(draft["parameters"].toObject(),arguments["dimensionId"].toString(),arguments["valueMm"].toDouble());auto solved=solveDraft(candidate,projectionContext);if(!solved.ok)return {false,draft,solved.diagnostics,solved.error};
+            const auto before=evaluateFeature(draft),after=evaluateFeature(candidate);if(before.profiles.size()!=after.profiles.size())reject("Rotate source-size edit changed profile membership");for(size_t n=0;n<before.profiles.size();++n)if(before.profiles[n].profileId!=after.profiles[n].profileId)reject("Rotate source-size edit changed profile identity");solved.diagnostics["rotateSourceSize"]=true;solved.diagnostics["sourceFramePolicy"]="Fixed first topology start and directed first-edge heading; solver-only gauge";return {true,candidate,solved.diagnostics,{}};
+        }
         const bool formula=arguments.contains("expression");
         if(formula && (arguments.contains("valueMm") || arguments.contains("valueDeg") || arguments.contains("parameterId")))
             reject("Choose a local expression or a numeric/user-parameter dimension");
