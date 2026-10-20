@@ -15,6 +15,15 @@
 class TypedAngleCylinderControls final:public QObject {
     Q_OBJECT
     QJsonObject call(AlloyWindow& w,const QString& cmd,const QJsonObject& args={}){auto r=w.execute(cmd,args);if(!r["ok"].toBool())qFatal("%s: %s",qPrintable(cmd),QJsonDocument(r).toJson().constData());return r["result"].toObject();}
+    void editUserExpression(QTableWidget* table,int row,const QString& text) {
+        auto* item=table->item(row,3);QVERIFY(item);table->scrollToItem(item);
+        const auto point=table->visualItemRect(item).center();QCOMPARE(table->itemAt(point),item);
+        QTest::mouseClick(table->viewport(),Qt::LeftButton,Qt::NoModifier,point);
+        QTest::mouseDClick(table->viewport(),Qt::LeftButton,Qt::NoModifier,point);
+        QTRY_VERIFY(qobject_cast<QLineEdit*>(QApplication::focusWidget()));
+        auto* editor=QApplication::focusWidget();QTest::keyClick(editor,Qt::Key_A,Qt::ControlModifier);
+        QTest::keyClicks(editor,text);QTest::keyClick(editor,Qt::Key_Return);
+    }
     void type(QWidget* field,const QString& text){QVERIFY(field);QTest::mouseClick(field,Qt::LeftButton);QTRY_VERIFY(QApplication::focusWidget()==field || QApplication::focusWidget()==field->parentWidget());QTest::keyClick(field,Qt::Key_A,Qt::ControlModifier);QTest::keyClicks(field,text);QTest::keyClick(field,Qt::Key_Return);}
 private slots:
     void nativeTypedFields() {
@@ -26,6 +35,15 @@ private slots:
         QTest::mouseClick(name,Qt::LeftButton);QTest::keyClicks(name,"Opening");QTest::mouseClick(value,Qt::LeftButton);QTest::keyClicks(value,"30");
         QTest::mouseClick(dialog->findChild<QPushButton*>("parameters.add"),Qt::LeftButton);
         auto* table=dialog->findChild<QTableWidget*>("parameters.table");QTRY_COMPARE(table->rowCount(),1);QCOMPARE(table->item(0,1)->text(),QString("deg"));QCOMPARE(table->item(0,2)->text(),QString("30"));
+        QCOMPARE(table->item(0,3)->text(),QString("30 deg"));
+        const auto angleId=call(w,"document.inspect")["userParameters"].toArray()[0].toObject().value("id");
+        editUserExpression(table,0,"60 deg");
+        QTRY_COMPARE(table->item(0,3)->text(),QString("60 deg"));QCOMPARE(table->item(0,2)->text(),QString("60"));
+        auto parameter=call(w,"document.inspect")["userParameters"].toArray()[0].toObject();QCOMPARE(parameter["id"],angleId);QCOMPARE(parameter["valueDeg"].toDouble(),60.0);QVERIFY(!parameter.contains("valueMm"));
+        call(w,"document.parameterAdd",{{"name","Span"},{"value",10},{"units","mm"}});
+        editUserExpression(table,1,"2 in");
+        QTRY_COMPARE(table->item(1,2)->text(),QString("50.8"));
+        QCOMPARE(call(w,"document.inspect")["userParameters"].toArray()[1].toObject()["valueMm"].toDouble(),50.8);
         call(w,"document.parametersDialog",{{"visible",false}});QTRY_VERIFY(!dialog->isVisible());
         call(w,"document.new",{{"discard",true}});w.close();
     }

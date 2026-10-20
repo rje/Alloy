@@ -97,3 +97,20 @@ default degree unit, unbind gesture and mismatch text. Native Qt input, analytic
 solid evidence and STL readback are separate receipts; no broad exact-match
 claim follows from the captures. Independent source/evidence review remains with
 root before issue closure.
+
+## Independent-review correction: degree Expression-cell round trip
+
+The review found that User Parameters displayed `30 deg` in its Expression cell,
+but editing that text to `60 deg` submitted it as an unsupported angle formula.
+The degree-row handler now recognizes an optional `deg`/`°` numeric suffix and
+uses the shared numeric `document.parameterUpdate` authority. The mm/in path
+continues to submit authored length expressions unchanged.
+
+The focused native `nativeTypedFields` regression double-clicks the actual
+Expression cell, enters `60 deg`, presses Return and verifies the same user UUID,
+`valueDeg = 60`, no `valueMm` and refreshed `60 deg`/`60` cells. It then edits an
+mm row to `2 in` and verifies50.8 mm, preserving the existing length behavior.
+Initial activation is unchanged and no inter-step focus repair is added.
+The targeted Release/private-Qt `--parallel 4` build passes; that native workflow
+passes3/3 QtTest init/workflow/cleanup cases in2.114 seconds. No broad API/geometry
+rerun was needed for this UI-only correction; the prior receipts remain separate.

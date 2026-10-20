@@ -10373,7 +10373,14 @@ void AlloyWindow::showLengthParameters() {
     connect(edit,&QPushButton::clicked,dialog,[=]{submit(true);});
     connect(table,&QTableWidget::itemChanged,dialog,[=,this](QTableWidgetItem* item){
         if(!item || item->column()!=3)return;
-        const auto expression=item->text().trimmed();const int row=item->row();bool numeric=false;const double number=expression.toDouble(&numeric);
+        const auto expression=item->text().trimmed();const int row=item->row();bool numeric=false;double number=expression.toDouble(&numeric);
+        // Degree rows are numeric-only, but their displayed Expression includes
+        // the unit. Round-trip that literal through the numeric command path.
+        if(table->item(row,1) && table->item(row,1)->text()=="deg") {
+            static const QRegularExpression literal(QStringLiteral(R"(^([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)\s*(?:deg|°)?$)"),QRegularExpression::CaseInsensitiveOption);
+            const auto match=literal.match(expression);
+            if(match.hasMatch())number=match.captured(1).toDouble(&numeric);
+        }
         QJsonObject args{{"parameterId",item->data(Qt::UserRole).toString()}};
         if(numeric)args["value"]=number;else args["expression"]=expression;
         const auto result=execute("document.parameterUpdate",args);
