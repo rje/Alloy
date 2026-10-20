@@ -6,8 +6,9 @@ independent cumulative review accepts that slice while release gates remain open
 [Dense sketch dimension labels](docs/validation/sketch-dense-dimensions.md)
 now move to directly editable callouts when their projected text overlaps in a
 zoomed-out multi-profile view. A native five-label fixture, unchanged authored
-model and byte-identical printable STL pass independent review; very small
-viewport overflow remains tracked separately.
+model and byte-identical printable STL pass independent review. A
+[small-viewport margin fallback](docs/validation/sketch-dimension-overflow.md)
+now has a bounded candidate awaiting independent review.
 
 [Atomic sketch Move](docs/validation/sketch-move.md) now translates one isolated
 closed four-Line profile through native or local controls. Two relative edits,

@@ -99,9 +99,9 @@ neighboring callouts while open. Values remain direct targets outside the
 editor. This is a small deterministic lane policy, not a global annotation or
 leader-crossing optimizer. It uses conservative rotated AABBs and can relocate
 text whose exact glyph outlines would fit. Extremely dense/tiny viewports may
-report unresolved clusters without suppressing dimensions. Only four local lane
-positions are attempted; a margin-stack fallback is not implemented and remains
-a separate bounded follow-up. Existing chamfer
+report unresolved clusters without suppressing dimensions. The accepted SKT-190 baseline attempts only four local lanes.
+A [bounded margin-stack candidate](sketch-dimension-overflow.md) now extends
+exhausted lanes under SKT-191/#714; independent review is pending. Existing chamfer
 owner glyphs outside the ordinary dimension collection are unchanged.
 
 Early fixture attempts incorrectly required all five default labels to become

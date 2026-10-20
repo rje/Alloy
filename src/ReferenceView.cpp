@@ -2061,7 +2061,7 @@ QJsonArray ReferenceView::resolveDimensionLabels(QJsonArray layouts,const QStrin
             if(center.x()>0 && center.y()>0 && center.x()<width()-1 && center.y()<height()-1)layouts[i]=moveLabel(layout,center);fixed[i]=true;
         }raw[i]=bounds(layouts[i].toObject());
     }
-    QVector<QRectF> placed;
+    QVector<QRectF> placed;QVector<int> overflow;
     for(int first=0;first<count;++first){if(component[first]>=0 || fixed[first])continue;QVector<int> group{first};component[first]=first;
         for(int cursor=0;cursor<group.size();++cursor)for(int j=0;j<count;++j)if(!fixed[j] && component[j]<0 && raw[group[cursor]].intersects(raw[j])){component[j]=first;group.append(j);}
         bool collision=group.size()>1;for(int i:group)for(int j=0;j<count;++j)if(fixed[j] && raw[i].intersects(raw[j]))collision=true;
@@ -2079,7 +2079,41 @@ QJsonArray ReferenceView::resolveDimensionLabels(QJsonArray layouts,const QStrin
             }
             if(!fits)continue;for(int n=0;n<group.size();++n){layouts[group[n]]=moveLabel(layouts[group[n]].toObject(),boxes[n].center());placed.append(bounds(layouts[group[n]].toObject()));}done=true;break;
         }
-        if(!done)for(int i:group){auto l=layouts[i].toObject();l["crowdedUnresolved"]=true;layouts[i]=l;} // Never hide a dimension to force a fit.
+        if(!done)overflow+=group;
+    }
+    // A finite two-margin fallback, not a general annotation packer. All failed
+    // clusters share the same row grid so their placed margin tags cannot overlap.
+    // Keep the full value and the same ID/editor/pick authority at every scale.
+    if(!overflow.isEmpty()) {
+        std::sort(overflow.begin(),overflow.end(),[&](int a,int b){
+            const auto l=layouts[a].toObject().value("label").toObject(),r=layouts[b].toObject().value("label").toObject();
+            if(l.value("y")!=r.value("y"))return l.value("y").toDouble()<r.value("y").toDouble();
+            if(l.value("x")!=r.value("x"))return l.value("x").toDouble()<r.value("x").toDouble();
+            return layouts[a].toObject().value("dimensionId").toString()<layouts[b].toObject().value("dimensionId").toString();
+        });
+        double columnWidth=0,rowHeight=0;
+        for(int i:overflow){const auto l=layouts[i].toObject().value("label").toObject();columnWidth=std::max(columnWidth,l.value("width").toDouble());rowHeight=std::max(rowHeight,l.value("height").toDouble());}
+        const QRectF available(8,8,std::max(0,width()-16),std::max(0,height()-16)),cube(width()-190,0,190,180);
+        QVector<QRectF> occupied;
+        for(int j=0;j<count;++j)if(!overflow.contains(j))occupied.append(bounds(layouts[j].toObject()));
+        for(int i:overflow) {
+            auto layout=layouts[i].toObject();const auto label=layout.value("label").toObject();bool done=false;
+            const bool nearerRight=raw[i].center().x()>width()/2.0;
+            for(int margin=0;margin<2 && !done;++margin) {
+                const bool right=margin==0?nearerRight:!nearerRight;
+                const double x=right?width()-11-columnWidth/2:11+columnWidth/2;
+                for(double y=11+rowHeight/2;y+rowHeight/2+3<=height()-8;y+=rowHeight+6) {
+                    const QRectF box(x-label.value("width").toDouble()/2,y-label.value("height").toDouble()/2,label.value("width").toDouble(),label.value("height").toDouble());
+                    const auto padded=box.adjusted(-3,-3,3,3);bool fits=available.contains(padded) && !cube.intersects(padded);
+                    for(const auto& obstacle:occupied)if(obstacle.intersects(padded))fits=false;
+                    if(!fits)continue;
+                    layout=moveLabel(layout,box.center());layout["marginStack"]=right?"right":"left";
+                    occupied.append(bounds(layout));done=true;break;
+                }
+            }
+            if(!done){layout["crowdedUnresolved"]=true;occupied.append(bounds(layout));} // Never hide a value beyond finite canvas capacity.
+            layouts[i]=layout;
+        }
     }
     return layouts;
 }
