@@ -3702,7 +3702,9 @@
         "SOL-093",
         "SOL-094",
         "SOL-095",
-        "SOL-096"
+        "SOL-096",
+        "SRF-036",
+        "SRF-037"
       ],
       "labels": [
         "kind:validation",
@@ -10663,7 +10665,7 @@
         "priority:P1",
         "area:srf"
       ],
-      "body": "## Bounded result\nRevolve one supported open sketch section around a retained supported axis into an editable surface result, distinct from a closed solid.\n\nThis is a finishable child of SRF-001; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Expose retained axis, angle, and direction inputs and create a sheet result from one open section.\n- Verify surface result identity, area, bounds, and section/axis reference retention.\n- Edit angle/direction and verify recompute; refuse invalid or crossing axes without fabricating a solid.\n- Verify undo/redo and save/reopen.\n\n## Preserved remainder\nBroader section/axis sets, multiple profiles, joins, and surface-operation combinations remain under SRF-001.\n"
+      "body": "## Bounded result\nRevolve one supported open sketch section around a retained supported axis into an editable surface result, distinct from a closed solid.\n\nThis is a finishable child of SRF-001; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Expose retained axis, angle, and direction inputs and create a sheet result from one open section.\n- Verify surface result identity, area, bounds, and section/axis reference retention.\n- Edit angle/direction and verify recompute; refuse invalid or crossing axes without fabricating a solid.\n- Verify undo/redo and save/reopen.\n\n## Preserved remainder\nBroader section/axis sets, multiple profiles, joins, and surface-operation combinations remain under SRF-001.\n\n## Accepted bounded core and native split \u2014 2026-10-20\nCommits 9f6ec7d and 860f3c6 accept one retained straight open sketch line revolved around a distinct coplanar construction-line axis into a valid non-solid New Body sheet. Partial One Side 0<angle<360 and explicit Reverse use solved sketch geometry; a typed/combo native dock compiles. Focused Surface Revolve plus unchanged solid Revolve/Surface Extrude tests pass. An independent 66-response real-app fixture checks exact 200\u03c0\u2192100\u03c0\u2192150\u03c0 mm2 areas, quadrant/bounds, one face/four edges/zero solids/no caps, retained references, source/angle/direction edits, atomic refusal/retry, Undo/Redo, save/reopen and inspected 2x hardware-GPU captures. See docs/validation/surface-revolve.md. Publicly documented canvas profile/axis picking and angular manipulation are not implemented; actual-hit native/1x/2x acceptance remains linked first-v1 Todo SRF-036 because the Mac console is locked. Connected multi-curve sections remain linked Todo SRF-037; broader axes/extents and surface combinations remain SRF-001. Closing SRF-025 accepts the bounded core/API and compiled basic dock only, not native parity or packaged runtime.\n"
     },
     {
       "key": "SRF-026",
@@ -10814,6 +10816,40 @@
         "area:srf"
       ],
       "body": "## Bounded result\nReport sampled positional and tangent continuity with an explicit method and units for one supported shared boundary.\n\nThis is a finishable child of SRF-008; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Measure positional and tangent deviation for one known continuous and one known discontinuous face pair.\n- Report sample method/count, units, and numeric values independently from any display overlay.\n- Verify source edits update measurements and inspection leaves authored geometry/history unchanged.\n- Verify deterministic results on save/reopen for the same model and sampling settings.\n\n## Preserved remainder\nG2/advanced continuity analysis, curvature-comb tooling, and broad sampling controls remain under SRF-008.\n"
+    },
+    {
+      "key": "SRF-036",
+      "title": "Complete and qualify native Surface Revolve canvas selection and angle preview",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "SRF-025"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P1",
+        "area:srf"
+      ],
+      "body": "## Bounded first-v1 native workflow\nComplete the one-open-line Surface Revolve UI after the retained SRF-025 core. The existing combo/typed-angle dock compiles and the real-app API geometry passes, but public help documents canvas sketch-curve/axis selection and a draggable angle control that are not implemented. The Mac console is locked on 2026-10-20, so actual-hit acceptance remains open.\n\n## Acceptance criteria\n- Implement actual canvas pick of one supported open sketch line and a distinct coplanar construction-line axis, with visible Profile/Axis selection identity, without focus or selection repair between user steps. Preserve the shared authoritative command and stable references.\n- Provide a live partial-angle preview with a functional angular drag manipulator and typed field sharing retained angle/direction state. Complete/cancel and Timeline reopen/edit behave through user-facing controls; invalid/crossing axes show actionable feedback and valid retry.\n- On an unlocked Mac, run strict actual-hit input against the receiving widgets/popup state; inspect 90\u00b0 quarter sheet and 45\u00b0 reversed sheet plus Undo/Redo/save/reopen through the shared API. Capture/inspect whole-app GPU presentation at 1x and 2x, compare only matched public evidence, and close the private editor.\n\n## Preserved remainder\nConnected multi-curve sections, other axis types, Full/Two Sides/Symmetric, broader operations, exact pixel/key parity and Windows/Linux packaged runtime remain SRF-001 and release owners. The public tutorial uses a different full-turn curved input, so no exact visual-match claim follows from this fixture.\n"
+    },
+    {
+      "key": "SRF-037",
+      "title": "Revolve one connected multi-curve open sketch section as a retained sheet",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "SRF-025"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P1",
+        "area:srf"
+      ],
+      "body": "## Bounded continuation of SRF-025\nThe accepted one-line Surface Revolve core does not admit a connected open section with multiple curve entities. Public Surface Revolve workflows and the referenced basic-surfaces tutorial use curve/profile selections. Add one retained connected open sketch chain before claiming that broader first-v1 surface-creation subset.\n\n## Acceptance criteria\n- Admit one connected finite open chain of supported authored sketch curves (at minimum two joined lines, then one line/arc chain if compatible with the existing solver), retaining each source ID and ordered orientation. Do not silently close the wire or create a solid.\n- Revolve about a distinct supported retained coplanar axis through a partial angle into one valid non-solid sheet; independently check exact/analytic area, bounds, boundary presentation and source/axis edit recompute.\n- Refuse disconnected, branching, crossing-axis and self-intersecting sections atomically with actionable feedback; verify Undo/Redo and save/reopen through the real app.\n- Coordinate with SRF-036 canvas chain selection and visual native gate, linking a source-derived public tutorial state when comparable.\n\n## Preserved remainder\nGeneral splines, multiple profiles, alternate axes/extents and complex topology remain SRF-001. Keep this issue Todo until the bounded multi-entity chain is implemented and checked; SRF-025's one-line acceptance does not close it.\n"
     },
     {
       "key": "GEO-025",

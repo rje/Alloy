@@ -1,5 +1,7 @@
 # Alloy
 
+[Open-line Surface Revolve](docs/validation/surface-revolve.md) now creates an editable uncapped sheet with retained section/axis references and independently checked real-app geometry, history and GPU capture. Canvas selection, angular drag and actual-hit native acceptance remain SRF-036; connected multi-curve sections remain SRF-037.
+
 [Distance And Angle solid Chamfer](docs/validation/solid-distance-angle-chamfer.md) now has a retained one-edge directed core, explicit incident reference face and independently measured real-app geometry/history/STL. Native actual-hit edge/face/field and 1×/2× GPU acceptance remain SOL-096/#658.
 
 [Two Distance solid Chamfer](docs/validation/solid-two-distance-chamfer.md) now has a retained unequal-setback core, explicit adjacent face/Flip assignment and shared controls. Native actual-hit edge selection and GPU visual acceptance remain SOL-095/#657.
