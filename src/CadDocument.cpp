@@ -1,3 +1,4 @@
+#include "Align.h"
 #include "BodyCopy.h"
 #include "SolidFillet.h"
 #include "CadDocument.h"
@@ -2222,6 +2223,17 @@ QJsonObject CadDocument::bodyCopyCandidate(const QJsonObject& authored,const QJs
     auto candidate=authored;auto features=authored["features"].toArray();features.append(feature);candidate["features"]=features;
     const auto structure=validateStructure(candidate);if(!structure.isEmpty())throw std::invalid_argument(structure.toStdString());return candidate;
 }
+QJsonObject CadDocument::alignCandidate(const QJsonObject& authored,const QJsonObject& arguments){
+    const QSet<QString> allowed{"sourceFace","targetFace","flip","frameRule","name","featureId","newFeatureId"};
+    for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Align argument");
+    if(arguments.contains("featureId") && arguments.contains("newFeatureId"))throw std::invalid_argument("Choose existing or new Align identity");
+    auto candidate=authored;auto features=authored.value("features").toArray();QJsonObject feature;int index=-1;
+    if(arguments.contains("featureId")){for(int i=0;i<features.size();++i)if(features[i].toObject().value("id")==arguments.value("featureId")){index=i;feature=features[i].toObject();break;}if(index<0 || feature.value("type")!="align")throw std::invalid_argument("Align feature unavailable");}
+    else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",authored.value("documentId")},{"type","align"},{"name","Align"},{"visible",true}};
+    if(arguments.contains("name"))feature["name"]=arguments.value("name");
+    feature["parameters"]=QJsonObject{{"sourceFace",arguments.value("sourceFace")},{"targetFace",arguments.value("targetFace")},{"flip",arguments.value("flip").isUndefined() ? QJsonValue(false) : arguments.value("flip")},{"frameRule",arguments.value("frameRule").isUndefined() ? QJsonValue("retained-face-uv-v1") : arguments.value("frameRule")}};
+    if(index<0)features.append(feature);else features[index]=feature;candidate["features"]=features;const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
+}
 QJsonObject CadDocument::moveCandidate(const QJsonObject& authored, const QJsonObject& arguments) {
     const QSet<QString> allowed{"ownerId","targetBodyId","xMm","yMm","zMm","xDeg","yDeg","zDeg","pivotXMm","pivotYMm","pivotZMm","name","featureId","newFeatureId","steps"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Move argument");
@@ -2899,6 +2911,7 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             }
             continue;
         }
+        if(type=="align"){if(feature.contains("bodyId"))return "Align cannot own a new body";const auto error=Align::validate(p);if(!error.isEmpty())return error;continue;}
         if (type == "move") {
             if(feature.contains("bodyId") || p.size()!=5 || !validId(p["targetBodyId"].toString()) || !p["steps"].isArray() || p["steps"].toArray().size()>1000)return "Move requires one retained target body and bounded steps";
             for(const auto& key:{"pivotXMm","pivotYMm","pivotZMm"})if(!p[key].isDouble() || !std::isfinite(p[key].toDouble()) || std::abs(p[key].toDouble())>100000)return "Invalid Move pivot";

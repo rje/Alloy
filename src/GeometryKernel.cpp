@@ -1,3 +1,4 @@
+#include "Align.h"
 #include "BodyCopy.h"
 #include "PlanarFaces.h"
 #include "PrimitiveTopology.h"
@@ -1418,6 +1419,9 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                 const auto plane=resolveSketchSupport(evaluated,parameters["mirrorPlane"].toObject());
                 auto mirrored=SolidMirror::evaluate(*source,plane,id,feature["bodyId"].toString(),feature["name"].toString(),feature["visible"].toBool());
                 evaluated.bodies.push_back(mirrored);
+            } else if(type=="align") {
+                auto moved=Align::evaluate(evaluated,feature,authored);
+                for(auto& body:evaluated.bodies)if(body.bodyId==moved.bodyId){body=std::move(moved);break;}
             } else if (type == "move") {
                 const auto bodyId=parameters["targetBodyId"].toString();
                 auto body=std::find_if(evaluated.bodies.begin(),evaluated.bodies.end(),[&](const auto& item){return item.bodyId==bodyId;});
