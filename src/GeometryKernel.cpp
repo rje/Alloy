@@ -1,3 +1,4 @@
+#include "Scale.h"
 #include "Align.h"
 #include "BodyCopy.h"
 #include "PlanarFaces.h"
@@ -1427,6 +1428,9 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                 const auto plane=resolveSketchSupport(evaluated,parameters["mirrorPlane"].toObject());
                 auto mirrored=SolidMirror::evaluate(*source,plane,id,feature["bodyId"].toString(),feature["name"].toString(),feature["visible"].toBool());
                 evaluated.bodies.push_back(mirrored);
+            } else if(type=="scale") {
+                auto scaled=Scale::evaluate(evaluated,feature,authored);
+                for(auto& body:evaluated.bodies)if(body.bodyId==scaled.bodyId){body=std::move(scaled);break;}
             } else if(type=="align") {
                 auto moved=Align::evaluate(evaluated,feature,authored);
                 for(auto& body:evaluated.bodies)if(body.bodyId==moved.bodyId){body=std::move(moved);break;}

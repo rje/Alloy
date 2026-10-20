@@ -30,7 +30,7 @@ target_include_directories(alloy_sketch_solver PUBLIC src)
 target_link_libraries(alloy_sketch_solver PUBLIC Qt6::Core PRIVATE alloy_planegcs)
 
 add_library(alloy_kernel STATIC
-    src/Measure.cpp src/Measure.h src/Align.cpp src/Align.h
+    src/Scale.cpp src/Scale.h src/Measure.cpp src/Measure.h src/Align.cpp src/Align.h
     src/SolidDraft.cpp src/SolidDraft.h
     src/SolidFaceOffset.cpp src/SolidFaceOffset.h
     src/SolidThreadGeometry.cpp src/SolidThreadGeometry.h
@@ -50,7 +50,7 @@ qt_add_resources(alloy_kernel "alloy_text_font" PREFIX "/alloy/fonts" BASE "thir
 target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_VERSION}")
 
 add_library(alloy_application STATIC
-    src/AlignControls.cpp src/DraftControls.cpp src/MeasureControls.cpp
+    src/ScaleControls.cpp src/AlignControls.cpp src/DraftControls.cpp src/MeasureControls.cpp
     src/AlloyTheme.cpp src/AlloyTheme.h
     src/ThreeTangentCircleControls.cpp
     src/TwoTangentCircleControls.cpp
@@ -1031,6 +1031,10 @@ if(BUILD_TESTING)
     target_include_directories(solid_draft_test PRIVATE src)
     target_link_libraries(solid_draft_test PRIVATE Qt6::Gui alloy_kernel)
     add_test(NAME solid_draft COMMAND solid_draft_test)
+    add_executable(scale_document_test tests/scale_document.cpp src/CadDocument.cpp src/CadDocument.h)
+    target_include_directories(scale_document_test PRIVATE src)
+    target_link_libraries(scale_document_test PRIVATE Qt6::Gui alloy_kernel)
+    add_test(NAME scale_document COMMAND scale_document_test)
     add_executable(align_document_test tests/align_document.cpp src/CadDocument.cpp src/CadDocument.h)
     target_include_directories(align_document_test PRIVATE src)
     target_link_libraries(align_document_test PRIVATE Qt6::Gui alloy_kernel)

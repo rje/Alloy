@@ -534,6 +534,8 @@ private:
     QJsonObject beginMove(const QJsonObject& inputs);
     QJsonObject beginDraft(const QJsonObject& inputs);
     QJsonObject previewDraft();
+    QJsonObject beginScale(const QJsonObject& inputs);
+    QJsonObject previewScale();
     QJsonObject beginAlign(const QJsonObject& inputs);
     QJsonObject previewAlign();
     QJsonObject moveCandidate(const QJsonObject& inputs) const;
