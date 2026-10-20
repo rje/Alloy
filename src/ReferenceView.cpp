@@ -744,6 +744,7 @@ void ReferenceView::resetOrbitCenter() {
     customOrbitCenter_.reset();cancelOrbitCenterPick();refreshOrbitCenterMarker();
 }
 void ReferenceView::rebindDocument() {
+    setFaceNormals({});
     cancelNavigationGesture(navigationPressActive_);
     cancelOrbitCenterPick();
     nativeGestureActive_=false;
@@ -971,6 +972,7 @@ void ReferenceView::sync() {
     if (origin) context_->Display(axes_, false); else context_->Erase(axes_, false);
     context_->Deactivate(axes_);
     if(!decorationFeature_.isEmpty())decorateSketch(decorationFeature_,decorationSelection_,decorationDiagnostics_,decorationUnits_,decorationPending_);
+    if(!faceNormalsState_.isEmpty())refreshFaceNormals();
     if(!extrusionCueState_.isEmpty())refreshExtrusionCue();
     if(!revolveCueState_.isEmpty())refreshRevolveCue();
     updateCubeControls();
@@ -1332,6 +1334,58 @@ void ReferenceView::selectSupportFace(const QJsonObject& support,const TopoDS_Fa
         context_->Deactivate(selectedSupportFaceOverlay_);
         context_->UpdateCurrentViewer();
     }
+}
+void ReferenceView::setFaceNormals(const QJsonObject& state) {
+    auto prior=faceNormalsState_;prior.remove("glyph");prior["visible"]=false;
+    if(prior==state)return;
+    faceNormalsState_=state;faceNormalsRenderKey_={};refreshFaceNormals();
+    if(!context_.IsNull())context_->UpdateCurrentViewer();
+}
+void ReferenceView::refreshFaceNormals() {
+    if(context_.IsNull() || view_.IsNull())return;
+    const auto clear=[&]{for(const auto& glyph:faceNormalGlyphs_)context_->Remove(glyph,false);faceNormalGlyphs_.clear();faceNormalsRenderKey_={};faceNormalsState_["visible"]=false;faceNormalsState_.remove("glyph");};
+    if(!faceNormalsState_.value("enabled").toBool() || faceNormalsState_.value("status")!="ready"){clear();return;}
+    const auto normal=faceNormalsState_.value("normal").toObject();
+    const auto point=normal.value("pointMm").toArray(),vector=normal.value("unitNormal").toArray();
+    const gp_Pnt tail(point[0].toDouble(),point[1].toDouble(),point[2].toDouble());
+    const gp_Dir direction(vector[0].toDouble(),vector[1].toDouble(),vector[2].toDouble());
+    const gp_Vec right=view_->Camera()->Direction().Crossed(view_->Camera()->Up());
+    int x0,y0,x1,y1;view_->Convert(tail.X(),tail.Y(),tail.Z(),x0,y0);
+    const auto tangent=tail.Translated(right);view_->Convert(tangent.X(),tangent.Y(),tangent.Z(),x1,y1);
+    const auto scale=windowScale();
+    const double pxPerMm=std::hypot((x1-x0)/scale.x(),(y1-y0)/scale.y());
+    if(pxPerMm<1e-8){clear();return;}
+    const auto along=tail.Translated(gp_Vec(direction));view_->Convert(along.X(),along.Y(),along.Z(),x1,y1);
+    const double normalPxPerMm=std::hypot((x1-x0)/scale.x(),(y1-y0)/scale.y());
+    const double cap=normal.value("faceDiagonalMm").toDouble()*.35;
+    const double length=std::min(cap,48.0/std::max(normalPxPerMm,pxPerMm*.15));
+    if(length<1e-8){clear();return;}
+    const QJsonObject renderKey{{"normal",normal},{"length",length},{"pxPerMm",pxPerMm},{"x",x0},{"y",y0},{"nx",x1},{"ny",y1},{"dpr",devicePixelRatioF()},{"scaleX",scale.x()},{"scaleY",scale.y()}};
+    if(renderKey==faceNormalsRenderKey_ && !faceNormalGlyphs_.empty())return;
+    clear();faceNormalsRenderKey_=renderKey;
+    const double head=length*.25,radius=std::min(length*.045,1.7/pxPerMm);
+    const double headRadius=std::min(length*.13,5.0/pxPerMm);
+    const auto tip=tail.Translated(gp_Vec(direction)*length);
+    BRep_Builder builder;TopoDS_Compound arrow;builder.MakeCompound(arrow);
+    builder.Add(arrow,BRepPrimAPI_MakeCylinder(gp_Ax2(tail,direction),radius,length-head).Shape());
+    builder.Add(arrow,BRepPrimAPI_MakeCone(gp_Ax2(tip.Translated(gp_Vec(direction)*(-head)),direction),headRadius,0,head).Shape());
+    Handle(AIS_Shape) glyph=new AIS_Shape(arrow);
+    glyph->SetColor(Quantity_Color(1.0,.77,.08,Quantity_TOC_sRGB));
+    glyph->Attributes()->SetShadingModel(Graphic3d_TOSM_UNLIT);
+    glyph->Attributes()->SetFaceBoundaryDraw(true);
+    glyph->Attributes()->SetFaceBoundaryAspect(new Prs3d_LineAspect(Quantity_Color(.12,.14,.18,Quantity_TOC_sRGB),Aspect_TOL_SOLID,1.5*devicePixelRatioF()));
+    glyph->SetOwnDeviationCoefficient(.0001);glyph->SetZLayer(Graphic3d_ZLayerId_Topmost);
+    context_->Display(glyph,AIS_Shaded,-1,false);context_->Deactivate(glyph);faceNormalGlyphs_.push_back(glyph);
+    Handle(AIS_Point) anchor=new AIS_Point(new Geom_CartesianPoint(tail));
+    anchor->Attributes()->SetPointAspect(new Prs3d_PointAspect(Aspect_TOM_O_POINT,Quantity_Color(.12,.14,.18,Quantity_TOC_sRGB),4*devicePixelRatioF()));
+    anchor->SetZLayer(Graphic3d_ZLayerId_Topmost);context_->Display(anchor,0,-1,false);context_->Deactivate(anchor);faceNormalGlyphs_.push_back(anchor);
+    view_->Convert(tip.X(),tip.Y(),tip.Z(),x1,y1);
+    const double projected=std::hypot((x1-x0)/scale.x(),(y1-y0)/scale.y());
+    faceNormalsState_["visible"]=true;
+    faceNormalsState_["glyph"]=QJsonObject{{"tailMm",point},{"tipMm",QJsonArray{tip.X(),tip.Y(),tip.Z()}},{"lengthMm",length},
+        {"projectedLengthLogicalPx",projected},{"targetLengthLogicalPx",48},{"worldCapMm",cap},{"foreshortened",projected<12},
+        {"tailScreen",QJsonObject{{"x",x0/scale.x()},{"y",y0/scale.y()}}},{"tipScreen",QJsonObject{{"x",x1/scale.x()},{"y",y1/scale.y()}}},
+        {"pickable",false},{"color","#ffc414"},{"outline","#1f242e"}};
 }
 void ReferenceView::hoverSupportFace(const QJsonObject& support) {
     if(support==hoveredSupportFace_)return;
@@ -3433,6 +3487,7 @@ QJsonObject ReferenceView::diagnostics() const {
     result.insert("surfaceOffsetCue",extrusionCueState_.value("command")=="surface.offset" ? extrusionCueState_ : QJsonObject{});
     result.insert("cutPreviewToolCount",static_cast<int>(cutTools_.size()));
     result.insert("cutPreviewSelectedProfileCount",static_cast<int>(cutProfileOverlays_.size()));
+    result.insert("faceNormals",faceNormalsState_);
     result.insert("selectedSupportFace",selectedSupportFace_);
     result.insert("supportFaceHighlightVisible",!selectedSupportFaceOverlay_.IsNull());
     result.insert("hoveredSupportFace",hoveredSupportFace_);

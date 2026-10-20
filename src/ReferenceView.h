@@ -124,6 +124,8 @@ public:
     static QJsonObject pickSupportFace(const ViewPickSnapshot& pick,const std::vector<EvaluatedBody>& bodies);
     static QJsonObject pickSolidEdge(const ViewPickSnapshot& pick,const std::vector<EvaluatedBody>& bodies);
     void selectSupportFace(const QJsonObject& support, const TopoDS_Face& face = {}, bool outline = false);
+    void setFaceNormals(const QJsonObject& state);
+    QJsonObject faceNormalsState() const { return faceNormalsState_; }
     void setCommandSketches(const QSet<QString>& ids);
     void showSweepProfile(const EvaluatedProfile& profile);
     void showSweepPath(const EvaluatedSketch& sketch,const QJsonArray& entityIds);
@@ -328,6 +330,9 @@ private:
     QString combineTargetId_;
     QJsonObject selectedSupportFace_;
     Handle(AIS_Shape) selectedSupportFaceOverlay_;
+    void refreshFaceNormals();
+    QJsonObject faceNormalsState_,faceNormalsRenderKey_;
+    std::vector<Handle(AIS_InteractiveObject)> faceNormalGlyphs_;
     QJsonObject hoveredSupportFace_;
     Handle(AIS_Shape) hoveredSupportFaceOverlay_;
     QJsonArray combineToolIds_;

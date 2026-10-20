@@ -4,6 +4,7 @@
 #include <TopoDS_Compound.hxx>
 #include <QWindow>
 #include "AlloyWindow.h"
+#include "FaceNormalInspector.h"
 #include "AssemblySlider.h"
 #include "LocalReference.h"
 #include "LocalOccurrences.h"
@@ -515,6 +516,7 @@ AlloyWindow::AlloyWindow() {
                 if(!command || !command->available)continue;
                 auto* action=menu->addAction(command->title);
                 action->setObjectName(groupPrefix+".action."+entry.first);action->setToolTip(command->description);action->setIcon(commandIcon(entry.first));
+                if(entry.first=="inspect.faceNormals")action->setCheckable(true);
                 connect(action,&QAction::triggered,this,[this,id=entry.first]{execute(id);});
             }
             if(caption=="CREATE" && groupPrefix=="solid") {
@@ -548,7 +550,7 @@ AlloyWindow::AlloyWindow() {
     group("MODIFY", {{"solid.pressPullDialog", "⇧"}, {"solid.combineDialog", "▣"}, {"solid.filletDialog", "◩"}, {"solid.chamferDialog", "◪"}, {"solid.shellDialog", "▱"}, {"solid.faceOffsetDialog", "↗"}, {"solid.splitBodyDialog", "◫"}, {"solid.moveDialog", "✥"}});
     group("ASSEMBLE", {{"joint.asBuiltDialog","◉"},{"joint.sliderDialog", "⇆"},{"position.revert","↶"}});
     group("CONSTRUCT", {{"construction.plane", "▰"}, {"construction.pathPlane", "⟂"}, {"construction.tangentPlane", "▱"}, {"construction.midplane", "◫"}});
-    group("INSPECT", {{"inspect.sectionDialog", "◧"}, {"inspect.measure", "↔"}});
+    group("INSPECT", {{"inspect.sectionDialog", "◧"}, {"inspect.measure", "↔"}, {"inspect.faceNormals", "↥"}});
     auto* selectMenuButton=new QToolButton;selectMenuButton->setText("SELECT");
     selectMenuButton->setObjectName("solid.menu.select");
     selectMenuButton->setMinimumWidth(112);
@@ -571,7 +573,7 @@ AlloyWindow::AlloyWindow() {
     group("CREATE", {{"sketch.create", "▧"}, {"surface.extrudeDialog", "▤"}, {"surface.revolveDialog", "◉"}, {"surface.patchDialog", "▱"}, {"surface.offsetDialog", "↥"}, {"surface.ruledDialog", "⌁"}, {"surface.sweepDialog", "◡"}, {"surface.loftDialog", "◒"}, {"surface.boundaryFillDialog", "▣"}});
     group("MODIFY", {{"surface.extendDialog", "⇥"}, {"surface.trimDialog", "✂"}, {"surface.untrimDialog", "▱"}, {"body.removeDialog", "⊖"}});
     group("CONSTRUCT", {{"construction.plane", "▰"}, {"construction.pathPlane", "⟂"}, {"construction.tangentPlane", "▱"}, {"construction.midplane", "◫"}});
-    group("INSPECT", {{"inspect.sectionDialog", "◧"}, {"inspect.measure", "↔"}});
+    group("INSPECT", {{"inspect.sectionDialog", "◧"}, {"inspect.measure", "↔"}, {"inspect.faceNormals", "↥"}});
     groups->addStretch();surfaceGroups->hide();ribbonRight->addWidget(surfaceGroups);
     ribbonLayout->addLayout(ribbonRight, 1); layout->addWidget(ribbon);
     fullRibbonWidth_=ribbon->sizeHint().width();
@@ -1768,6 +1770,7 @@ void AlloyWindow::showActiveTab() {
     if(dimensionEditorValue_)dimensionEditorValue_->setReadOnly(false);
     if(lineLockCue_)lineLockCue_->hide();
     if(sketchDock_)sketchDock_->hide();
+    faceNormalsEnabled_=false;
     view_->rebindDocument();
     document_=active->document.get();session_=active->session;
     view_->setViewConvention(document_->authored().value("viewConvention").toObject(),false);
@@ -1979,6 +1982,13 @@ void AlloyWindow::registerCommands() {
     registerBoundaryFillCommands();
     registerSectionCommands();
     registerMeasureCommands();
+    add("inspect.faceNormals", "Show Face Normals", "Alloy inspection proposal: transient oriented normal at one interior UV sample of the current planar or cylindrical face. Arrow targets 48 screen pixels, capped at 35% face size; length is diagnostic, not model geometry. No shortcut or saved analysis.",
+        {{"enabled",QJsonObject{{"type","boolean"},{"required",false},{"description","Set visibility; omit to toggle."}}}},[this](const auto& args){
+            faceNormalsDocumentId_=document_->authored().value("documentId").toString();
+            faceNormalsEnabled_=args.contains("enabled") ? args.value("enabled").toBool() : !faceNormalsEnabled_;
+            refreshFaceNormals();return view_->faceNormalsState();
+        });
+    add("inspect.faceNormalsResult", "Face Normals Result", "Read transient current-face normal and GPU glyph scale without changing model or history.",{},[this](const auto&){return view_->faceNormalsState();});
     registerComponentCopyCommands();
     registerBodyCopyCommands();
     registerSliderCommands();
@@ -2529,6 +2539,7 @@ void AlloyWindow::registerCommands() {
     });
     add("document.open","Open","Validate and evaluate before replacing the current document.",{{"path",path},{"discard",discard}},[this](const auto& a){
         if(tabHasUnsavedWork(activeTabId_) && !a.value("discard").toBool()) return failure("unsaved_changes","Save or explicitly discard the current document");
+        faceNormalsEnabled_=false;view_->setFaceNormals({});
         return beginDocumentOpen(a.value("path").toString());
     });
     for(const auto& id:{"document.saveDialog","document.saveAsDialog"}) {
@@ -7457,7 +7468,7 @@ QJsonObject AlloyWindow::state() const {
                 {"presentation",target=="construction.tangentPlane" || target=="joint.slider" || target=="joint.revolute" || target=="joint.cylindrical" || target.startsWith("solid.") || target.startsWith("surface.") || target.startsWith("sketch.") ? (activeDock && activeDock->isFloating() ? "floating-panel" : "docked-panel") : "dialog"},
                 {"bounds",QJsonObject{{"x",panelRect.x()},{"y",panelRect.y()},{"width",panelRect.width()},{"height",panelRect.height()}}}}}}},
         {"navigationPreferences",QJsonObject{{"preset",view_->inputPreset()} }},
-        {"viewport", QJsonObject{{"renderer", "OCCT OpenGL"}, {"gpu", view_->diagnostics()}, {"navigation",view_->cameraState()},
+        {"viewport", QJsonObject{{"faceNormals",view_->faceNormalsState()},{"renderer", "OCCT OpenGL"}, {"gpu", view_->diagnostics()}, {"navigation",view_->cameraState()},
             {"orbitCenterPickPending",view_->orbitCenterPicking()}, {"editDisplay",view_->diagnostics().value("editDisplay")},
             {"sketchAnnotations",view_->annotations()}, {"orientation", view_->orientation}, {"gridVisible", view_->grid},
             {"originVisible", view_->origin}, {"zoom", view_->zoom}, {"pan", QJsonObject{{"x", view_->pan.x()}, {"y", view_->pan.y()}}},
@@ -7499,6 +7510,22 @@ void AlloyWindow::refreshBodyPropertiesDialog() {
             number(size[i].toDouble())+" "+unit);
 }
 
+void AlloyWindow::refreshFaceNormals() {
+    const auto documentId=document_->authored().value("documentId").toString();
+    if(faceNormalsDocumentId_!=documentId){faceNormalsEnabled_=false;faceNormalsDocumentId_=documentId;}
+    QJsonObject state{{"enabled",faceNormalsEnabled_},{"visible",false},{"samplePolicy","interior_uv_midpoint_then_dyadic_grid"},
+        {"samplePolicyDetail","UV midpoint, then strictly interior grid points at denominators 4, 8, 16 in U/V order; exact oriented world B-Rep D1 cross product"},
+        {"scope","single_current_face"},{"persistence","session_only"},{"authoredChange",false},{"designPolicy","Alloy inspection proposal; reference vector-glyph parity unknown"},
+        {"scalePolicy","48 logical projected pixels where possible, capped at 35% face bounding-box diagonal; no artificial normal rotation"}};
+    if(!faceNormalsEnabled_)state["status"]="disabled";
+    else if(!session_.isEmpty())state["status"]="active_command";
+    else if(selectedFace_.isEmpty())state["status"]="no_selection";
+    else {auto result=FaceNormalInspector::evaluate(presentationBodies(),selectedFace_);state["status"]=result.value("status");
+        if(result.contains("error"))state["error"]=result.value("error");else state["normal"]=result;}
+    view_->setFaceNormals(state);
+    for(const auto& prefix:{QString("solid"),QString("surface")})
+        if(auto* action=findChild<QAction*>(prefix+".action.inspect.faceNormals"))action->setChecked(faceNormalsEnabled_);
+}
 void AlloyWindow::refresh() {
     if(!failedEditRepair_.isEmpty() && (failedEditDocument_!=document_
         || failedEditRepair_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision())))
@@ -8351,6 +8378,7 @@ void AlloyWindow::refresh() {
         .arg(hardwareAccelerated ? "OCCT OpenGL" : "GPU UNQUALIFIED")
         .arg(gpu.value("displayedBodyReferences").toArray().size()).arg(view_->orientation).arg(qRound(view_->zoom * 100)).arg(activeTool));
     status_->setToolTip(completeStatus);status_->setAccessibleDescription(completeStatus);
+    refreshFaceNormals();
 }
 
 void AlloyWindow::showSearch() {

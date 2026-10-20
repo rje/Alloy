@@ -30,6 +30,7 @@ target_include_directories(alloy_sketch_solver PUBLIC src)
 target_link_libraries(alloy_sketch_solver PUBLIC Qt6::Core PRIVATE alloy_planegcs)
 
 add_library(alloy_kernel STATIC
+    src/FaceNormalInspector.cpp src/FaceNormalInspector.h
     src/Scale.cpp src/Scale.h src/Measure.cpp src/Measure.h src/Align.cpp src/Align.h
     src/SolidDraft.cpp src/SolidDraft.h
     src/SolidFaceOffset.cpp src/SolidFaceOffset.h
@@ -96,6 +97,9 @@ if(ALLOY_BUILD_SPIKES)
         TKernel TKMath TKBRep TKPrim TKTopAlgo TKLCAF TKCAF TKBin TKBinL TKCDF)
 endif()
 if(BUILD_TESTING)
+    add_executable(face_normals_test tests/face_normals.cpp)
+    target_link_libraries(face_normals_test PRIVATE alloy_kernel Qt6::Core)
+    add_test(NAME face_normals COMMAND face_normals_test)
     add_executable(solid_face_offset_test tests/solid_face_offset.cpp src/CadDocument.cpp src/CadDocument.h)
     target_link_libraries(solid_face_offset_test PRIVATE alloy_kernel Qt6::Widgets)
     add_test(NAME solid_face_offset COMMAND solid_face_offset_test)

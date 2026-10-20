@@ -902,6 +902,9 @@ private:
     QLabel* browserNote_ = nullptr;
     QString selectedBody_;
     QString selectedOccurrence_;
+    void refreshFaceNormals();
+    bool faceNormalsEnabled_ = false;
+    QString faceNormalsDocumentId_;
     void registerMeasureCommands();
     void refreshMeasure();
     QJsonObject pickMeasure(double x,double y);
