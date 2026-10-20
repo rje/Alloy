@@ -766,6 +766,7 @@ void ReferenceView::resetOrbitCenter() {
     customOrbitCenter_.reset();cancelOrbitCenterPick();refreshOrbitCenterMarker();
 }
 void ReferenceView::rebindDocument() {
+    setInterferenceFeedback({},{});
     setZebra({});
     setFaceNormals({});
     setMeshExportPreview({});

@@ -570,7 +570,7 @@ AlloyWindow::AlloyWindow() {
     group("MODIFY", {{"solid.pressPullDialog", "⇧"}, {"solid.combineDialog", "▣"}, {"solid.filletDialog", "◩"}, {"solid.chamferDialog", "◪"}, {"solid.shellDialog", "▱"}, {"solid.faceOffsetDialog", "↗"}, {"solid.splitBodyDialog", "◫"}, {"solid.moveDialog", "✥"}});
     group("ASSEMBLE", {{"joint.asBuiltDialog","◉"},{"joint.sliderDialog", "⇆"},{"position.revert","↶"}});
     group("CONSTRUCT", {{"construction.plane", "▰"}, {"construction.angledPlane", "∠"}, {"construction.point", "·"}, {"construction.axis", "╱"}, {"construction.pathPlane", "⟂"}, {"construction.tangentPlane", "▱"}, {"construction.midplane", "◫"}});
-    group("INSPECT", {{"inspect.sectionDialog", "◧"}, {"inspect.measure", "↔"}, {"inspect.faceNormals", "↥"}, {"inspect.zebra", "▥"}, {"inspect.surfaceContinuity", "∠"}});
+    group("INSPECT", {{"inspect.sectionDialog", "◧"}, {"inspect.measure", "↔"}, {"inspect.interference", "◈"}, {"inspect.faceNormals", "↥"}, {"inspect.zebra", "▥"}, {"inspect.surfaceContinuity", "∠"}});
     auto* selectMenuButton=new QToolButton;selectMenuButton->setText("SELECT");
     selectMenuButton->setObjectName("solid.menu.select");
     selectMenuButton->setMinimumWidth(112);
@@ -593,7 +593,7 @@ AlloyWindow::AlloyWindow() {
     group("CREATE", {{"sketch.create", "▧"}, {"surface.extrudeDialog", "▤"}, {"surface.revolveDialog", "◉"}, {"surface.patchDialog", "▱"}, {"surface.offsetDialog", "↥"}, {"surface.ruledDialog", "⌁"}, {"surface.sweepDialog", "◡"}, {"surface.loftDialog", "◒"}, {"surface.boundaryFillDialog", "▣"}});
     group("MODIFY", {{"surface.extendDialog", "⇥"}, {"surface.trimDialog", "✂"}, {"surface.untrimDialog", "▱"}, {"body.removeDialog", "⊖"}});
     group("CONSTRUCT", {{"construction.plane", "▰"}, {"construction.angledPlane", "∠"}, {"construction.point", "·"}, {"construction.axis", "╱"}, {"construction.pathPlane", "⟂"}, {"construction.tangentPlane", "▱"}, {"construction.midplane", "◫"}});
-    group("INSPECT", {{"inspect.sectionDialog", "◧"}, {"inspect.measure", "↔"}, {"inspect.faceNormals", "↥"}, {"inspect.zebra", "▥"}, {"inspect.surfaceContinuity", "∠"}});
+    group("INSPECT", {{"inspect.sectionDialog", "◧"}, {"inspect.measure", "↔"}, {"inspect.interference", "◈"}, {"inspect.faceNormals", "↥"}, {"inspect.zebra", "▥"}, {"inspect.surfaceContinuity", "∠"}});
     groups->addStretch();surfaceGroups->hide();ribbonRight->addWidget(surfaceGroups);
     ribbonLayout->addLayout(ribbonRight, 1); layout->addWidget(ribbon);
     fullRibbonWidth_=ribbon->sizeHint().width();
@@ -1501,6 +1501,8 @@ bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
             tangentCircleRadius_->setFocus(Qt::OtherFocusReason);tangentCircleRadius_->setText(key->text());return true;
         }
     }
+    if(watched==view_ && interferenceDialog_ && event->type()==QEvent::KeyPress
+        && static_cast<QKeyEvent*>(event)->key()==Qt::Key_Escape){interferenceDialog_->close();return true;}
     if(watched==view_ && event->type()==QEvent::KeyPress
         && static_cast<QKeyEvent*>(event)->key()==Qt::Key_Escape && view_->inputGestureActive()) {
         view_->cancelInputGesture();return true;
@@ -2006,6 +2008,7 @@ void AlloyWindow::registerCommands() {
     registerBoundaryFillCommands();
     registerSectionCommands();
     registerMeasureCommands();
+    registerInterferenceCommands();
     registerSurfaceContinuityCommands();
     add("inspect.faceNormals", "Show Face Normals", "Alloy inspection proposal: transient oriented normal at one interior UV sample of the current planar or cylindrical face. Arrow targets 48 screen pixels, capped at 35% face size; length is diagnostic, not model geometry. No shortcut or saved analysis.",
         {{"enabled",QJsonObject{{"type","boolean"},{"required",false},{"description","Set visibility; omit to toggle."}}}},[this](const auto& args){
@@ -5909,6 +5912,7 @@ void AlloyWindow::registerCommands() {
         });
     auto bodyId=parameter("string","Stable body UUID; empty string clears selection.");
     add("selection.set","Select body","Select a visible body through the same path as the Browser.",{{"bodyId",bodyId},{"occurrenceId",optional(parameter("string","Exact local occurrence UUID when a definition has multiple instances."))}},[this](const auto& a){
+        if(interferenceDialog_)return selectInterference(a);
         const auto id=a["bodyId"].toString(),requestedOccurrence=a.value("occurrenceId").toString();bool found=id.isEmpty();
         QString occurrence=requestedOccurrence;
         if(!id.isEmpty()){
@@ -6017,6 +6021,7 @@ void AlloyWindow::registerCommands() {
         });
     add("selection.pick","Pick body or region","Pick actual OCCT geometry at viewport-local coordinates; Shift adds sketch regions.",{{"x",point},{"y",point},{"additive",optional(parameter("boolean","Add a picked region in the current same-sketch selection."))},
         {"toggle",optional(parameter("boolean","Toggle a picked region in the current same-sketch selection."))}},[this](const auto& a){
+        if(interferenceDialog_)return selectInterference(view_->pickBodyReference(a["x"].toDouble(),a["y"].toDouble()));
         if(measureDialog_)return pickMeasure(a["x"].toDouble(),a["y"].toDouble());
         if(session_.isEmpty() && selectionPriority_=="edge"){
             const auto hit=view_->pickSolidEdge(a["x"].toDouble(),a["y"].toDouble(),presentationBodies());
@@ -7704,6 +7709,7 @@ void AlloyWindow::refresh() {
     const auto effectiveConvention=storedConvention.isEmpty() ? QJsonObject{{"defaultUp","Z"},
         {"right",QJsonArray{1,0,0}},{"back",QJsonArray{0,1,0}},{"up",QJsonArray{0,0,1}}} : storedConvention;
     if(view_->viewConvention()!=effectiveConvention)view_->setViewConvention(storedConvention);
+    refreshInterference();
     refreshMeasure();
     refreshSurfaceContinuity();
     refreshBodyPropertiesDialog();

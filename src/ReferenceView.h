@@ -129,6 +129,7 @@ public:
     void selectSupportFace(const QJsonObject& support, const TopoDS_Face& face = {}, bool outline = false);
     void setZebra(const QJsonObject& state,const TopoDS_Face& face = {});
     QJsonObject zebraState() const { return zebraState_; }
+    void setInterferenceFeedback(const std::vector<TopoDS_Shape>& sources,const TopoDS_Shape& result);
     void setFaceNormals(const QJsonObject& state);
     void setMeshExportPreview(const std::vector<gp_Pnt>& facets,const QString& instanceKey = {});
     QJsonObject faceNormalsState() const { return faceNormalsState_; }
@@ -414,6 +415,7 @@ private:
     QString sketchPlane_, draftSketchId_;
     QJsonObject sketchFrame_;
     quint64 sketchRevision_ = 0;
+    std::vector<Handle(AIS_Shape)> interferenceFeedback_;
     Handle(AIS_Shape) preview_;
     Handle(AIS_InteractiveObject) meshExportPreview_;
     QString meshExportPreviewInstance_;

@@ -166,6 +166,10 @@ public:
             painter->save();painter->setClipPath(sheet);painter->setBrush(Qt::NoBrush);pen(edge,3);
             for(int i=0;i<5;++i){QPainterPath band;band.moveTo(5+i*6,1);band.cubicTo(-1+i*6,11,12+i*6,19,5+i*6,32);painter->drawPath(band);}
             painter->restore();
+        } else if (command_ == "inspect.interference") {
+            polygon({{3,8},{18,8},{18,24},{3,24}},pale);
+            polygon({{13,3},{28,3},{28,19},{13,19}},pale);
+            polygon({{13,8},{18,8},{18,19},{13,19}},blue);
         } else if (command_ == "inspect.measure") {
             polygon({{3,12},{27,7},{29,18},{5,23}},pale);
             pen(edge); for(int i=0;i<6;++i) {

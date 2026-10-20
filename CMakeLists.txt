@@ -33,6 +33,7 @@ add_library(alloy_kernel STATIC
     src/DatumPoint.cpp src/DatumPoint.h
     src/DatumAxis.cpp src/DatumAxis.h
     src/SurfaceContinuity.cpp src/SurfaceContinuity.h
+    src/Interference.cpp src/Interference.h
     src/FaceNormalInspector.cpp src/FaceNormalInspector.h
     src/Scale.cpp src/Scale.h src/Measure.cpp src/Measure.h src/Align.cpp src/Align.h
     src/SolidDraft.cpp src/SolidDraft.h
@@ -54,6 +55,7 @@ qt_add_resources(alloy_kernel "alloy_text_font" PREFIX "/alloy/fonts" BASE "thir
 target_compile_definitions(alloy_kernel PUBLIC ALLOY_OCCT_VERSION="${ALLOY_OCCT_VERSION}")
 
 add_library(alloy_application STATIC
+    src/InterferenceControls.cpp src/ReferenceInterference.cpp
     src/DatumPointControls.cpp
     src/DatumAxisControls.cpp
     src/SurfaceContinuityControls.cpp
@@ -104,6 +106,13 @@ if(ALLOY_BUILD_SPIKES)
         TKernel TKMath TKBRep TKPrim TKTopAlgo TKLCAF TKCAF TKBin TKBinL TKCDF)
 endif()
 if(BUILD_TESTING)
+    add_executable(interference_test tests/interference.cpp)
+    target_link_libraries(interference_test PRIVATE alloy_application)
+    add_test(NAME interference COMMAND interference_test)
+    add_executable(interference_controls_test tests/interference_controls.cpp)
+    target_link_libraries(interference_controls_test PRIVATE alloy_application Qt6::Test)
+    add_test(NAME interference_controls COMMAND interference_controls_test)
+    set_tests_properties(interference_controls PROPERTIES TIMEOUT 90 LABELS "widget;gpu" RUN_SERIAL TRUE)
     add_executable(surface_continuity_test tests/surface_continuity.cpp)
     target_link_libraries(surface_continuity_test PRIVATE alloy_application)
     add_test(NAME surface_continuity COMMAND surface_continuity_test)

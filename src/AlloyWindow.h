@@ -946,6 +946,15 @@ private:
     void refreshFaceNormals();
     bool faceNormalsEnabled_ = false;
     QString faceNormalsDocumentId_;
+    void registerInterferenceCommands();
+    void refreshInterference();
+    QJsonObject selectInterference(const QJsonObject& source);
+    QJsonObject interferenceResult(const QJsonArray& sources,bool feedback);
+    QPointer<QDialog> interferenceDialog_;
+    const CadDocument* interferenceDocument_ = nullptr;
+    QJsonArray interferenceSources_;
+    QJsonObject interferenceComputed_;
+    quint64 interferenceRevision_ = 0;
     void registerMeasureCommands();
     void registerSurfaceContinuityCommands();
     void refreshSurfaceContinuity();

@@ -26,6 +26,7 @@ void AlloyWindow::registerMeasureCommands(){
     commands_.push_back({"inspect.measure","Measure","Open the native inspection panel; select an edge, face or sketch point.",{},true,[this](const QJsonObject&){
         if(!session_.isEmpty())return QJsonObject{{"ok",false},{"error",QJsonObject{{"code","active_command"},{"message","Finish the active command before measuring"}}}};
         if(measureDialog_){measureDialog_->raise();return QJsonObject{{"dialog","measure.dialog"}};}
+        if(interferenceDialog_)interferenceDialog_->close();
         measureSources_={};measureDocument_=document_;auto* dialog=new QDialog(this);measureDialog_=dialog;
         dialog->setObjectName("measure.dialog");dialog->setWindowTitle("Measure");dialog->setAttribute(Qt::WA_DeleteOnClose);dialog->resize(340,320);
         auto* layout=new QVBoxLayout(dialog);layout->setSizeConstraint(QLayout::SetMinimumSize);layout->addWidget(new QLabel("Select geometry in the canvas",dialog));
