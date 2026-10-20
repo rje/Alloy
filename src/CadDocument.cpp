@@ -169,6 +169,15 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
         const auto feature = features[i].toObject();
         if(feature["type"]=="constructionPlane" || (feature["type"]=="sketch" && feature["parameters"].toObject()["plane"]=="construction")) {
             const auto source=feature["type"]=="constructionPlane" ? feature["parameters"].toObject()["source"].toObject() : QJsonObject{{"planeId",feature["parameters"].toObject()["planeId"]}};
+            if(source.contains("angled")) {
+                const auto angled=source.value("angled").toObject(),line=angled.value("line").toObject(),plane=angled.value("plane").toObject();
+                const auto sketchId=line.value("sketchId").toString(),planeId=plane.value("planeId").toString();
+                for(const auto& reference:{sketchId,planeId})if(!reference.isEmpty()) {
+                    const auto expected=reference==sketchId ? "sketch" : "constructionPlane";
+                    if(!positions.contains(reference) || positions.value(reference)>=i || features[positions.value(reference)].toObject().value("type")!=expected)
+                        return {{"featureId",feature.value("id")},{"featureType",feature.value("type")},{"code","plane_dependency_unavailable"},{"message","Both angled plane inputs must be earlier retained features of the expected type"}};
+                }
+            }
             const auto reference=source.contains("planeId") ? source["planeId"].toString()
                 : source.contains("path") ? source["path"].toObject()["sketchId"].toString() : source["sketchId"].toString();
             if(!reference.isEmpty()) {
@@ -2749,6 +2758,22 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             if(feature.contains("bodyId") || !p["source"].isObject())return "Construction plane requires a retained source";
             const auto source=p["source"].toObject();
             if(source.size()!=1)return "Construction plane requires exactly one source";
+            if(source.contains("angled")) {
+                const auto angled=source.value("angled").toObject(),line=angled.value("line").toObject(),plane=angled.value("plane").toObject();
+                if(p.size()!=3 || !p.value("angleDeg").isDouble() || !std::isfinite(p.value("angleDeg").toDouble())
+                    || std::abs(p.value("angleDeg").toDouble())>360 || !p.value("flipSide").isBool())
+                    return "Angled plane requires a numeric angle within -360 to 360 degrees and explicit Flip Side";
+                if(angled.size()!=2 || line.size()!=4 || plane.size()!=1)
+                    return "Angled plane requires one retained Line and source plane";
+                for(const auto& key:{"sketchId","entityId","startPointId","endPointId"})
+                    if(!validId(line.value(key).toString()))return "Angled Line requires stable sketch, entity and ordered endpoint IDs";
+                if(line.value("startPointId")==line.value("endPointId"))return "Angled Line endpoints must be distinct";
+                if(plane.contains("plane")) {
+                    if(plane.value("plane")!="XY" && plane.value("plane")!="XZ" && plane.value("plane")!="YZ")return "Unsupported angled origin plane";
+                } else if(!plane.contains("planeId") || !validId(plane.value("planeId").toString()))
+                    return "Angled source plane must be an origin or retained construction plane";
+                continue;
+            }
             if(source.contains("faces")) {
                 const auto faces=source["faces"].toArray();
                 if(p.size()!=1 || !source["faces"].isArray() || faces.size()!=2 || faces[0]==faces[1])

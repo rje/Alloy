@@ -231,6 +231,10 @@ private:
     QJsonObject previewTangentPlane();
     void showTangentPlane();
     QDockWidget* tangentPlaneDock_ = nullptr;
+    QJsonObject beginAngledPlane(const QJsonObject& inputs);
+    QJsonObject previewAngledPlane();
+    void showAngledPlane();
+    QDockWidget* angledPlaneDock_ = nullptr;
     QJsonObject beginPathPlane(const QJsonObject& inputs);
     QJsonObject selectPathPlaneSpline(const QString& sketchId,const QString& entityId);
     QJsonObject previewPathPlane();

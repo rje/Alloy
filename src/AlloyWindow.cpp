@@ -101,6 +101,24 @@
 #include <numbers>
 
 namespace {
+// Capture ordered authored endpoints once. Editing angle/side never silently rebinds them.
+QJsonObject retainedAngledLine(const QJsonObject& authored,const QJsonObject& inputs) {
+    auto line=inputs.value("line").toObject();
+    if(line.size()!=2 || !line.contains("sketchId") || !line.contains("entityId"))return line;
+    const auto features=authored.value("features").toArray();
+    for(const auto& row:features)if(row.toObject().value("id")==inputs.value("featureId")) {
+        const auto retained=row.toObject().value("parameters").toObject().value("source").toObject()
+            .value("angled").toObject().value("line").toObject();
+        if(retained.value("sketchId")==line.value("sketchId") && retained.value("entityId")==line.value("entityId"))return retained;
+    }
+    for(const auto& row:features)if(row.toObject().value("id")==line.value("sketchId"))
+        for(const auto& value:row.toObject().value("parameters").toObject().value("entities").toArray()) {
+            const auto entity=value.toObject();if(entity.value("id")!=line.value("entityId"))continue;
+            if(entity.value("type")!="line")return line;
+            line["startPointId"]=entity.value("startPointId");line["endPointId"]=entity.value("endPointId");return line;
+        }
+    return line;
+}
 // app.state reports progress once; rich completed results remain available via
 // command.status. Repeating a full document here duplicates embedded Canvases.
 QJsonObject operationProgress(const QJsonObject& operation) {
@@ -549,7 +567,7 @@ AlloyWindow::AlloyWindow() {
     group("CREATE", {{"primitive.box", "▣"}, {"primitive.cylinder", "◉"}, {"primitive.cone", "△"}, {"primitive.torus", "◎"}, {"solid.sphereDialog", "●"}, {"solid.threadDialog", "≋"}, {"sketch.create", "▧"}, {"solid.extrudeDialog", "▣"}, {"solid.revolveDialog", "◉"}, {"solid.sweepDialog", "◒"}, {"solid.loftDialog", "◒"}, {"solid.thickenDialog", "▤"}, {"solid.mirrorDialog", "◧"}, {"solid.featureMirrorDialog", "◧"}, {"solid.circularPatternDialog", "◌"}});
     group("MODIFY", {{"solid.pressPullDialog", "⇧"}, {"solid.combineDialog", "▣"}, {"solid.filletDialog", "◩"}, {"solid.chamferDialog", "◪"}, {"solid.shellDialog", "▱"}, {"solid.faceOffsetDialog", "↗"}, {"solid.splitBodyDialog", "◫"}, {"solid.moveDialog", "✥"}});
     group("ASSEMBLE", {{"joint.asBuiltDialog","◉"},{"joint.sliderDialog", "⇆"},{"position.revert","↶"}});
-    group("CONSTRUCT", {{"construction.plane", "▰"}, {"construction.pathPlane", "⟂"}, {"construction.tangentPlane", "▱"}, {"construction.midplane", "◫"}});
+    group("CONSTRUCT", {{"construction.plane", "▰"}, {"construction.angledPlane", "∠"}, {"construction.pathPlane", "⟂"}, {"construction.tangentPlane", "▱"}, {"construction.midplane", "◫"}});
     group("INSPECT", {{"inspect.sectionDialog", "◧"}, {"inspect.measure", "↔"}, {"inspect.faceNormals", "↥"}, {"inspect.zebra", "▥"}, {"inspect.surfaceContinuity", "∠"}});
     auto* selectMenuButton=new QToolButton;selectMenuButton->setText("SELECT");
     selectMenuButton->setObjectName("solid.menu.select");
@@ -572,7 +590,7 @@ AlloyWindow::AlloyWindow() {
     groups=new QHBoxLayout(surfaceGroups);groups->setContentsMargins(0,0,0,0);groups->setSpacing(14);groupPrefix="surface";
     group("CREATE", {{"sketch.create", "▧"}, {"surface.extrudeDialog", "▤"}, {"surface.revolveDialog", "◉"}, {"surface.patchDialog", "▱"}, {"surface.offsetDialog", "↥"}, {"surface.ruledDialog", "⌁"}, {"surface.sweepDialog", "◡"}, {"surface.loftDialog", "◒"}, {"surface.boundaryFillDialog", "▣"}});
     group("MODIFY", {{"surface.extendDialog", "⇥"}, {"surface.trimDialog", "✂"}, {"surface.untrimDialog", "▱"}, {"body.removeDialog", "⊖"}});
-    group("CONSTRUCT", {{"construction.plane", "▰"}, {"construction.pathPlane", "⟂"}, {"construction.tangentPlane", "▱"}, {"construction.midplane", "◫"}});
+    group("CONSTRUCT", {{"construction.plane", "▰"}, {"construction.angledPlane", "∠"}, {"construction.pathPlane", "⟂"}, {"construction.tangentPlane", "▱"}, {"construction.midplane", "◫"}});
     group("INSPECT", {{"inspect.sectionDialog", "◧"}, {"inspect.measure", "↔"}, {"inspect.faceNormals", "↥"}, {"inspect.zebra", "▥"}, {"inspect.surfaceContinuity", "∠"}});
     groups->addStretch();surfaceGroups->hide();ribbonRight->addWidget(surfaceGroups);
     ribbonLayout->addLayout(ribbonRight, 1); layout->addWidget(ribbon);
@@ -3359,6 +3377,36 @@ void AlloyWindow::registerCommands() {
             details["diagnostics"]=document_->lastEvaluationError();response["error"]=details;return response;}
         return QJsonObject{{"planeId",plane["id"]},{"document",document_->state()}};
     });
+    auto planeAngle=parameter("number","Signed angle within -360 to 360 degrees.");planeAngle["minimum"]=-360;planeAngle["maximum"]=360;
+    add("construction.angledPlane","Plane At Angle","Rotate an explicit source plane around one retained authored sketch Line.",
+        {{"line",optional(parameter("object","Retained {sketchId,entityId}; exact ordered endpoints are retained."))},
+            {"plane",optional(parameter("object","Explicit {plane:XY|XZ|YZ} or {planeId}."))},
+            {"angleDeg",optional(planeAngle)},
+            {"flipSide",optional(parameter("boolean","Alloy policy: negate the signed angle."))},
+            {"name",optional(name)},{"featureId",optional(featureId)}},[this](const auto& a){
+        if(!a.contains("line"))return beginAngledPlane(a);
+        if(!session_.isEmpty() && session_.value("command")!="construction.angledPlane")
+            return failure("session_busy","Complete or cancel the active command first");
+        if(!a.contains("plane") || !a.contains("angleDeg") || !a.contains("flipSide"))
+            return failure("invalid_arguments","Choose an explicit source plane, angle and Flip Side");
+        auto candidate=document_->authored();auto features=candidate.value("features").toArray();
+        QJsonObject plane;int index=-1;
+        if(a.contains("featureId"))for(int i=0;i<features.size();++i)if(features[i].toObject().value("id")==a.value("featureId")){index=i;plane=features[i].toObject();break;}
+        if(a.contains("featureId") && (index<0 || plane.value("type")!="constructionPlane"
+            || !plane.value("parameters").toObject().value("source").toObject().contains("angled")))
+            return failure("stale_entity","Angled plane does not exist","featureId");
+        if(index<0)plane={{"id",CadDocument::newId()},{"ownerId",document_->activeOwnerId()},
+            {"type","constructionPlane"},{"name",a.value("name").toString("Plane At Angle")},{"visible",true}};
+        else if(a.contains("name"))plane["name"]=a.value("name");
+        const auto line=retainedAngledLine(candidate,a);
+        plane["parameters"]=QJsonObject{{"source",QJsonObject{{"angled",QJsonObject{{"line",line},{"plane",a.value("plane")}}}}},
+            {"angleDeg",a.value("angleDeg")},{"flipSide",a.value("flipSide")}};
+        if(index<0)features.append(plane);else features[index]=plane;candidate["features"]=features;
+        const auto error=document_->commit(candidate,index<0 ? "Create Plane At Angle" : "Edit Plane At Angle");
+        if(!error.isEmpty()){auto response=failure("evaluation_failed",error);auto details=response["error"].toObject();
+            details["diagnostics"]=document_->lastEvaluationError();response["error"]=details;return response;}
+        return QJsonObject{{"planeId",plane.value("id")},{"document",document_->state()}};
+    });
     add("construction.pathPlane","Plane Along Path","Create a plane normal to a retained fit spline at Start or End.",
         {{"path",optional(parameter("object","Retained {sketchId, entityId, endpoint: 0 or 1}."))},
             {"endpoint",optional(parameter("integer","Start 0 or End 1."))},
@@ -5687,6 +5735,7 @@ void AlloyWindow::registerCommands() {
                 const auto source=p["source"].toObject();
                 return execute(source.contains("faces") ? "construction.midplane"
                     : source.contains("tangent") ? "construction.tangentPlane"
+                    : source.contains("angled") ? "construction.angledPlane"
                     : source.contains("path") ? "construction.pathPlane" : "construction.plane",
                     {{"featureId",feature["id"]}});
             }
@@ -6224,7 +6273,7 @@ void AlloyWindow::registerCommands() {
         return failure("stale_entity","Body instance does not exist");
     });
     auto sessionTarget = parameter("string", "Implemented session target; modeling targets follow alongside their features.");
-    sessionTarget["enum"] = QJsonArray{"surface.untrim","surface.extend","surface.ruled","surface.offset","surface.patch","surface.sweep","surface.revolve","solid.scale","solid.draft","solid.align","canvas.set","document.units", "commands.search","solid.box","solid.cylinder","solid.cone","solid.torus","solid.extrude","solid.combine","solid.move","solid.fillet","solid.chamfer","solid.sphere","solid.thread","solid.shell","solid.faceOffset","solid.loft","solid.revolve","solid.sweep","solid.rectangularPattern","solid.circularPattern","solid.mirror","inspect.section","joint.slider","joint.revolute","joint.cylindrical","sketch.create","construction.midplane","construction.pathPlane","construction.tangentPlane","solid.splitBody"};
+    sessionTarget["enum"] = QJsonArray{"surface.untrim","surface.extend","surface.ruled","surface.offset","surface.patch","surface.sweep","surface.revolve","solid.scale","solid.draft","solid.align","canvas.set","document.units", "commands.search","solid.box","solid.cylinder","solid.cone","solid.torus","solid.extrude","solid.combine","solid.move","solid.fillet","solid.chamfer","solid.sphere","solid.thread","solid.shell","solid.faceOffset","solid.loft","solid.revolve","solid.sweep","solid.rectangularPattern","solid.circularPattern","solid.mirror","inspect.section","joint.slider","joint.revolute","joint.cylindrical","sketch.create","construction.midplane","construction.angledPlane","construction.pathPlane","construction.tangentPlane","solid.splitBody"};
     add("command.begin", "Begin command session", "Begin a real editable dialog with disposable inputs.",
         {{"command", sessionTarget}, {"inputs", parameter("object", "Initial input overrides.")}},
         [this](const auto& a) { return beginSession(a["command"].toString(), a["inputs"].toObject()); });
@@ -6328,6 +6377,8 @@ void AlloyWindow::registerCommands() {
             return failure("invalid_arguments","Midplane edit identity cannot change","featureId");
         if(target=="construction.tangentPlane" && updates.contains("featureId") && updates["featureId"]!=session_["inputs"].toObject()["featureId"])
             return failure("invalid_arguments","Tangent plane edit identity cannot change","featureId");
+        if(target=="construction.angledPlane" && updates.contains("featureId") && updates.value("featureId")!=session_.value("inputs").toObject().value("featureId"))
+            return failure("invalid_arguments","Angled plane edit identity cannot change","featureId");
         if(target=="construction.pathPlane"){
             if(updates.contains("featureId") && updates["featureId"]!=session_["inputs"].toObject()["featureId"])
                 return failure("invalid_arguments","Path plane edit identity cannot change","featureId");
@@ -6503,6 +6554,7 @@ void AlloyWindow::registerCommands() {
         if(target=="solid.thread")return previewThread();
         if(target=="construction.midplane")return previewMidplane();
         if(target=="construction.tangentPlane")return previewTangentPlane();
+        if(target=="construction.angledPlane")return previewAngledPlane();
         if(target=="construction.pathPlane")return previewPathPlane();
         if(target=="solid.splitBody")return previewSplitBody();
         if(target=="inspect.section")return previewSection();
@@ -6580,6 +6632,7 @@ void AlloyWindow::registerCommands() {
         if(session_.value("command")=="solid.combine")return previewCombine();
         if(session_.value("command")=="solid.splitBody")return previewSplitBody();
         if(session_.value("command")=="construction.tangentPlane")return previewTangentPlane();
+        if(session_.value("command")=="construction.angledPlane")return previewAngledPlane();
         if(session_.value("command")=="construction.pathPlane")return previewPathPlane();
         session_["previewed"]=false;view_->clearPreview();
         if (session_.value("command").toString() != "commands.search"
@@ -6617,7 +6670,7 @@ void AlloyWindow::registerCommands() {
     add("command.panelDock","Dock command panel","Dock or float the active modeling panel through Qt.",
         {{"docked",parameter("boolean","True docks the panel on the right; false floats it.")}},[this](const auto& a){
             const auto target=session_.value("command").toString();
-            auto* dock=target=="body.paste" ? bodyCopyDock_ : target=="component.copyPlacement" ? componentCopyDock_ : target=="surface.boundaryFill" ? boundaryFillDock_ : target=="surface.trim" ? surfaceTrimDock_ : target=="body.remove" ? removeBodyDock_ : target.startsWith("canvas.") ? canvasDock_ : target=="solid.splitBody" ? splitBodyDock_ : target=="construction.midplane" ? midplaneDock_ : target=="construction.tangentPlane" ? tangentPlaneDock_ : target=="construction.pathPlane" ? pathPlaneDock_ : target=="joint.slider" || target=="joint.revolute" || target=="joint.cylindrical" ? sliderDock_ : target=="inspect.section" ? sectionDock_ : target=="solid.sweep" ? sweepDock_ : target=="surface.patch" ? surfacePatchDock_ : target=="surface.sweep" ? surfaceSweepDock_ : target=="surface.untrim" ? surfaceUntrimDock_ : target=="surface.extend" ? surfaceExtendDock_ : target=="surface.ruled" ? surfaceRuledDock_ : target=="surface.offset" ? surfaceOffsetDock_ : target=="surface.revolve" ? surfaceRevolveDock_ : target=="solid.revolve" ? revolveDock_ : target=="solid.hole" ? holeDock_ : target=="solid.sphere" ? sphereDock_ : target=="solid.chamfer" ? chamferDock_ : target=="solid.fillet" ? filletDock_ : target=="solid.rectangularPattern" ? patternDock_ : target=="solid.loft" ? loftDock_ : target=="surface.extrude" ? surfaceExtrudeDock_ : target=="solid.thicken" ? thickenDock_ : target=="solid.thread" ? threadDock_ : target=="solid.faceOffset" ? faceOffsetDock_ : target=="solid.shell" ? shellDock_ : target=="solid.circularPattern" ? circularDock_ : target=="solid.mirror" ? mirrorDock_ : target=="solid.featureMirror" ? featureMirrorDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : target.startsWith("solid.") ? primitiveDock_ : nullptr;
+            auto* dock=target=="body.paste" ? bodyCopyDock_ : target=="component.copyPlacement" ? componentCopyDock_ : target=="surface.boundaryFill" ? boundaryFillDock_ : target=="surface.trim" ? surfaceTrimDock_ : target=="body.remove" ? removeBodyDock_ : target.startsWith("canvas.") ? canvasDock_ : target=="solid.splitBody" ? splitBodyDock_ : target=="construction.midplane" ? midplaneDock_ : target=="construction.tangentPlane" ? tangentPlaneDock_ : target=="construction.angledPlane" ? angledPlaneDock_ : target=="construction.pathPlane" ? pathPlaneDock_ : target=="joint.slider" || target=="joint.revolute" || target=="joint.cylindrical" ? sliderDock_ : target=="inspect.section" ? sectionDock_ : target=="solid.sweep" ? sweepDock_ : target=="surface.patch" ? surfacePatchDock_ : target=="surface.sweep" ? surfaceSweepDock_ : target=="surface.untrim" ? surfaceUntrimDock_ : target=="surface.extend" ? surfaceExtendDock_ : target=="surface.ruled" ? surfaceRuledDock_ : target=="surface.offset" ? surfaceOffsetDock_ : target=="surface.revolve" ? surfaceRevolveDock_ : target=="solid.revolve" ? revolveDock_ : target=="solid.hole" ? holeDock_ : target=="solid.sphere" ? sphereDock_ : target=="solid.chamfer" ? chamferDock_ : target=="solid.fillet" ? filletDock_ : target=="solid.rectangularPattern" ? patternDock_ : target=="solid.loft" ? loftDock_ : target=="surface.extrude" ? surfaceExtrudeDock_ : target=="solid.thicken" ? thickenDock_ : target=="solid.thread" ? threadDock_ : target=="solid.faceOffset" ? faceOffsetDock_ : target=="solid.shell" ? shellDock_ : target=="solid.circularPattern" ? circularDock_ : target=="solid.mirror" ? mirrorDock_ : target=="solid.featureMirror" ? featureMirrorDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : target.startsWith("solid.") ? primitiveDock_ : nullptr;
             if(!dock)
                 return failure("no_active_dialog","No modeling panel is active");
             dock->setFloating(!a["docked"].toBool());
@@ -7043,6 +7096,7 @@ void AlloyWindow::registerCommands() {
             : session_.value("command")=="solid.splitBody" ? (splitBodyDock_ ? splitBodyDock_->widget():nullptr)
             : session_.value("command")=="construction.midplane" ? (midplaneDock_ ? midplaneDock_->widget():nullptr)
             : session_.value("command")=="construction.tangentPlane" ? (tangentPlaneDock_ ? tangentPlaneDock_->widget():nullptr)
+            : session_.value("command")=="construction.angledPlane" ? (angledPlaneDock_ ? angledPlaneDock_->widget():nullptr)
             : session_.value("command")=="construction.pathPlane" ? (pathPlaneDock_ ? pathPlaneDock_->widget():nullptr)
             : session_.value("command")=="solid.sweep" ? (sweepDock_ ? sweepDock_->widget():nullptr) : session_.value("command")=="surface.patch" ? (surfacePatchDock_ ? surfacePatchDock_->widget():nullptr) : session_.value("command")=="surface.sweep" ? (surfaceSweepDock_ ? surfaceSweepDock_->widget():nullptr) : session_.value("command")=="surface.untrim" ? (surfaceUntrimDock_ ? surfaceUntrimDock_->widget():nullptr) : session_.value("command")=="surface.extend" ? (surfaceExtendDock_ ? surfaceExtendDock_->widget():nullptr) : session_.value("command")=="surface.ruled" ? (surfaceRuledDock_ ? surfaceRuledDock_->widget():nullptr) : session_.value("command")=="surface.offset" ? (surfaceOffsetDock_ ? surfaceOffsetDock_->widget():nullptr) : session_.value("command")=="surface.revolve" ? (surfaceRevolveDock_ ? surfaceRevolveDock_->widget():nullptr) : session_.value("command").toString() == "solid.revolve" ? (revolveDock_ ? revolveDock_->widget():nullptr) : session_.value("command").toString() == "commands.search" ? search_
             : session_.value("command")=="inspect.section" ? sectionDock_->widget()
@@ -7375,7 +7429,7 @@ QJsonObject AlloyWindow::state() const {
     // Report the current native drawable, not a previous offscreen capture FBO.
     view_->sync();
     const auto target=session_.value("command").toString();
-    const bool dialogVisible=target.startsWith("canvas.") ? bool(canvasDock_ && canvasDock_->isVisible()) : target=="construction.tangentPlane" ? bool(tangentPlaneDock_ && tangentPlaneDock_->isVisible()) : target=="solid.splitBody" ? bool(splitBodyDock_ && splitBodyDock_->isVisible()) : target=="joint.slider" || target=="joint.revolute" || target=="joint.cylindrical" ? bool(sliderDock_ && sliderDock_->isVisible()) : target=="inspect.section" ? bool(sectionDock_ && sectionDock_->isVisible()) : target=="solid.sweep" ? bool(sweepDock_ && sweepDock_->isVisible()) : target=="surface.patch" ? bool(surfacePatchDock_ && surfacePatchDock_->isVisible()) : target=="surface.sweep" ? bool(surfaceSweepDock_ && surfaceSweepDock_->isVisible()) : target=="surface.untrim" ? bool(surfaceUntrimDock_ && surfaceUntrimDock_->isVisible()) : target=="surface.extend" ? bool(surfaceExtendDock_ && surfaceExtendDock_->isVisible()) : target=="surface.ruled" ? bool(surfaceRuledDock_ && surfaceRuledDock_->isVisible()) : target=="surface.offset" ? bool(surfaceOffsetDock_ && surfaceOffsetDock_->isVisible()) : target=="surface.revolve" ? bool(surfaceRevolveDock_ && surfaceRevolveDock_->isVisible()) : target=="solid.revolve" ? bool(revolveDock_ && revolveDock_->isVisible()) : target=="commands.search" ? bool(search_ && search_->isVisible())
+    const bool dialogVisible=target.startsWith("canvas.") ? bool(canvasDock_ && canvasDock_->isVisible()) : target=="construction.angledPlane" ? bool(angledPlaneDock_ && angledPlaneDock_->isVisible()) : target=="construction.tangentPlane" ? bool(tangentPlaneDock_ && tangentPlaneDock_->isVisible()) : target=="solid.splitBody" ? bool(splitBodyDock_ && splitBodyDock_->isVisible()) : target=="joint.slider" || target=="joint.revolute" || target=="joint.cylindrical" ? bool(sliderDock_ && sliderDock_->isVisible()) : target=="inspect.section" ? bool(sectionDock_ && sectionDock_->isVisible()) : target=="solid.sweep" ? bool(sweepDock_ && sweepDock_->isVisible()) : target=="surface.patch" ? bool(surfacePatchDock_ && surfacePatchDock_->isVisible()) : target=="surface.sweep" ? bool(surfaceSweepDock_ && surfaceSweepDock_->isVisible()) : target=="surface.untrim" ? bool(surfaceUntrimDock_ && surfaceUntrimDock_->isVisible()) : target=="surface.extend" ? bool(surfaceExtendDock_ && surfaceExtendDock_->isVisible()) : target=="surface.ruled" ? bool(surfaceRuledDock_ && surfaceRuledDock_->isVisible()) : target=="surface.offset" ? bool(surfaceOffsetDock_ && surfaceOffsetDock_->isVisible()) : target=="surface.revolve" ? bool(surfaceRevolveDock_ && surfaceRevolveDock_->isVisible()) : target=="solid.revolve" ? bool(revolveDock_ && revolveDock_->isVisible()) : target=="commands.search" ? bool(search_ && search_->isVisible())
         : target=="solid.hole" ? bool(holeDock_ && holeDock_->isVisible())
         : target=="solid.sphere" ? bool(sphereDock_ && sphereDock_->isVisible())
         : target=="solid.chamfer" ? bool(chamferDock_ && chamferDock_->isVisible())
@@ -7402,11 +7456,11 @@ QJsonObject AlloyWindow::state() const {
         : target=="solid.align" ? false
         : target.startsWith("solid.") ? bool(primitivePanel_ && primitivePanel_->isVisible())
         : target.startsWith("sketch.") ? bool(sketchPanel_ && sketchPanel_->isVisible()) : bool(unitsDialog_ && unitsDialog_->isVisible());
-    const auto dialogInputs=session_.isEmpty() ? QJsonObject{} : (target=="solid.scale" || target=="solid.draft" || target=="solid.align" || target=="construction.tangentPlane" || target=="solid.splitBody" || target=="joint.slider" || target=="joint.revolute" || target=="joint.cylindrical" || target=="inspect.section" || target=="solid.hole" || target=="solid.sweep" || target=="solid.revolve" || target=="solid.sphere" || target=="solid.chamfer" || target=="solid.fillet" || target=="solid.rectangularPattern" || target=="solid.loft" || target=="surface.patch" || target=="surface.sweep" || target=="surface.untrim" || target=="surface.extend" || target=="surface.ruled" || target=="surface.offset" || target=="surface.revolve" || target=="surface.extrude" || target=="surface.trim" || target=="surface.boundaryFill" || target=="body.remove" || target=="solid.thicken" || target=="solid.thread" || target=="solid.shell" || target=="solid.faceOffset" || target=="solid.circularPattern" || target=="solid.mirror" || target=="solid.featureMirror" || target=="component.copyPlacement" || target=="body.paste" || target=="solid.move" || target=="solid.extrude" || target=="solid.combine") ? session_.value("inputs").toObject() : target.startsWith("solid.") ? primitiveWidgetInputs()
+    const auto dialogInputs=session_.isEmpty() ? QJsonObject{} : (target=="solid.scale" || target=="solid.draft" || target=="solid.align" || target=="construction.angledPlane" || target=="construction.tangentPlane" || target=="solid.splitBody" || target=="joint.slider" || target=="joint.revolute" || target=="joint.cylindrical" || target=="inspect.section" || target=="solid.hole" || target=="solid.sweep" || target=="solid.revolve" || target=="solid.sphere" || target=="solid.chamfer" || target=="solid.fillet" || target=="solid.rectangularPattern" || target=="solid.loft" || target=="surface.patch" || target=="surface.sweep" || target=="surface.untrim" || target=="surface.extend" || target=="surface.ruled" || target=="surface.offset" || target=="surface.revolve" || target=="surface.extrude" || target=="surface.trim" || target=="surface.boundaryFill" || target=="body.remove" || target=="solid.thicken" || target=="solid.thread" || target=="solid.shell" || target=="solid.faceOffset" || target=="solid.circularPattern" || target=="solid.mirror" || target=="solid.featureMirror" || target=="component.copyPlacement" || target=="body.paste" || target=="solid.move" || target=="solid.extrude" || target=="solid.combine") ? session_.value("inputs").toObject() : target.startsWith("solid.") ? primitiveWidgetInputs()
         : target.startsWith("sketch.") ? session_.value("inputs").toObject()
         : target=="commands.search" ? QJsonObject{{"query",searchInput_ ? searchInput_->text() : QString{}}}
         : QJsonObject{{"units",unitsInput_ ? unitsInput_->currentText() : QString{}}};
-    const auto* activeDock=target=="body.paste" ? bodyCopyDock_ : target=="component.copyPlacement" ? componentCopyDock_ : target=="surface.boundaryFill" ? boundaryFillDock_ : target=="surface.trim" ? surfaceTrimDock_ : target=="body.remove" ? removeBodyDock_ : target=="construction.tangentPlane" ? tangentPlaneDock_ : target=="solid.splitBody" ? splitBodyDock_ : target=="joint.slider" || target=="joint.revolute" || target=="joint.cylindrical" ? sliderDock_ : target=="inspect.section" ? sectionDock_ : target=="solid.sweep" ? sweepDock_ : target=="surface.patch" ? surfacePatchDock_ : target=="surface.sweep" ? surfaceSweepDock_ : target=="surface.untrim" ? surfaceUntrimDock_ : target=="surface.extend" ? surfaceExtendDock_ : target=="surface.ruled" ? surfaceRuledDock_ : target=="surface.offset" ? surfaceOffsetDock_ : target=="surface.revolve" ? surfaceRevolveDock_ : target=="solid.revolve" ? revolveDock_ : target=="solid.hole" ? holeDock_ : target=="solid.sphere" ? sphereDock_ : target=="solid.chamfer" ? chamferDock_ : target=="solid.fillet" ? filletDock_ : target=="solid.rectangularPattern" ? patternDock_ : target=="solid.loft" ? loftDock_ : target=="surface.extrude" ? surfaceExtrudeDock_ : target=="solid.thicken" ? thickenDock_ : target=="solid.thread" ? threadDock_ : target=="solid.faceOffset" ? faceOffsetDock_ : target=="solid.shell" ? shellDock_ : target=="solid.circularPattern" ? circularDock_ : target=="solid.mirror" ? mirrorDock_ : target=="solid.featureMirror" ? featureMirrorDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : primitiveDock_;
+    const auto* activeDock=target=="body.paste" ? bodyCopyDock_ : target=="component.copyPlacement" ? componentCopyDock_ : target=="surface.boundaryFill" ? boundaryFillDock_ : target=="surface.trim" ? surfaceTrimDock_ : target=="body.remove" ? removeBodyDock_ : target=="construction.angledPlane" ? angledPlaneDock_ : target=="construction.tangentPlane" ? tangentPlaneDock_ : target=="solid.splitBody" ? splitBodyDock_ : target=="joint.slider" || target=="joint.revolute" || target=="joint.cylindrical" ? sliderDock_ : target=="inspect.section" ? sectionDock_ : target=="solid.sweep" ? sweepDock_ : target=="surface.patch" ? surfacePatchDock_ : target=="surface.sweep" ? surfaceSweepDock_ : target=="surface.untrim" ? surfaceUntrimDock_ : target=="surface.extend" ? surfaceExtendDock_ : target=="surface.ruled" ? surfaceRuledDock_ : target=="surface.offset" ? surfaceOffsetDock_ : target=="surface.revolve" ? surfaceRevolveDock_ : target=="solid.revolve" ? revolveDock_ : target=="solid.hole" ? holeDock_ : target=="solid.sphere" ? sphereDock_ : target=="solid.chamfer" ? chamferDock_ : target=="solid.fillet" ? filletDock_ : target=="solid.rectangularPattern" ? patternDock_ : target=="solid.loft" ? loftDock_ : target=="surface.extrude" ? surfaceExtrudeDock_ : target=="solid.thicken" ? thickenDock_ : target=="solid.thread" ? threadDock_ : target=="solid.faceOffset" ? faceOffsetDock_ : target=="solid.shell" ? shellDock_ : target=="solid.circularPattern" ? circularDock_ : target=="solid.mirror" ? mirrorDock_ : target=="solid.featureMirror" ? featureMirrorDock_ : target=="solid.move" ? moveDock_ : target=="solid.extrude" ? extrudeDock_ : target=="solid.combine" ? combineDock_ : target.startsWith("sketch.") ? sketchDock_ : primitiveDock_;
     const auto panelRect=activeDock ? QRect(activeDock->mapToGlobal(QPoint())-mapToGlobal(QPoint()),activeDock->size()) : QRect{};
     QJsonArray popups;
     for(auto* popup:QApplication::topLevelWidgets()) {
@@ -7476,7 +7530,7 @@ QJsonObject AlloyWindow::state() const {
         {"ui", QJsonObject{{"workspace", "design"}, {"tab",target=="sketch.edit" ? QString("sketch") : designTab_}, {"selectionPriority",selectionPriority_}, {"browserVisible", browserVisible_}, {"timelineVisible", timelineVisible_}, {"timeline",timelineState()}, {"ribbon",ribbonState}, {"navigationVisible", navigationVisible_}, {"commandSearchVisible", search_ && search_->isVisible()}, {"windowWidth", width()}, {"windowHeight", height()}, {"devicePixelRatio", devicePixelRatioF()},
             {"ownedPopups",popups},{"activeDialog", QJsonObject{{"command", session_.value("command")},
                 {"visible",dialogVisible},{"inputs",dialogInputs},
-                {"presentation",target=="construction.tangentPlane" || target=="joint.slider" || target=="joint.revolute" || target=="joint.cylindrical" || target.startsWith("solid.") || target.startsWith("surface.") || target.startsWith("sketch.") ? (activeDock && activeDock->isFloating() ? "floating-panel" : "docked-panel") : "dialog"},
+                {"presentation",target=="construction.angledPlane" || target=="construction.tangentPlane" || target=="joint.slider" || target=="joint.revolute" || target=="joint.cylindrical" || target.startsWith("solid.") || target.startsWith("surface.") || target.startsWith("sketch.") ? (activeDock && activeDock->isFloating() ? "floating-panel" : "docked-panel") : "dialog"},
                 {"bounds",QJsonObject{{"x",panelRect.x()},{"y",panelRect.y()},{"width",panelRect.width()},{"height",panelRect.height()}}}}}}},
         {"navigationPreferences",QJsonObject{{"preset",view_->inputPreset()} }},
         {"viewport", QJsonObject{{"zebra",view_->zebraState()},{"faceNormals",view_->faceNormalsState()},{"renderer", "OCCT OpenGL"}, {"gpu", view_->diagnostics()}, {"navigation",view_->cameraState()},
@@ -9280,6 +9334,7 @@ QJsonObject AlloyWindow::beginSession(const QString& command, const QJsonObject&
     if(command=="canvas.set")return beginCanvas(inputs);
     if(command=="construction.midplane")return beginMidplane(inputs);
     if(command=="construction.tangentPlane")return beginTangentPlane(inputs);
+    if(command=="construction.angledPlane")return beginAngledPlane(inputs);
     if(command=="construction.pathPlane")return beginPathPlane(inputs);
     if(command=="solid.splitBody")return beginSplitBody(inputs);
     if(command=="solid.extrude")return beginExtrude(inputs);
@@ -9564,6 +9619,106 @@ void AlloyWindow::showTangentPlane() {
     canvasWindow_->addDockWidget(Qt::RightDockWidgetArea,tangentPlaneDock_);tangentPlaneDock_->show();view_->setFocus(Qt::OtherFocusReason);
 }
 
+QJsonObject AlloyWindow::beginAngledPlane(const QJsonObject& overrides) {
+    if(!session_.isEmpty())return failure("session_busy","Complete or cancel the active command first");
+    QJsonObject inputs{{"name","Plane At Angle"},{"angleDeg",0},{"flipSide",false}};
+    if(overrides.contains("featureId")) {
+        bool found=false;
+        for(const auto& row:document_->authored().value("features").toArray()) {
+            const auto feature=row.toObject();if(feature.value("id")!=overrides.value("featureId"))continue;
+            const auto p=feature.value("parameters").toObject(),angled=p.value("source").toObject().value("angled").toObject();
+            if(feature.value("type")!="constructionPlane" || angled.isEmpty())return failure("stale_entity","Angled plane does not exist","featureId");
+            inputs={{"featureId",feature.value("id")},{"name",feature.value("name")},{"line",angled.value("line")},
+                {"plane",angled.value("plane")},{"angleDeg",p.value("angleDeg")},{"flipSide",p.value("flipSide")}};found=true;break;
+        }
+        if(!found)return failure("stale_entity","Angled plane does not exist","featureId");
+    }
+    for(auto it=overrides.begin();it!=overrides.end();++it)inputs[it.key()]=it.value();
+    session_={{"id",CadDocument::newId()},{"command","construction.angledPlane"},{"status","active"},
+        {"inputs",inputs},{"previewed",false},{"baseDocumentRevision",static_cast<qint64>(document_->revision())},
+        {"inputSchema",findCommand("construction.angledPlane")->parameters},{"previousPlane",selectedPlane_}};
+    showAngledPlane();previewAngledPlane();return session_;
+}
+
+QJsonObject AlloyWindow::previewAngledPlane() {
+    if(session_.value("command")!="construction.angledPlane")return failure("invalid_session","Plane At Angle is not active");
+    auto* status=angledPlaneDock_ ? angledPlaneDock_->findChild<QLabel*>("angledPlane.status") : nullptr;
+    auto* buttons=angledPlaneDock_ ? angledPlaneDock_->findChild<QDialogButtonBox*>("angledPlane.buttons") : nullptr;
+    const auto inputs=session_.value("inputs").toObject();const auto edit=inputs.value("featureId").toString();
+    if(angledPlaneDock_) {
+        for(const auto& key:{"line","plane"})if(auto* field=angledPlaneDock_->findChild<QComboBox*>(QString("angledPlane.")+key)) {
+            const QSignalBlocker block(field);const auto wanted=inputs.value(key).toObject();
+            for(int i=0;i<field->count();++i){const auto value=field->itemData(i).toJsonObject();
+                if(value==wanted || (QString(key)=="line" && !value.isEmpty() && value.value("sketchId")==wanted.value("sketchId") && value.value("entityId")==wanted.value("entityId"))){field->setCurrentIndex(i);break;}}
+        }
+        if(auto* field=angledPlaneDock_->findChild<QDoubleSpinBox*>("angledPlane.angleDeg")){const QSignalBlocker block(field);field->setValue(inputs.value("angleDeg").toDouble());}
+        if(auto* field=angledPlaneDock_->findChild<QCheckBox*>("angledPlane.flipSide")){const QSignalBlocker block(field);field->setChecked(inputs.value("flipSide").toBool());}
+    }
+    auto planes=document_->evaluation().constructionPlanes;
+    for(auto it=planes.begin();it!=planes.end();++it)if(it->featureId==edit){planes.erase(it);break;}
+    const auto clear=[&](const QString& message){session_["previewed"]=false;session_.remove("previewFrame");
+        view_->setConstructionPlanes(planes,++presentationRevision_);
+        if(status)status->setText(message);if(buttons)buttons->button(QDialogButtonBox::Ok)->setEnabled(false);};
+    if(session_.value("baseDocumentRevision").toInteger()!=static_cast<qint64>(document_->revision())){
+        clear("Document changed. Cancel and restart Plane At Angle.");return failure("stale_session","Document changed; cancel and restart Plane At Angle");}
+    if(!inputs.contains("line") || !inputs.contains("plane")){clear("Choose a retained sketch Line and an explicit source plane.");return session_;}
+    if(!inputs.value("angleDeg").isDouble() || !inputs.value("flipSide").isBool()){
+        clear("Enter a numeric angle and explicit Flip Side.");return failure("invalid_arguments","Numeric angle and Flip Side are required");}
+    try {
+        const auto line=retainedAngledLine(document_->authored(),inputs);
+        const auto& evaluation=edit.isEmpty()?document_->evaluation():document_->evaluationBefore(edit);
+        const auto frame=GeometryKernel::angledPlaneFrame(evaluation,{{"line",line},{"plane",inputs.value("plane")}},
+            inputs.value("angleDeg").toDouble(),inputs.value("flipSide").toBool(),document_->authored().value("features").toArray());
+        planes.push_back({"angled-preview","Plane At Angle Preview",true,frame,document_->activeOwnerId(),{}});
+        view_->setConstructionPlanes(planes,++presentationRevision_);view_->selectConstructionPlane("angled-preview");
+        session_["previewed"]=true;session_["previewFrame"]=frame;
+        if(status)status->setText(QString("Angle %1° · %2\nLine %3\nOrdered endpoints retained.")
+            .arg(inputs.value("angleDeg").toDouble(),0,'g',10).arg(inputs.value("flipSide").toBool()?"Flipped":"Side 1").arg(line.value("entityId").toString().left(8)));
+        if(buttons)buttons->button(QDialogButtonBox::Ok)->setEnabled(true);return session_;
+    }catch(const std::exception& error){clear(QString::fromUtf8(error.what()));return failure("angled_plane_unavailable",QString::fromUtf8(error.what()));}
+}
+
+void AlloyWindow::showAngledPlane() {
+    if(angledPlaneDock_)delete angledPlaneDock_;
+    angledPlaneDock_=new QDockWidget("Plane At Angle",canvasWindow_);angledPlaneDock_->setObjectName("angledPlaneDock");
+    angledPlaneDock_->setAllowedAreas(Qt::LeftDockWidgetArea|Qt::RightDockWidgetArea);
+    auto* panel=new QWidget(angledPlaneDock_);panel->setFixedWidth(304);angledPlaneDock_->setWidget(panel);
+    auto* layout=new QVBoxLayout(panel);layout->setContentsMargins(14,14,14,12);layout->setSpacing(12);
+    auto* hint=new QLabel("Select one authored straight sketch Line and its coplanar source plane.",panel);hint->setWordWrap(true);layout->addWidget(hint);
+    const auto inputs=session_.value("inputs").toObject();
+    const auto edit=inputs.value("featureId").toString();const auto features=document_->authored().value("features").toArray();
+    auto* line=new QComboBox(panel);line->setObjectName("angledPlane.line");line->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);line->addItem("Select Line",QJsonObject{});
+    for(const auto& row:features){const auto feature=row.toObject();if(feature.value("id")==edit)break;
+        if(feature.value("type")!="sketch")continue;
+        for(const auto& value:feature.value("parameters").toObject().value("entities").toArray()){
+            const auto entity=value.toObject();if(entity.value("type")!="line")continue;
+            line->addItem(QString("%1 · %2%3").arg(feature.value("name").toString(),entity.value("id").toString().left(8),entity.value("construction").toBool()?" · Construction":""),
+                QJsonObject{{"sketchId",feature.value("id")},{"entityId",entity.value("id")}});
+        }}
+    const auto retained=inputs.value("line").toObject();
+    for(int i=1;i<line->count();++i){const auto ref=line->itemData(i).toJsonObject();if(ref.value("sketchId")==retained.value("sketchId") && ref.value("entityId")==retained.value("entityId"))line->setCurrentIndex(i);}
+    auto* plane=new QComboBox(panel);plane->setObjectName("angledPlane.plane");plane->addItem("Select source plane",QJsonObject{});
+    for(const auto& origin:QStringList{"XY","XZ","YZ"})plane->addItem(origin,QJsonObject{{"plane",origin}});
+    for(const auto& row:features){const auto feature=row.toObject();if(feature.value("id")==edit)break;
+        if(feature.value("type")=="constructionPlane")plane->addItem(feature.value("name").toString()+" · "+feature.value("id").toString().left(8),QJsonObject{{"planeId",feature.value("id")}});}
+    for(int i=1;i<plane->count();++i)if(plane->itemData(i).toJsonObject()==inputs.value("plane"))plane->setCurrentIndex(i);
+    auto* angle=new QDoubleSpinBox(panel);angle->setObjectName("angledPlane.angleDeg");angle->setRange(-360,360);angle->setDecimals(6);angle->setSuffix(" °");angle->setKeyboardTracking(false);angle->setValue(inputs.value("angleDeg").toDouble());
+    auto* flip=new QCheckBox("Flip Side",panel);flip->setObjectName("angledPlane.flipSide");flip->setChecked(inputs.value("flipSide").toBool());
+    auto* form=new QFormLayout;form->addRow("Line",line);form->addRow("Source plane",plane);form->addRow("Angle",angle);form->addRow(flip);layout->addLayout(form);
+    auto update=[this](const QJsonObject& changes){const auto result=execute("command.update",{{"session",session_.value("id")},{"inputs",changes}});
+        if(!result.value("ok").toBool())if(auto* status=angledPlaneDock_->findChild<QLabel*>("angledPlane.status"))status->setText(result.value("error").toObject().value("message").toString());};
+    connect(line,&QComboBox::currentIndexChanged,this,[line,update]{update({{"line",line->currentData().toJsonObject()}});});
+    connect(plane,&QComboBox::currentIndexChanged,this,[plane,update]{update({{"plane",plane->currentData().toJsonObject()}});});
+    connect(angle,&QDoubleSpinBox::valueChanged,this,[angle,update]{update({{"angleDeg",angle->value()}});});
+    connect(flip,&QCheckBox::toggled,this,[flip,update]{update({{"flipSide",flip->isChecked()}});});
+    auto* status=new QLabel(panel);status->setObjectName("angledPlane.status");status->setWordWrap(true);status->setMinimumHeight(68);layout->addWidget(status);layout->addStretch();
+    auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel,panel);buttons->setObjectName("angledPlane.buttons");buttons->button(QDialogButtonBox::Ok)->setEnabled(false);layout->addWidget(buttons);
+    connect(buttons,&QDialogButtonBox::accepted,this,[this,status]{const auto response=execute("command.commit",{{"session",session_.value("id")}});if(!response.value("ok").toBool())status->setText(response.value("error").toObject().value("message").toString());});
+    auto cancel=[this]{if(session_.value("command")=="construction.angledPlane")execute("command.cancel",{{"session",session_.value("id")}});};
+    connect(buttons,&QDialogButtonBox::rejected,this,cancel);auto* escape=new QShortcut(QKeySequence(Qt::Key_Escape),panel);escape->setContext(Qt::WindowShortcut);connect(escape,&QShortcut::activated,this,cancel);
+    canvasWindow_->addDockWidget(Qt::RightDockWidgetArea,angledPlaneDock_);angledPlaneDock_->show();view_->setFocus(Qt::OtherFocusReason);
+}
+
 QJsonObject AlloyWindow::beginPathPlane(const QJsonObject& overrides) {
     if(!session_.isEmpty())return failure("session_busy","Complete or cancel the active command first");
     QJsonObject inputs{{"name","Plane Along Path"},{"endpoint",0}};
@@ -9752,6 +9907,8 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
         return failure("faces_required","Select two valid parallel faces before committing");
     if(commit && target=="construction.tangentPlane" && !session_.value("previewed").toBool())
         return failure("tangent_support_required","Select a valid face and its edge endpoint before committing");
+    if(commit && target=="construction.angledPlane" && !session_.value("previewed").toBool())
+        return failure("angled_plane_preview_required","Choose a valid retained Line, source plane and angle before committing");
     if(commit && target=="construction.pathPlane" && !session_.value("previewed").toBool())
         return failure("path_required","Select a valid spline endpoint before committing");
     if(commit && (target=="joint.revolute" || target=="joint.cylindrical") && !session_.value("previewed").toBool())
@@ -9871,6 +10028,12 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
         view_->selectConstructionPlane(selectedPlane_);
         if(selectedFace_.isEmpty())view_->selectSupportFace({},{});
         else selectSupportFace(selectedFace_);
+    }
+    if(target=="construction.angledPlane"){
+        if(angledPlaneDock_)angledPlaneDock_->hide();
+        view_->setConstructionPlanes(document_->evaluation().constructionPlanes,++presentationRevision_);
+        selectedPlane_=commit ? result.value("commandResult").toObject().value("result").toObject().value("planeId").toString() : midplanePreviousPlane;
+        view_->selectConstructionPlane(selectedPlane_);
     }
     if(target=="construction.pathPlane"){
         if(pathPlaneDock_)pathPlaneDock_->hide();

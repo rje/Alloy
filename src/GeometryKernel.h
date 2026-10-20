@@ -104,6 +104,8 @@ public:
     static EvaluatedSupportFace resolveSketchSupport(const EvaluatedDocument& evaluation, const QJsonObject& support);
     static QJsonObject sketchFrame(const EvaluatedDocument& evaluation, const QJsonObject& feature);
     static QJsonObject resolvePlaneSource(const EvaluatedDocument& evaluation, const QJsonObject& source);
+    static QJsonObject angledPlaneFrame(const EvaluatedDocument& evaluation, const QJsonObject& angled,
+        double angleDeg, bool flipSide, const QJsonArray& authoredFeatures);
     static QJsonObject pathEndpointPlaneFrame(const EvaluatedDocument& evaluation,
         const QJsonObject& path, const QJsonArray& authoredFeatures);
     static QJsonObject tangentPointPlaneFrame(const EvaluatedDocument& evaluation, const QJsonObject& tangent);

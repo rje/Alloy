@@ -248,6 +248,63 @@ QJsonObject GeometryKernel::resolvePlaneSource(const EvaluatedDocument& evaluati
     throw EvaluationError({{"code","plane_source_unavailable"},{"message","The retained plane source is unavailable"},{"source",source}});
 }
 
+QJsonObject GeometryKernel::angledPlaneFrame(const EvaluatedDocument& evaluation,
+    const QJsonObject& angled,double angleDeg,bool flipSide,const QJsonArray& authoredFeatures) {
+    const auto line=angled.value("line").toObject(),source=angled.value("plane").toObject();
+    if(angled.size()!=2 || line.size()!=4 || source.size()!=1 ||
+        (!source.contains("plane") && !source.contains("planeId")))
+        reject("invalid_angled_plane_source","Choose one authored sketch Line and an origin or retained construction plane");
+    if(source.contains("plane") && source.value("plane")!="XY" && source.value("plane")!="XZ" && source.value("plane")!="YZ")
+        reject("invalid_angled_plane_source","Choose XY, XZ or YZ");
+    if(!std::isfinite(angleDeg) || std::abs(angleDeg)>360)
+        reject("invalid_plane_angle","Angle must be finite and within -360 to 360 degrees");
+    const auto sketchId=line.value("sketchId").toString(),entityId=line.value("entityId").toString();
+    const EvaluatedSketch* solved=nullptr;
+    for(const auto& sketch:evaluation.sketches)if(sketch.featureId==sketchId){solved=&sketch;break;}
+    if(!solved)reject("angled_line_unavailable","The exact source sketch is unavailable at this history position");
+    QJsonObject entity;
+    for(const auto& row:authoredFeatures)if(row.toObject().value("id")==sketchId)
+        for(const auto& value:row.toObject().value("parameters").toObject().value("entities").toArray())
+            if(value.toObject().value("id")==entityId){entity=value.toObject();break;}
+    if(entity.value("type")!="line")reject("unsupported_angled_line","Select one authored straight sketch Line");
+    if(entity.value("startPointId")!=line.value("startPointId") || entity.value("endPointId")!=line.value("endPointId"))
+        reject("angled_line_order_changed","The retained Line endpoint identity or order changed; reselect the source");
+    const auto edge=solved->entityEdges.value(entityId);
+    if(edge.IsNull() || BRepAdaptor_Curve(edge).GetType()!=GeomAbs_Line)
+        reject("unsupported_angled_line","The exact source must evaluate as a straight Line");
+    QMap<QString,gp_Pnt> points;
+    for(const auto& row:solved->summary.value("worldPoints").toArray()){
+        const auto point=row.toObject();const auto xyz=point.value("positionMm").toArray();
+        if(xyz.size()==3)points[point.value("id").toString()]=gp_Pnt(xyz[0].toDouble(),xyz[1].toDouble(),xyz[2].toDouble());
+    }
+    const auto start=line.value("startPointId").toString(),end=line.value("endPointId").toString();
+    if(start.isEmpty() || start==end || !points.contains(start) || !points.contains(end))
+        reject("angled_line_unavailable","The retained solved endpoints are unavailable");
+    const auto a=points.value(start),b=points.value(end);
+    gp_Vec t(a,b);
+    if(!std::isfinite(t.Magnitude()) || t.Magnitude()<1e-7)
+        reject("degenerate_angled_line","The pivot Line needs two distinct solved endpoints");
+    const BRepAdaptor_Curve curve(edge);
+    const auto first=curve.Value(curve.FirstParameter()),last=curve.Value(curve.LastParameter());
+    if(!((first.Distance(a)<1e-6 && last.Distance(b)<1e-6) || (first.Distance(b)<1e-6 && last.Distance(a)<1e-6)))
+        reject("angled_line_unavailable","The evaluated Line no longer matches its exact retained endpoints");
+    const auto frame=resolvePlaneSource(evaluation,source);
+    const auto origin=frame.value("origin").toArray(),normal=frame.value("normal").toArray();
+    gp_Pnt o(origin[0].toDouble(),origin[1].toDouble(),origin[2].toDouble());
+    gp_Vec n(normal[0].toDouble(),normal[1].toDouble(),normal[2].toDouble());n.Normalize();
+    if(std::abs(gp_Vec(o,a).Dot(n))>1e-6 || std::abs(gp_Vec(o,b).Dot(n))>1e-6)
+        reject("angled_line_off_plane","Both solved pivot endpoints must lie on the selected source plane");
+    t.Normalize();
+    if(std::abs(t.Dot(n))>1e-9)reject("angled_line_off_plane","The solved pivot direction must lie in the selected source plane");
+    const auto v=n.Crossed(t).Normalized();
+    const double theta=(flipSide ? -angleDeg : angleDeg)*std::numbers::pi/180;
+    const auto rotatedNormal=n.Multiplied(std::cos(theta))-v.Multiplied(std::sin(theta));
+    const auto rotatedV=v.Multiplied(std::cos(theta))+n.Multiplied(std::sin(theta));
+    const auto vector=[](const gp_Vec& x){return QJsonArray{x.X(),x.Y(),x.Z()};};
+    return {{"origin",QJsonArray{a.X(),a.Y(),a.Z()}},{"uAxis",vector(t)},
+        {"vAxis",vector(rotatedV)},{"normal",vector(rotatedNormal)}};
+}
+
 QJsonObject GeometryKernel::pathEndpointPlaneFrame(const EvaluatedDocument& evaluation,
     const QJsonObject& path,const QJsonArray& authoredFeatures) {
     const auto sketchId=path["sketchId"].toString(),entityId=path["entityId"].toString();
@@ -1177,6 +1234,7 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                 const auto source=parameters["source"].toObject();
                 auto frame=source.contains("faces") ? midplaneFrame(evaluated,source["faces"].toArray())
                     : source.contains("tangent") ? tangentPointPlaneFrame(evaluated,source["tangent"].toObject())
+                    : source.contains("angled") ? angledPlaneFrame(evaluated,source["angled"].toObject(),parameters["angleDeg"].toDouble(),parameters["flipSide"].toBool(),features)
                     : source.contains("path") ? pathEndpointPlaneFrame(evaluated,source["path"].toObject(),features)
                     : offsetPlaneFrame(resolvePlaneSource(evaluated,source),parameters["offsetMm"].toDouble());
                 const auto bounds=frame.take("displayBoundsMm").toArray();
