@@ -108,6 +108,7 @@ public:
     static QJsonObject sweepCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject revolveCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject loftCandidate(const QJsonObject& authored,const QJsonObject& arguments);
+    static QJsonObject surfacePatchCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject surfaceSweepCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject surfaceRevolveCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject surfaceExtrudeCandidate(const QJsonObject& authored,const QJsonObject& arguments);

@@ -273,7 +273,7 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
                     return {{"featureId",feature["id"]},{"featureType","boundaryFill"},{"code","boundary_fill_cell_unavailable"},{"message","Cell contributors must belong to the selected earlier tools"}};
             }
         }
-        if(feature["type"]=="surfaceExtrude" || feature["type"]=="surfaceRevolve" || feature["type"]=="surfaceSweep") {
+        if(feature["type"]=="surfacePatch" || feature["type"]=="surfaceExtrude" || feature["type"]=="surfaceRevolve" || feature["type"]=="surfaceSweep") {
             const auto sketch=feature["parameters"].toObject()["sketchId"].toString();
             if(!positions.contains(sketch) || positions[sketch]>=i || features[positions[sketch]].toObject()["type"]!="sketch")
                 return {{"featureId",feature["id"]},{"featureType",feature["type"]},
@@ -1943,6 +1943,24 @@ QJsonObject CadDocument::surfaceRevolveCandidate(const QJsonObject& authored,con
     const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
 }
 
+QJsonObject CadDocument::surfacePatchCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
+    const QSet<QString> allowed{"sketchId","profileId","featureId","newFeatureId","newBodyId","ownerId","name"};
+    for(auto i=arguments.begin();i!=arguments.end();++i)if(!allowed.contains(i.key()))throw std::invalid_argument("Unknown Patch argument");
+    if(arguments.contains("featureId") && (arguments.contains("newFeatureId") || arguments.contains("newBodyId") || arguments.contains("ownerId")))
+        throw std::invalid_argument("Patch edit retains feature, body and owner identities");
+    auto candidate=authored;auto rows=candidate["features"].toArray();QJsonObject feature;int index=-1;
+    if(arguments.contains("featureId")){
+        for(int i=0;i<rows.size();++i)if(rows[i].toObject()["id"]==arguments["featureId"]){feature=rows[i].toObject();index=i;break;}
+        if(index<0 || feature["type"]!="surfacePatch")throw std::invalid_argument("Patch feature unavailable");
+    }else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"bodyId",arguments.value("newBodyId").toString(newId())},
+        {"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","surfacePatch"},{"name","Patch"},{"visible",true}};
+    auto params=feature["parameters"].toObject();if(params.isEmpty())params={{"operation","newBody"},{"isSolid",false}};
+    for(const auto& key:{"sketchId","profileId"})if(arguments.contains(key))params[key]=arguments[key];
+    feature["parameters"]=params;if(arguments.contains("name"))feature["name"]=arguments["name"];
+    if(index<0)rows.append(feature);else rows[index]=feature;candidate["features"]=rows;
+    const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
+}
+
 QJsonObject CadDocument::surfaceSweepCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
     const QSet<QString> allowed{"sketchId","entityId","pathSketchId","pathEntityId","pathStartPointId","featureId","newFeatureId","newBodyId","ownerId","name"};
     for(auto i=arguments.begin();i!=arguments.end();++i)if(!allowed.contains(i.key()))throw std::invalid_argument("Unknown Surface Sweep argument");
@@ -2900,6 +2918,13 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
                 const auto ref=value.toObject();const auto key=ref["bodyId"].toString()+"/"+ref["producerFeatureId"].toString()+"/"+ref["faceId"].toString();
                 if(!value.isObject() || ref.size()!=3 || !validId(ref["bodyId"].toString()) || !validId(ref["producerFeatureId"].toString()) || !validId(ref["faceId"].toString()) || faces.contains(key))return "Boundary Fill cell needs distinct retained body/producer/face UUID references";faces.insert(key);
             }
+            ids.insert(feature["bodyId"].toString());continue;
+        }
+        if(type=="surfacePatch") {
+            if(!validId(feature["bodyId"].toString()) || ids.contains(feature["bodyId"].toString()) || p.size()!=4
+                || !validId(p["sketchId"].toString()) || !validId(p["profileId"].toString())
+                || p["operation"]!="newBody" || !p["isSolid"].isBool() || p["isSolid"].toBool())
+                return "Patch requires one retained closed planar sketch profile and non-solid New Body";
             ids.insert(feature["bodyId"].toString());continue;
         }
         if(type=="surfaceSweep") {

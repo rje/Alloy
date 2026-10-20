@@ -336,6 +336,13 @@ private:
     void refreshSurfaceRevolveControls();
     QDockWidget* surfaceRevolveDock_=nullptr;
     QShortcut* surfaceRevolveEscape_=nullptr;
+    QJsonObject surfacePatchCandidate(const QJsonObject& inputs) const;
+    QJsonObject beginSurfacePatch(const QJsonObject& overrides={});
+    QJsonObject previewSurfacePatch();
+    void showSurfacePatch();
+    void refreshSurfacePatchControls();
+    QDockWidget* surfacePatchDock_=nullptr;
+    QShortcut* surfacePatchEscape_=nullptr;
     QJsonObject surfaceSweepCandidate(const QJsonObject& inputs) const;
     QJsonObject beginSurfaceSweep(const QJsonObject& overrides={});
     QJsonObject previewSurfaceSweep();

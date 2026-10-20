@@ -21,6 +21,7 @@
 #include "SurfaceExtrude.h"
 #include "SurfaceRevolve.h"
 #include "SurfaceSweep.h"
+#include "SurfacePatch.h"
 #include "BoundaryFill.h"
 #include "SurfaceTrim.h"
 #include "SolidThicken.h"
@@ -1307,6 +1308,8 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                 evaluated.bodies.push_back(SolidRevolve::evaluate(feature,evaluated,source));
             } else if(type=="loft") {
                 evaluated.bodies.push_back(SolidLoft::evaluate(feature,evaluated));
+            } else if(type=="surfacePatch") {
+                evaluated.bodies.push_back(SurfacePatch::evaluate(feature,evaluated));
             } else if(type=="surfaceSweep") {
                 evaluated.bodies.push_back(SurfaceSweep::evaluate(feature,evaluated));
             } else if(type=="surfaceRevolve") {
