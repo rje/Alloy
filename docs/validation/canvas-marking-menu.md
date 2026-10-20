@@ -182,3 +182,69 @@ bracket geometry/history/reopen coverage. Latest external receipt/captures/log:
 `validation/skt175-2026-10-20/backtab/`; build log: `backtab-build.log`.
 Independent re-review accepted the corrected path. The lower-list-width mismatch and physical
 input/accessibility/platform limits above are unchanged. Private editor closed.
+
+## 2026-10-20 SKT-176 centered-list candidate
+
+SKT-176/#699 has a local candidate; independent review is pending. The compact
+external contract is `knowledge/specs/skt176-centered-menu-2026-10-20.md`, reusing
+SKT173-R1/R2 and the archived Activity 2 image/provenance. No reference application
+was operated and no reference asset is shipped.
+
+The radial panel is now an ordinary child of the same canvas-owned QMenu.
+Native QMenu measures original icons, live font/labels and right-aligned tab
+shortcuts; symmetric content margins center those native rows below the panel.
+The list's background/border follows the actual action geometry. Complete-popup
+screen clamping includes the radial panel and list, including gesture relocation.
+`lastContextMenu.radial.contextList` exposes live list/row bounds for inspection.
+No action hit geometry is replaced by a painted approximation or manual trigger.
+
+Selected Activity 2 list: **180×261** logical action union inside a **356×436**
+popup. Unselected list: **165×67** inside **355×242**. The radial panel remains
+350×166. Ordinary and narrow windows are 1500×950 and 1050×750 logical, with
+light theme, top XY, Fit then 0.75 zoom. Apple M4 / Apple / OpenGL 4.1 Metal –
+90.5, macOS 26.5.1, DPR2; exact source platform/font/build/DPR remains unknown.
+
+The accepted `build-preview-release` Release/private Qt 6.11.2/OCCT 7.9.3 build
+uses targets `alloy` and `bracket_midpoint_controls_test`, `-j4`. The focused
+fixture passes **4/4 in 21.6 seconds**. Final external evidence:
+`validation/skt176-2026-10-20/final2/`; build logs:
+`validation/skt176-build.log` and `validation/skt176-test-build.log`.
+
+- Component checks retain every radial actual-hit command/eight gesture octants,
+  keyboard forward/reverse/direct Backtab, names/roles/action interfaces and
+  cancellation. Each screen corner now also checks real native row bounds,
+  narrow centered width, no action in transparent flanks, row accessibility and
+  an actual shortcut-end click that dispatches once and dismisses.
+- Actual Alloy checks retain representative shared Line/Circle/Spline/Offset/
+  Dimension input, the selected-cap construction conversion, exact two-circle
+  midpoint/tangent relations, source radius edits, Undo/Redo and save/reopen.
+  New selected/unselected narrow-window checks open at all four canvas corners,
+  inspect complete on-screen popups, unclipped rows and real widget hit receivers,
+  then dismiss by actual-hit center clicks. Draft/revision/selection remain exact;
+  there is no interstep focus or selection repair.
+- Selected/unselected popup and whole-app captures were inspected at DPR2. The
+  native popup grabs show every row even when a popup extends outside the main
+  application window; whole-app captures use the upper corner for context.
+  Native keyboard-focus, original icon, full label and shortcut readability are
+  preserved in ordinary-size captures.
+
+| Checkpoint | Bounded result |
+| --- | --- |
+| Narrower solid list centered below radial controls | Matched semantic silhouette in selected-cap public crop; actual Alloy list is readable with aligned icon/label/shortcut columns. |
+| Real row bounds, native accessibility interfaces, one-shot commands | Matched focused Qt checks and real construction route. VoiceOver operation remains unknown. |
+| Complete popup at screen/canvas edges, narrow window | Passed focused bounds and actual receiver checks; no row clipping in native popup grabs. |
+| Exact public dimensions, font, scale, complete context membership | Unknown; public crop has no matched metrics. Broader membership remains SKT-174/#697. |
+| Physical OS input, AppKit activation, other platforms/DPR1 | Unqualified; existing SKT-171/#694 and release gates remain. |
+
+Preserved failed probes: `candidate/` caught deferred QMenu layout clipping a
+radial target, corrected by centering the panel from post-popup dimensions.
+`narrow/` and `narrow-focus/` record an unsuccessful Escape-to-current-focus
+probe after harness window resize; the popup did not own keyboard focus.
+The successful narrow bound/hit sequence uses actual center dismissal without
+focus repair. This does not qualify resized-window natural Escape or establish
+an ordinary physical-input defect; the existing strict native gate remains.
+The earlier corrected ordinary fixture passed at `final/`, and the full narrow
+fixture passed at `qualified/` before moving whole-app captures to the upper
+corner. Qt capture warnings and inactive AppKit flags remain as in SKT-175.
+No new broad exact-match claim is made. No CI, tag, push, release, issue closure
+or board update was performed. All private validation windows closed.

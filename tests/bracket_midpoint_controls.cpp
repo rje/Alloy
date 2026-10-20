@@ -194,8 +194,8 @@ private slots:
     auto open=[&](QPoint at=QPoint{}) {
       result.clear();arguments={};
       auto* m=new CanvasMarkingMenu(&owner,[&](const QString& command,const QJsonObject& args){result=command;arguments=args;},true);
-      m->addAction("Sketch Dimension")->setObjectName("test.dimension");
-      m->addAction("Normal/Construction")->setObjectName("test.construction");
+      m->addAction("Sketch Dimension\tD")->setObjectName("test.dimension");
+      m->addAction("Normal/Construction\tX")->setObjectName("test.construction");
       m->openAt(at.isNull()?owner.mapToGlobal(QPoint(350,200)):at);QTest::qWait(50);return m;
     };
     auto click=[&](CanvasMarkingMenu* m,const QString& id) {
@@ -246,7 +246,24 @@ private slots:
       for(int i=0;i<4;++i)QTest::keyClick(QApplication::focusWidget(),Qt::Key_Right);
       QTest::keyClick(QApplication::focusWidget(),Qt::Key_Space);QTest::qWait(50);check(result=="sketch.tool"&&arguments.value("tool")=="line","keyboard executes actual button command");
       const auto available=owner.screen()->availableGeometry();
-      for(const QPoint corner:{available.topLeft(),available.topRight(),available.bottomLeft(),available.bottomRight()}){m=open(corner);check(available.contains(m->geometry()),"popup clamped to available screen");QTest::keyClick(m,Qt::Key_Escape);QTest::qWait(50);}
+      for(const QPoint corner:{available.topLeft(),available.topRight(),available.bottomLeft(),available.bottomRight()}){
+        m=open(corner);check(available.contains(m->geometry()),"complete popup clamped to available screen");
+        auto* row=m->actions().last();const QRect bounds=m->actionGeometry(row);
+        check(bounds.width()<m->width()-40 && std::abs(bounds.center().x()-m->rect().center().x())<=1,"content-sized centered list");
+        for(auto* a:m->actions())check(m->rect().contains(m->actionGeometry(a)),"complete row is unclipped");
+        check(m->actionAt(QPoint(4,bounds.center().y()))==nullptr,"transparent flank has no row action");
+        auto* menuAccess=QAccessible::queryAccessibleInterface(m);bool accessibleRow=false;
+        if(menuAccess)for(int child=0;child<menuAccess->childCount();++child){
+          auto* item=menuAccess->child(child);
+          accessibleRow|=item&&item->role()==QAccessible::MenuItem&&item->text(QAccessible::Name).startsWith("Normal/Construction")&&item->actionInterface();
+        }
+        check(accessibleRow,"native row accessibility name, role and action interface");
+        int dispatches=0;connect(row,&QAction::triggered,&owner,[&]{++dispatches;});
+        const QPoint hit(bounds.right()-2,bounds.center().y());
+        check(QApplication::widgetAt(m->mapToGlobal(hit))==m && m->actionAt(hit)==row,"shortcut end receives actual row hit");
+        QTest::mouseClick(m,Qt::LeftButton,Qt::NoModifier,hit);QTest::qWait(50);
+        check(dispatches==1&&!QApplication::activePopupWidget(),"actual row dispatches once and dismisses");
+      }
       owner.close();
     } catch(const std::exception& e){if(auto* popup=QApplication::activePopupWidget())popup->close();owner.close();QFAIL(e.what());}
   }
@@ -328,6 +345,7 @@ private slots:
       };
       auto* m=popup();
       check(m->grab().save(output+"/00-first-radial.png"),"first radial capture");
+      capture("00-first-radial-app");
       QTest::keyClick(m,Qt::Key_Escape);QTest::qWait(80);
       check(!QApplication::activePopupWidget(),"Escape dismisses menu");ready();
       m=popup();clickButton(m,"context.radial.dismiss");
@@ -386,6 +404,35 @@ private slots:
       check(draft()==menuDraft && session().value("selection")==menuSelection && gpu().value("documentRevision")==menuRevision,
             "dismissal and tool entry preserve authored sketch, revision and selection");
       capture("00-menu-routes-complete");
+      // Narrow-window layouts and edge anchors use the same uninterrupted
+      // native widget route; resize is not followed by focus/selection repair.
+      auto narrowPopups=[&](const QString& prefix) {
+        const auto before=draft();const auto selection=session().value("selection");
+        const auto revision=gpu().value("documentRevision");
+        window.resize(1050,750);QTest::qWait(120);
+        const QList<QPoint> anchors{{3,3},{view->width()-4,3},{3,view->height()-4},{view->width()-4,view->height()-4}};
+        for(int i=0;i<anchors.size();++i){
+          hit(anchors[i],Qt::RightButton);
+          auto* edgeMenu=qobject_cast<QMenu*>(QApplication::activePopupWidget());
+          check(edgeMenu,"narrow edge popup opens");
+          check(edgeMenu->screen()->availableGeometry().contains(edgeMenu->geometry()),"complete narrow popup screen clamp");
+          for(auto* row:edgeMenu->actions())if(row->isVisible()&&!row->isSeparator()){
+            const QRect bounds=edgeMenu->actionGeometry(row);
+            check(!bounds.isEmpty()&&edgeMenu->rect().contains(bounds),"narrow edge rows unclipped");
+            check(edgeMenu->actionAt(bounds.center())==row,"narrow row actual action bounds");
+            check(QApplication::widgetAt(edgeMenu->mapToGlobal(bounds.center()))==edgeMenu,"narrow row actual receiver");
+          }
+          if(i==0)capture(prefix+"-narrow-app");
+          if(i==3)check(edgeMenu->grab().save(output+"/"+prefix+"-narrow-popup.png"),"narrow edge popup capture");
+          auto* dismiss=edgeMenu->findChild<QToolButton*>("context.radial.dismiss");
+          check(dismiss&&QApplication::widgetAt(dismiss->mapToGlobal(dismiss->rect().center()))==dismiss,"narrow center receives actual hit");
+          QTest::mouseClick(dismiss,Qt::LeftButton);QTest::qWait(60);
+          check(!QApplication::activePopupWidget(),"narrow center closure at edge "+QString::number(i));ready();
+        }
+        window.resize(1500,950);QTest::qWait(120);ready();
+        check(draft()==before&&session().value("selection")==selection&&gpu().value("documentRevision")==revision,"narrow cancellation preserves authored state and selection");
+      };
+      narrowPopups("00-unselected");
       const auto initialDraft = draft();
       auto upper = entity(2).value("id"), lower = entity(5).value("id");
       // Click away from midpoint constraint badges; preserve the exact
@@ -407,6 +454,7 @@ private slots:
       check(selected.size() == 2 && selected.contains(upper) &&
                 selected.contains(lower),
             "Shift adds lower edge");
+      narrowPopups("01-selected");
       auto p = pick(5);
       hit(p, Qt::RightButton);
       QTest::qWait(100);
@@ -431,6 +479,9 @@ private slots:
       const auto midpoint=std::find_if(menuActions.begin(),menuActions.end(),[](auto* a){return a->objectName()=="sketch.action.constraint.midpoint";});
       check(midpoint!=menuActions.end() && menu->actionGeometry(*midpoint).top()>menu->actionGeometry(action).bottom(),
             "constraint group follows construction");
+      const QRect selectedBounds=menu->actionGeometry(action);
+      check(selectedBounds.width()<menu->width()-40 && std::abs(selectedBounds.center().x()-menu->rect().center().x())<=1,"selected list narrower and centered");
+      for(auto* a:menu->actions())if(a->isVisible())check(menu->rect().contains(menu->actionGeometry(a)),"selected rows fully inside popup");
       capture("01-construction-menu");
       check(menu->grab().save(output+"/01-construction-popup.png"),"native popup capture");
       auto local = menu->actionGeometry(action).center();

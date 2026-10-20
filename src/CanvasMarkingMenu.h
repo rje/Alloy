@@ -35,7 +35,8 @@ public:
                       "QToolButton:hover, QToolButton:focus, QToolButton[gestureActive=\"true\"] { background:#ccecff; border-color:#168bc1; }"
                       "QToolButton:pressed { background:#168bc1; color:white; }");
         panel_=new QWidget(this);panel_->setFixedSize(350,166);
-        auto* radial=new QWidgetAction(this);radial->setObjectName("context.radial");radial->setDefaultWidget(panel_);addAction(radial);
+        panel_->setObjectName("context.radial");
+        panel_->move(3,3);
         for(int i=0;i<8;++i){auto* b=new QToolButton(panel_);b->setFocusPolicy(Qt::StrongFocus);b->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);b->setIconSize({14,14});buttons_[i]=b;}
         center_=new QToolButton(panel_);center_->setObjectName("context.radial.dismiss");center_->setAccessibleName("Dismiss canvas menu");
         center_->setText("•");center_->setGeometry(163,69,24,24);center_->setFocusPolicy(Qt::StrongFocus);connect(center_,&QToolButton::clicked,this,&QMenu::close);
@@ -45,7 +46,15 @@ public:
     }
     void openAt(QPoint global) {
         for(auto* action:actions())if(!qobject_cast<QWidgetAction*>(action)&&!action->isSeparator())action->setIcon(icon(action->objectName()));
-        origin_=global;popup(global-QPoint(178,84));placeAt(global);
+        // QMenu computes the real row width from its live font, icons and tab
+        // column. Reserve symmetric margins around that list, rather than
+        // letting the radial header widen every action's hit rectangle.
+        const int listWidth=sizeHint().width();
+        const int inset=qMax(0,(356-listWidth)/2);
+        setContentsMargins(inset,169,inset,0);
+        origin_=global;popup(global-QPoint(178,84));
+        panel_->move((width()-panel_->width())/2,3);
+        placeAt(global);
         qApp->installEventFilter(this);
     }
     QJsonObject inspection() const {
@@ -57,7 +66,14 @@ public:
                 {"arguments",QJsonValue::fromVariant(button->property("commandArguments"))},
                 {"x",bounds.x()},{"y",bounds.y()},{"width",bounds.width()},{"height",bounds.height()}});
         }
+        QRect list;QJsonArray rows;
+        for(auto* action:actions())if(action->isVisible()) {
+            const auto bounds=actionGeometry(action);if(bounds.isEmpty())continue;
+            list=list.united(bounds);
+            rows.append(QJsonObject{{"id",action->objectName()},{"x",bounds.x()},{"y",bounds.y()},{"width",bounds.width()},{"height",bounds.height()}});
+        }
         return {{"level",second_ ? "sketch" : "design"},{"entries",entries},
+                {"contextList",QJsonObject{{"x",list.x()},{"y",list.y()},{"width",list.width()},{"height",list.height()},{"rows",rows}}},
                 {"width",width()},{"height",height()},{"globalX",x()},{"globalY",y()},
                 {"devicePixelRatio",devicePixelRatioF()},{"gestureThresholdLogicalPixels",45}};
     }
@@ -99,7 +115,7 @@ private:
     void placeAt(QPoint anchor) {
         auto* screen=QGuiApplication::screenAt(anchor);if(!screen)screen=this->screen();
         const QRect available=screen->availableGeometry();
-        QPoint pos=anchor-QPoint(178,84);
+        QPoint pos=anchor-QPoint(width()/2,84);
         pos.setX(qBound(available.left(),pos.x(),qMax(available.left(),available.right()-width()+1)));
         pos.setY(qBound(available.top(),pos.y(),qMax(available.top(),available.bottom()-height()+1)));
         move(pos);
@@ -145,9 +161,11 @@ private:
     }
     void paintEvent(QPaintEvent* event) override {
         // Keep the radial field transparent while retaining a solid context list.
-        QPainter painter(this);const int top=panel_->geometry().bottom()+3;
-        painter.fillRect(QRect(1,top,width()-2,height()-top-1),QColor("#fafafa"));
-        painter.setPen(QColor("#b8bdc2"));painter.drawRect(QRect(0,top,width()-1,height()-top-1));painter.end();
+        QRect list;
+        for(auto* action:actions())if(action->isVisible())list=list.united(actionGeometry(action));
+        list.adjust(-1,-2,1,2);
+        QPainter painter(this);painter.fillRect(list,QColor("#fafafa"));
+        painter.setPen(QColor("#b8bdc2"));painter.drawRect(list.adjusted(0,0,-1,-1));painter.end();
         QMenu::paintEvent(event);
     }
     bool traverse(int delta) {
