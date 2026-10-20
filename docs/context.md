@@ -2,6 +2,8 @@
 
 ## Current v1 delivery direction (2026-10-19)
 
+PRT-004/#166 accepts one explicit committed open surface body as binary/ASCII STL with persistent non-solid warning, shared serialized preview/units/refinement and independent quarter-cylinder mm/in triangle/area/boundary readback. Native Qt Preview and GPU captures pass; authored model/Undo/saved bytes remain unchanged. See [receipt](validation/open-surface-stl.md). Arbitrary surface mesh connectivity, mixed batches, native Save chooser and packaged-platform input remain separate gates. No CI run.
+
 DOC-037/#521 accepts a transient two-closed-solid Interference/clearance inspector with shared local API and native Inspect panel. Exact 32 mm³ overlap, 2 mm clearance, touching, edited 48 mm³ overlap, Undo/Redo/reopen and no authored mutation pass independent real-app and focused core checks; compiled actual-hit Inspect menu/two canvas picks/Compute/Clear/Close pass. Apple M4 DPR2 whole-app capture shows GPU orange overlap and a readable panel. See [receipt](validation/interference.md). Wider group/fit analysis stays DOC-014; physical input, matched reference layout and Windows/Linux packages stay release gates. No CI run.
 
 SOL-061/#506 accepts one retained hollow circular Pipe along an authored tangent Line/Arc path. The native Create-menu/path/typed-diameter/preview/Cancel test, focused Pipe/Sweep core tests and independent real-app diameter/wall/source edit, refusal, history/reopen and watertight STL readback pass. Apple M4 DPR2 captures show two annular openings and a readable dock. See [receipt](validation/solid-pipe.md). Other sections, extents, operations and path families remain ADV-005; physical OS and Windows/Linux packaged input/GPU qualification remain GATE-050. No CI run.
