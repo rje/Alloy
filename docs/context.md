@@ -1,3 +1,15 @@
+## 2026-10-20 sketch Copy route split
+
+SKT-179/#702 is the sole In Progress board item for active-sketch Copy/Paste of
+one closed profile. Public research is external at
+`../Alloy-reference-records/knowledge/specs/skt179-sketch-copy-2026-10-20.md`:
+the documented selection/context or Cmd/Ctrl+C, Paste and placement route is
+the bounded slice. Public sources conflict or omit copied constraints, identity,
+history and preview defaults, so the spec labels independent-copy semantics as
+Alloy policy. The separate Move/Copy > Sketch Objects > Create Copy route is
+preserved in Todo SKT-185/#708 with a dependency on #702 and #707. The canonical
+backlog has 705 issues; #702 implementation and verification are pending.
+
 ## 2026-10-20 SKT-184 retained Move acceptance
 
 [Bounded receipt](validation/sketch-retained-move.md) accepts one retained XY
