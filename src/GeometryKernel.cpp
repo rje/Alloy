@@ -21,6 +21,7 @@
 #include "SurfaceExtrude.h"
 #include "SurfaceRevolve.h"
 #include "SurfaceOffset.h"
+#include "SurfaceRuled.h"
 #include "SurfaceSweep.h"
 #include "SurfacePatch.h"
 #include "BoundaryFill.h"
@@ -1313,6 +1314,8 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                 evaluated.bodies.push_back(SurfacePatch::evaluate(feature,evaluated));
             } else if(type=="surfaceSweep") {
                 evaluated.bodies.push_back(SurfaceSweep::evaluate(feature,evaluated));
+            } else if(type=="surfaceRuled") {
+                evaluated.bodies.push_back(SurfaceRuled::evaluate(feature,evaluated));
             } else if(type=="surfaceOffset") {
                 evaluated.bodies.push_back(SurfaceOffset::evaluate(feature,evaluated));
             } else if(type=="surfaceRevolve") {
