@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **703 issues**: **554 implementation, 24 research,
+The current local backlog contains **704 issues**: **555 implementation, 24 research,
 5 research/design, 22 epics, and 98 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 SKT-097/#502 accepts a bounded retained rectangular sketch-circle pattern and
@@ -16,8 +16,9 @@ Familiar rectangular canvas picks/manipulators are accepted under SKT-178/#701;
 circular picks/manipulators are accepted under SKT-182/#705. Nonorthogonal
 rectangular axes are accepted under SKT-183/#706 after public tutorial evidence.
 Both pattern modes are required for proposed-v1 sketch patterns, with the public
-contract and engineering note outside the repository. SKT-098/#503 now owns
-Move alone; Copy, Rotate and Scale remain linked Todo SKT-179–181/#702–704.
+contract and engineering note outside the repository. SKT-098/#503 now owns atomic authored Move alone; retained editable Move
+remains SKT-184/#707, and Copy, Rotate and Scale remain linked Todo
+SKT-179–181/#702–704.
 The public transform contract is outside the repository.
 SKT-172/#695 accepts the [bounded illustrated-bracket visual checkpoint](../validation/bracket-visual.md). SKT-173/#696 accepts the [active-sketch canvas menu component](../validation/canvas-marking-menu.md); SKT-175/#698 accepts original icons and keyboard access, and SKT-176/#699 accepts the centered content-sized list. Native input remains SKT-171/#694, broader contexts SKT-174/#697. TUT-003/#155 still depends on its native gate.
 REL-052/#587 accepts the [native Save As Mesh sheet keyboard and return slice](../validation/mesh-export-keyboard.md);

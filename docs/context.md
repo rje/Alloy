@@ -1,3 +1,20 @@
+## 2026-10-20 SKT-098 Move architecture split
+
+Independent Astra review of `DocumentEdit`, sketch solver point intent and
+profile identity supports an atomic authored Move of one isolated closed
+four-Line loop under SKT-098/#503, with a separate retained editable definition
+under SKT-184/#707. The atomic command must translate all selected unique
+points together, solve once, verify exact requested targets and unchanged
+unselected geometry/relations, and preserve IDs through downstream Extrude.
+Two sequential relative moves are not editing the first definition. A retained
+definition requires explicit source/evaluated coordinates and later-edit
+composition rules; attaching a delta to today's mutable point coordinates is
+not sound. The engineering note is external at
+`../Alloy-reference-records/knowledge/specs/skt098-move-architecture-2026-10-20.md`;
+the dated public command record is alongside it. SKT-098 is the sole In Progress
+board item; SKT-184, Copy, Rotate and Scale remain Todo. No implementation or
+acceptance is claimed by this planning split.
+
 ## 2026-10-20 SKT-183 skewed rectangular Pattern acceptance
 
 [Bounded receipt](validation/sketch-skew-pattern.md) accepts two nonparallel,
