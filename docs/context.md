@@ -1,3 +1,20 @@
+## 2026-10-20 SKT-098 atomic Move acceptance
+
+[Bounded receipt](validation/sketch-move.md) accepts native and local-control
+atomic XY translation of one isolated closed four-Line sketch profile. Two
+independent relative Moves preserve curve/profile/body IDs through an 8 mm
+Extrude and an independently read watertight 1,920 mm³ STL. Exact rigid targets,
+unchanged unselected geometry/definitions and atomic constraint refusals pass
+core checks. Native actual-hit input, two finish-route guards, API terminal-panel
+cleanup, Undo/Redo and save/reopen pass focused fixtures. Independent Sol review
+accepted `9952f07` and corrective `55628da`; external evidence is at
+`../Alloy-reference-records/validation/skt098-2026-10-20/`. SKT-098/#503 is
+closed/Done. Retained edit SKT-184/#707, Copy/Rotate/Scale #702–704 and broader
+multi-group/3D modes remain Todo. The #707 source/output architecture record is
+external at `../Alloy-reference-records/knowledge/specs/skt184-retained-sketch-move-design-2026-10-20.md`.
+No CI, release or platform/physical qualification was run. Private editors
+closed; user PID 72618 preserved.
+
 ## 2026-10-20 SKT-098 Move architecture split
 
 Independent Astra review of `DocumentEdit`, sketch solver point intent and
@@ -11,9 +28,8 @@ definition requires explicit source/evaluated coordinates and later-edit
 composition rules; attaching a delta to today's mutable point coordinates is
 not sound. The engineering note is external at
 `../Alloy-reference-records/knowledge/specs/skt098-move-architecture-2026-10-20.md`;
-the dated public command record is alongside it. SKT-098 is the sole In Progress
-board item; SKT-184, Copy, Rotate and Scale remain Todo. No implementation or
-acceptance is claimed by this planning split.
+the dated public command record is alongside it. This was the planning split
+before the bounded atomic Move acceptance above.
 
 ## 2026-10-20 SKT-183 skewed rectangular Pattern acceptance
 

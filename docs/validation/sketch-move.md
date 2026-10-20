@@ -136,3 +136,8 @@ reopening. The fresh zero-X/Y, four-selected-curve panel capture was inspected a
 the real-executable receipt passes 56 calls (`api/`) and independently retains
 STL bounds (17,6,0)..(37,18,8), watertight topology and exactly 1920 mm³ mesh
 volume. Private editors closed; only preserved user PID 72618 remains.
+
+Independent Sol re-review accepted `9952f07` plus corrective `55628da` after
+checking source, focused receipts and the fresh reopened-panel capture. The
+reviewer did not claim a fresh build or application run. Exact reference styling,
+physical input and packaged platform behavior remain unqualified.

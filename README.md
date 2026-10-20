@@ -1,5 +1,11 @@
 # Alloy
 
+[Atomic sketch Move](docs/validation/sketch-move.md) now translates one isolated
+closed four-Line profile through native or local controls. Two relative edits,
+constraint-safe refusals, history/reopen and a downstream watertight STL pass;
+an independent review accepted the shared commit guard and panel lifecycle.
+Retained editable Move, Copy, Rotate and Scale remain separate Todo work.
+
 [Retained circular sketch-circle Pattern](docs/validation/sketch-circular-pattern.md)
 now supports Full and Angle around an authored center Point through shared native
 numeric controls and local commands. An independent review accepted exact circle
