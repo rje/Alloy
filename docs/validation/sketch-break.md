@@ -1,6 +1,9 @@
-# Analytic sketch Break candidate (SKT-169 / #617)
+# Analytic sketch Break (SKT-169 / #617)
 
-Date: 2026-10-20 UTC. Candidate pending independent review and integration.
+Accepted bounded result: 2026-10-20 UTC. Independent Astra review of
+`f5d5b3b` found no blocker. It checked saved arc endpoints against the analytic
+parameters (error at most 2.5×10⁻¹⁵ mm), complete circle coverage, explicit
+annotation disposition, atomic refusal and the inspected native red-X capture.
 
 Public source contract: stable reference SKT-169, external
 `../Alloy-reference-records/knowledge/specs/skt169-break-2026-10-20.md`.
@@ -55,7 +58,7 @@ source/retained/created entity IDs, cut coordinates and annotation dispositions.
 
 Accepted build directory: `build-preview-release`, CMake Release, private Qt
 6.11.2 from `../Alloy-dependencies/qt-private-runtime/install`, native arm64.
-Build uses `-j4`. No paid CI, tag, push or issue closure was requested or run.
+Build uses `-j4`. No paid CI or tag was run.
 
 External evidence root:
 `../Alloy-reference-records/validation/sketch-break-2026-10-20/`.

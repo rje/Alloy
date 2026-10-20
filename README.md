@@ -1,9 +1,10 @@
 # Alloy
 
-[Analytic sketch Break candidate](docs/validation/sketch-break.md) splits a line
+[Analytic sketch Break](docs/validation/sketch-break.md) splits a line
 or finite arc at one crossing and a circle at two secant intersections, preserving
-its full locus. Shared native/API preview, history and reopen checks pass;
-independent review is pending.
+its full locus. Shared native/API preview, history and reopen checks pass
+independent Astra review; live intersection dependencies and broader constraint
+remapping remain outside this bounded slice.
 
 [Retained Rib](docs/validation/solid-rib.md) now joins a symmetric thickness sketch Line to a full planar support face as an editable solid feature. An independent U-channel fixture confirms wall and thickness edits, history, native controls, GPU presentation and a watertight STL.
 
