@@ -152,3 +152,31 @@ python3 tests/sketch_scale_api.py --app build-preview-release/alloy.app/Contents
 
 Independent compatibility review is requested from root before integration.
 Private validation editors are closed and user PID 72618 is preserved.
+
+
+## Independent-review lifecycle correction
+
+The review of candidate `3569a46` found that Pattern start/edit/preview could
+create a second interaction during Scale, and native Scale OK/Enter could call
+Accept after a failed refresh. Pattern's shared registration now refuses all
+its start/edit/preview/accept/cancel entries with `pending_scale` before any
+interaction or redraw mutation while a Scale candidate or active controls exist.
+This covers rectangular and circular modes. Native Scale acceptance now requires
+its fresh preview to succeed, surfaces its refusal and returns immediately on
+failure; a failed acceptance is also shown in the panel.
+
+`lifecycle-native/` and `lifecycle-native.log` pass 3/3 Qt functions (20.427 s).
+From a valid 1.5 candidate, an actual factor-field Enter with factor 100000
+refuses output overflow, keeps the panel open, preserves the exact source/history,
+clears the invalid candidate and shows a readable error; a 1.5 retry succeeds.
+No test-only widget ranges or session state were injected. Source inspection
+confirms Accept is conditional; the Pattern guards remove the reviewed path
+that could otherwise retain a stale candidate during a failed refresh.
+
+`lifecycle-api/` passes 188 calls including rectangular/circular starts,
+shared edits, both preview modes, accept and cancel attempted during a valid
+Scale preview. Each returns `pending_scale` and preserves the candidate, draft,
+history and Pattern interaction state. The existing identity/history/reopen and
+independent STL checks pass again (3762 and 3510 mm³). No modeling authority or
+feature scope changed. Build remains the existing Release directory with -j4;
+no push or CI. Private editors are closed and PID 72618 remains preserved.

@@ -20,7 +20,12 @@ class PatternDock final:public QDockWidget{public:using QDockWidget::QDockWidget
 QJsonObject failure(const QString& code,const QString& message){return {{"ok",false},{"error",QJsonObject{{"code",code},{"message",message}}}};} }
 void AlloyWindow::registerSketchPatternCommands(){
  registerSketchPatternInteractionCommands();
- auto add=[this](const QString& id,const QString& title,const QJsonObject& parameters,std::function<QJsonObject(const QJsonObject&)> run){commands_.push_back({id,title,title,parameters,true,std::move(run)});};
+ auto add=[this](const QString& id,const QString& title,const QJsonObject& parameters,std::function<QJsonObject(const QJsonObject&)> run){
+  commands_.push_back({id,title,title,parameters,true,[this,run=std::move(run)](const QJsonObject& args){
+   if(!session_.value("pendingSketchScale").toObject().isEmpty() || session_.value("scaleInteraction").toObject().value("active").toBool())return failure("pending_scale","Accept or cancel Scale before starting or editing Pattern");
+   return run(args);
+  }});
+ };
  // The same retained solver and transient draft serve native and local control.
  QJsonObject schema;for(const auto* key:{"groupId","sourceEntityId","direction1EntityId","direction2EntityId","type","centerPointId","mode"})schema[key]=QJsonObject{{"type","string"},{"required",QString(key)=="sourceEntityId"}};
  for(const auto* key:{"quantity1","quantity2","spacing1Mm","spacing2Mm","quantity","totalAngleDeg"})schema[key]=QJsonObject{{"type","number"},{"minimum",-100000},{"maximum",100000},{"required",false}};

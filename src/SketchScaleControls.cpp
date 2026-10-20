@@ -96,10 +96,15 @@ void AlloyWindow::showSketchScaleControls(){
     auto* buttons=new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel);buttons->button(QDialogButtonBox::Ok)->setObjectName("sketch.scale.ok");buttons->button(QDialogButtonBox::Cancel)->setObjectName("sketch.scale.cancel");layout->addWidget(buttons);
     QJsonArray selected;if(g.isEmpty()){for(const auto& id:session_["selection"].toObject()["entityIds"].toArray())for(const auto& v:session_["draftSketch"].toObject()["parameters"].toObject()["entities"].toArray()){const auto e=v.toObject();if(e["id"]==id && e["type"]=="line" && !e["construction"].toBool() && !e["centerline"].toBool())selected.append(id);}}else selected=g["entityIds"].toArray();
     session_["scaleInteraction"]=QJsonObject{{"active",true},{"role","entities"},{"entityIds",selected},{"pivotPointId",g["pivotPointId"].toString()}};if(!g.isEmpty()){auto in=session_["scaleInteraction"].toObject();in["groupId"]=g["id"];session_["scaleInteraction"]=in;}
-    auto preview=[this,spin]{const auto in=session_["scaleInteraction"].toObject();QJsonObject args{{"entityIds",in["entityIds"]},{"pivotPointId",in["pivotPointId"].toString()},{"factor",spin->value()}};if(in.contains("groupId"))args["groupId"]=in["groupId"];execute("sketch.scalePreview",args);};
-    connect(spin,&QDoubleSpinBox::valueChanged,panel,preview);
+    auto preview=[this,spin]{const auto in=session_["scaleInteraction"].toObject();QJsonObject args{{"entityIds",in["entityIds"]},{"pivotPointId",in["pivotPointId"].toString()},{"factor",spin->value()}};if(in.contains("groupId"))args["groupId"]=in["groupId"];return execute("sketch.scalePreview",args);};
+    connect(spin,&QDoubleSpinBox::valueChanged,panel,[preview]{preview();});
     for(const auto& role:{QString("entities"),QString("pivot")})connect(panel->findChild<QPushButton*>("sketch.scale."+role),&QPushButton::clicked,panel,[this,role]{auto in=session_["scaleInteraction"].toObject();in["role"]=role;session_["scaleInteraction"]=in;syncSketchScaleControls();refreshSketchControls();view_->setFocus(Qt::OtherFocusReason);});
-    auto accept=[this,spin,preview]{spin->interpretText();preview();execute("sketch.scaleAccept");};
+    auto accept=[this,spin,preview]{
+        spin->interpretText();const auto result=preview();
+        if(!result.value("ok").toBool()){syncSketchScaleControls(result.value("error").toObject().value("message").toString());return;}
+        const auto accepted=execute("sketch.scaleAccept");
+        if(!accepted.value("ok").toBool())syncSketchScaleControls(accepted.value("error").toObject().value("message").toString());
+    };
     connect(buttons,&QDialogButtonBox::accepted,panel,accept);connect(buttons,&QDialogButtonBox::rejected,panel,[this]{execute("sketch.scaleCancel");});
     connect(panel,&QDialog::rejected,panel,[this]{execute("sketch.scaleCancel");});
     for(const auto key:{Qt::Key_Return,Qt::Key_Enter}){auto* enter=new QShortcut(QKeySequence(key),panel);enter->setContext(Qt::WidgetWithChildrenShortcut);connect(enter,&QShortcut::activated,panel,accept);}
