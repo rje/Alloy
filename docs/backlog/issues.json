@@ -3710,7 +3710,8 @@
         "SRF-040",
         "SRF-041",
         "SRF-042",
-        "SRF-043"
+        "SRF-043",
+        "SRF-044"
       ],
       "labels": [
         "kind:validation",
@@ -10746,7 +10747,7 @@
         "priority:P1",
         "area:srf"
       ],
-      "body": "## Bounded result\nCreate an editable ruled flange from one supported retained edge with Normal type, distance, and angle controls.\n\nThis is a finishable child of SRF-004; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Expose one retained edge, Normal type, distance, and angle as the complete bounded inputs; document defaults and units.\n- Preview, commit, and edit one flange fixture; verify the ruled boundary, angle, distance, area, and bounds.\n- Refuse invalid values or failed/folded kernel results atomically with a clear result.\n- Verify source edits, undo/redo, and save/reopen.\n\n## Preserved remainder\nTangent/Direction types, multiple edges, broader surface families, and self-intersection recovery remain under SRF-004.\n"
+      "body": "## Bounded result\nCreate an editable ruled flange from one supported retained edge with Normal type, distance, and angle controls.\n\nThis is a finishable child of SRF-004; it preserves the parent's broader scope.\n\n## Acceptance criteria\n- Expose one retained edge, Normal type, distance, and angle as the complete bounded inputs; document defaults and units.\n- Preview, commit, and edit one flange fixture; verify the ruled boundary, angle, distance, area, and bounds.\n- Refuse invalid values or failed/folded kernel results atomically with a clear result.\n- Verify source edits, undo/redo, and save/reopen.\n\n## Preserved remainder\nTangent/Direction types, multiple edges, broader surface families, and self-intersection recovery remain under SRF-004.\n\n## Linked native completion\nActual canvas edge selection, distance and angle manipulator handles, strict native hit/focus and matched visual acceptance are tracked in SRF-044. This issue retains the bounded editable Normal geometry core and shared numeric control path.\n"
     },
     {
       "key": "SRF-031",
@@ -11296,6 +11297,23 @@
         "area:srf"
       ],
       "body": "## Bounded first-v1 curved native gate\nSRF-042 accepts a retained partial-cylinder Offset through shared API and numeric controls, including inward-collapse refusal. Its curved in-canvas normal cue and actual-hit selection are not accepted. The Mac console is locked on 2026-10-20; keep this Todo until an unlocked native session supplies evidence.\n\n## Acceptance criteria\n- Select one supported retained partial cylindrical Surface Revolve face by actual viewport hit, see a source-face highlight and an oriented normal handle anchored on the face. Drag the handle outward and inward through the same authoritative Offset command; typed signed values must agree with drag and with measured radii. Do not show a planar centroid cue inside the cylinder.\n- Inspect live +2 and -4 mm regular sheet previews, near-collapse -9 mm, and actionable -10 mm collapse refusal with no invalid candidate or enabled OK. Cancel/Escape and Timeline edit must preserve authored/revision/Undo state on failure, then recover on a valid value without focus/selection repair between user steps.\n- On an unlocked Mac use strict actual-hit widget/popup checks and whole-app GPU captures at 1x and 2x. Verify source radius edit, Undo/Redo and save/reopen through the shared API after native input. Compare only with dated comparable public evidence; exact reference collapse presentation remains unknown. Close the private editor afterward.\n\n## Preserved remainder\nGeneral curved faces, multiple-face joins, arbitrary self-intersection repair and exact pixel/key parity remain SRF-004; Windows/Linux packaged runtime remains release-gate work.\n"
+    },
+    {
+      "key": "SRF-044",
+      "title": "Complete native one-edge Normal Ruled selection and angle/distance handles",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "SRF-030"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P1",
+        "area:srf"
+      ],
+      "body": "## Bounded first-v1 native Ruled workflow\nSRF-030 provides the retained one-edge Normal Ruled geometry core and shared numeric command. Complete the user-facing canvas path and qualify it through the real application. The 2026-10-20 Mac console is locked; keep native acceptance Todo until an unlocked run.\n\n## Acceptance criteria\n- Open Surface > Create > Ruled; select one supported retained straight boundary edge by an actual viewport hit. Show the selected edge and owning planar face unambiguously, with a selected-edge count and Normal type. The native pick must invoke the same authoritative candidate/command as the API; no copied or mock geometry.\n- Provide separate discoverable in-canvas distance and angle handles as described by the dated public command and tutorial evidence. Dragging them must update the same signed numeric fields and actual flange preview; 0\u00b0 follows the oriented face normal, +120\u00b0 remains constructible on the supported source. Keep the documented Alloy positive-angle side explicit until reference sign evidence is available.\n- Verify one-edge chain-off input, active-unit fields, preview, Cancel/Escape, OK, Timeline edit, invalid distance and stale-edge feedback/retry without focus or selection repair between demonstrated native steps. Save/reopen, Undo/Redo and source width edit must retain exact body/edge identities and geometry.\n- On an unlocked Mac perform strict actual-hit widget/popup checks and inspect whole-app GPU captures at 1x/2x against dated comparable public evidence. Record limitations of unmatched cushion/tutorial views and physical input separately. Close the private editor afterward.\n\n## Preserved remainder\nTangent/Direction rules, chain and multiple edges, mitering, shared/corner/curved source cases, exact pixel parity and Windows/Linux packaged runtime remain SRF-004 and release owners.\n"
     }
   ]
 }

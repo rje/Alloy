@@ -1,5 +1,7 @@
 # Alloy
 
+[One-edge Normal Ruled](docs/validation/surface-ruled.md) now makes an editable open flange from a retained planar boundary edge, with 0° normal and public-evidenced 120° numeric input. Independent app and B-rep geometry/history checks pass. Native physical selection and canvas distance/angle handles remain SRF-044.
+
 [Cylindrical Surface Offset](docs/validation/surface-offset-cylinder.md) now handles one retained partial-cylinder sheet with signed numeric distance, exact lineage and atomic inward radius-collapse refusal. Independent real-app and B-rep checks pass. Curved native face pick/normal drag remains SRF-043; planar native interaction remains SRF-041.
 
 [Planar Surface Offset](docs/validation/surface-offset.md) creates an editable signed new sheet from one retained face, with exact source/downstream recompute and real-app GPU evidence. Planar native pick/drag remains SRF-041.
