@@ -5303,7 +5303,6 @@ void AlloyWindow::registerCommands() {
         if(!session_.value("command").toString().startsWith("sketch."))return failure("no_active_sketch","Enter a sketch first");
         if(session_.contains("pendingDrivenOffer"))return failure("pending_dimension_offer","Choose Add Driven or Cancel before finishing the sketch");
         if(session_.contains("pendingProject"))return failure("pending_project","Accept or cancel Project before finishing the sketch");
-        if(session_.contains("pendingSketchMove") || session_["moveInteraction"].toObject()["active"].toBool())return failure("pending_move","Accept or cancel Move before finishing the sketch");
         if(session_.contains("pendingSketchPattern"))return failure("pending_pattern","Accept or cancel the sketch pattern before finishing the sketch");
         hideSlotEditor();
         return finishSession(session_.value("id").toString(),true);
@@ -9965,6 +9964,11 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     if(session_.value("command")=="component.copyPlacement")return finishComponentCopy(id,commit);
     if(session_.value("command").toString().startsWith("canvas."))return finishCanvas(id,commit);
     if (session_.isEmpty() || session_.value("id").toString() != id) return failure("invalid_session", "Session is no longer active");
+    if(session_.value("command")=="sketch.edit"){
+        if(commit && (session_.contains("pendingSketchMove") || session_["moveInteraction"].toObject()["active"].toBool()))
+            return failure("pending_move","Accept or cancel Move before finishing the sketch");
+        if(!commit)closeSketchMoveControls();
+    }
     if(commit && session_.value("invalidEndOffset").toBool())return failure("invalid_arguments","Resolve the end offset before committing");
     if(commit && session_.contains("invalidNamedInput"))return failure("unknown_parameter","Resolve the unavailable user length name before committing");
     if(session_.value("command")=="surface.untrim"){

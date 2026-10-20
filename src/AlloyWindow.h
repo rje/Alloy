@@ -63,6 +63,7 @@ protected:
     bool eventFilter(QObject*, QEvent*) override;
 private:
     void registerSketchMoveCommands();
+    void closeSketchMoveControls();
     void showSketchMoveControls();
     void syncSketchMoveControls(const QString& message = {});
     QPointer<QDialog> sketchMoveDialog_;

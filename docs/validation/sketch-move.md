@@ -103,3 +103,36 @@ Physical AppKit pointer/trackpad, native DPR1 and packaged Windows/Linux runtime
 are unqualified release gates. No CI, tag, release or push was run. Private
 fixture editors closed; user-owned PID 72618 preserved. Independent acceptance
 is pending.
+
+## Independent-review lifecycle corrections
+
+The review of `9952f07` found two command-boundary defects: generic
+`command.commit` bypassed the local Finish Sketch pending-Move check, and direct
+API Accept/Cancel left the native panel alive with stale interaction state.
+The pending-Move rule now lives in shared `finishSession` authority, before any
+candidate/session mutation. Both finish routes refuse with `pending_move`,
+preserving the visible candidate, authored draft and history.
+
+One terminal helper clears transient state, disconnects/hides/retires the native
+panel, restores the current draft and returns viewport focus. Native buttons,
+API Accept/Cancel, Escape, dock close and sketch/session cancellation all use it.
+API completion therefore permits M to open a fresh zero-displacement panel;
+Accept preserves the four selected curves for the next relative move. Deferred
+widget deletion is separated from terminal state cleanup.
+
+Focused evidence is under external `validation/skt098-2026-10-20/lifecycle-fix/`.
+The native fixture adds both finish-route refusals, API Accept→M, API Cancel→M,
+and both sketch/general session cancellation with panel closure; it also repeats
+the existing actual-hit/print workflow. The real-executable receipt adds generic
+`command.commit` refusal to its pending-Move checks. Core transform and mesh
+contracts are unchanged.
+
+The expanded full fixture passes 4/4 in 8.282 s (`native.log`). After narrowing
+signal disconnection to the terminal rejected handler, the final focused
+lifecycle check passes 3/3 in 2.615 s without warnings
+(`native-terminal-final.log`), including actual deferred widget retirement before
+reopening. The fresh zero-X/Y, four-selected-curve panel capture was inspected at
+`native-terminal/api-accept-reopened-move.png`. Core remains green (`core.log`);
+the real-executable receipt passes 56 calls (`api/`) and independently retains
+STL bounds (17,6,0)..(37,18,8), watertight topology and exactly 1920 mm³ mesh
+volume. Private editors closed; only preserved user PID 72618 remains.

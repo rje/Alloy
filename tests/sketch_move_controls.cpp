@@ -57,6 +57,21 @@ private slots:
   if(!output.isEmpty()){call(w,"document.save",{{"path",output+"/moved-profile.alloy"}});call(w,"document.exportStl",{{"path",output+"/moved-profile.stl"},{"bodyId",body["bodyId"]},{"units","mm"},{"format","binary"},{"surfaceDeviationMm",.01},{"normalDeviationDeg",5}});call(w,"document.open",{{"path",output+"/moved-profile.alloy"}});QCOMPARE(call(w,"document.inspect")["authored"],inspection["authored"]);QFile report(output+"/native-report.json");QVERIFY(report.open(QIODevice::WriteOnly));report.write(QJsonDocument(QJsonObject{{"passed",true},{"sketchId",sketchId},{"entityIds",ids},{"profileId",profile},{"baseline",baseline},{"baselineDocument",baselineDocument},{"first",first},{"final",final},{"authored",inspection["authored"]},{"state",w.state()},{"transcript",transcript_}}).toJson());}
   call(w,"document.new",{{"discard",true}});w.close();
  }
+ void sharedLifecycle(){
+  AlloyTheme::apply(*qApp);AlloyWindow w;w.resize(1500,950);w.show();w.activateWindow();QVERIFY(QTest::qWaitForWindowExposed(&w));QApplication::setActiveWindow(&w);
+  call(w,"sketch.begin",{{"plane","XY"}});call(w,"sketch.rectangle",{{"x1",10},{"y1",8},{"x2",30},{"y2",20},{"units","mm"}});call(w,"sketch.lookAt");QJsonArray ids;for(const auto& e:draft(w)["parameters"].toObject()["entities"].toArray())ids.append(e.toObject()["id"]);
+  ReferenceView* view=nullptr;for(auto* widget:w.findChildren<QWidget*>())if(auto* v=dynamic_cast<ReferenceView*>(widget))view=v;QVERIFY(view);
+  const auto before=call(w,"document.inspect");const auto original=draft(w);const auto history=active(w).value("draftHistory");const auto session=active(w).value("id");
+  call(w,"sketch.moveStart");QVERIFY(w.findChild<QDialog*>("sketch.move.dialog"));call(w,"sketch.movePreview",{{"entityIds",ids},{"x",5},{"y",-3},{"units","mm"}});const auto candidate=active(w).value("pendingSketchMove");
+  for(const auto& command:{QString("sketch.finish"),QString("command.commit")}){const auto response=w.execute(command,command=="command.commit" ? QJsonObject{{"session",session}} : QJsonObject{});QVERIFY(!response["ok"].toBool());QCOMPARE(response["error"].toObject()["code"].toString(),QString("pending_move"));QCOMPARE(active(w).value("pendingSketchMove"),candidate);QCOMPARE(draft(w),original);QCOMPARE(active(w).value("draftHistory"),history);QCOMPARE(call(w,"document.inspect")["authored"],before["authored"]);QVERIFY(w.findChild<QDialog*>("sketch.move.dialog")->isVisible());}
+  call(w,"sketch.moveAccept");QTRY_VERIFY(!w.findChild<QDialog*>("sketch.move.dialog"));QCOMPARE(QApplication::focusWidget(),static_cast<QWidget*>(view));const auto accepted=draft(w);QVERIFY(accepted!=original);
+  QTest::keyClick(view,Qt::Key_M);auto* dialog=w.findChild<QDialog*>("sketch.move.dialog");QVERIFY(dialog && dialog->isVisible());QCOMPARE(dialog->findChild<QDoubleSpinBox*>("sketch.move.x")->value(),0.);QCOMPARE(active(w)["moveInteraction"].toObject()["entityIds"].toArray().size(),4);
+  const auto output=qEnvironmentVariable("ALLOY_SKETCH_MOVE_EVIDENCE");if(!output.isEmpty())call(w,"capture.screenshot",{{"path",QDir(output).absoluteFilePath("api-accept-reopened-move.png")}});
+  call(w,"sketch.movePreview",{{"entityIds",ids},{"x",2},{"y",1},{"units","mm"}});call(w,"sketch.moveCancel");QTRY_VERIFY(!w.findChild<QDialog*>("sketch.move.dialog"));QCOMPARE(draft(w),accepted);QCOMPARE(QApplication::focusWidget(),static_cast<QWidget*>(view));
+  QTest::keyClick(view,Qt::Key_M);dialog=w.findChild<QDialog*>("sketch.move.dialog");QVERIFY(dialog && dialog->isVisible());QCOMPARE(dialog->findChild<QDoubleSpinBox*>("sketch.move.x")->value(),0.);call(w,"sketch.cancel");QTRY_VERIFY(!w.findChild<QDialog*>("sketch.move.dialog"));QVERIFY(active(w).isEmpty());QCOMPARE(call(w,"document.inspect")["authored"],before["authored"]);
+  call(w,"sketch.begin",{{"plane","XY"}});call(w,"sketch.moveStart");QVERIFY(w.findChild<QDialog*>("sketch.move.dialog"));call(w,"command.cancel",{{"session",active(w).value("id")}});QTRY_VERIFY(!w.findChild<QDialog*>("sketch.move.dialog"));QVERIFY(active(w).isEmpty());w.close();
+ }
+
 };
 QTEST_MAIN(SketchMoveControls)
 #include "sketch_move_controls.moc"
