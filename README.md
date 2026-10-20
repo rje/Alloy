@@ -1,5 +1,7 @@
 # Alloy
 
+[One-face External Edges Surface Untrim](docs/validation/surface-untrim.md) now restores a retained planar Trim portion to its exact earlier finite boundary as an editable history operation. Independent app and saved-B-rep checks pass. Physical face selection and control parity remain SRF-048; broader modes remain SRF-005.
+
 [One-edge Natural Surface Extend](docs/validation/surface-extend.md) now grows a retained planar Patch sheet in place with exact four-edge lineage and an editable distance. Independent app and saved-B-rep checks pass. Native actual-hit selection/drag and visible-source overlay polish remain SRF-047; target and curved invalid modes remain separate Todo work.
 
 [One-edge Normal Ruled](docs/validation/surface-ruled.md) now makes an editable open flange from a retained planar boundary edge, with 0° normal and public-evidenced 120° numeric input. Independent app and B-rep geometry/history checks pass. Native physical selection and canvas distance/angle handles remain SRF-044.
