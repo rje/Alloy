@@ -1818,7 +1818,7 @@ QJsonObject CadDocument::filletCandidate(const QJsonObject& authored,const QJson
     const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
 }
 QJsonObject CadDocument::chamferCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
-    const QSet<QString> allowed{"targetBodyId","edgeIds","distanceMm","name","featureId","newFeatureId","ownerId"};
+    const QSet<QString> allowed{"targetBodyId","edgeIds","distanceMm","mode","distanceOneMm","distanceTwoMm","referenceFace","flip","name","featureId","newFeatureId","ownerId"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Chamfer argument");
     if(arguments.contains("featureId") && arguments.contains("newFeatureId"))throw std::invalid_argument("Choose existing or new Chamfer identity");
     auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
@@ -1827,7 +1827,12 @@ QJsonObject CadDocument::chamferCandidate(const QJsonObject& authored,const QJso
         if(index<0 || feature["type"]!="chamfer")throw std::invalid_argument("Chamfer feature unavailable");
     } else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","chamfer"},{"name","Chamfer"},{"visible",true}};
     if(arguments.contains("name"))feature["name"]=arguments["name"];
-    feature["parameters"]=QJsonObject{{"targetBodyId",arguments["targetBodyId"]},{"edgeIds",arguments["edgeIds"]},{"distanceMm",arguments["distanceMm"]}};
+    auto p=feature["parameters"].toObject();
+    for(const auto& key:{"targetBodyId","edgeIds","distanceMm","mode","distanceOneMm","distanceTwoMm","referenceFace","flip"})if(arguments.contains(key))p[key]=arguments[key];
+    if(p.contains("mode") && p["mode"]!="twoDistance" && p["mode"]!="equalDistance")throw std::invalid_argument("Unsupported Chamfer mode");
+    if(p["mode"]=="twoDistance"){p.remove("distanceMm");if(!p.contains("flip"))p["flip"]=false;}
+    else {p.remove("mode");for(const auto& key:{"distanceOneMm","distanceTwoMm","referenceFace","flip"})p.remove(key);}
+    feature["parameters"]=p;
     if(index>=0)features[index]=feature;else features.append(feature);candidate["features"]=features;
     const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
 }
@@ -2718,9 +2723,16 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             continue;
         }
         if(type=="chamfer") {
-            if(feature.contains("bodyId") || p.size()!=3 || !validId(p["targetBodyId"].toString()) || !p["edgeIds"].isArray() || p["edgeIds"].toArray().isEmpty() || p["edgeIds"].toArray().size()>100)return "Chamfer requires one target, edge references";
+            const bool two=p["mode"]=="twoDistance";
+            if(feature.contains("bodyId") || p.size()!=(two ? 7:3) || !validId(p["targetBodyId"].toString()) || !p["edgeIds"].isArray() || p["edgeIds"].toArray().isEmpty() || p["edgeIds"].toArray().size()>100)return "Chamfer requires one target, edge references";
             QSet<QString> edges;for(const auto& edge:p["edgeIds"].toArray()){if(!edge.isString() || !validId(edge.toString()) || edges.contains(edge.toString()))return "Chamfer edge references must be distinct stable UUIDs";edges.insert(edge.toString());}
+            if(two) {
+                const auto face=p["referenceFace"].toObject();
+                if(p["edgeIds"].toArray().size()!=1 || !p["flip"].isBool() || face.size()!=3 || !validId(face["bodyId"].toString()) || face["bodyId"]!=p["targetBodyId"] || !validId(face["faceId"].toString()) || !validId(face["producerFeatureId"].toString()))return "Two Distance Chamfer requires one edge and an explicit retained adjacent referenceFace";
+                for(const auto& key:{"distanceOneMm","distanceTwoMm"})if(!p[key].isDouble() || !std::isfinite(p[key].toDouble()) || p[key].toDouble()<=0 || p[key].toDouble()>100000)return "Both Chamfer distances must be finite positive mm lengths";
+            } else {
             if(!p["distanceMm"].isDouble() || !std::isfinite(p["distanceMm"].toDouble()) || p["distanceMm"].toDouble()<0.001 || p["distanceMm"].toDouble()>100000)return "Chamfer distance must be 0.001..100000 mm";
+            }
             continue;
         }
         if(type=="rectangularPattern") {

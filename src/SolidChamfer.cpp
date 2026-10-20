@@ -175,17 +175,37 @@ void SolidChamfer::evaluate(EvaluatedBody& body,const QJsonObject& parameters,co
     auto fail=[&](const QString& code,const QString& message,const QString& edgeId=QString{}) {
         throw GeometryKernel::EvaluationError({{"code",code},{"message",message},{"featureId",featureId},{"targetBodyId",body.bodyId},{"edgeId",edgeId}});
     };
+    const bool two=parameters["mode"]=="twoDistance";
     BRepFilletAPI_MakeChamfer builder(body.shape);
     for(const auto& value:parameters["edgeIds"].toArray()) {
         const auto id=value.toString();
         const auto edge=std::find_if(body.solidEdges.begin(),body.solidEdges.end(),[&](const auto& item){return item.edgeId==id;});
         if(edge==body.solidEdges.end())fail("chamfer_edge_unavailable","Authored edge provenance is no longer present",id);
         if(edge->edge.IsNull())fail("chamfer_edge_"+edge->provenance["resolutionError"].toString("unavailable"),"Authored edge was deleted or has ambiguous descendants",id);
-        builder.Add(parameters["distanceMm"].toDouble(),edge->edge);
+        if(two) {
+            if(parameters["edgeIds"].toArray().size()!=1 || edge->provenance["role"]!="endRim" || BRepAdaptor_Curve(edge->edge).GetType()!=GeomAbs_Line)
+                fail("chamfer_unsupported_edge","Two Distance requires one retained straight end rim edge",id);
+            TopTools_IndexedDataMapOfShapeListOfShape incidence;
+            TopExp::MapShapesAndAncestors(body.shape,TopAbs_EDGE,TopAbs_FACE,incidence);
+            TopTools_IndexedMapOfShape adjacent;
+            if(incidence.Contains(edge->edge))for(const auto& f:incidence.FindFromKey(edge->edge))adjacent.Add(f);
+            if(adjacent.Extent()!=2)fail("chamfer_unsupported_faces","Two Distance requires two incident planar faces",id);
+            BRepAdaptor_Surface a(TopoDS::Face(adjacent(1))),b(TopoDS::Face(adjacent(2)));
+            if(a.GetType()!=GeomAbs_Plane || b.GetType()!=GeomAbs_Plane || std::abs(a.Plane().Axis().Direction().Dot(b.Plane().Axis().Direction()))>1e-7)
+                fail("chamfer_unsupported_faces","Two Distance requires perpendicular incident planes",id);
+            const auto reference=parameters["referenceFace"].toObject();
+            auto face=std::find_if(body.supportFaces.begin(),body.supportFaces.end(),[&](const auto& f){return f.faceId==reference["faceId"].toString() && f.producerFeatureId==reference["producerFeatureId"].toString() && f.bodyId==reference["bodyId"].toString();});
+            if(face==body.supportFaces.end() || face->face.IsNull() || !adjacent.Contains(face->face))fail("chamfer_reference_face_unavailable","Reference face must be a current retained face incident to the exact edge",id);
+            double d1=parameters["distanceOneMm"].toDouble(),d2=parameters["distanceTwoMm"].toDouble();
+            if(!std::isfinite(d1) || !std::isfinite(d2) || d1<=0 || d2<=0)fail("chamfer_invalid_distance","Two Distance requires finite positive lengths",id);
+            if(parameters["flip"].toBool())std::swap(d1,d2);
+            builder.Add(d1,d2,edge->edge,face->face);
+            if(builder.NbContours()!=1 || builder.NbEdges(1)!=1)fail("chamfer_tangent_propagation","Two Distance supports exactly the selected edge without tangent propagation",id);
+        } else builder.Add(parameters["distanceMm"].toDouble(),edge->edge);
     }
     builder.Build();
     std::unique_ptr<BRepAlgoAPI_Fuse> fallback;
-    if(!builder.IsDone() && parameters["edgeIds"].toArray().size()==1) {
+    if(!two && !builder.IsDone() && parameters["edgeIds"].toArray().size()==1) {
         const auto id=parameters["edgeIds"].toArray().first().toString();
         const auto edge=std::find_if(body.solidEdges.begin(),body.solidEdges.end(),[&](const auto& item){return item.edgeId==id;});
         fallback=planarConcaveFallback(body.shape,edge->edge,parameters["distanceMm"].toDouble());
@@ -195,9 +215,10 @@ void SolidChamfer::evaluate(EvaluatedBody& body,const QJsonObject& parameters,co
     const auto result=operation.Shape();auto summary=GeometryKernel::summarize(result);
     if(!summary["valid"].toBool() || !summary["closed"].toBool() || summary["topology"].toObject()["solids"].toInt()!=1 || summary["volumeMm3"].toDouble()<=0)
         fail("chamfer_invalid_result","Chamfer must produce one valid closed solid");
+    if(two && std::abs(summary["volumeMm3"].toDouble()-volume(body.shape))<=1e-7)fail("chamfer_unchanged_result","Chamfer must change the exact solid");
     auto caps=PlanarFaces::transfer(operation,body.supportFaces,result);
     auto edges=SolidFillet::transferEdges(operation,body.solidEdges,result,true);
     body.shape=result;body.supportFaces=caps;body.solidEdges=std::move(edges);
     QJsonArray capValues;for(const auto& cap:caps)capValues.append(QJsonObject{{"faceId",cap.faceId},{"bodyId",cap.bodyId},{"producerFeatureId",cap.producerFeatureId},{"role",cap.role},{"planar",true},{"frame",cap.frame},{"edges",GeometryKernel::supportEdgeDescriptors(cap)}});
-    summary["chamferMethod"]=fallback ? "planarConcave" : "native";summary["supportFaces"]=capValues;summary["solidEdges"]=SolidFillet::descriptors(body.solidEdges);summary["lastModifierFeatureId"]=featureId;summary["producerFeatureId"]=body.featureId;summary["operation"]="chamfer";summary["distanceMm"]=parameters["distanceMm"];summary["selectedEdgeIds"]=parameters["edgeIds"];body.summary=summary;
+    summary["chamferMethod"]=fallback ? "planarConcave" : "native";summary["supportFaces"]=capValues;summary["solidEdges"]=SolidFillet::descriptors(body.solidEdges);summary["lastModifierFeatureId"]=featureId;summary["producerFeatureId"]=body.featureId;summary["operation"]="chamfer";summary["distanceMm"]=parameters["distanceMm"];summary["selectedEdgeIds"]=parameters["edgeIds"];if(two){summary.remove("distanceMm");for(const auto& key:{"mode","distanceOneMm","distanceTwoMm","referenceFace","flip"})summary[key]=parameters[key];}body.summary=summary;
 }
