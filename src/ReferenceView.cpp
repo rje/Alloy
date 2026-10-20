@@ -765,6 +765,8 @@ void ReferenceView::rebindDocument() {
     for(const auto& model:sketchModels_)context_->Remove(model,false);
     for(const auto& model:constructionSketchModels_)context_->Remove(model,false);
     for(const auto& model:centerlineSketchModels_)context_->Remove(model,false);
+    for(const auto& model:constructionPointModels_)context_->Remove(model,false);
+    constructionPointModels_.clear();constructionPointRevision_=std::numeric_limits<quint64>::max();
     for(const auto& model:constructionAxisModels_)context_->Remove(model,false);
     constructionAxisModels_.clear();constructionAxisRevision_=std::numeric_limits<quint64>::max();
     for(const auto& model:constructionPlaneModels_)context_->Remove(model,false);
@@ -1095,6 +1097,17 @@ void ReferenceView::setSketches(const std::vector<EvaluatedSketch>& sketches,qui
         }
     }
     sketchRevision_=revision;applyEditDisplay();
+}
+void ReferenceView::setConstructionPoints(const std::vector<EvaluatedConstructionPoint>& points,quint64 revision) {
+    if(context_.IsNull() || constructionPointRevision_==revision)return;
+    for(const auto& model:constructionPointModels_)context_->Remove(model,false);constructionPointModels_.clear();
+    for(const auto& point:points){if(!point.visible)continue;const auto xyz=point.point.value("positionMm").toArray();if(xyz.size()!=3)continue;
+        Handle(AIS_Point) model=new AIS_Point(new Geom_CartesianPoint(gp_Pnt(xyz[0].toDouble(),xyz[1].toDouble(),xyz[2].toDouble())));
+        const auto color=point.featureId=="point-preview"?Quantity_Color(0.10,0.34,0.84,Quantity_TOC_sRGB):Quantity_Color(0.90,0.48,0.08,Quantity_TOC_sRGB);
+        model->Attributes()->SetPointAspect(new Prs3d_PointAspect(Aspect_TOM_PLUS,color,5.0*devicePixelRatioF()));model->SetZLayer(Graphic3d_ZLayerId_Topmost);
+        context_->Display(model,0,-1,false);context_->Deactivate(model);constructionPointModels_[point.featureId]=model;
+    }
+    constructionPointRevision_=revision;context_->UpdateCurrentViewer();
 }
 void ReferenceView::setConstructionAxes(const std::vector<EvaluatedConstructionAxis>& axes,quint64 revision) {
     if(context_.IsNull() || constructionAxisRevision_==revision)return;

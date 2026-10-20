@@ -1,3 +1,4 @@
+#include "DatumPoint.h"
 #include "DatumAxis.h"
 #include "Scale.h"
 #include "Align.h"
@@ -1231,6 +1232,8 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
                 for(const auto& value:authored.value("occurrences").toArray())
                     if(value.toObject()["id"]==occurrenceId)current=true;
                 if(!current)reject("pin_occurrence_unavailable","Pin occurrence is unavailable");
+            } else if(type=="constructionPoint") {
+                evaluated.constructionPoints.push_back({id,feature.value("name").toString(),feature.value("visible").toBool(),DatumPoint::evaluate(evaluated,parameters,features),{}});
             } else if(type=="constructionAxis") {
                 evaluated.constructionAxes.push_back({id,feature.value("name").toString(),feature.value("visible").toBool(),DatumAxis::evaluate(evaluated,parameters.value("source").toObject(),features),{}});
             } else if(type=="constructionPlane") {
@@ -1782,6 +1785,7 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
         reject("reparent_sketch_unavailable","Reparented sketch is no longer available; repair or undo the upstream edit");
     for(auto& source:evaluated.surfaceTrimInputs){source.ownerId=bodyOwners.value(source.bodyId).toString(owners[source.featureId]);source.summary["ownerId"]=source.ownerId;}
     for(auto& plane:evaluated.constructionPlanes)plane.ownerId=owners[plane.featureId];
+    for(auto& point:evaluated.constructionPoints)point.ownerId=owners[point.featureId];
     for(auto& axis:evaluated.constructionAxes)axis.ownerId=owners[axis.featureId];
     return evaluated;
 }

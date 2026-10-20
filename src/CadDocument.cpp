@@ -1,3 +1,4 @@
+#include "DatumPoint.h"
 #include "DatumAxis.h"
 #include "Scale.h"
 #include "Align.h"
@@ -168,6 +169,12 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
     for (int i = 0; i < features.size(); ++i) positions[features[i].toObject()["id"].toString()] = i;
     for (int i = 0; i < features.size(); ++i) {
         const auto feature = features[i].toObject();
+        if(feature.value("type")=="constructionPoint") {
+            const auto source=feature.value("parameters").toObject().value("source").toObject();
+            if(source.contains("line")){const auto id=source.value("line").toObject().value("sketchId").toString();
+                if(!positions.contains(id) || positions.value(id)>=i || features[positions.value(id)].toObject().value("type")!="sketch")return {{"featureId",feature.value("id")},{"code","point_dependency_unavailable"},{"message","Point Line must be an earlier retained sketch"}};
+            }
+        }
         if(feature.value("type")=="constructionAxis") {
             const auto source=feature.value("parameters").toObject().value("source").toObject();
             const auto refs=source.contains("points") ? source.value("points").toArray() : QJsonArray{source.value("line")};
@@ -1489,6 +1496,7 @@ CadDocument::CandidateEvaluation CadDocument::prepareCandidate(const QJsonObject
                     body.visible=visibilityByFeature.value(body.featureId);
                 for(auto& sketch:updated->sketches)if(visibilityByFeature.contains(sketch.featureId))
                     sketch.visible=visibilityByFeature.value(sketch.featureId);
+                for(auto& point:updated->constructionPoints)if(visibilityByFeature.contains(point.featureId))point.visible=visibilityByFeature.value(point.featureId);
                 for(auto& axis:updated->constructionAxes)if(visibilityByFeature.contains(axis.featureId))axis.visible=visibilityByFeature.value(axis.featureId);
                 for(auto& plane:updated->constructionPlanes)if(visibilityByFeature.contains(plane.featureId))
                     plane.visible=visibilityByFeature.value(plane.featureId);
@@ -2764,6 +2772,11 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             if (!error.isEmpty()) return error;
             continue;
         }
+        if(type=="constructionPoint") {
+            if(feature.contains("bodyId"))return "Construction Points do not own bodies";
+            const auto error=DatumPoint::validate(p);if(!error.isEmpty())return error;
+            continue;
+        }
         if(type=="constructionAxis") {
             if(feature.contains("bodyId") || p.size()!=1 || !p.value("source").isObject())return "Axis requires one retained source and no body";
             const auto error=DatumAxis::validate(p.value("source").toObject());if(!error.isEmpty())return error;
@@ -3408,6 +3421,8 @@ QJsonObject CadDocument::state() const {
     }
     QJsonArray evaluatedPlanes;
     QJsonArray evaluatedAxes;
+    QJsonArray evaluatedPoints;
+    for(const auto& point:evaluation_->constructionPoints){auto row=point.point;row["featureId"]=point.featureId;row["ownerId"]=point.ownerId;row["name"]=point.name;row["visible"]=point.visible;evaluatedPoints.append(row);}
     for(const auto& axis:evaluation_->constructionAxes){auto row=axis.line;row["featureId"]=axis.featureId;row["ownerId"]=axis.ownerId;row["name"]=axis.name;row["visible"]=axis.visible;evaluatedAxes.append(row);}
     for(const auto& plane:evaluation_->constructionPlanes)evaluatedPlanes.append(QJsonObject{{"ownerId",plane.ownerId},{"featureId",plane.featureId},{"name",plane.name},{"visible",plane.visible},{"frame",plane.frame}});
     return {{"activeOwnerId",activeOwnerId()},{"components",authored_["components"].toArray()},{"occurrences",authored_["occurrences"].toArray()},{"namedViews",authored_["namedViews"].toArray()},{"homeCamera",authored_["homeCamera"].toObject()},{"viewConvention",authored_.value("viewConvention").toObject()},{"assembly",assemblyState()},{"userParameters",evaluatedLengthParameters(authored_)},{"modelParameters",modelLengthRows(authored_)},{"loaded", true}, {"id", authored_["documentId"]}, {"label", label()}, {"path",path_},
@@ -3416,7 +3431,7 @@ QJsonObject CadDocument::state() const {
         {"lastTransactionId", lastTransaction_},
         {"features", authored_["features"].toArray().size()}, {"bodies",static_cast<int>(evaluation_->bodies.size())}, {"sketches", static_cast<int>(evaluation_->sketches.size())},
         {"evaluation",QJsonObject{{"status","current"},{"recompute",evaluation_->recompute},{"featureOrder",order},{"featureStates",evaluation_->featureStates},{"joinBodyResults",evaluation_->joinBodyResults},
-            {"documentRevision",static_cast<qint64>(revision_)},{"bodies",evaluated},{"sketches",evaluatedSketches},{"constructionPlanes",evaluatedPlanes},{"constructionAxes",evaluatedAxes}}},
+            {"documentRevision",static_cast<qint64>(revision_)},{"bodies",evaluated},{"sketches",evaluatedSketches},{"constructionPlanes",evaluatedPlanes},{"constructionAxes",evaluatedAxes},{"constructionPoints",evaluatedPoints}}},
         {"rollback",rollbackState()}, {"editableHistory", !isRolledBack()}, {"authored", authored_},
         {"undo", QJsonObject{{"canUndo", history_.canUndo()}, {"canRedo", history_.canRedo()},
             {"count", history_.count()}, {"index", history_.index()},

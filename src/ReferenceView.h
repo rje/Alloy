@@ -107,6 +107,7 @@ public:
     void setBodyStage(const std::vector<EvaluatedBody>& bodies, const QString& stageKey);
     void clearBodyStage();
     void setSketches(const std::vector<EvaluatedSketch>& sketches, quint64 revision);
+    void setConstructionPoints(const std::vector<EvaluatedConstructionPoint>& points, quint64 revision);
     void setConstructionAxes(const std::vector<EvaluatedConstructionAxis>& axes, quint64 revision);
     void setConstructionPlanes(const std::vector<EvaluatedConstructionPlane>& planes, quint64 revision);
     void selectConstructionPlane(const QString& planeId);
@@ -351,6 +352,8 @@ private:
     QJsonObject slotPointDrag_,sketchLineArcDrag_;
     QMap<QString,Handle(AIS_Shape)> constructionSketchModels_, centerlineSketchModels_;
     QMap<QString,Handle(AIS_Shape)> constructionPlaneModels_;
+    QMap<QString,Handle(AIS_Point)> constructionPointModels_;
+    quint64 constructionPointRevision_ = 0;
     QMap<QString,Handle(AIS_Shape)> constructionAxisModels_;
     quint64 constructionAxisRevision_ = 0;
     std::vector<EvaluatedConstructionPlane> constructionPlanes_;
