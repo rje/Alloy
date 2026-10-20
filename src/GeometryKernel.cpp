@@ -33,6 +33,7 @@
 #include "SolidThicken.h"
 #include "SolidRevolve.h"
 #include "SolidSweep.h"
+#include "SolidPipe.h"
 #include "FeaturePattern.h"
 #include "JoinRootEdges.h"
 #include "SolidMirror.h"
@@ -1371,6 +1372,9 @@ EvaluatedDocument GeometryKernel::evaluateDocument(const QJsonObject& authored,c
             } else if(type=="sweep") {
                 QJsonObject source;for(const auto& entry:authored["features"].toArray())if(entry.toObject()["id"]==parameters["pathSketchId"])source=entry.toObject();
                 evaluated.bodies.push_back(SolidSweep::evaluate(feature,evaluated,source));
+            } else if(type=="pipe") {
+                QJsonObject source;for(const auto& entry:authored["features"].toArray())if(entry.toObject()["id"]==parameters["pathSketchId"])source=entry.toObject();
+                evaluated.bodies.push_back(SolidPipe::evaluate(feature,evaluated,source));
             } else if(type=="revolve") {
                 QJsonObject source;for(const auto& entry:authored["features"].toArray())if(entry.toObject()["id"]==parameters["sketchId"])source=entry.toObject();
                 evaluated.bodies.push_back(SolidRevolve::evaluate(feature,evaluated,source));

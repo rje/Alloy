@@ -648,6 +648,10 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
             const auto source=feature["parameters"].toObject()[field].toString();if(positions.contains(source) && positions.value(source)<i && features[positions.value(source)].toObject()["type"]=="sketch")continue;
             return QJsonObject{{"code",!positions.contains(source)?"missing_dependency":positions.value(source)>=i?"forward_dependency":"unsupported_dependency"},{"message","Sweep sources must be earlier retained sketches"},{"featureId",feature["id"]},{"featureType","sweep"},{"input",field},{"sketchId",source}};
         }
+        if(feature["type"]=="pipe")for(const auto& field:{"pathSketchId"}) {
+            const auto source=feature["parameters"].toObject()[field].toString();if(positions.contains(source) && positions.value(source)<i && features[positions.value(source)].toObject()["type"]=="sketch")continue;
+            return QJsonObject{{"code",!positions.contains(source)?"missing_dependency":positions.value(source)>=i?"forward_dependency":"unsupported_dependency"},{"message","Pipe sources must be earlier retained sketches"},{"featureId",feature["id"]},{"featureType","pipe"},{"input",field},{"sketchId",source}};
+        }
         if (feature["type"] != "extrude" && feature["type"] != "revolve") continue;
         const auto parameters = feature["parameters"].toObject();
         const auto source = parameters["sketchId"].toString(), id = feature["id"].toString();
@@ -1915,6 +1919,18 @@ QJsonObject CadDocument::sweepCandidate(const QJsonObject& authored,const QJsonO
     if(arguments.contains("name"))feature["name"]=arguments["name"];if(index<0)features.append(feature);else features[index]=feature;candidate["features"]=features;const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
 }
 
+QJsonObject CadDocument::pipeCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
+    const QSet<QString> allowed{"ownerId","diameterMm","wallThicknessMm","pathSketchId","pathEntityIds","pathStartPointId","extent","orientation","operation","name","featureId","newFeatureId","newBodyId"};
+    for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Pipe argument");
+    if(arguments.contains("featureId") && (arguments.contains("newFeatureId") || arguments.contains("newBodyId")))throw std::invalid_argument("Choose existing or reserved Pipe identities");
+    if(!arguments.contains("featureId") && arguments.contains("newFeatureId")!=arguments.contains("newBodyId"))throw std::invalid_argument("Reserve Pipe feature and body identities together");
+    auto candidate=authored;auto features=candidate["features"].toArray();QJsonObject feature;int index=-1;
+    if(arguments.contains("featureId")){for(int i=0;i<features.size();++i)if(features[i].toObject()["id"]==arguments["featureId"]){feature=features[i].toObject();index=i;break;}if(index<0 || feature["type"]!="pipe")throw std::invalid_argument("Pipe feature unavailable");}
+    else feature={{"id",arguments.value("newFeatureId").toString(newId())},{"bodyId",arguments.value("newBodyId").toString(newId())},{"ownerId",arguments.value("ownerId").toString(authored["documentId"].toString())},{"type","pipe"},{"name","Pipe"},{"visible",true}};
+    feature["parameters"]=QJsonObject{{"diameterMm",arguments["diameterMm"]},{"wallThicknessMm",arguments["wallThicknessMm"]},{"pathSketchId",arguments["pathSketchId"]},{"pathEntityIds",arguments["pathEntityIds"]},{"pathStartPointId",arguments["pathStartPointId"]},{"extent",arguments.contains("extent")?arguments["extent"]:QJsonValue("full")},{"orientation",arguments.contains("orientation")?arguments["orientation"]:QJsonValue("perpendicular")},{"operation",arguments.contains("operation")?arguments["operation"]:QJsonValue("newBody")}};
+    if(arguments.contains("name"))feature["name"]=arguments["name"];if(index<0)features.append(feature);else features[index]=feature;candidate["features"]=features;const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
+}
+
 QJsonObject CadDocument::revolveCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
     const QSet<QString> allowed{"ownerId","sketchId","profileId","axisEntityId","extent","angleDeg","name","featureId","newFeatureId","newBodyId"};
     for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown Revolve argument");
@@ -2963,6 +2979,16 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             if(!p["pathEntityIds"].isArray() || p["pathEntityIds"].toArray().isEmpty() || p["pathEntityIds"].toArray().size()>1000)return "Sweep requires an ordered retained path";
             QSet<QString> path;for(const auto& id:p["pathEntityIds"].toArray()){if(!id.isString() || !validId(id.toString()) || path.contains(id.toString()))return "Sweep path entities must be distinct UUIDs";path.insert(id.toString());}
             if(p["extent"]!="full" || p["orientation"]!="perpendicular" || p["operation"]!="newBody")return "Sweep supports Full Perpendicular New Body only";
+            ids.insert(feature["bodyId"].toString());continue;
+        }
+        if(type=="pipe") {
+            if(!validId(feature["bodyId"].toString()) || ids.contains(feature["bodyId"].toString()) || p.size()!=8)return "Pipe requires a distinct body and exact supported parameters";
+            for(const auto& key:{"pathSketchId","pathStartPointId"})if(!p[key].isString() || !validId(p[key].toString()))return "Pipe requires stable profile/path/start identities";
+            if(!p["pathEntityIds"].isArray() || p["pathEntityIds"].toArray().isEmpty() || p["pathEntityIds"].toArray().size()>1000)return "Pipe requires an ordered retained path";
+            QSet<QString> path;for(const auto& id:p["pathEntityIds"].toArray()){if(!id.isString() || !validId(id.toString()) || path.contains(id.toString()))return "Pipe path entities must be distinct UUIDs";path.insert(id.toString());}
+            if(p["extent"]!="full" || p["orientation"]!="perpendicular" || p["operation"]!="newBody")return "Pipe supports Full Perpendicular New Body only";
+            const auto diameter=p["diameterMm"].toDouble(),wall=p["wallThicknessMm"].toDouble();
+            if(!p["diameterMm"].isDouble() || !p["wallThicknessMm"].isDouble() || !std::isfinite(diameter) || !std::isfinite(wall) || diameter<=0 || wall<=0 || 2*wall>=diameter)return "Pipe requires a finite positive diameter and 0 < wall < diameter/2";
             ids.insert(feature["bodyId"].toString());continue;
         }
         if(type=="revolve") {

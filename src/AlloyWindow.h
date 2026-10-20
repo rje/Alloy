@@ -329,6 +329,14 @@ private:
     void showPattern();
     QDockWidget* patternDock_=nullptr;
     QShortcut* patternEscape_=nullptr;
+    QJsonObject pipeCandidate(const QJsonObject& inputs) const;
+    QJsonObject beginPipe(const QJsonObject& inputs);
+    QJsonObject previewPipe();
+    void showPipe();
+    void refreshPipeControls();
+    void displayPipeSelection();
+    QDockWidget* pipeDock_=nullptr;
+    QShortcut* pipeEscape_=nullptr;
     QJsonObject sweepCandidate(const QJsonObject& inputs) const;
     QJsonObject beginSweep(const QJsonObject& inputs);
     QJsonObject previewSweep();
