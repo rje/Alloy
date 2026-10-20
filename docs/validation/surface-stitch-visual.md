@@ -78,4 +78,10 @@ No proprietary application was operated. This is an Alloy before/after visual
 correction, not matched public-reference parity. No physical/native actual-hit,
 effective DPR1, Windows/Linux GPU runtime or broad Stitch replacement claim is
 made. Private validation instances exited cleanly; user-owned PID72618 was preserved.
-Independent compatibility review remains a separate acceptance step.
+Independent Sol read-only review accepted commit `48cc314` for the bounded
+fill-striping correction. It checked renderer-only scope, original-fixture
+before/after captures, fill restoration/Cancel/resize evidence, unchanged
+authored/evaluated geometry except the expected revision counter, the focused
+CTest and 163-call real-app fixture, and all 32 external manifest hashes.
+The reviewer explicitly did not accept seam legibility; [SRF-059/#719](../backlog/github.md)
+preserves that visual remainder before SRF-057 native acceptance.

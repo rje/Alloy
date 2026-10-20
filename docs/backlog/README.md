@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **715 issues**: **564 implementation, 24 research,
+The current local backlog contains **716 issues**: **565 implementation, 24 research,
 6 research/design, 22 epics, and 99 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 [Connected-Line Surface Revolve](../validation/surface-revolve-chain.md) accepts
@@ -15,8 +15,8 @@ the joined-Line first-v1 minimum under SRF-037/#660. Canvas selection and angle
 drag remain SRF-036/#659; later Line/Arc chains are SRF-055/#715.
 [Two-sheet Surface Stitch](../validation/surface-stitch.md) accepts the bounded
 open-shell core/API under SRF-056/#716; native actual-hit and sub-tolerance
-preview appearance remain SRF-057/#717, with the observed striping split to
-SRF-058/#718.
+preview appearance remain SRF-057/#717. [The fill-striping fix](../validation/surface-stitch-visual.md)
+is accepted under SRF-058/#718; seam legibility remains SRF-059/#719.
 SKT-097/#502 accepts a bounded retained rectangular sketch-circle pattern and
 shared ownership foundation; SKT-177/#700 accepts circular Full/Angle patterns.
 Familiar rectangular canvas picks/manipulators are accepted under SKT-178/#701;

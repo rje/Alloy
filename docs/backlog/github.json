@@ -3576,6 +3576,11 @@
     "SRF-058": {
       "number": 718,
       "url": "https://github.com/rje/Alloy/issues/718",
+      "state": "closed"
+    },
+    "SRF-059": {
+      "number": 719,
+      "url": "https://github.com/rje/Alloy/issues/719",
       "state": "open"
     }
   }
