@@ -1,16 +1,21 @@
 # Alloy
 
+[Responsive native STL preparation](docs/validation/responsive-stl-import.md)
+now keeps a 200,000-facet import responsive while loading, reports phases and
+supports pending Cancel. Bounded DPR2 actual-hit and exact source-independent
+geometry pass; the final strict DPR1/OS focus path remains XCH-022/#731.
+
 [Native STL ready preview](docs/validation/native-stl-import.md) now exposes
 File > Import Mesh, mm/in bounds and facet count, GPU preview, Cancel and shared
 commit into a retained mesh. API, exact geometry and bounded Mac panel evidence
-pass independent review. Responsive in-flight loading and strict OS chooser
-input/focus remain XCH-021/#730 and XCH-022/#731 before cumulative acceptance.
+pass independent review. XCH-021/#730 accepts responsive loading, while strict
+OS chooser routing and DPR1 focus remain XCH-022/#731.
 
 [Retained STL mesh presentation](docs/validation/retained-mesh-presentation.md)
 now shows imported facets as a selectable GPU mesh with a distinct Browser row,
 visibility, fit and source-independent reopen. Mixed solid/mesh selection and
-effective DPR1/2 Mac captures pass bounded review. The native file chooser and
-import preview remain XCH-019/#728; OBJ remains XCH-017/#724.
+effective DPR1/2 Mac captures pass bounded review. Ready-preview implementation
+is accepted under XCH-019/#728; OBJ remains XCH-017/#724.
 
 [Shared multi-body selection](docs/validation/body-selection-set.md) now passes
 bounded native/API verification for Body Priority, Browser and modifier clicks,

@@ -34,6 +34,11 @@ remedy in a native warning; no panel or authored mesh is left behind.
 
 ## Loading boundary
 
+This section records the XCH-019 candidate as accepted on 2026-10-21.
+[XCH-021](responsive-stl-import.md) subsequently moved preparation to a
+cancellable worker with a measured responsive pending panel. XCH-022 still owns
+strict DPR1/OS chooser input and focus qualification.
+
 STL reading/decoding, scaling/quality validation and final document validation
 remain synchronous UI-thread operations. The panel appears after initial loading;
 there is no responsive loading screen, progress or in-flight Cancel. Cancel is

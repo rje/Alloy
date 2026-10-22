@@ -17,8 +17,9 @@ accepts separate Browser/GPU mesh identity, selection and visibility.
 chooser product/ready-preview workflow, with strict OS chooser input excluded.
 Cumulative native XCH-016/#723, strict OBJ XCH-017/#724 and measured
 repeat-validation cost XCH-020/#729 remain open.
-XCH-021 tracks responsive, in-flight cancellable STL loading before cumulative
-native acceptance; ready-preview Cancel stays in XCH-019.
+[XCH-021/#730](../validation/responsive-stl-import.md) accepts bounded
+responsive, in-flight cancellable STL loading and exact prepared commit;
+ready-preview Cancel is covered by XCH-019.
 XCH-022 retains strict PID-safe OS chooser and popup-readiness input evidence;
 earlier delay-based chooser runs do not close that gate.
 [Connected-Line Surface Revolve](../validation/surface-revolve-chain.md) accepts
