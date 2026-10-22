@@ -12,9 +12,11 @@ The current local backlog contains **728 issues**: **575 implementation, 25 rese
 Use the live issue state for completion and readiness.
 [XCH-015/#722](../validation/retained-stl-import.md) accepts strict retained STL
 core/API import; [XCH-018/#727](../validation/retained-mesh-presentation.md)
-accepts separate Browser/GPU mesh identity, selection and visibility. Native
-chooser/preview XCH-019/#728, cumulative native XCH-016/#723, strict OBJ
-XCH-017/#724 and measured repeat-validation cost XCH-020/#729 remain Todo.
+accepts separate Browser/GPU mesh identity, selection and visibility.
+[XCH-019/#728](../validation/native-stl-import.md) accepts the bounded native
+chooser product/ready-preview workflow, with strict OS chooser input excluded.
+Cumulative native XCH-016/#723, strict OBJ XCH-017/#724 and measured
+repeat-validation cost XCH-020/#729 remain open.
 XCH-021 tracks responsive, in-flight cancellable STL loading before cumulative
 native acceptance; ready-preview Cancel stays in XCH-019.
 XCH-022 retains strict PID-safe OS chooser and popup-readiness input evidence;

@@ -1,5 +1,11 @@
 # Alloy
 
+[Native STL ready preview](docs/validation/native-stl-import.md) now exposes
+File > Import Mesh, mm/in bounds and facet count, GPU preview, Cancel and shared
+commit into a retained mesh. API, exact geometry and bounded Mac panel evidence
+pass independent review. Responsive in-flight loading and strict OS chooser
+input/focus remain XCH-021/#730 and XCH-022/#731 before cumulative acceptance.
+
 [Retained STL mesh presentation](docs/validation/retained-mesh-presentation.md)
 now shows imported facets as a selectable GPU mesh with a distinct Browser row,
 visibility, fit and source-independent reopen. Mixed solid/mesh selection and

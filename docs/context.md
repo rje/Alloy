@@ -14,10 +14,12 @@ core/API import with original geometry, diagnostics, source-independent reopen
 and measured capacity. [XCH-018/#727](validation/retained-mesh-presentation.md)
 accepts distinct Browser/GPU mesh presentation, whole-mesh selection/visibility,
 source-independent reopen and effective DPR1/2 Mac native captures after
-independent reviews. XCH-019 native chooser/ready preview is next;
-XCH-021 then owns responsive in-flight loading/Cancel before cumulative XCH-016.
-XCH-022 retains strict PID-safe native chooser/popup input qualification after
-the earlier delay-based test proved insufficient; it is also required for XCH-016.
+independent reviews. [XCH-019/#728](validation/native-stl-import.md) accepts the
+native chooser product entry and bounded ready-preview/API/Qt panel workflow;
+strict OS chooser routing is explicitly unqualified. XCH-021 owns responsive
+in-flight loading/Cancel before cumulative XCH-016. XCH-022 retains PID-safe
+chooser/popup and DPR1/2 focus/input qualification after the earlier delay-based
+test proved insufficient; it is also required for XCH-016.
 XCH-020 records the measured subsequent-Box cost.
 The [printable bench-vise capstone](v1/capstone-candidate.md) is a researched
 proposal, not a selected release gate; detailed public references remain outside
