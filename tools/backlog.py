@@ -46,6 +46,8 @@ def load_backlog():
         for field in ("key", "title", "kind", "phase", "priority", "body"):
             if not isinstance(issue.get(field), str) or not issue[field].strip():
                 raise ValueError(f"{issue.get('key')}: missing/non-string {field}")
+        if issue["body"].startswith("<!-- alloy-backlog:"):
+            raise ValueError(f"{issue['key']}: body includes a publication header; keep only issue content")
         if not re.fullmatch(r"[A-Za-z0-9_-]+", issue["key"]):
             raise ValueError(f"Invalid key: {issue['key']}")
         if issue["kind"] not in KINDS:
