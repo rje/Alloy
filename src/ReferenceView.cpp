@@ -3054,18 +3054,30 @@ void ReferenceView::fit(const std::vector<EvaluatedBody>& bodies,const std::vect
     viewCenter_=sceneCenter_;zoom=1;pan={};sync();
 }
 void ReferenceView::selectBody(const QString& id,const QString& occurrenceId) {
-    // refreshUI reapplies an empty body cue while a finished point is selected.
-    // Actual clear/sketch/profile picks clear through selectProfiles instead.
-    if(!id.isEmpty() && !selectedFinishedPoint_.isEmpty()){selectedFinishedPoint_={};applyEditDisplay(false);}
+    QJsonArray members;QString resolved=occurrenceId;
+    if(!id.isEmpty() && occurrenceId.isEmpty()){
+        int matches=0;for(const auto& ref:modelReferences_)if(ref["bodyId"]==id){++matches;resolved=ref.value("occurrenceId").toString();}
+        if(matches!=1){selectBodies({});return;}
+    }
+    if(!id.isEmpty())members.append(QJsonObject{{"bodyId",id},{"occurrenceId",resolved}});
+    selectBodies(members);
+}
+void ReferenceView::selectBodies(const QJsonArray& members) {
+    if(!members.isEmpty() && !selectedFinishedPoint_.isEmpty()){selectedFinishedPoint_={};applyEditDisplay(false);}
     if(context_.IsNull())return;
     context_->ClearSelected(false);
-    QString selected;for(auto it=modelReferences_.begin();it!=modelReferences_.end();++it){
-        const auto ref=it.value();if(ref["bodyId"]!=id || (!occurrenceId.isEmpty() && ref["occurrenceId"]!=occurrenceId))continue;
-        if(!selected.isEmpty()){selected.clear();break;}selected=it.key();
+    for(const auto& value:members){
+        const auto member=value.toObject();QString selected;
+        for(auto it=modelReferences_.begin();it!=modelReferences_.end();++it){
+            const auto ref=it.value();
+            if(ref["bodyId"]!=member["bodyId"] || ref.value("occurrenceId").toString()!=member.value("occurrenceId").toString())continue;
+            if(!selected.isEmpty()){selected.clear();break;}selected=it.key();
+        }
+        if(!selected.isEmpty())context_->AddOrRemoveSelected(models_.value(selected),false);
     }
-    if(!selected.isEmpty())context_->SetSelected(models_.value(selected),false);
     context_->UpdateCurrentViewer();
 }
+
 void ReferenceView::highlightCombineInputs(const QString& targetBodyId,const QJsonArray& toolBodyIds) {
     combineTargetId_=targetBodyId;combineToolIds_=toolBodyIds;
     if(context_.IsNull())return;

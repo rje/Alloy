@@ -1489,6 +1489,8 @@ if(BUILD_TESTING)
     add_executable(shoehorn_native_prefix_test tests/shoehorn_native_prefix.cpp)
     target_link_libraries(shoehorn_native_prefix_test PRIVATE alloy_application Qt6::Test)
     # Explicit GUI lease and evidence destination; never run in automatic CTest.
+    add_executable(body_selection_set_controls_test tests/body_selection_set_controls.cpp)
+    target_link_libraries(body_selection_set_controls_test PRIVATE alloy_application Qt6::Test)
     add_executable(selection_priority_controls_test tests/selection_priority_controls.cpp)
     target_link_libraries(selection_priority_controls_test PRIVATE alloy_application Qt6::Test)
     add_test(NAME midplane_controls COMMAND midplane_controls_test)

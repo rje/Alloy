@@ -982,6 +982,8 @@ private:
     QLabel* documentTitle_ = nullptr;
     QTabBar* documentTabBar_ = nullptr;
     QLabel* browserNote_ = nullptr;
+    QJsonArray selectedBodies_;
+    QJsonArray bodySelectionMembers() const;
     QString selectedBody_;
     QString selectedOccurrence_;
     void refreshZebra();
@@ -1044,6 +1046,7 @@ private:
         std::vector<SketchHistoryEntry> sketchHistory;
         int sketchHistoryIndex = -1;
         QString sketchHistoryGroup;
+        QJsonArray selectedBodies;
         QString selectedBody, selectedOccurrence, selectedSketch, selectedProfile, selectedPlane;
         QJsonObject selectedFace;
         QJsonArray selectedProfileIds;

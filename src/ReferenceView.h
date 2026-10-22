@@ -189,6 +189,7 @@ public:
     void clearSketchTextHandles();
     void fit(const std::vector<EvaluatedBody>& bodies, const std::vector<EvaluatedSketch>& sketches = {});
     void selectBody(const QString& id,const QString& occurrenceId = {});
+    void selectBodies(const QJsonArray& members);
     void recordContextMenu(const QJsonObject& state,bool shown = false);
     void highlightCombineInputs(const QString& targetBodyId, const QJsonArray& toolBodyIds);
     QString pickBody(double x,double y);

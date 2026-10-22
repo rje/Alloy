@@ -187,7 +187,14 @@ public:
     using QTreeWidget::QTreeWidget;
     std::function<bool(QTreeWidgetItem*,QTreeWidgetItem*)> moveRequested;
     std::function<void()> copyRequested,pasteRequested;
+    Qt::KeyboardModifiers clickModifiers=Qt::NoModifier;
 protected:
+    void mousePressEvent(QMouseEvent* event) override {
+        clickModifiers=event->modifiers();QTreeWidget::mousePressEvent(event);
+    }
+    void mouseReleaseEvent(QMouseEvent* event) override {
+        clickModifiers=event->modifiers();QTreeWidget::mouseReleaseEvent(event);
+    }
     void keyPressEvent(QKeyEvent* event) override {
         if(event->matches(QKeySequence::Copy) && copyRequested){copyRequested();event->accept();return;}
         if(event->matches(QKeySequence::Paste) && pasteRequested){pasteRequested();event->accept();return;}
@@ -1044,8 +1051,9 @@ AlloyWindow::AlloyWindow() {
         else if(!namedView.isEmpty())execute("view.namedRestore",{{"viewId",namedView}});
         else if(!name.isEmpty())execute("view.orientation",{{"name",name}});
         else if(!body.isEmpty()){
-            if(tree_->selectedItems().size()<=1)
-                execute("selection.set",{{"bodyId",body},{"occurrenceId",item->data(0,Qt::UserRole+8).toString()}});
+            const auto modifiers=static_cast<BrowserTree*>(tree_)->clickModifiers;
+            execute("selection.set",{{"bodyId",body},{"occurrenceId",item->data(0,Qt::UserRole+8).toString()},
+                {"operation",(modifiers.testFlag(Qt::ControlModifier) || modifiers.testFlag(Qt::MetaModifier)) ? "toggle" : modifiers.testFlag(Qt::ShiftModifier) ? "add" : "replace"}});
         }
         else if(!sketch.isEmpty())execute("selection.sketchSet",{{"sketchId",sketch}});
         else if(!plane.isEmpty())execute("selection.planeSet",{{"planeId",plane}});
@@ -1752,10 +1760,19 @@ QString AlloyWindow::tabSwitchBlocker() const {
     return {};
 }
 
+QJsonArray AlloyWindow::bodySelectionMembers() const {
+    // Legacy single-target commands use the last member as their primary body.
+    // A direct command-local primary change replaces the transient body set.
+    if(selectedBody_.isEmpty())return {};
+    const QJsonObject primary{{"bodyId",selectedBody_},{"occurrenceId",selectedOccurrence_}};
+    if(!selectedBodies_.isEmpty() && selectedBodies_.last()==primary)return selectedBodies_;
+    return {primary};
+}
+
 void AlloyWindow::saveActiveTabState() {
     for(auto& tab:designTabs_)if(tab->id==activeTabId_) {
         tab->session=session_;tab->sketchHistory=sketchHistory_;tab->sketchHistoryIndex=sketchHistoryIndex_;
-        tab->sketchHistoryGroup=sketchHistoryGroup_;tab->selectedBody=selectedBody_;tab->selectedOccurrence=selectedOccurrence_;
+        tab->sketchHistoryGroup=sketchHistoryGroup_;tab->selectedBodies=bodySelectionMembers();tab->selectedBody=selectedBody_;tab->selectedOccurrence=selectedOccurrence_;
         tab->selectedSketch=selectedSketch_;tab->selectedProfile=selectedProfile_;tab->selectedProfileIds=selectedProfileIds_;tab->selectedFace=selectedFace_;tab->selectedPlane=selectedPlane_;
         tab->camera=view_->cameraState();return;
     }
@@ -1821,7 +1838,7 @@ void AlloyWindow::showActiveTab() {
     view_->setViewConvention(document_->authored().value("viewConvention").toObject(),false);
     sketchHistory_=active->sketchHistory;sketchHistoryIndex_=active->sketchHistoryIndex;
     sketchHistoryGroup_=active->sketchHistoryGroup;
-    selectedBody_=active->selectedBody;selectedOccurrence_=active->selectedOccurrence;selectedSketch_=active->selectedSketch;selectedProfile_=active->selectedProfile;selectedProfileIds_=active->selectedProfileIds;selectedFace_=active->selectedFace;selectedPlane_=active->selectedPlane;
+    selectedBodies_=active->selectedBodies;selectedBody_=active->selectedBody;selectedOccurrence_=active->selectedOccurrence;selectedSketch_=active->selectedSketch;selectedProfile_=active->selectedProfile;selectedProfileIds_=active->selectedProfileIds;selectedFace_=active->selectedFace;selectedPlane_=active->selectedPlane;
     selectedEdge_={};view_->clearSolidEdgeHighlights();
     displayedDocumentRevision_=std::numeric_limits<quint64>::max();displayedSketchDraft_={};
     sketchWidgetDraft_={};sketchWidgetSelection_={};sketchWidgetUnits_.clear();pendingBrowserVisibility_.clear();
@@ -2171,7 +2188,7 @@ void AlloyWindow::registerCommands() {
         if (tabHasUnsavedWork(activeTabId_) && !a.value("discard").toBool()) return failure("unsaved_changes", "Save or explicitly discard the current document");
         if(!session_.isEmpty())finishSession(session_.value("id").toString(),false);
         document_->reset();view_->rebindDocument();displayedDocumentRevision_=std::numeric_limits<quint64>::max();
-        selectedBody_.clear();selectedOccurrence_.clear();selectedFace_={};selectedEdge_={};selectedPlane_.clear();view_->selectSupportFace({},{});view_->clearSolidEdgeHighlights();selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->fit({},{});return document_->state();
+        selectedBody_.clear();selectedBodies_={};selectedOccurrence_.clear();selectedFace_={};selectedEdge_={};selectedPlane_.clear();view_->selectSupportFace({},{});view_->clearSolidEdgeHighlights();selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->fit({},{});return document_->state();
     });
     auto path=parameter("string","Absolute native .alloy file path.");
     auto discard=optional(parameter("boolean","Explicitly discard unsaved edits."));
@@ -3061,7 +3078,7 @@ void AlloyWindow::registerCommands() {
         if(!error.isEmpty()){auto result=failure("evaluation_failed",error);auto detail=result["error"].toObject();
             detail["diagnostics"]=document_->lastEvaluationError();result["error"]=detail;return result;}
         if(selectedBody_==id || selectedFace_.value("bodyId")==id || selectedEdge_.value("bodyId")==id){
-            selectedBody_.clear();selectedFace_={};selectedEdge_={};view_->selectBody({});
+            selectedBody_.clear();selectedBodies_={};selectedFace_={};selectedEdge_={};view_->selectBody({});
             view_->selectSupportFace({},{});view_->clearSolidEdgeHighlights();
         }
         return QJsonObject{{"featureId",featureId},{"bodyId",id},{"document",document_->state()}};
@@ -3167,7 +3184,7 @@ void AlloyWindow::registerCommands() {
         for(const auto& body:document_->bodies())if(body.bodyId==targetBodyId)
             for(const auto& support:body.supportFaces)if(support.role=="faceOffset.end" && support.producerFeatureId==featureId){
                 selectedFace_={{"producerFeatureId",support.producerFeatureId},{"bodyId",body.bodyId},{"faceId",support.faceId}};
-                selectedBody_.clear();view_->selectBody({});view_->selectSupportFace(selectedFace_,support.face);break;
+                selectedBody_.clear();selectedBodies_={};view_->selectBody({});view_->selectSupportFace(selectedFace_,support.face);break;
             }
         return document_->state();
     });
@@ -5973,7 +5990,13 @@ void AlloyWindow::registerCommands() {
             return QJsonObject{{"mode",selectionPriority_},{"authoredChange",false}};
         });
     auto bodyId=parameter("string","Stable body UUID; empty string clears selection.");
-    add("selection.set","Select body","Select a visible body through the same path as the Browser.",{{"bodyId",bodyId},{"occurrenceId",optional(parameter("string","Exact local occurrence UUID when a definition has multiple instances."))}},[this](const auto& a){
+    auto bodyOperation=parameter("string","Transient body-set operation; clear ignores bodyId.");
+    bodyOperation["enum"]=QJsonArray{"replace","add","toggle","clear"};
+    add("selection.set","Select body","Select visible bodies through the shared Browser/canvas authority.",{{"bodyId",optional(bodyId)},{"operation",optional(bodyOperation)},{"occurrenceId",optional(parameter("string","Exact local occurrence UUID when a definition has multiple instances."))}},[this](const auto& args){
+        auto a=args;const auto operation=a.value("operation").toString("replace");
+        if(operation=="clear")a["bodyId"]="";
+        else if(!a.contains("bodyId"))return failure("invalid_arguments","bodyId is required for this operation","bodyId");
+        if(!session_.isEmpty() && operation!="replace")return failure("active_command","Use the active command's own selection picker");
         if(interferenceDialog_)return selectInterference(a);
         const auto id=a["bodyId"].toString(),requestedOccurrence=a.value("occurrenceId").toString();bool found=id.isEmpty();
         QString occurrence=requestedOccurrence;
@@ -6019,10 +6042,20 @@ void AlloyWindow::registerCommands() {
                 {"inputs",QJsonObject{{"targetBodyId",id},{"removedFace",QJsonObject{}}}}});
             if(!response["ok"].toBool())return response;return previewShell();
         }
-        selectedBody_=id;selectedOccurrence_=occurrence;selectedFace_={};selectedEdge_={};selectedPlane_.clear();view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->selectProfile({},{});view_->selectBody(id,occurrence);
+        auto members=operation=="add" || operation=="toggle" ? bodySelectionMembers() : QJsonArray{};
+        const QJsonObject member{{"bodyId",id},{"occurrenceId",occurrence}};
+        if(!id.isEmpty()){
+            int index=-1;for(int i=0;i<members.size();++i)if(members[i]==member){index=i;break;}
+            if(index>=0 && operation=="toggle")members.removeAt(index);
+            else if(index<0)members.append(member);
+        }
+        selectedBodies_=members;
+        const auto primary=members.isEmpty() ? QJsonObject{} : members.last().toObject();
+        selectedBody_=primary.value("bodyId").toString();selectedOccurrence_=primary.value("occurrenceId").toString();
+        selectedFace_={};selectedEdge_={};selectedPlane_.clear();view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->selectProfile({},{});view_->selectBodies(members);
         if(session_.isEmpty())view_->clearSolidEdgeHighlights();
-        QJsonObject result{{"bodyId",id},{"kind","body"}};
-        if(!occurrence.isEmpty())result["occurrenceId"]=occurrence;
+        QJsonObject result{{"bodyId",selectedBody_},{"kind","body"},{"members",members}};
+        if(!selectedOccurrence_.isEmpty())result["occurrenceId"]=selectedOccurrence_;
         return result;
     });
     add("selection.faceSet","Select planar face","Select a stable supported face for Create Sketch.",{{"support",supportIdentity}},[this](const auto& a){
@@ -6043,7 +6076,7 @@ void AlloyWindow::registerCommands() {
         const auto id=a["planeId"].toString();
         if(session_.value("command")=="solid.splitBody")return selectSplitPlane(id);
         for(const auto& plane:document_->evaluation().constructionPlanes)if(plane.featureId==id && plane.visible) {
-            selectedPlane_=id;selectedBody_.clear();selectedFace_={};selectedEdge_={};view_->clearSolidEdgeHighlights();view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};
+            selectedPlane_=id;selectedBody_.clear();selectedBodies_={};selectedFace_={};selectedEdge_={};view_->clearSolidEdgeHighlights();view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};
             view_->selectBody({});view_->selectProfile({},{});view_->selectConstructionPlane(id);return QJsonObject{{"kind","constructionPlane"},{"planeId",id},{"frame",plane.frame}};
         }
         return failure("plane_unavailable","Visible construction plane does not exist","planeId");
@@ -6055,7 +6088,7 @@ void AlloyWindow::registerCommands() {
     add("selection.sketchSet","Select sketch","Select a finished sketch through the same path as the Browser.",
         {{"sketchId",sketchIdentity}},[this](const auto& a){
             const auto id=a["sketchId"].toString();for(const auto& sketch:document_->sketches())if(sketch.featureId==id) {
-                selectedBody_.clear();selectedFace_={};selectedEdge_={};view_->clearSolidEdgeHighlights();selectedPlane_.clear();view_->selectSupportFace({},{});selectedSketch_=id;selectedProfile_.clear();selectedProfileIds_={};view_->selectBody({});view_->selectProfile(id,{});
+                selectedBody_.clear();selectedBodies_={};selectedFace_={};selectedEdge_={};view_->clearSolidEdgeHighlights();selectedPlane_.clear();view_->selectSupportFace({},{});selectedSketch_=id;selectedProfile_.clear();selectedProfileIds_={};view_->selectBody({});view_->selectProfile(id,{});
                 if((session_.value("command")=="solid.extrude" || session_.value("command")=="solid.loft") && sketch.profiles.size()==1)return selectFinishedProfile(id,sketch.profiles.front().profileId);
                 return QJsonObject{{"kind","sketch"},{"sketchId",id}};
             }
@@ -6081,8 +6114,8 @@ void AlloyWindow::registerCommands() {
             if(!session_.isEmpty())return failure("active_command","Use the active command's own edge picker");
             return selectSolidEdge(a["bodyId"].toString(),a["edgeId"].toString(),a.value("occurrenceId").toString());
         });
-    add("selection.pick","Pick body or region","Pick actual OCCT geometry at viewport-local coordinates; Shift adds sketch regions.",{{"x",point},{"y",point},{"additive",optional(parameter("boolean","Add a picked region in the current same-sketch selection."))},
-        {"toggle",optional(parameter("boolean","Toggle a picked region in the current same-sketch selection."))}},[this](const auto& a){
+    add("selection.pick","Pick body or region","Pick actual OCCT geometry; modifiers add/toggle bodies or supported sketch regions.",{{"x",point},{"y",point},{"additive",optional(parameter("boolean","Add a body or a picked region in the current same-sketch selection."))},
+        {"toggle",optional(parameter("boolean","Toggle a body or a picked region in the current same-sketch selection."))}},[this](const auto& a){
         if(interferenceDialog_)return selectInterference(view_->pickBodyReference(a["x"].toDouble(),a["y"].toDouble()));
         if(measureDialog_)return pickMeasure(a["x"].toDouble(),a["y"].toDouble());
         if(session_.isEmpty() && selectionPriority_=="edge"){
@@ -6094,10 +6127,13 @@ void AlloyWindow::registerCommands() {
             const auto hit=view_->pickSupportFace(a["x"].toDouble(),a["y"].toDouble(),presentationBodies());
             return hit.isEmpty() ? failure("unsupported_face","No supported planar face is at this point") : selectSupportFace(hit);
         }
-        if(session_.isEmpty() && selectionPriority_=="body"){
+        if(session_.isEmpty() && (selectionPriority_=="body" || (selectionPriority_=="auto" && (a.value("additive").toBool() || a.value("toggle").toBool()) && selectedProfileIds_.isEmpty()
+            && view_->pickFinishedProfile(a["x"].toDouble(),a["y"].toDouble()).isEmpty()
+            && !view_->pickBodyReference(a["x"].toDouble(),a["y"].toDouble()).isEmpty()))){
             const auto hit=view_->pickBodyReference(a["x"].toDouble(),a["y"].toDouble());
-            if(hit.isEmpty())return failure("body_unavailable","No visible body is at this point");
-            const auto selected=execute("selection.set",{{"bodyId",hit["bodyId"]},{"occurrenceId",hit["occurrenceId"]}});
+            const auto operation=a.value("toggle").toBool() ? "toggle" : a.value("additive").toBool() ? "add" : "replace";
+            if(hit.isEmpty() && QString(operation)!="replace")return QJsonObject{{"kind","body"},{"members",bodySelectionMembers()}};
+            const auto selected=execute("selection.set",{{"bodyId",hit.value("bodyId").toString()},{"occurrenceId",hit.value("occurrenceId").toString()},{"operation",operation}});
             return selected["ok"].toBool() ? selected["result"].toObject() : selected;
         }
         if(session_.value("command")=="solid.splitBody"){
@@ -6363,7 +6399,7 @@ void AlloyWindow::registerCommands() {
             if(session_.isEmpty()) {
                 const auto point=view_->pickFinishedPoint(a["x"].toDouble(),a["y"].toDouble());
                 if(!point.isEmpty()) {
-                    selectedBody_.clear();selectedFace_={};selectedEdge_={};view_->clearSolidEdgeHighlights();selectedPlane_.clear();selectedSketch_=point["sketchId"].toString();selectedProfile_.clear();selectedProfileIds_={};
+                    selectedBody_.clear();selectedBodies_={};selectedFace_={};selectedEdge_={};view_->clearSolidEdgeHighlights();selectedPlane_.clear();selectedSketch_=point["sketchId"].toString();selectedProfile_.clear();selectedProfileIds_={};
                     view_->selectBody({});view_->selectSupportFace({},{});view_->selectProfile({},{});view_->selectFinishedPoint(point);
                     return point;
                 }
@@ -6382,18 +6418,15 @@ void AlloyWindow::registerCommands() {
         }
         const auto profile=view_->pickFinishedProfile(a["x"].toDouble(),a["y"].toDouble());
         const auto bodyHit=selectingProfile ? QJsonObject{} : view_->pickBodyReference(a["x"].toDouble(),a["y"].toDouble());
-        selectedBody_=bodyHit["bodyId"].toString();selectedOccurrence_=bodyHit["occurrenceId"].toString();
-        if(!profile.isEmpty() && (selectingProfile || selectedBody_.isEmpty())) {
+        if(!profile.isEmpty() && (selectingProfile || bodyHit.value("bodyId").toString().isEmpty())) {
             const bool collect=selectingProfile && session_.value("inputs").toObject().value("distance").toDouble()==0.0
                 && !selectedProfileIds_.contains(profile.value("profileId"));
             return selectFinishedProfile(profile["sketchId"].toString(),profile["profileId"].toString(),
                 a.value("additive").toBool() || (!a.value("toggle").toBool() && collect),a.value("toggle").toBool());
         }
         if((a.value("additive").toBool() || a.value("toggle").toBool()) && !selectedProfileIds_.isEmpty())return QJsonObject{{"kind","profile"},{"sketchId",selectedSketch_},{"profileId",selectedProfile_},{"profileIds",selectedProfileIds_}};
-        selectedFace_={};selectedEdge_={};view_->clearSolidEdgeHighlights();selectedPlane_.clear();view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->selectProfile({},{});view_->selectBody(selectedBody_,selectedOccurrence_);
-        QJsonObject result{{"bodyId",selectedBody_},{"kind","body"}};
-        if(!selectedOccurrence_.isEmpty())result["occurrenceId"]=selectedOccurrence_;
-        return result;
+        const auto selected=execute("selection.set",{{"bodyId",bodyHit.value("bodyId").toString()},{"occurrenceId",bodyHit.value("occurrenceId").toString()}});
+        return selected["ok"].toBool() ? selected["result"].toObject() : selected;
     });
     add("view.projectBody","Project body center","Return actual OCCT projection for a body's center, in logical pixels.",{{"bodyId",bodyId},{"occurrenceId",optional(parameter("string","Exact linked occurrence UUID."))}},[this](const auto& a){
         const auto id=a["bodyId"].toString(),occurrence=a.value("occurrenceId").toString();
@@ -6840,7 +6873,7 @@ void AlloyWindow::registerCommands() {
             if(!error.isEmpty()) {auto result=failure("suppression_refused",error,"featureId");result["diagnostics"]=document_->lastEvaluationError();return result;}
             QJsonArray affected;const auto after=document_->evaluation().featureStates;
             for(auto it=after.begin();it!=after.end();++it)if(it.key()!=a.value("featureId").toString() && before.value(it.key())!=it.value())affected.append(it.key());
-            selectedBody_.clear();selectedSketch_.clear();selectedOccurrence_.clear();selectedFace_={};selectedEdge_={};selectedPlane_.clear();
+            selectedBody_.clear();selectedBodies_={};selectedSketch_.clear();selectedOccurrence_.clear();selectedFace_={};selectedEdge_={};selectedPlane_.clear();
             view_->selectSupportFace({},{});view_->clearSolidEdgeHighlights();view_->selectConstructionPlane({});
             return QJsonObject{{"changed",true},{"featureStates",after},{"affectedDependentIds",affected}};
         });
@@ -6849,7 +6882,7 @@ void AlloyWindow::registerCommands() {
             if(!session_.isEmpty() || !pendingReference_.isEmpty() || !failedEditRepair_.isEmpty())return failure("command_active","Complete or cancel the active command before rollback");
             const auto error=document_->rollbackBefore(a.value("featureId").toString());
             if(!error.isEmpty())return failure("rollback_unavailable",error);
-            selectedBody_.clear();selectedSketch_.clear();selectedOccurrence_.clear();selectedFace_={};selectedEdge_={};selectedPlane_.clear();
+            selectedBody_.clear();selectedBodies_={};selectedSketch_.clear();selectedOccurrence_.clear();selectedFace_={};selectedEdge_={};selectedPlane_.clear();
             view_->selectSupportFace({},{});view_->clearSolidEdgeHighlights();view_->selectConstructionPlane({});
             displayedDocumentRevision_=std::numeric_limits<quint64>::max();return document_->rollbackState();
         });
@@ -7673,7 +7706,7 @@ QJsonObject AlloyWindow::state() const {
             : !selectedProfileIds_.isEmpty() ? QJsonObject{{"kind","profile"},{"sketchId",selectedSketch_},{"profileIds",selectedProfileIds_},{"profileId",selectedProfile_}}
             : !view_->finishedPointSelection().isEmpty() && view_->finishedPointSelection()["sketchId"]==selectedSketch_ ? view_->finishedPointSelection()
             : !selectedSketch_.isEmpty() ? QJsonObject{{"kind","sketch"},{"sketchId",selectedSketch_}}
-            : [&]{QJsonObject selected{{"kind","body"},{"bodyId",selectedBody_}};
+            : [&]{QJsonObject selected{{"kind","body"},{"bodyId",selectedBody_},{"members",bodySelectionMembers()}};
                 if(!selectedOccurrence_.isEmpty())selected["occurrenceId"]=selectedOccurrence_;return selected;}()},
         {"kernel", QJsonObject{{"candidate", "Open CASCADE"}, {"discoveredVersion", ALLOY_OCCT_VERSION}, {"integrated", true}, {"visualizationIntegrated", true}, {"policy",GeometryKernel::policy()}}},
         {"ui", QJsonObject{{"workspace", "design"}, {"tab",target=="sketch.edit" ? QString("sketch") : designTab_}, {"selectionPriority",selectionPriority_}, {"browserVisible", browserVisible_}, {"timelineVisible", timelineVisible_}, {"timeline",timelineState()}, {"ribbon",ribbonState}, {"navigationVisible", navigationVisible_}, {"commandSearchVisible", search_ && search_->isVisible()}, {"windowWidth", width()}, {"windowHeight", height()}, {"devicePixelRatio", devicePixelRatioF()},
@@ -7984,7 +8017,7 @@ void AlloyWindow::refresh() {
         };
         while(auto* item=timelineLayout_->takeAt(0)){delete item->widget();delete item;}
 
-        bool selectedExists=false;QSet<QString> liveBodies,liveSketches,livePlanes;
+        QSet<QString> liveBodies,liveSketches,livePlanes;
         QMap<QString,QString> currentBodyOwners,currentSketchOwners;
         QSet<QString> liveImports,activeBodies;
         for(const auto& body:document_->bodies())activeBodies.insert(body.bodyId);
@@ -8010,7 +8043,6 @@ void AlloyWindow::refresh() {
                 if(occurrence["kind"]=="solid") {
                     const auto bodyId=occurrence["bodyId"].toString();liveBodies.insert(bodyId);
                     item->setData(0,Qt::UserRole+1,bodyId);item->setData(0,Qt::UserRole+2,featureId);
-                    selectedExists=selectedExists || (bodyId==selectedBody_ && activeBodies.contains(bodyId) && feature["visible"].toBool());
                     item->setHidden(!activeBodies.contains(bodyId));
                 }
                 nodes[id]=item;
@@ -8029,7 +8061,6 @@ void AlloyWindow::refresh() {
             item->setFlags(item->flags()|Qt::ItemIsEnabled|Qt::ItemIsSelectable|Qt::ItemIsUserCheckable);
             item->setCheckState(0,body.visible ? Qt::Checked : Qt::Unchecked);item->setHidden(false);
             const auto originalOccurrence=ownerNodes.value(body.ownerId) ? ownerNodes.value(body.ownerId)->data(0,Qt::UserRole+8).toString() : QString{};
-            selectedExists=selectedExists || (body.bodyId==selectedBody_ && body.visible && (selectedOccurrence_.isEmpty() || selectedOccurrence_==originalOccurrence));
         }
         for(const auto& body:presentationBodies())if(body.visible && !body.occurrenceId.isEmpty()){
             auto* node=instanceNodes.value(body.occurrenceId);if(!node || node==ownerNodes.value(body.ownerId))continue;
@@ -8045,9 +8076,16 @@ void AlloyWindow::refresh() {
             item->setToolTip(0,node->toolTip(0)+" / "+body.name);item->setHidden(false);
             item->setFlags(Qt::ItemIsEnabled|Qt::ItemIsSelectable);
             item->setData(0,Qt::CheckStateRole,QVariant{});
-            selectedExists=selectedExists || (body.bodyId==selectedBody_ && body.occurrenceId==selectedOccurrence_);
         }
-        if(!selectedExists)selectedBody_.clear();
+        QJsonArray retainedBodies;
+        const auto currentBodies=presentationBodies();
+        for(const auto& member:bodySelectionMembers())for(const auto& body:currentBodies)
+            if(body.visible && body.bodyId==member.toObject().value("bodyId") && body.occurrenceId==member.toObject().value("occurrenceId").toString()){
+                retainedBodies.append(member);break;
+            }
+        selectedBodies_=retainedBodies;
+        const auto primary=retainedBodies.isEmpty() ? QJsonObject{} : retainedBodies.last().toObject();
+        selectedBody_=primary.value("bodyId").toString();selectedOccurrence_=primary.value("occurrenceId").toString();
         for(const auto& sketch:document_->sketches()) {
             liveSketches.insert(sketch.featureId);currentSketchOwners[sketch.featureId]=sketch.ownerId;
             auto* item=browserRow(ownerFolder(sketch.ownerId,"sketches",sketchesNode_),sketch.featureId,Qt::UserRole+2);
@@ -8258,12 +8296,14 @@ void AlloyWindow::refresh() {
         // still applies. Do not suppress a retained support ID reused by Cut.
         view_->setEditDisplay(historicalSketchId,{});
     }
+    const auto selectedMembers=bodySelectionMembers();
     for(QTreeWidgetItemIterator it(tree_);*it;++it) {
         auto* item=*it;const auto bodyId=item->data(0,Qt::UserRole+1).toString();
-        if(!bodyId.isEmpty())item->setSelected(bodyId==selectedBody_ &&
-            (selectedOccurrence_.isEmpty() || item->data(0,Qt::UserRole+8)==selectedOccurrence_) && !item->isHidden());
+        if(!bodyId.isEmpty())item->setSelected(selectedMembers.contains(QJsonObject{{"bodyId",bodyId},
+            {"occurrenceId",item->data(0,Qt::UserRole+8).toString()}}) && !item->isHidden());
     }
-    view_->selectBody((session_.value("command")=="solid.mirror" || session_.value("command")=="solid.circularPattern")
+    if(session_.isEmpty())view_->selectBodies(selectedMembers);
+    else view_->selectBody((session_.value("command")=="solid.mirror" || session_.value("command")=="solid.circularPattern")
         ? session_.value("inputs").toObject()["sourceBodyId"].toString()
         : session_.value("command")=="solid.sphere" || session_.value("command")=="solid.hole" ? QString{} : selectedBody_,selectedOccurrence_);
     if(session_.isEmpty()){
@@ -8996,7 +9036,7 @@ QJsonObject AlloyWindow::beginExtrude(const QJsonObject& overrides) {
         {"inputSchema",findCommand("solid.extrude")->parameters}};
     session_["selectionRole"]=inputs.value("extent")=="toObject" && inputs.value("endSupport").toObject().isEmpty() ? "endObject" : "profiles";
     if(id.isEmpty()){session_["newFeatureId"]=CadDocument::newId();session_["newBodyId"]=CadDocument::newId();}
-    selectedBody_.clear();selectedSketch_=inputs.value("sketchId").toString();
+    selectedBody_.clear();selectedBodies_={};selectedSketch_=inputs.value("sketchId").toString();
     selectedProfileIds_=inputs.contains("profileIds") ? inputs["profileIds"].toArray() : inputs.value("profileId").toString().isEmpty() ? QJsonArray{} : QJsonArray{inputs["profileId"]};
     selectedProfile_=selectedProfileIds_.isEmpty() ? QString{} : selectedProfileIds_.first().toString();
     view_->selectBody({});view_->selectProfiles(selectedSketch_,selectedProfileIds_);showExtrude();
@@ -9130,7 +9170,7 @@ QJsonObject AlloyWindow::selectFinishedProfile(const QString& sketchId,const QSt
     } else if(additive && selectedSketch_==sketchId) {
         if(!selectedProfileIds_.contains(profileId))selectedProfileIds_.append(profileId);
     } else selectedProfileIds_=QJsonArray{profileId};
-    selectedBody_.clear();selectedFace_={};selectedEdge_={};selectedPlane_.clear();view_->clearSolidEdgeHighlights();view_->selectSupportFace({},{});selectedSketch_=sketchId;
+    selectedBody_.clear();selectedBodies_={};selectedFace_={};selectedEdge_={};selectedPlane_.clear();view_->clearSolidEdgeHighlights();view_->selectSupportFace({},{});selectedSketch_=sketchId;
     selectedProfile_=selectedProfileIds_.isEmpty() ? QString{} : selectedProfileIds_.first().toString();
     view_->selectBody({});view_->selectProfiles(sketchId,selectedProfileIds_);
     if(session_.value("command")=="solid.extrude") {
@@ -10616,7 +10656,7 @@ QJsonObject AlloyWindow::selectSolidEdge(const QString& bodyId,const QString& ed
     selectedEdge_={{"kind","edge"},{"bodyId",bodyId},{"edgeId",edgeId}};
     if(!selected->occurrenceId.isEmpty()){selectedEdge_["occurrenceId"]=selected->occurrenceId;selectedEdge_["definitionId"]=selected->definitionId;}
     if(selected->summary.contains("outerOccurrenceId"))selectedEdge_["outerOccurrenceId"]=selected->summary["outerOccurrenceId"];
-    selectedBody_.clear();selectedOccurrence_.clear();selectedFace_={};selectedPlane_.clear();selectedSketch_.clear();
+    selectedBody_.clear();selectedBodies_={};selectedOccurrence_.clear();selectedFace_={};selectedPlane_.clear();selectedSketch_.clear();
     selectedProfile_.clear();selectedProfileIds_={};
     view_->selectBody({});view_->selectSupportFace({},{});view_->selectProfile({},{});
     view_->highlightSolidEdges(bodies,bodyId,QJsonArray{edgeId},selected->occurrenceId);
@@ -10633,7 +10673,7 @@ QJsonObject AlloyWindow::selectSupportFace(const QJsonObject& support) {
         if(!session_.isEmpty())return failure("unsupported_instance_edit","Modeling from a linked instance face is unavailable; select its source definition");
         for(const auto& body:presentationBodies())if(body.visible && body.bodyId==support["bodyId"] && body.occurrenceId==occurrence)
             for(const auto& face:body.supportFaces)if(face.faceId==support["faceId"]){
-                selectedFace_=support;selectedBody_.clear();selectedOccurrence_.clear();selectedEdge_={};selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};
+                selectedFace_=support;selectedBody_.clear();selectedBodies_={};selectedOccurrence_.clear();selectedEdge_={};selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};
                 view_->selectBody({});view_->selectProfile({},{});view_->clearSolidEdgeHighlights();view_->selectSupportFace(support,face.face);
                 return {{"kind","face"},{"support",support},{"occurrenceId",occurrence},{"role",face.role},{"frame",face.frame},{"readOnly",true}};
             }
@@ -10665,7 +10705,7 @@ QJsonObject AlloyWindow::selectSupportFace(const QJsonObject& support) {
             && face.producerFeatureId==support["producerFeatureId"].toString()
             && BRepAdaptor_Surface(face.face).GetType()==GeomAbs_Cylinder) {
             selectedFace_={{"producerFeatureId",face.producerFeatureId},{"bodyId",face.bodyId},{"faceId",face.faceId}};
-            selectedEdge_={};selectedPlane_.clear();selectedBody_.clear();selectedSketch_.clear();
+            selectedEdge_={};selectedPlane_.clear();selectedBody_.clear();selectedBodies_={};selectedSketch_.clear();
             selectedProfile_.clear();selectedProfileIds_={};view_->selectBody({});view_->selectProfile({},{});
             view_->selectSupportFace(selectedFace_,face.face);view_->clearSolidEdgeHighlights();
             return {{"kind","face"},{"support",selectedFace_},{"role",face.role},{"planar",false}};
@@ -10676,7 +10716,7 @@ QJsonObject AlloyWindow::selectSupportFace(const QJsonObject& support) {
         && body.bodyId==support["bodyId"].toString() && body.supportFaces.size()==1){
         const auto& face=body.supportFaces.front();
         if(face.faceId!=support["faceId"].toString() || face.producerFeatureId!=support["producerFeatureId"].toString())continue;
-        selectedFace_=support;selectedEdge_={};selectedPlane_.clear();selectedBody_.clear();selectedSketch_.clear();
+        selectedFace_=support;selectedEdge_={};selectedPlane_.clear();selectedBody_.clear();selectedBodies_={};selectedSketch_.clear();
         selectedProfile_.clear();selectedProfileIds_={};view_->selectBody({});view_->selectProfile({},{});
         view_->selectSupportFace(support,face.face);view_->clearSolidEdgeHighlights();
         return {{"kind","face"},{"support",support},{"role",face.role},{"planar",false}};
@@ -10684,7 +10724,7 @@ QJsonObject AlloyWindow::selectSupportFace(const QJsonObject& support) {
     try {
         const auto resolved=GeometryKernel::resolveSketchSupport(document_->evaluation(),support);
         selectedFace_={{"producerFeatureId",resolved.producerFeatureId},{"bodyId",resolved.bodyId},{"faceId",resolved.faceId}};selectedEdge_={};selectedPlane_.clear();
-        selectedBody_.clear();selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};
+        selectedBody_.clear();selectedBodies_={};selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};
         auto shape=resolved.face;auto frame=resolved.frame;
         if(nonzeroAssemblyPose())for(const auto& body:presentationBodies())if(body.bodyId==resolved.bodyId)for(const auto& worldFace:body.supportFaces)if(worldFace.faceId==resolved.faceId){shape=worldFace.face;frame=worldFace.frame;}
         view_->selectBody({});view_->selectProfile({},{});view_->selectSupportFace(selectedFace_,shape);
@@ -10768,7 +10808,7 @@ QJsonObject AlloyWindow::beginSketch(const QString& plane,const QString& name,co
     if(plane=="face" && existing.isEmpty())
         session_["faceSupportAutoProjections"]=draft["parameters"].toObject()["projections"].toArray();
     sketchHistory_={{draft,solved.diagnostics}};sketchHistoryIndex_=0;sketchHistoryGroup_.clear();updateSketchHistoryState();
-    selectedBody_.clear();view_->clearPreview();view_->clearSketchDraft();displayedSketchDraft_={};
+    selectedBody_.clear();selectedBodies_={};view_->clearPreview();view_->clearSketchDraft();displayedSketchDraft_={};
     selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->selectProfile({},{});view_->setEditDisplay(draft["id"].toString(),dependentBodies(draft["id"].toString()));
     selectedFace_={};selectedPlane_.clear();view_->selectSupportFace({},{});
     view_->lookAtSketch(plane,resolvedFrame,sketchLookAtContent(draft,resolvedFrame,projectionContext));showSketch();view_->setFocus(Qt::OtherFocusReason);
@@ -14292,7 +14332,7 @@ QJsonObject AlloyWindow::selectFaceOffsetFace(const QJsonObject& face) {
         QJsonObject exact{{"producerFeatureId",resolved.producerFeatureId},{"bodyId",resolved.bodyId},{"faceId",resolved.faceId}};
         auto result=execute("command.update",{{"session",session_.value("id")},{"inputs",QJsonObject{{"face",exact},{"targetBodyId",resolved.bodyId}}}});
         if(!result.value("ok").toBool())return result;
-        selectedFace_=exact;selectedBody_.clear();selectedEdge_={};selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};selectedPlane_.clear();
+        selectedFace_=exact;selectedBody_.clear();selectedBodies_={};selectedEdge_={};selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};selectedPlane_.clear();
         view_->selectBody({});view_->selectProfile({},{});view_->clearSolidEdgeHighlights();
         for(const auto& body:source.bodies)if(body.bodyId==resolved.bodyId)for(const auto& support:body.supportFaces)if(support.faceId==resolved.faceId)view_->selectSupportFace(exact,support.face);
         previewFaceOffset();return QJsonObject{{"kind","face"},{"support",exact}};
