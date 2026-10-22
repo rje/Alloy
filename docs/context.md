@@ -2765,10 +2765,9 @@ maximum-degree policy. The final ellipse is horizontal, origin-centered and
 275×100; its inferred constraining steps remain explicit. Conic Rho mapping and ellipse typed-size conventions are explicit implementation
 policies with independently reviewed public-reference limits. No full lesson or exact visual/input parity claim is made.
 
-User requested private repository visibility on 2026-10-13. `rje/Alloy` is now
-PRIVATE, verified through GitHub CLI. Preserve private visibility unless the user
-requests otherwise; the MIT license and long-term open-source product goal are
-unchanged.
+User requested private repository visibility on 2026-10-13, then requested
+public visibility on 2026-10-21. `rje/Alloy` is now PUBLIC, verified through
+GitHub CLI. The MIT license and long-term open-source product goal are unchanged.
 
 The nested cubes #172, egg cup #173, toy block #146, die #147 and subsequent
 Centerline/Revolve #217, paper-clip #225 and initials-keyring #233 tutorial gates are accepted and

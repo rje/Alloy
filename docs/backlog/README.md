@@ -509,7 +509,8 @@ source pages are living documentation, not release-pinned specifications; see
 defaults. All 135 issues were published and checked through `gh`/GitHub APIs:
 unique keys, complete bodies, linked dependencies, kind/phase/priority labels,
 ten milestones, and readiness labels. See [publication.json](publication.json)
-for the dated receipt. The repository is now private; Alloy original source remains MIT-licensed.
+for the dated receipt. The repository was returned to public visibility on
+2026-10-21; Alloy original source remains MIT-licensed.
 
 The public [project board](https://github.com/users/rje/projects/1) has a
 repository auto-add workflow. Projects access is now available through `gh`;
