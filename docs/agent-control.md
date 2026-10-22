@@ -1156,3 +1156,17 @@ to the same design/tab and does not follow source edits. Inspect `bodyCopy` auth
 IDs/snapshot digest and evaluated bodies with `document.inspect`. Copied topology
 is not named; explicit body-targeted Cut/Move remains available. See
 [the bounded contract and qualification](validation/body-copy.md).
+
+
+### Strict retained OBJ import
+
+`document.importObj` accepts `{ "path": "/absolute/model.obj", "units": "mm" }`
+(or `in`) and commits one retained mesh through the same authoritative document
+history as other commands. It selects the resulting mesh and fits the view.
+`mesh.inspect` pages exact canonical-mm vertices and triangle indices; normal
+`document.inspect`, `history.undo`/`history.redo`, save and open preserve the
+source-independent authored occurrence. There is no material or texture sidecar
+access. Invalid OBJ returns `mesh_import_failed` with filename, original line,
+face ordinal, reason and remedy, without mutation. Native OBJ chooser/preview is
+separate XCH-024 work. The [bounded parser contract](validation/strict-obj-core.md)
+records supported syntax, deterministic polygon policy, limits and evidence.

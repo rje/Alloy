@@ -9,6 +9,7 @@
 #include <QCryptographicHash>
 #include <QJsonArray>
 #include <QUuid>
+#include <QSet>
 #include <QRegularExpression>
 #include <QtEndian>
 #include <array>
@@ -36,6 +37,10 @@ QJsonArray json(const Point& p){return {p[0],p[1],p[2]};}
 QJsonObject analyze(const QJsonArray& vertices,const QJsonArray& triangles) {
     Point lo{INFINITY,INFINITY,INFINITY},hi{-INFINITY,-INFINITY,-INFINITY};
     std::vector<Point> points;for(const auto& v:vertices){const auto a=v.toArray();Point p{a[0].toDouble(),a[1].toDouble(),a[2].toDouble()};points.push_back(p);for(int k=0;k<3;++k){lo[k]=std::min(lo[k],p[k]);hi[k]=std::max(hi[k],p[k]);}}
+    // Source OBJ positions stay authored independently; quality connectivity is
+    // geometric, so exact-coordinate duplicates share only analysis identities.
+    std::map<Point,int> coordinateIds;std::vector<int> geometricIds;geometricIds.reserve(points.size());
+    for(const auto& p:points){auto [it,inserted]=coordinateIds.emplace(p,coordinateIds.size());geometricIds.push_back(it->second);}
     struct Edge{int count=0,direction=0,first=-1;};std::map<std::pair<int,int>,Edge> edges;
     std::vector<int> parent(triangles.size());std::iota(parent.begin(),parent.end(),0);
     auto root=[&](int x){while(parent[x]!=x){parent[x]=parent[parent[x]];x=parent[x];}return x;};
@@ -44,7 +49,7 @@ QJsonObject analyze(const QJsonArray& vertices,const QJsonArray& triangles) {
     for(int n=0;n<triangles.size();++n){const auto a=triangles[n].toArray();Triangle t{a[0].toInt(),a[1].toInt(),a[2].toInt()};const auto p=points[t[0]],q=points[t[1]],r=points[t[2]];
         Point u{},v{};for(int k=0;k<3;++k){u[k]=q[k]-p[k];v[k]=r[k]-p[k];}
         if((u[1]*v[2]-u[2]*v[1])==0 && (u[2]*v[0]-u[0]*v[2])==0 && (u[0]*v[1]-u[1]*v[0])==0){++degenerate;usable[n]=false;continue;}
-        for(int k=0;k<3;++k){int x=t[k],y=t[(k+1)%3];if(x==y)continue;auto& e=edges[std::minmax(x,y)];if(e.first>=0)parent[root(n)]=root(e.first);else e.first=n;++e.count;e.direction+=x<y?1:-1;}}
+        for(int k=0;k<3;++k){int x=geometricIds[t[k]],y=geometricIds[t[(k+1)%3]];if(x==y)continue;auto& e=edges[std::minmax(x,y)];if(e.first>=0)parent[root(n)]=root(e.first);else e.first=n;++e.count;e.direction+=x<y?1:-1;}}
     int boundary=0,nonmanifold=0,orientation=0,components=0;
     for(const auto& [key,e]:edges){if(e.count==1)++boundary;if(e.count>2)++nonmanifold;if(e.count==2 && e.direction!=0)++orientation;}
     for(int n=0;n<triangles.size();++n)if(usable[n] && root(n)==n)++components;
@@ -52,6 +57,7 @@ QJsonObject analyze(const QJsonArray& vertices,const QJsonArray& triangles) {
         {"quality",QJsonObject{{"boundaryEdges",boundary},{"nonManifoldEdges",nonmanifold},{"inconsistentOrientationEdges",orientation},{"degenerateFacets",degenerate},{"connectedComponents",components},{"repairApplied",false}}}};
 }
 }
+QJsonObject analyzeGeometry(const QJsonArray& v,const QJsonArray& t){return analyze(v,t);}
 Error::Error(QJsonObject d):std::runtime_error(d.value("message").toString().toStdString()),details(std::move(d)){}
 QJsonObject readStl(const QString& path,const QString& units,const Progress& progress) try {
     if(units!="mm" && units!="in")fail(path,"STL requires explicit source units mm or in");
@@ -119,13 +125,29 @@ QString validate(const QJsonObject& mesh) {
     const auto diagnostics=mesh.value("diagnostics").toObject();
     static const QRegularExpression hash("^[0-9a-f]{64}$");
     if((mesh.size()!=10+(mesh.contains("visible")?1:0)) || (mesh.contains("visible") && !mesh.value("visible").isBool()) || source.size()!=7 || diagnostics.size()!=6 || mesh.value("schema")!="alloy-mesh/1" || mesh.value("kind")!="mesh" || QUuid(mesh.value("id").toString()).isNull() || mesh.value("name").toString().isEmpty()
-        || source.value("format")!="stl" || (source.value("units")!="mm" && source.value("units")!="in") || source.value("scaleToMm").toDouble()!=(source.value("units")=="in"?25.4:1.0)
+        || (source.value("format")!="stl" && source.value("format")!="obj") || (source.value("units")!="mm" && source.value("units")!="in") || source.value("scaleToMm").toDouble()!=(source.value("units")=="in"?25.4:1.0)
         || !hash.match(source.value("sha256").toString()).hasMatch()
-        || (source.value("encoding")!="ascii" && source.value("encoding")!="binary")
+        || (source.value("format")=="stl" ? (source.value("encoding")!="ascii" && source.value("encoding")!="binary") : source.value("encoding")!="utf-8")
         || source.value("name")!=mesh.value("name") || !source.value("bytes").isDouble() || source.value("bytes").toDouble()<1 || source.value("bytes").toDouble()>maxBytes
-        || diagnostics.value("sourceFacets").toInt(-1)!=triangles.size() || diagnostics.value("decodedTriangles").toInt(-1)<1
-        || diagnostics.value("decodedTriangles").toInt()>triangles.size() || diagnostics.value("ignoredAttributeFacets").toInt(-1)<0 || diagnostics.value("ignoredAttributeFacets").toInt()>triangles.size() || vertices.isEmpty() || triangles.isEmpty() || triangles.size()>maxTriangles || vertices.size()>3*maxTriangles
+        || (source.value("format")=="stl" && (diagnostics.value("sourceFacets").toInt(-1)!=triangles.size() || diagnostics.value("decodedTriangles").toInt(-1)<1
+        || diagnostics.value("decodedTriangles").toInt()>triangles.size() || diagnostics.value("ignoredAttributeFacets").toInt(-1)<0 || diagnostics.value("ignoredAttributeFacets").toInt()>triangles.size()))
+        || (source.value("format")=="obj" && (diagnostics.value("decoder")!="Alloy strict OBJ/1; direct owned triangulation" || diagnostics.value("sourceFaces").toInt(-1)<1 || diagnostics.value("sourceFaces").toInt()>triangles.size() || !diagnostics.value("sidecarsRead").isBool() || diagnostics.value("sidecarsRead").toBool() || !diagnostics.value("ignoredRecords").isObject() || !diagnostics.value("sourceLabels").isArray() || !diagnostics.value("ignoredNames").isArray())) || vertices.isEmpty() || triangles.isEmpty() || triangles.size()>maxTriangles || vertices.size()>3*maxTriangles
         || mesh.value("placement").toArray()!=QJsonArray{1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1})return "Invalid retained mesh metadata or limits";
+    if(source.value("format")=="obj") {
+        const auto faces=diagnostics.value("sourceFaces");
+        if(!faces.isDouble() || faces.toDouble()!=faces.toInt())return "Invalid OBJ source face count";
+        for(const auto& field:{"sourceLabels","ignoredNames"}) {
+            const auto labels=diagnostics.value(field).toArray();if(labels.size()>1024)return "Too many OBJ labels";
+            QSet<QString> seen;
+            for(const auto& value:labels){const auto label=value.toObject();const auto kind=label.value("kind").toString(),name=label.value("name").toString();const auto line=label.value("line");
+                if(label.size()!=3 || !label.value("name").isString() || name.toUtf8().size()>256 || name.contains(QChar::Null) || !line.isDouble() || line.toDouble()!=line.toInt() || line.toInt()<1
+                    || (QString(field)=="sourceLabels" ? (kind!="o" && kind!="g") : (kind!="mtllib" && kind!="usemtl" && kind!="s")) || seen.contains(kind+"\n"+name))return "Invalid OBJ source label";
+                seen.insert(kind+"\n"+name);
+            }
+        }
+        const auto ignored=diagnostics.value("ignoredRecords").toObject();
+        for(auto it=ignored.begin();it!=ignored.end();++it)if(!QStringList{"vt","vn","mtllib","usemtl","s","l","p"}.contains(it.key()) || !it.value().isDouble() || it.value().toDouble()!=it.value().toInt(-1) || it.value().toInt(-1)<1)return "Invalid OBJ ignored record count";
+    }
     for(const auto& v:vertices){const auto a=v.toArray();if(a.size()!=3)return "Mesh vertex requires three coordinates";for(const auto& x:a)if(!x.isDouble() || !std::isfinite(x.toDouble()) || std::abs(x.toDouble())>1e9)return "Invalid mesh coordinate";}
     for(const auto& t:triangles){const auto a=t.toArray();if(a.size()!=3)return "Mesh facet requires three indices";for(const auto& x:a)if(!x.isDouble() || x.toDouble()!=x.toInt(-1) || x.toInt(-1)<0 || x.toInt()>=vertices.size())return "Invalid mesh triangle index";}
     if(mesh.value("summary").toObject()!=analyze(vertices,triangles))return "Mesh summary does not match retained geometry";

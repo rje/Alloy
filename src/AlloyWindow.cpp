@@ -2265,6 +2265,18 @@ void AlloyWindow::registerCommands() {
             } catch(const MeshImport::Error& error){return QJsonObject{{"ok",false},{"error",error.details}};}
             catch(const std::exception& error){return failure("mesh_import_failed",QString::fromUtf8(error.what()));}
         });
+    add("document.importObj","Import OBJ mesh","Import one bounded OBJ as a retained, visible mesh body; no B-rep conversion.",
+        {{"path",parameter("string","Absolute OBJ source path.")},{"units",parameter("string","Required source interpretation: mm or in.")}},[this](const auto& a){
+            if(!session_.isEmpty() || document_->isRolledBack())return failure("active_command","Finish the active command and return to latest before importing");
+            try {
+                const auto candidate=meshImportCommitting_ ? meshImportCandidate_ : CadDocument::objImportCandidate(document_->authored(),a);
+                if(const auto error=meshImportCommitting_ && meshImportPrepared_ ? document_->commitMeshImport(*meshImportPrepared_,meshImportBaseRevision_) : document_->commit(candidate,"Import OBJ mesh");!error.isEmpty())return failure("mesh_import_failed",error);
+                const auto id=candidate.value("meshes").toArray().last().toObject().value("id").toString();
+                execute("selection.set",{{"bodyId",id}});execute("view.fit");
+                return document_->state();
+            } catch(const MeshImport::Error& error){return QJsonObject{{"ok",false},{"error",error.details}};}
+            catch(const std::exception& error){return failure("mesh_import_failed",QString::fromUtf8(error.what()));}
+        });
     add("document.importStep","Import STEP","Import one solid or a retained solid-only assembly with embedded source and one undo entry.",
         {{"path",parameter("string","Absolute input STEP path.")},{"name",optional(parameter("string","Imported feature name."))},
          {"newDesign",optional(parameter("boolean","Open as a separate new design; default imports into the active design."))}},[this](const auto& a){

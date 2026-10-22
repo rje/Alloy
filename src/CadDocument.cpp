@@ -1683,6 +1683,13 @@ QJsonObject CadDocument::stlImportCandidate(const QJsonObject& authored,const QJ
     auto candidate=authored;auto meshes=candidate.value("meshes").toArray();meshes.append(mesh);candidate["meshes"]=meshes;
     const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
 }
+QJsonObject CadDocument::objImportCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
+    const QSet<QString> allowed{"path","units"};
+    for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown OBJ import argument");
+    auto mesh=MeshImport::readObj(arguments.value("path").toString(),arguments.value("units").toString());
+    auto candidate=authored;auto meshes=candidate.value("meshes").toArray();meshes.append(mesh);candidate["meshes"]=meshes;
+    const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
+}
 QJsonObject CadDocument::stepImportCandidate(const QJsonObject& authored, const QJsonObject& arguments) {
     if (!validate(authored).isEmpty())
         throw StepExchange::Error({{"code","invalid_document"},{"message","Cannot import into an invalid document"}});

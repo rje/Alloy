@@ -7,6 +7,11 @@ The dated public workflow contract is external at
 `../Alloy-reference-records/knowledge/specs/xch004-mesh-import-2026-10-21.md`
 (REF-MESH-01–09). Public behavior and Alloy proposals remain distinguished there.
 
+The XCH-023 [strict OBJ adapter](../validation/strict-obj-core.md) selects direct
+owned deterministic triangulation instead of the proposed RWObj decode path below.
+This prevents sidecar access and preserves validated concave polygon geometry;
+raw-reader observations below remain foundation evidence.
+
 ## Decision and installed configuration
 
 Reuse OCCT **7.9.3**, the existing geometry/interchange dependency. Read STL via

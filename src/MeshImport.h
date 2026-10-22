@@ -12,6 +12,7 @@ public:
 // Strict STL adapter; geometry stays separate from OCCT B-rep bodies.
 using Progress = std::function<void(const QString&,int,int)>;
 QJsonObject readStl(const QString& path, const QString& units, const Progress& progress = {});
+QJsonObject readObj(const QString& path, const QString& units, const Progress& progress = {});
 QJsonObject withUnits(const QJsonObject& millimeterMesh, const QString& units);
 QString validate(const QJsonObject& mesh);
 QJsonObject summary(const QJsonObject& mesh);
