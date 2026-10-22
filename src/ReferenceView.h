@@ -104,6 +104,7 @@ public:
     // Only these explicitly worker-prepared shapes may bypass AIS remeshing.
     // Replaced on the next Thread result; unrelated/changed shapes use normal AIS.
     void setPreparedThreadMeshes(const std::vector<TopoDS_Shape>& shapes);
+    void fitMeshImport(const QJsonObject& bounds);
     void setMeshes(const QJsonArray& meshes);
     QJsonObject projectMesh(const QString& id) const;
     QJsonObject meshPresentationState() const;

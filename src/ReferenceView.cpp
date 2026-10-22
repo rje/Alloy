@@ -4756,3 +4756,10 @@ void ReferenceView::setMeshExportPreview(const std::vector<gp_Pnt>& facets,const
 }
 
 QJsonObject ReferenceView::pickSketchAxis3d(double x,double y) const {for(const auto& row:sketchAxis3dMarkers_){const auto marker=row.toObject();if(std::hypot(x-marker["x"].toDouble(),y-marker["y"].toDouble())<=marker["hitRadius"].toDouble())return marker;}return {};}
+
+void ReferenceView::fitMeshImport(const QJsonObject& bounds) {
+    const auto lo=bounds.value("min").toArray(),hi=bounds.value("max").toArray();
+    sceneCenter_=gp_Pnt((lo[0].toDouble()+hi[0].toDouble())/2,(lo[1].toDouble()+hi[1].toDouble())/2,(lo[2].toDouble()+hi[2].toDouble())/2);
+    sceneScale_=std::max({hi[0].toDouble()-lo[0].toDouble(),hi[1].toDouble()-lo[1].toDouble(),hi[2].toDouble()-lo[2].toDouble(),1.0})*1.7;
+    viewCenter_=sceneCenter_;zoom=1;pan={};sync();
+}

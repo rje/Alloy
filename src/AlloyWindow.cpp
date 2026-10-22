@@ -426,6 +426,7 @@ AlloyWindow::AlloyWindow() {
         if(!result["ok"].toBool())statusBar()->showMessage(result["error"].toObject()["message"].toString(),5000);
     });
     fileMenu->addAction("Open…",QKeySequence::Open,this,[this] { execute("document.openDialog"); });
+    fileMenu->addAction("Import Mesh…",this,[this] { execute("document.importMeshDialog"); });
     fileMenu->addAction("Save",QKeySequence::Save,this,[this] { execute("document.saveDialog"); });
     fileMenu->addAction("Save As…",QKeySequence::SaveAs,this,[this] { execute("document.saveAsDialog"); });
     auto* recoverAction=fileMenu->addAction("Recover Work…",this,[this] { execute("document.recoveryDialog"); });
@@ -2249,11 +2250,12 @@ void AlloyWindow::registerCommands() {
                 return QJsonObject{{"meshId",a.value("meshId")},{"visible",a.value("visible")}};
             }return failure("stale_mesh","The retained mesh UUID is unavailable");
         });
+    registerMeshImportCommands();
     add("document.importStl","Import STL mesh","Import one bounded STL as a retained, visible mesh body; no B-rep conversion.",
         {{"path",parameter("string","Absolute STL source path.")},{"units",parameter("string","Required source interpretation: mm or in.")}},[this](const auto& a){
             if(!session_.isEmpty() || document_->isRolledBack())return failure("active_command","Finish the active command and return to latest before importing");
             try {
-                const auto candidate=CadDocument::stlImportCandidate(document_->authored(),a);
+                const auto candidate=meshImportCommitting_ ? meshImportCandidate_ : CadDocument::stlImportCandidate(document_->authored(),a);
                 if(const auto error=document_->commit(candidate,"Import STL mesh");!error.isEmpty())return failure("mesh_import_failed",error);
                 const auto id=candidate.value("meshes").toArray().last().toObject().value("id").toString();
                 execute("selection.set",{{"bodyId",id}});execute("view.fit");
@@ -7446,6 +7448,13 @@ QString AlloyWindow::geometryWorkLabel(const QString& id,const QJsonObject& args
 }
 
 QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
+    if((meshImportDock_ || findChild<QFileDialog*>("mesh.import.chooser")) && !meshImportCommitting_) {
+        const bool viewEdit=QStringList{"view.conventionUp","view.conventionSet","view.conventionReset","view.namedCreate","view.namedRename","view.namedDelete","view.homeSet","view.homeReset"}.contains(id);
+        const bool safe=id.startsWith("mesh.import") || id=="app.state" || id=="app.identity" || id=="commands.list"
+            || id=="document.inspect" || id=="mesh.inspect" || id.startsWith("capture.") || (id.startsWith("view.") && !viewEdit) || id=="window.resize";
+        if(!safe)return failure("active_command","Finish or Cancel Import Mesh before changing the design or selection");
+    }
+
     if((id=="feature.edit" || id=="feature.editDialog" || id.startsWith("solid.") || id.startsWith("surface."))
         && document_->evaluation().featureStates.value(args.value("featureId").toString()).toObject().value("effectiveSuppressed").toBool())
         return failure("feature_suppressed","Unsuppress this feature and its source before editing","featureId");
@@ -7765,7 +7774,7 @@ QJsonObject AlloyWindow::state() const {
     return {{"application", "Alloy"}, {"version", "0.1.0"}, {"stage", "sketch-authoring"},
         {"runtime", QJsonObject{{"qtVersion", qVersion()}, {"occtBuildVersion", ALLOY_OCCT_VERSION}}},
         {"revision", static_cast<qint64>(revision_)},
-        {"identity", identity()}, {"sketchEvaluation",operationProgress(sketchEvaluationOperation_)}, {"documentOpen",operationProgress(documentOpenOperation_)}, {"meshExport",operationProgress(meshExportOperation_)}, {"activeSession", session_}, {"failedEditRepair",failedEditRepair_}, {"sectionEdit",sectionEdit_}, {"pendingReferencePosition",pendingReference_}, {"assembly",presentationAssembly()}, {"documentTabs",documentTabs()},
+        {"meshImport",meshImportDock_ ? QJsonObject{{"inputs",meshImportInputs_},{"preview",MeshImport::summary(meshImportCandidate_.value("meshes").toArray().last().toObject())},{"authored",false},{"loadingCancellable",false}} : QJsonObject{}}, {"identity", identity()}, {"sketchEvaluation",operationProgress(sketchEvaluationOperation_)}, {"documentOpen",operationProgress(documentOpenOperation_)}, {"meshExport",operationProgress(meshExportOperation_)}, {"activeSession", session_}, {"failedEditRepair",failedEditRepair_}, {"sectionEdit",sectionEdit_}, {"pendingReferencePosition",pendingReference_}, {"assembly",presentationAssembly()}, {"documentTabs",documentTabs()},
         {"recovery",QJsonObject{{"available",recovery_->error().isEmpty()},{"warning",recoveryWarning_},
             {"staleCount",recovery_->list().size()},{"scope","committed authored state only"}}},
         {"inlineEditor",inlineEditorState()},

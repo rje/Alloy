@@ -100,6 +100,15 @@ QJsonObject readStl(const QString& path,const QString& units) try {
     mesh["summary"]=analyze(vertices,triangles);return mesh;
 } catch(const Standard_Failure& error){fail(path,"OCCT STL decode failed: "+QString::fromUtf8(error.GetMessageString()));}
   catch(const std::bad_alloc&){fail(path,"STL allocation failed; reduce the source triangle count and retry");}
+QJsonObject withUnits(const QJsonObject& base,const QString& units) {
+    if(units!="mm" && units!="in")throw std::invalid_argument("Choose mm or in source units");
+    auto mesh=base;const double scale=units=="in"?25.4:1.;QJsonArray vertices;
+    for(const auto& row:base.value("verticesMm").toArray()) {QJsonArray point;for(const auto& value:row.toArray()) {
+        const double x=value.toDouble()*scale;if(!std::isfinite(x) || std::abs(x)>1e9)throw std::invalid_argument("Scaled mesh exceeds coordinate limit; choose mm or reduce source coordinates");point.append(x);
+    }vertices.append(point);}
+    auto source=mesh.value("source").toObject();source["units"]=units;source["scaleToMm"]=scale;mesh["source"]=source;
+    mesh["verticesMm"]=vertices;mesh["summary"]=analyze(vertices,mesh.value("triangles").toArray());return mesh;
+}
 QString validate(const QJsonObject& mesh) {
     const auto source=mesh.value("source").toObject();const auto vertices=mesh.value("verticesMm").toArray(),triangles=mesh.value("triangles").toArray();
     const auto diagnostics=mesh.value("diagnostics").toObject();

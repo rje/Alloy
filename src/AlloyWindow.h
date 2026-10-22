@@ -62,6 +62,13 @@ protected:
     void closeEvent(QCloseEvent*) override;
     bool eventFilter(QObject*, QEvent*) override;
 private:
+    void registerMeshImportCommands();
+    QJsonObject updateMeshImport(const QString& units);
+    void closeMeshImport();
+    QPointer<QDockWidget> meshImportDock_;
+    QJsonObject meshImportBase_, meshImportCandidate_, meshImportInputs_;
+    bool meshImportCommitting_ = false;
+    quint64 meshImportBaseRevision_ = 0;
     void registerSketchAxis3dCommands();
     void showSketchAxis3dControls(const QString& axisId = {});
     void closeSketchAxis3dControls();
