@@ -16,6 +16,8 @@ accepts distinct Browser/GPU mesh presentation, whole-mesh selection/visibility,
 source-independent reopen and effective DPR1/2 Mac native captures after
 independent reviews. XCH-019 native chooser/ready preview is next;
 XCH-021 then owns responsive in-flight loading/Cancel before cumulative XCH-016.
+XCH-022 retains strict PID-safe native chooser/popup input qualification after
+the earlier delay-based test proved insufficient; it is also required for XCH-016.
 XCH-020 records the measured subsequent-Box cost.
 The [printable bench-vise capstone](v1/capstone-candidate.md) is a researched
 proposal, not a selected release gate; detailed public references remain outside

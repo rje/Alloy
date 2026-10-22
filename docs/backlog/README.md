@@ -7,8 +7,8 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **727 issues**: **575 implementation, 25 research,
-6 research/design, 22 epics, and 99 validation gates**. Counts describe decomposition, not coverage.
+The current local backlog contains **728 issues**: **575 implementation, 25 research,
+6 research/design, 22 epics, and 100 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 [XCH-015/#722](../validation/retained-stl-import.md) accepts strict retained STL
 core/API import; [XCH-018/#727](../validation/retained-mesh-presentation.md)
@@ -17,6 +17,8 @@ chooser/preview XCH-019/#728, cumulative native XCH-016/#723, strict OBJ
 XCH-017/#724 and measured repeat-validation cost XCH-020/#729 remain Todo.
 XCH-021 tracks responsive, in-flight cancellable STL loading before cumulative
 native acceptance; ready-preview Cancel stays in XCH-019.
+XCH-022 retains strict PID-safe OS chooser and popup-readiness input evidence;
+earlier delay-based chooser runs do not close that gate.
 [Connected-Line Surface Revolve](../validation/surface-revolve-chain.md) accepts
 the joined-Line first-v1 minimum under SRF-037/#660. Canvas selection and angle
 drag remain SRF-036/#659; later Line/Arc chains are SRF-055/#715.
