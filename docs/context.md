@@ -3,6 +3,10 @@
 FND-029 splits coherent Command Search query/focus/reentry and Escape from the
 broader FND-007 shortcut gate. It is Todo until native input and independent
 review pass; FND-007 keeps the remaining shortcuts and cumulative workflow.
+[NAV-022](validation/native-orbit-pivot.md) accepts the hardened native
+orbit/pivot validation harness and its first safe-stop receipt. NAV-009 remains
+Todo because PID-directed OS right-click did not reach the private editor;
+Set/Pick/Reset and subsequent checks were not run.
 
 The [2026-10-21 first-v1 burndown](v1/priority-burndown-2026-10-21.md)
 prioritizes Mac input/selection, retained mesh import, native Metal/Vulkan

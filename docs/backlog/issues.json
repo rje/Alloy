@@ -7773,13 +7773,31 @@
       "phase": "P4 Initial release",
       "priority": "P0",
       "depends_on": [
-        "NAV-002"
+        "NAV-002",
+        "NAV-022"
       ],
       "labels": [
         "area:doc",
         "priority:P0"
       ],
-      "body": "## Preserved native acceptance scope\nComplete the ordinary-input portion of NAV-002 that could not run because the desktop validation environment would not activate/bind Alloy's window. Qt native01/02 stopped at initial activation; CUA full-path binding returned cgWindowNotFound before any navigation input. Shared-command/GPU evidence does not close this gate.\n\nUse one isolated editor and an off-center asymmetric part. Through actual visible controls choose Free/Constrained, set the center from the blank-canvas context menu and a visible model point, confirm the green marker, orbit with the visible left-drag tool, Escape from a pending pick, and reset from the context menu. Verify level horizon, no pivot jump, natural focus/menu closure, mode/pivot restoration across tabs and unchanged authored/history/selection state. Include a readable capture. Preserve existing API geometry/camera evidence; do not rerun it without a material change.\n\nInitial harness activation is allowed; do not repair focus between demonstrated actions. Keep Qt, OS input and physical device evidence separate. NAV-008 still owns the cumulative mouse/trackpad navigation workflow. Resume this gate after concrete foreground/binding availability changes, not repeated unchanged activation retries. Independent Astra review required.\n## 2026-10-21 v1 execution priority\nThis is a critical path for the familiar viewport and qualified three-platform release. Priority increases without changing the issue acceptance boundary or claiming native/platform evidence.\n"
+      "body": "## Preserved native acceptance scope\nComplete the ordinary-input portion of NAV-002 that could not run because the desktop validation environment would not activate/bind Alloy's window. Qt native01/02 stopped at initial activation; CUA full-path binding returned cgWindowNotFound before any navigation input. Shared-command/GPU evidence does not close this gate.\n\nUse one isolated editor and an off-center asymmetric part. Through actual visible controls choose Free/Constrained, set the center from the blank-canvas context menu and a visible model point, confirm the green marker, orbit with the visible left-drag tool, Escape from a pending pick, and reset from the context menu. Verify level horizon, no pivot jump, natural focus/menu closure, mode/pivot restoration across tabs and unchanged authored/history/selection state. Include a readable capture. Preserve existing API geometry/camera evidence; do not rerun it without a material change.\n\nInitial harness activation is allowed; do not repair focus between demonstrated actions. Keep Qt, OS input and physical device evidence separate. NAV-008 still owns the cumulative mouse/trackpad navigation workflow. Resume this gate after concrete foreground/binding availability changes, not repeated unchanged activation retries. Independent Astra review required.\n## 2026-10-21 v1 execution priority\nThis is a critical path for the familiar viewport and qualified three-platform release. Priority increases without changing the issue acceptance boundary or claiming native/platform evidence.\n\n## Bounded harness split and current blocker\nNAV-022 owns the accepted stricter actual-hit/activation/PID-safe harness and the 2026-10-21 DPR2 safe-stop receipt. This gate remains Todo: the OS right-click delivered no event or popup after five Qt/AppKit prefix checkpoints, and final focus was lost. Resume only after changed foreground/input-delivery evidence, not an unchanged retry. The final harness also needs a future assertion that the mode chooser callback actually ran before accepting Free (already-selected state).\n"
+    },
+    {
+      "key": "NAV-022",
+      "title": "Harden native orbit pivot validation and preserve safe-stop evidence",
+      "kind": "validation",
+      "phase": "P4 Initial release",
+      "priority": "P0",
+      "depends_on": [
+        "NAV-002"
+      ],
+      "labels": [
+        "kind:validation",
+        "phase:P4",
+        "priority:P0",
+        "area:doc"
+      ],
+      "body": "## Bounded harness result\nReplace the previous direct synthetic context-menu event in NAV-009's fixture with a PID-targeted OS context-input attempt; observe actual hit receiver, AppKit/editor key-window agreement, popup readiness and natural input focus. Preserve a machine-readable failure receipt and stop safely when the host will not deliver the event. This child qualifies the validation harness and blocker evidence, **not** orbit/pivot feature acceptance.\n\n## Acceptance\n- Build the accepted native fixture at `-j4`. Record one private editor, PID ownership, actual-hit Qt Free/Constrained and visible Orbit-tool/Escape prefix, camera change, native context event counters, popup/activation observations, and unchanged no-repair policy. Do not replay unchanged host failure at another scale.\n- On failed PID-targeted context delivery, fail the workflow, record `passed:false`, close the private editor and preserve the user instance. Identify which later Set/Pick/Reset/tab/authored/visual checks were not reached. Distinguish run-verified behavior from later build-only fixture safeguards.\n- Obtain an independent source/evidence review. Keep NAV-009 cumulative gate Todo until the actual native pivot route passes; NAV-008 retains broader physical navigation. No paid CI.\n\n## Reference boundary\nUse the external dated viewport-navigation compatibility contract and existing Alloy receipts. This is harness work only; no proprietary application is operated.\n"
     },
     {
       "key": "GEO-020",

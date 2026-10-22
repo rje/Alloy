@@ -7,11 +7,14 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **731 issues**: **578 implementation, 25 research,
-6 research/design, 22 epics, and 100 validation gates**. Counts describe decomposition, not coverage.
+The current local backlog contains **732 issues**: **578 implementation, 25 research,
+6 research/design, 22 epics, and 101 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 FND-029 is a finishable Command Search focus/session child of FND-007; the
 parent retains broader shortcuts, text-focus suppression and cumulative input.
+[NAV-022](../validation/native-orbit-pivot.md) accepts a stricter native
+orbit/pivot harness and safe-stop receipt; NAV-009 remains Todo pending real
+OS context-input delivery and completion of Set/Pick/Reset/restore.
 [XCH-015/#722](../validation/retained-stl-import.md) accepts strict retained STL
 core/API import; [XCH-018/#727](../validation/retained-mesh-presentation.md)
 accepts separate Browser/GPU mesh identity, selection and visibility.
