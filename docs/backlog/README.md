@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **716 issues**: **565 implementation, 24 research,
+The current local backlog contains **718 issues**: **566 implementation, 25 research,
 6 research/design, 22 epics, and 99 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 [Connected-Line Surface Revolve](../validation/surface-revolve-chain.md) accepts

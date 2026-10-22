@@ -2502,19 +2502,19 @@
       "title": "Import STL and OBJ as honest mesh bodies",
       "kind": "implementation",
       "phase": "P3 Shape/import/print breadth",
-      "priority": "P1",
+      "priority": "P0",
       "depends_on": [
-        "XCH-001",
+        "XCH-014",
         "DOC-003",
         "DOC-005"
       ],
       "labels": [
         "kind:implementation",
         "phase:P3",
-        "priority:P1",
-        "area:xch"
+        "area:xch",
+        "priority:P0"
       ],
-      "body": "## Problem and result\nImport STL and OBJ as honest mesh bodies. Deliver the bounded result below within Alloy's standalone C++20 product; the current application is only a Qt shell.\n\n## Scope\nIntroduce authored mesh-body identity and source units/transform, render/pick it, and report topology quality; no automatic parametric reconstruction.\n\n## Acceptance criteria\n- ASCII/binary STL and bounded OBJ subset import with correct scale and nonmanifold diagnostics; invalid files preserve current document.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nRead independent box, open sheet, inverted normals and OBJ group fixture; inspect bounds/triangle counts, units and native reopen.\n\nAdd/execute `python3 tests/workflows/run.py --case XCH-004 --evidence build/evidence/XCH-004` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Supported file formats (reference `formats`) — retrieved 2026-10-11.\n- Mesh modifications (reference `meshmodify`) — retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n"
+      "body": "## Problem and result\nImport STL and OBJ as honest mesh bodies. Deliver the bounded result below within Alloy's standalone C++20 product; the application already has retained solid modeling, native controls and a GPU viewport.\n\n## Scope\nIntroduce authored mesh-body identity and source units/transform, render/pick it, and report topology quality; no automatic parametric reconstruction.\n\n## Acceptance criteria\n- ASCII/binary STL and bounded OBJ subset import with correct scale and nonmanifold diagnostics; invalid files preserve current document.\n- UI and local API share authoritative document/commands; expose arguments, selection, errors and result inspection. Undo/save coverage follows the dependencies, never a separate automation model.\n\n## Proposed verification and evidence\nRead independent box, open sheet, inverted normals and OBJ group fixture; inspect bounds/triangle counts, units and native reopen.\n\nAdd/execute `python3 tests/workflows/run.py --case XCH-004 --evidence build/evidence/XCH-004` (case not implemented yet; the runner refuses missing cases). Record actual commands, fixture hashes, dependency versions, assertions and artifacts. Keep build, API, geometry, save/reopen, export, physical input and visual evidence separate; mark non-applicable dimensions with a reason.\n\n## Public reference evidence\n- Supported file formats (reference `formats`) — retrieved 2026-10-11.\n- Mesh modifications (reference `meshmodify`) — retrieved 2026-10-11.\n\nReferences describe documented product/library behavior. Scope, implementation strategy, fixture values and acceptance thresholds are Alloy proposals unless explicitly stated otherwise. Never run or inspect reference CAD application; use public documentation/screenshots only.\n\n## Limits and open questions\nOnly the stated subset is in scope; record unsupported options explicitly. This issue is planned, not implemented or verified.\n\n## 2026-10-21 execution reprioritization\nThe first-v1 STL/OBJ mesh-body import is on the critical creation/import/print path. XCH-014/#720 owns its pinned reader/unit decision and replaces broad XCH-001 as this issue's blocking dependency. XCH-001/#69 still owns the seven-format policy matrix and remains open. Public workflow/fixture contract is external at `../Alloy-reference-records/knowledge/specs/xch004-mesh-import-2026-10-21.md`; native parity and source-independent persistence remain required. Split implementation into finishable STL and OBJ children if a single issue cannot be completed with reasonable verification.\n\n## Decoder safety requirement\nThe pinned reader probe found permissive malformed-OBJ behavior, accepted non-simple/nonplanar polygons and STL vertex merging/degenerate dropping. XCH-004 must require an explicit strict preflight/validation adapter and honest quality reporting around the OCCT decoder; parser success alone is not import acceptance. See `docs/decisions/004-mesh-import-foundation.md` when accepted.\n"
     },
     {
       "key": "XCH-005",
@@ -2825,7 +2825,7 @@
       "title": "Select an established Metal and Vulkan RHI for the CAD viewport",
       "kind": "research",
       "phase": "P0 Foundation",
-      "priority": "P1",
+      "priority": "P0",
       "depends_on": [
         "FND-002",
         "DOC-005",
@@ -2835,10 +2835,10 @@
       "labels": [
         "kind:research",
         "phase:P0",
-        "priority:P1",
-        "area:vis"
+        "area:vis",
+        "priority:P0"
       ],
-      "body": "## Problem and result\nThe accepted renderer destination is Alloy-owned CAD presentation on an established RHI: native Metal on macOS and Vulkan on Windows/Linux. OCCT AIS/V3d/OpenGL is the current prototype renderer; OCCT remains the geometry kernel. See docs/decisions/003-renderer-direction.md.\n\n## Scope\nCompare a small set of maintained C++-usable RHIs using primary documentation and source-pinned licenses/builds. Select one with native Metal/Vulkan, Qt native-window integration, hardware diagnostics, offscreen capture, clipping/depth, multisampling, line/overlay rendering, resource lifetime and suitable ID picking. Record unknowns and a bounded migration plan. Avoid building a bespoke RHI.\n\n## Acceptance criteria\nComplete the stated scope with shared commands and independently reviewed evidence.\n\n## Proposed verification and evidence\nRun one permitted native-library spike rendering OCCT-tessellated box/cylinder data with edges and picking IDs. Verify Mac resize/Retina/native Metal plus compilation for the Vulkan hosts; record actual runtime evidence separately. Test a sensible fixture and stop once the choice is adequately supported. Dependency admission and renderer readiness require independent review. No RHI has been chosen or integrated yet.\n\n## Public reference evidence\n- [Qt QDockWidget](https://doc.qt.io/qt-6/qdockwidget.html) — retrieved 2026-10-11.\n- [Apple graphics direction](https://developer.apple.com/library/archive/documentation/GraphicsImaging/Conceptual/OpenGL-MacProgGuide/opengl_intro/opengl_intro.html) — retrieved 2026-10-11.\n\n## Limits and open questions\nOnly the stated subset is claimed. Renderer selection/migration remains planned; current hardware rendering uses OCCT OpenGL.\n\n\n## Bounded comparison child\nRHI-003 owns the public-documentation shortlist and proposed spike. This parent retains actual library spike/build/runtime evidence, dependency admission and final selection.\n\n\n## Bounded comparison child\nRHI-004 investigates isolated local Metal rendering and ID readback. This parent retains Vulkan-host evidence, admission, selection and migration; neither research nor a local sample chooses the production renderer.\n"
+      "body": "## Problem and result\nThe accepted renderer destination is Alloy-owned CAD presentation on an established RHI: native Metal on macOS and Vulkan on Windows/Linux. OCCT AIS/V3d/OpenGL is the current prototype renderer; OCCT remains the geometry kernel. See docs/decisions/003-renderer-direction.md.\n\n## Scope\nCompare a small set of maintained C++-usable RHIs using primary documentation and source-pinned licenses/builds. Select one with native Metal/Vulkan, Qt native-window integration, hardware diagnostics, offscreen capture, clipping/depth, multisampling, line/overlay rendering, resource lifetime and suitable ID picking. Record unknowns and a bounded migration plan. Avoid building a bespoke RHI.\n\n## Acceptance criteria\nComplete the stated scope with shared commands and independently reviewed evidence.\n\n## Proposed verification and evidence\nRun one permitted native-library spike rendering OCCT-tessellated box/cylinder data with edges and picking IDs. Verify Mac resize/Retina/native Metal plus compilation for the Vulkan hosts; record actual runtime evidence separately. Test a sensible fixture and stop once the choice is adequately supported. Dependency admission and renderer readiness require independent review. No RHI has been chosen or integrated yet.\n\n## Public reference evidence\n- [Qt QDockWidget](https://doc.qt.io/qt-6/qdockwidget.html) — retrieved 2026-10-11.\n- [Apple graphics direction](https://developer.apple.com/library/archive/documentation/GraphicsImaging/Conceptual/OpenGL-MacProgGuide/opengl_intro/opengl_intro.html) — retrieved 2026-10-11.\n\n## Limits and open questions\nOnly the stated subset is claimed. Renderer selection/migration remains planned; current hardware rendering uses OCCT OpenGL.\n\n\n## Bounded comparison child\nRHI-003 owns the public-documentation shortlist and proposed spike. This parent retains actual library spike/build/runtime evidence, dependency admission and final selection.\n\n\n## Bounded comparison child\nRHI-004 investigates isolated local Metal rendering and ID readback. This parent retains Vulkan-host evidence, admission, selection and migration; neither research nor a local sample chooses the production renderer.\n\n## 2026-10-21 v1 execution priority\nThis is a critical path for the familiar viewport and qualified three-platform release. Priority increases without changing the issue acceptance boundary or claiming native/platform evidence.\n"
     },
     {
       "key": "RHI-002",
@@ -7467,7 +7467,7 @@
       "title": "Validate a complete familiar navigation workflow",
       "kind": "validation",
       "phase": "P4 Initial release",
-      "priority": "P1",
+      "priority": "P0",
       "depends_on": [
         "NAV-002",
         "NAV-003",
@@ -7478,9 +7478,10 @@
         "NAV-009"
       ],
       "labels": [
-        "area:doc"
+        "area:doc",
+        "priority:P0"
       ],
-      "body": "## Initial-build readiness scope\nOne ordinary-input walkthrough on an asymmetric part and an assembly: pan, free/constrained orbit, pivot, cursor zoom, cube views, projection, Fit, Look At, named view, enter/exit sketch and select geometry afterward. Include a Mac trackpad/no-middle-button route and desktop mouse route. Observe real event delivery, camera state, GPU frames and no authored changes; preserve platform gaps as open gates. No interstep focus repair. Compare public references with qualified scale/version metadata; record a short annotated demonstration.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n\n\n## Explicit physical gesture qualification\nPreserve NAV-003 physical-device acceptance here: actual Mac two-finger swipe pan, Shift-swipe orbit, pinch zoom and mouse-wheel zoom, with delivered event/device identity and direction recorded. Verify no duplicate wheel/native stream motion, interrupted gesture recovery, ordinary post-navigation selection and cursor anchoring. Qt-delivered synthetic events and GPU captures qualify implementation only, not physical Mac behavior. Windows/Linux remain part of external packaged-host qualification. Navigation preference configuration remains NAV-007.\n"
+      "body": "## Initial-build readiness scope\nOne ordinary-input walkthrough on an asymmetric part and an assembly: pan, free/constrained orbit, pivot, cursor zoom, cube views, projection, Fit, Look At, named view, enter/exit sketch and select geometry afterward. Include a Mac trackpad/no-middle-button route and desktop mouse route. Observe real event delivery, camera state, GPU frames and no authored changes; preserve platform gaps as open gates. No interstep focus repair. Compare public references with qualified scale/version metadata; record a short annotated demonstration.\n\n## Delivery and evidence\nUser-prioritized 2026-10-14. Keep implementation bounded, preserve authoritative document/control commands, use proportional verification and independent review. Public reference details and images remain external. This issue is planned until its stated gate is evidenced; do not substitute compilation/API or Qt simulation for physical input or packaged GPU evidence.\n\n\n## Explicit physical gesture qualification\nPreserve NAV-003 physical-device acceptance here: actual Mac two-finger swipe pan, Shift-swipe orbit, pinch zoom and mouse-wheel zoom, with delivered event/device identity and direction recorded. Verify no duplicate wheel/native stream motion, interrupted gesture recovery, ordinary post-navigation selection and cursor anchoring. Qt-delivered synthetic events and GPU captures qualify implementation only, not physical Mac behavior. Windows/Linux remain part of external packaged-host qualification. Navigation preference configuration remains NAV-007.\n\n## 2026-10-21 v1 execution priority\nThis is a critical path for the familiar viewport and qualified three-platform release. Priority increases without changing the issue acceptance boundary or claiming native/platform evidence.\n"
     },
     {
       "key": "REL-012",
@@ -7750,14 +7751,15 @@
       "title": "Gate: native constrained orbit and set/reset pivot controls",
       "kind": "validation",
       "phase": "P4 Initial release",
-      "priority": "P1",
+      "priority": "P0",
       "depends_on": [
         "NAV-002"
       ],
       "labels": [
-        "area:doc"
+        "area:doc",
+        "priority:P0"
       ],
-      "body": "## Preserved native acceptance scope\nComplete the ordinary-input portion of NAV-002 that could not run because the desktop validation environment would not activate/bind Alloy's window. Qt native01/02 stopped at initial activation; CUA full-path binding returned cgWindowNotFound before any navigation input. Shared-command/GPU evidence does not close this gate.\n\nUse one isolated editor and an off-center asymmetric part. Through actual visible controls choose Free/Constrained, set the center from the blank-canvas context menu and a visible model point, confirm the green marker, orbit with the visible left-drag tool, Escape from a pending pick, and reset from the context menu. Verify level horizon, no pivot jump, natural focus/menu closure, mode/pivot restoration across tabs and unchanged authored/history/selection state. Include a readable capture. Preserve existing API geometry/camera evidence; do not rerun it without a material change.\n\nInitial harness activation is allowed; do not repair focus between demonstrated actions. Keep Qt, OS input and physical device evidence separate. NAV-008 still owns the cumulative mouse/trackpad navigation workflow. Resume this gate after concrete foreground/binding availability changes, not repeated unchanged activation retries. Independent Astra review required."
+      "body": "## Preserved native acceptance scope\nComplete the ordinary-input portion of NAV-002 that could not run because the desktop validation environment would not activate/bind Alloy's window. Qt native01/02 stopped at initial activation; CUA full-path binding returned cgWindowNotFound before any navigation input. Shared-command/GPU evidence does not close this gate.\n\nUse one isolated editor and an off-center asymmetric part. Through actual visible controls choose Free/Constrained, set the center from the blank-canvas context menu and a visible model point, confirm the green marker, orbit with the visible left-drag tool, Escape from a pending pick, and reset from the context menu. Verify level horizon, no pivot jump, natural focus/menu closure, mode/pivot restoration across tabs and unchanged authored/history/selection state. Include a readable capture. Preserve existing API geometry/camera evidence; do not rerun it without a material change.\n\nInitial harness activation is allowed; do not repair focus between demonstrated actions. Keep Qt, OS input and physical device evidence separate. NAV-008 still owns the cumulative mouse/trackpad navigation workflow. Resume this gate after concrete foreground/binding availability changes, not repeated unchanged activation retries. Independent Astra review required.\n## 2026-10-21 v1 execution priority\nThis is a critical path for the familiar viewport and qualified three-platform release. Priority increases without changing the issue acceptance boundary or claiming native/platform evidence.\n"
     },
     {
       "key": "GEO-020",
@@ -12238,6 +12240,42 @@
         "area:srf"
       ],
       "body": "<!-- alloy-backlog:SRF-059 -->\n**Backlog key:** `SRF-059` · **Phase:** `P3 Shape/import/print breadth` · **Priority:** `P1` · **Kind:** `implementation`\n\n## Preserved visual remainder from SRF-058\nThe bounded SRF-058 fix removes coplanar profile-fill striping from the two-sheet Stitch result. Matched Apple M4 captures still show a light/intermittent reopened seam with visible source sketches, intermittent preview seam after resize, and no reliably visible sewn seam when the sketches are hidden. These are observed Alloy presentation gaps, distinct from SRF-057's physical native selection/tolerance input gate.\n\n## Acceptance\n- For the accepted two-planar-sheet Stitch fixture at exact and 0.005 mm gaps, make the actual sewn seam continuously and legibly visible in preview and reopened result with source sketches both visible and hidden. Keep source sketch strokes distinct from the output seam.\n- Check the same camera/viewport before and after Home/resize, effective DPR2 on the Apple M4 GPU, with matched saved-fixture captures. Preserve the stripe-free fill established by SRF-058, and preserve authored/evaluated geometry, source/result IDs, tolerance/edge diagnostics and saved data.\n- Determine the smallest presentation cause/fix; stop after bounded failed hypotheses and record unresolved limits. Focused geometry/API regression suffices. Physical pointer delivery, effective DPR1, matched public visual parity and packaged platforms remain SRF-057/release gates.\n\n## Dependency\n- SRF-058/#718. SRF-057/#717 depends on this completed visual ingredient before native visual acceptance.\n"
+    },
+    {
+      "key": "XCH-014",
+      "title": "Admit pinned STL and OBJ mesh-reader foundation",
+      "kind": "research",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P0",
+      "depends_on": [
+        "FND-002",
+        "DOC-005"
+      ],
+      "labels": [
+        "kind:research",
+        "phase:P3",
+        "priority:P0",
+        "area:xch"
+      ],
+      "body": "<!-- alloy-backlog:XCH-014 -->\n**Backlog key:** `XCH-014` · **Phase:** `P3 Shape/import/print breadth` · **Priority:** `P0` · **Kind:** `research`\n\n## Bounded first-v1 mesh-reader decision\nSelect and verify the repository-pinned C++ reader foundation, explicit unit policy and original legal fixtures for STL/OBJ mesh-body import. This unlocks XCH-004 without waiting for XCH-001's seven-format read/write/licensing matrix or GATE-020.\n\n## Acceptance\n- Use the dated public workflow and library contract at `../Alloy-reference-records/knowledge/specs/xch004-mesh-import-2026-10-21.md`. Check the actual OCCT 7.9.3 headers, linked toolkits and build cache for STL triangulation and OBJ mesh reader support; do a tiny permitted local reader probe on independent original fixtures. Do not infer pinned behavior from current upstream docs alone.\n- Record exact library/version/license/notice, STL ASCII/binary and OBJ reader coverage, triangulation/coordinate policy, explicit mm/in conversion into canonical mm, memory/size limits, unsupported entities and actionable errors. Keep meshes as meshes, never B-rep triangle faces or inferred printable solids.\n- Record source/fixture hashes and the smallest implementation handoff for retained body identity, Undo/Redo and save/reopen. Any missing symbols/modules or uncertain behavior become explicit linked implementation decisions. No reference application may be run.\n\n## Dependencies\n- FND-002/#2 accepted dependency admission and DOC-005/#17 accepted viewport foundation. XCH-001/#69 remains the broader open exchange decision, not a blocking dependency for this mesh-specific slice.\n"
+    },
+    {
+      "key": "DOC-043",
+      "title": "Add shared multi-body selection set and modifier parity",
+      "kind": "implementation",
+      "phase": "P1 Geometry/document",
+      "priority": "P0",
+      "depends_on": [
+        "DOC-025",
+        "DOC-033"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P1",
+        "priority:P0",
+        "area:doc"
+      ],
+      "body": "<!-- alloy-backlog:DOC-043 -->\n**Backlog key:** `DOC-043` · **Phase:** `P1 Geometry/document` · **Priority:** `P0` · **Kind:** `implementation`\n\n## Bounded shared body selection set\nImplement replace, additive Shift and toggle Command/Ctrl selection for multiple visible bodies, including disambiguated occurrences, through one selection authority shared by native viewport clicks, Browser clicks and the local API. Keep authored geometry/history untouched. This is a finishable DOC-006 child and does not close that broad owner.\n\n## Acceptance\n- In Auto and Body Priority, ordinary body click replaces the set, Shift adds without removing, Command on macOS / Ctrl on Windows toggles membership; a blank ordinary click clears. Browser body rows invoke the same behavior. Native input must use actual hit widgets and preserve observed focus/selection between demonstrated steps.\n- API exposes stable `(bodyId, occurrenceId)` members and equivalent replace/add/toggle/clear actions. Reject stale IDs and ambiguous linked occurrences atomically. Existing face/edge singleton and command-specific pickers remain correct.\n- Highlight every selected body visibly on the GPU viewport; browser/state cues agree. Selection alone does not mutate authored document, history or saved bytes. Verify the bounded sequence on real Alloy with two root bodies and a repeated occurrence, plus Undo/save/reopen semantics and DPR1/2 captures as applicable.\n- Record public evidence, implementation limits, actual app evidence and independent review. Do not infer screenshot or full selection parity from API fixtures.\n\n## References and retained scope\nDated public-reference and source audit: `../Alloy-reference-records/knowledge/specs/doc006-selection-completion-2026-10-21.md`. DOC-006/#18 retains multi-face/edge sets, component and broader filters, drag/window selection and other unfinished requirements. SKT-159/#585 retains Depth/Parents chooser. This issue depends on the accepted DOC-025/#307 selection-priority foundation and DOC-033/#399 idle-selection behavior.\n"
     }
   ]
 }

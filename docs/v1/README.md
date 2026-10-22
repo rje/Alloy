@@ -1,5 +1,9 @@
 # Printable-part v1 review
 
+[Current execution order](priority-burndown-2026-10-21.md) identifies the next
+finishable Mac workflow, mesh import, native renderer and package gates without
+changing this scope freeze.
+
 Private review site: https://alloy-v1-review.rjevans1.chatgpt.site
 
 The user reviewed this as a reasonable working direction on 2026-10-17. The [2026-10-20 planning freeze](scope-reconciliation-2026-10-20.md) selects the first-v1 minimums and release owners across all 134 proposed rows, including the [27 formerly open-owner rows](open-row-disposition.md). This fixes planning scope, not feature or package readiness; the execution gates remain open. The long-term full noncloud product contract remains intact. Older audit narrative below records how the plan was assembled and should be read as dated history.

@@ -1,3 +1,10 @@
+## Current execution order
+
+The [2026-10-21 first-v1 burndown](v1/priority-burndown-2026-10-21.md)
+prioritizes Mac input/selection, retained mesh import, native Metal/Vulkan
+rendering and cumulative three-platform release qualification. The scope freeze
+and live GitHub issue states remain authoritative for readiness.
+
 ## 2026-10-20 two-sheet Stitch work started
 
 The first-v1 [Surface Stitch minimum](v1/open-row-disposition.md) has a dated
