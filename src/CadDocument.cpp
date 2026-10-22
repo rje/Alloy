@@ -20,6 +20,7 @@
 #include "SketchGeometry.h"
 #include "LengthExpression.h"
 #include "StepExchange.h"
+#include "MeshImport.h"
 #include "LocalReference.h"
 #include <QJsonArray>
 #include <QMap>
@@ -1658,6 +1659,13 @@ EvaluatedDocument CadDocument::evaluationBefore(const QString& featureId) const 
     prefix.remove("bodyNames");
     return GeometryKernel::evaluateDocument(prefix);
 }
+QJsonObject CadDocument::stlImportCandidate(const QJsonObject& authored,const QJsonObject& arguments) {
+    const QSet<QString> allowed{"path","units"};
+    for(auto it=arguments.begin();it!=arguments.end();++it)if(!allowed.contains(it.key()))throw std::invalid_argument("Unknown STL import argument");
+    auto mesh=MeshImport::readStl(arguments.value("path").toString(),arguments.value("units").toString());
+    auto candidate=authored;auto meshes=candidate.value("meshes").toArray();meshes.append(mesh);candidate["meshes"]=meshes;
+    const auto error=validateStructure(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());return candidate;
+}
 QJsonObject CadDocument::stepImportCandidate(const QJsonObject& authored, const QJsonObject& arguments) {
     if (!validate(authored).isEmpty())
         throw StepExchange::Error({{"code","invalid_document"},{"message","Cannot import into an invalid document"}});
@@ -2636,6 +2644,17 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
     if (units != "mm" && units != "in") return "Unsupported display units";
     if (!candidate["features"].isArray()) return "Features must be an array";
     QSet<QString> ids{root}, owners{root};
+    if(candidate.contains("meshes") && !candidate.value("meshes").isArray())return "Meshes must be an array";
+    if(candidate.value("meshes").toArray().size()>64)return "Document mesh limit is 64 bodies; use a separate document";
+    qint64 meshTriangles=0;
+    for(const auto& value:candidate.value("meshes").toArray()) {
+        if(!value.isObject())return "Mesh record must be an object";
+        const auto mesh=value.toObject();const auto error=MeshImport::validate(mesh);
+        if(!error.isEmpty())return error;
+        const auto id=mesh.value("id").toString();if(ids.contains(id))return "Duplicate mesh identity";
+        ids.insert(id);meshTriangles+=mesh.value("triangles").toArray().size();
+        if(meshTriangles>200000)return "Document mesh limit is 200000 triangles; reduce the mesh or use a separate document";
+    }
     if(candidate.contains("canvases") && !candidate["canvases"].isArray())return "Canvases must be an array";
     for(const auto& entry:candidate["canvases"].toArray()){
         if(!entry.isObject())return "Canvas record must be an object";
@@ -3552,14 +3571,22 @@ QJsonObject CadDocument::state() const {
     for(const auto& point:evaluation_->constructionPoints){auto row=point.point;row["featureId"]=point.featureId;row["ownerId"]=point.ownerId;row["name"]=point.name;row["visible"]=point.visible;evaluatedPoints.append(row);}
     for(const auto& axis:evaluation_->constructionAxes){auto row=axis.line;row["featureId"]=axis.featureId;row["ownerId"]=axis.ownerId;row["name"]=axis.name;row["visible"]=axis.visible;evaluatedAxes.append(row);}
     for(const auto& plane:evaluation_->constructionPlanes)evaluatedPlanes.append(QJsonObject{{"ownerId",plane.ownerId},{"featureId",plane.featureId},{"name",plane.name},{"visible",plane.visible},{"frame",plane.frame}});
-    return {{"activeOwnerId",activeOwnerId()},{"components",authored_["components"].toArray()},{"occurrences",authored_["occurrences"].toArray()},{"namedViews",authored_["namedViews"].toArray()},{"homeCamera",authored_["homeCamera"].toObject()},{"viewConvention",authored_.value("viewConvention").toObject()},{"assembly",assemblyState()},{"userParameters",evaluatedUserParameters(authored_)},{"modelParameters",modelLengthRows(authored_)},{"loaded", true}, {"id", authored_["documentId"]}, {"label", label()}, {"path",path_},
+    // Keep ordinary control responses below the local transport bound. Owned
+    // geometry remains in authored_ and native files; mesh.inspect pages it.
+    auto inspectedAuthored=authored_;QJsonArray meshRecords,meshes;
+    for(const auto& value:authored_.value("meshes").toArray()) {
+        auto mesh=value.toObject();meshes.append(MeshImport::summary(mesh));
+        mesh.remove("verticesMm");mesh.remove("triangles");meshRecords.append(mesh);
+    }
+    if(authored_.contains("meshes"))inspectedAuthored["meshes"]=meshRecords;
+    return {{"meshes",meshes},{"activeOwnerId",activeOwnerId()},{"components",authored_["components"].toArray()},{"occurrences",authored_["occurrences"].toArray()},{"namedViews",authored_["namedViews"].toArray()},{"homeCamera",authored_["homeCamera"].toObject()},{"viewConvention",authored_.value("viewConvention").toObject()},{"assembly",assemblyState()},{"userParameters",evaluatedUserParameters(authored_)},{"modelParameters",modelLengthRows(authored_)},{"loaded", true}, {"id", authored_["documentId"]}, {"label", label()}, {"path",path_},
         {"units", authored_["displayUnits"]}, {"canonicalLengthUnit", "mm"},
         {"revision", static_cast<qint64>(revision_)}, {"dirty", isDirty()},
         {"lastTransactionId", lastTransaction_},
         {"features", authored_["features"].toArray().size()}, {"bodies",static_cast<int>(evaluation_->bodies.size())}, {"sketches", static_cast<int>(evaluation_->sketches.size())},
         {"evaluation",QJsonObject{{"status","current"},{"recompute",evaluation_->recompute},{"featureOrder",order},{"featureStates",evaluation_->featureStates},{"joinBodyResults",evaluation_->joinBodyResults},
             {"documentRevision",static_cast<qint64>(revision_)},{"bodies",evaluated},{"sketches",evaluatedSketches},{"constructionPlanes",evaluatedPlanes},{"constructionAxes",evaluatedAxes},{"constructionPoints",evaluatedPoints}}},
-        {"rollback",rollbackState()}, {"editableHistory", !isRolledBack()}, {"authored", authored_},
+        {"rollback",rollbackState()}, {"editableHistory", !isRolledBack()}, {"authored", inspectedAuthored},{"meshGeometryPageCommand","mesh.inspect"},
         {"undo", QJsonObject{{"canUndo", history_.canUndo()}, {"canRedo", history_.canRedo()},
             {"count", history_.count()}, {"index", history_.index()},
             {"undoText", history_.undoText()}, {"redoText", history_.redoText()}}}};

@@ -95,6 +95,7 @@ public:
     EvaluatedDocument evaluationBefore(const QString& featureId) const;
     // Reads and embeds one bounded local STEP source. The caller commits the
     // returned candidate through the ordinary validated document transaction.
+    static QJsonObject stlImportCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QJsonObject stepImportCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QJsonObject localReferenceCandidate(const QJsonObject& authored,const QJsonObject& arguments);
     static QJsonObject localReferencePlacementCandidate(const QJsonObject& authored,const QString& featureId,const QJsonObject& placement);

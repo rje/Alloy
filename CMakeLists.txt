@@ -30,6 +30,7 @@ target_include_directories(alloy_sketch_solver PUBLIC src)
 target_link_libraries(alloy_sketch_solver PUBLIC Qt6::Core PRIVATE alloy_planegcs)
 
 add_library(alloy_kernel STATIC
+    src/MeshImport.cpp src/MeshImport.h
     src/DatumPoint.cpp src/DatumPoint.h
     src/DatumAxis.cpp src/DatumAxis.h
     src/SurfaceContinuity.cpp src/SurfaceContinuity.h
@@ -389,6 +390,9 @@ if(BUILD_TESTING)
     add_executable(geometry_kernel_test tests/geometry_kernel.cpp)
     target_link_libraries(geometry_kernel_test PRIVATE alloy_kernel)
     add_test(NAME geometry_kernel COMMAND geometry_kernel_test)
+    add_executable(retained_stl_import_test tests/retained_stl_import.cpp)
+    target_link_libraries(retained_stl_import_test PRIVATE alloy_kernel Qt6::Gui)
+    add_test(NAME retained_stl_import COMMAND retained_stl_import_test)
     add_executable(step_exchange_test tests/step_exchange.cpp src/CadDocument.cpp src/CadDocument.h)
     target_include_directories(step_exchange_test PRIVATE src)
     target_link_libraries(step_exchange_test PRIVATE Qt6::Gui alloy_kernel)

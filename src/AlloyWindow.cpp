@@ -1,3 +1,4 @@
+#include "MeshImport.h"
 #include "DatumPoint.h"
 #include "DatumAxis.h"
 #include <QGraphicsOpacityEffect>
@@ -2192,6 +2193,42 @@ void AlloyWindow::registerCommands() {
     });
     auto path=parameter("string","Absolute native .alloy file path.");
     auto discard=optional(parameter("boolean","Explicitly discard unsaved edits."));
+    add("mesh.inspect","Inspect retained mesh","Read a bounded page of authoritative canonical-mm mesh vertices and zero-based triangle indices.",
+        {{"meshId",parameter("string","Stable retained mesh UUID.")},
+         {"vertexOffset",optional(parameter("integer","First vertex, default zero."))},
+         {"triangleOffset",optional(parameter("integer","First triangle, default zero."))},
+         {"limit",optional(parameter("integer","Page length for each array, 1..1000; default 1000."))}},[this](const auto& a){
+            for(const auto& key:{"limit","vertexOffset","triangleOffset"})if(a.contains(key)) {
+                const auto value=a.value(key);
+                if(!value.isDouble() || !std::isfinite(value.toDouble()) || std::floor(value.toDouble())!=value.toDouble())
+                    return failure("invalid_mesh_page","Mesh page offsets and limit must be finite integers");
+            }
+            if(a.value("limit").toDouble(1000)<1 || a.value("limit").toDouble(1000)>1000
+                || a.value("vertexOffset").toDouble()<0 || a.value("vertexOffset").toDouble()>600000
+                || a.value("triangleOffset").toDouble()<0 || a.value("triangleOffset").toDouble()>200000)
+                return failure("invalid_mesh_page","Use offsets within the geometry counts and a limit from 1 to 1000");
+            const int limit=a.value("limit").toInt(1000),vo=a.value("vertexOffset").toInt(),to=a.value("triangleOffset").toInt();
+            for(const auto& value:document_->authored().value("meshes").toArray()) {
+                const auto mesh=value.toObject();if(mesh.value("id")!=a.value("meshId"))continue;
+                const auto vertices=mesh.value("verticesMm").toArray(),triangles=mesh.value("triangles").toArray();
+                if(vo>vertices.size() || to>triangles.size())return failure("invalid_mesh_page","Offsets must not exceed the stored geometry counts");
+                QJsonArray vp,tp;for(int i=vo;i<std::min(int(vertices.size()),vo+limit);++i)vp.append(vertices[i]);
+                for(int i=to;i<std::min(int(triangles.size()),to+limit);++i)tp.append(triangles[i]);
+                return QJsonObject{{"mesh",MeshImport::summary(mesh)},{"vertexOffset",vo},{"triangleOffset",to},
+                    {"verticesMm",vp},{"triangles",tp},{"nextVertexOffset",vo+vp.size()},{"nextTriangleOffset",to+tp.size()}};
+            }
+            return failure("stale_mesh","The retained mesh UUID is unavailable");
+        });
+    add("document.importStl","Import STL mesh","Import one bounded STL as retained mesh geometry; no B-rep conversion or viewport presentation.",
+        {{"path",parameter("string","Absolute STL source path.")},{"units",parameter("string","Required source interpretation: mm or in.")}},[this](const auto& a){
+            if(!session_.isEmpty() || document_->isRolledBack())return failure("active_command","Finish the active command and return to latest before importing");
+            try {
+                const auto candidate=CadDocument::stlImportCandidate(document_->authored(),a);
+                if(const auto error=document_->commit(candidate,"Import STL mesh");!error.isEmpty())return failure("mesh_import_failed",error);
+                return document_->state();
+            } catch(const MeshImport::Error& error){return QJsonObject{{"ok",false},{"error",error.details}};}
+            catch(const std::exception& error){return failure("mesh_import_failed",QString::fromUtf8(error.what()));}
+        });
     add("document.importStep","Import STEP","Import one solid or a retained solid-only assembly with embedded source and one undo entry.",
         {{"path",parameter("string","Absolute input STEP path.")},{"name",optional(parameter("string","Imported feature name."))},
          {"newDesign",optional(parameter("boolean","Open as a separate new design; default imports into the active design."))}},[this](const auto& a){
@@ -7494,7 +7531,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
         const bool blocked=id.startsWith("solid.") || id.startsWith("surface.") || id.startsWith("primitive.") || id.startsWith("sketch.")
             || id.startsWith("construction.") || id.startsWith("feature.") || id.startsWith("body.rename") || id.startsWith("body.remove") || id.startsWith("body.paste") || id=="body.copySelection" || (id.startsWith("component.") && id!="component.inspect")
             || id.startsWith("document.save") || id.startsWith("document.export") || id.startsWith("document.open")
-            || id=="document.new" || id=="document.importStep" || id.startsWith("history.")
+            || id=="document.new" || id=="document.importStl" || id=="document.importStep" || id.startsWith("history.")
             || id=="reference.insert" || id=="reference.insertDialog" || id=="reference.update" || id=="reference.moveDialog"
             || id=="command.begin" || id=="command.update" || id=="command.commit";
         if(blocked)return finish(failure("pending_reference_position","Capture Position or Revert the pending local reference placement first"));
@@ -7506,7 +7543,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
         const bool modeling=id.startsWith("solid.") || id.startsWith("surface.") || id.startsWith("primitive.") || id.startsWith("sketch.")
             || id.startsWith("construction.") || (id.startsWith("feature.") && !deletingPin) || id=="component.create" || id=="component.newDialog"
             || id.startsWith("component.reparent") || id.startsWith("body.rename") || id.startsWith("body.remove") || id.startsWith("body.paste") || id=="body.copySelection"
-            || id=="document.importStep" || (id.startsWith("reference.") && id!="reference.inspect" && id!="reference.revert")
+            || id=="document.importStl" || id=="document.importStep" || (id.startsWith("reference.") && id!="reference.inspect" && id!="reference.revert")
             || (id=="command.begin" && args.value("command").toString()!="joint.slider" && args.value("command").toString()!="joint.revolute" && args.value("command").toString()!="joint.cylindrical")
             || ((id=="command.update" || id=="command.commit") && session_.value("command")!="joint.slider" && session_.value("command")!="joint.revolute" && session_.value("command")!="joint.cylindrical" && !session_.isEmpty());
         if(modeling)return finish(failure("assembly_pose_active","Return the joint to its assembled position before modeling"));
