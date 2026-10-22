@@ -1,5 +1,11 @@
 # Alloy
 
+[Retained STL mesh presentation](docs/validation/retained-mesh-presentation.md)
+now shows imported facets as a selectable GPU mesh with a distinct Browser row,
+visibility, fit and source-independent reopen. Mixed solid/mesh selection and
+effective DPR1/2 Mac captures pass bounded review. The native file chooser and
+import preview remain XCH-019/#728; OBJ remains XCH-017/#724.
+
 [Shared multi-body selection](docs/validation/body-selection-set.md) now passes
 bounded native/API verification for Body Priority, Browser and modifier clicks,
 including repeated occurrence identities. Ordinary Auto canvas body selection

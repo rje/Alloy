@@ -10,6 +10,11 @@ dependency keys with issue numbers.
 The current local backlog contains **726 issues**: **574 implementation, 25 research,
 6 research/design, 22 epics, and 99 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
+[XCH-015/#722](../validation/retained-stl-import.md) accepts strict retained STL
+core/API import; [XCH-018/#727](../validation/retained-mesh-presentation.md)
+accepts separate Browser/GPU mesh identity, selection and visibility. Native
+chooser/preview XCH-019/#728, cumulative native XCH-016/#723, strict OBJ
+XCH-017/#724 and measured repeat-validation cost XCH-020/#729 remain Todo.
 [Connected-Line Surface Revolve](../validation/surface-revolve-chain.md) accepts
 the joined-Line first-v1 minimum under SRF-037/#660. Canvas selection and angle
 drag remain SRF-036/#659; later Line/Arc chains are SRF-055/#715.

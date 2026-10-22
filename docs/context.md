@@ -11,9 +11,11 @@ face-first. [DOC-044/#725](validation/root-edge-refresh.md) accepts the separate
 root-edge refresh repair.
 [XCH-015/#722](validation/retained-stl-import.md) accepts strict retained STL
 core/API import with original geometry, diagnostics, source-independent reopen
-and measured capacity. XCH-018 Browser/GPU and XCH-019 native chooser/preview
-are next; XCH-016 remains their cumulative native gate. XCH-020 records the
-measured subsequent-Box cost.
+and measured capacity. [XCH-018/#727](validation/retained-mesh-presentation.md)
+accepts distinct Browser/GPU mesh presentation, whole-mesh selection/visibility,
+source-independent reopen and effective DPR1/2 Mac native captures after
+independent reviews. XCH-019 native chooser/preview is next; XCH-016 remains
+their cumulative native gate. XCH-020 records the measured subsequent-Box cost.
 The [printable bench-vise capstone](v1/capstone-candidate.md) is a researched
 proposal, not a selected release gate; detailed public references remain outside
 the repository.
