@@ -53,12 +53,13 @@ QJsonObject analyze(const QJsonArray& vertices,const QJsonArray& triangles) {
 }
 }
 Error::Error(QJsonObject d):std::runtime_error(d.value("message").toString().toStdString()),details(std::move(d)){}
-QJsonObject readStl(const QString& path,const QString& units) try {
+QJsonObject readStl(const QString& path,const QString& units,const Progress& progress) try {
     if(units!="mm" && units!="in")fail(path,"STL requires explicit source units mm or in");
+    if(progress)progress("reading",0,0);
     QFile file(path);if(!QFileInfo(path).isAbsolute() || !file.open(QIODevice::ReadOnly))fail(path,"Choose a readable absolute STL path");
     capacity(path,file.size(),0);const auto bytes=file.read(maxBytes+1);capacity(path,bytes.size(),0);if(bytes.isEmpty())fail(path,"Empty STL has no facets");
     std::vector<std::array<Point,3>> facets;int color=0;QString encoding;
-    auto add=[&](const std::array<Point,3>& f){capacity(path,bytes.size(),facets.size()+1);facets.push_back(f);};
+    auto add=[&](const std::array<Point,3>& f){if(progress && facets.size()%1024==0)progress("preflight",facets.size(),0);capacity(path,bytes.size(),facets.size()+1);facets.push_back(f);};
     auto finite=[&](double v,int facet,int line=0,bool coordinate=true){if(!std::isfinite(v) || (coordinate && std::abs(v)>1e9/(units=="in"?25.4:1.0)))fail(path,"Nonfinite or out-of-range coordinate/normal",facet,line);return v;};
     quint32 count=0;if(bytes.size()>=84)count=qFromLittleEndian<quint32>(reinterpret_cast<const uchar*>(bytes.constData()+80));
     const bool exactBinary=bytes.size()>=84 && quint64(bytes.size())==84ull+50ull*count;
@@ -79,25 +80,29 @@ QJsonObject readStl(const QString& path,const QString& units) try {
     if(facets.empty())fail(path,"STL has no facets");
     // Decode the exact validated bytes, avoiding source-file replacement races.
     QTemporaryFile staged;if(!staged.open() || staged.write(bytes)!=bytes.size() || !staged.flush())fail(path,"Cannot stage validated STL");
+    if(progress)progress("decoding",0,0);
     const auto decoded=RWStl::ReadFile(staged.fileName().toUtf8().constData());
     if(decoded.IsNull() || decoded->NbTriangles()==0)fail(path,"OCCT found no usable triangles");
     // The decoder is admitted only if each received output triangle has the
     // original oriented coordinates. This also catches unexpected reader loss.
+    if(progress)progress("checking decoder",0,0);
     using OrientedFacet=std::array<Point,3>;
     auto canonical=[](OrientedFacet f){auto best=f;for(int k=1;k<3;++k){OrientedFacet rotated{f[k],f[(k+1)%3],f[(k+2)%3]};best=std::min(best,rotated);}return best;};
     std::map<OrientedFacet,int> received;
-    for(const auto& facet:facets)++received[canonical(facet)];
+    for(const auto& facet:facets){if(progress && received.size()%1024==0)progress("checking decoder",received.size(),facets.size());++received[canonical(facet)];}
     for(int n=1;n<=decoded->NbTriangles();++n){int a,b,c;decoded->Triangle(n).Get(a,b,c);OrientedFacet f{};int k=0;for(int node:{a,b,c}){const auto& p=decoded->Node(node);f[k++]={p.X(),p.Y(),p.Z()};}auto it=received.find(canonical(f));if(it==received.end() || it->second==0)fail(path,"OCCT decoder changed facet coordinates or winding");--it->second;}
     for(const auto& [facet,count]:received)if(count>0){const auto& a=facet[0];const auto& b=facet[1];const auto& c=facet[2];if(a!=b && b!=c && a!=c)fail(path,"OCCT decoder omitted a non-repeated-vertex facet");}
     // Exact-coordinate merging matches the decoder. Retain raw facet order and
     // degenerate facets that OCCT omits, rather than silently losing source data.
     QJsonArray vertices,triangles;std::map<Point,int> index;const double scale=units=="in"?25.4:1.0;
-    for(const auto& facet:facets){QJsonArray triangle;for(auto p:facet){for(auto& x:p)x*=scale;auto [it,inserted]=index.emplace(p,index.size());if(inserted)vertices.append(json(p));triangle.append(it->second);}triangles.append(triangle);}
+    if(progress)progress("retaining coordinates",0,0);
+    for(const auto& facet:facets){if(progress && triangles.size()%1024==0)progress("retaining coordinates",triangles.size(),facets.size());QJsonArray triangle;for(auto p:facet){for(auto& x:p)x*=scale;auto [it,inserted]=index.emplace(p,index.size());if(inserted)vertices.append(json(p));triangle.append(it->second);}triangles.append(triangle);}
     QJsonObject mesh{{"schema","alloy-mesh/1"},{"id",QUuid::createUuid().toString(QUuid::WithoutBraces)},{"kind","mesh"},{"name",QFileInfo(path).fileName()},
         {"source",QJsonObject{{"format","stl"},{"encoding",encoding},{"name",QFileInfo(path).fileName()},{"sha256",QString::fromLatin1(QCryptographicHash::hash(bytes,QCryptographicHash::Sha256).toHex())},{"units",units},{"scaleToMm",scale},{"bytes",bytes.size()}}},
         {"placement",QJsonArray{1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1}},{"verticesMm",vertices},{"triangles",triangles},
         {"diagnostics",QJsonObject{{"decoder","OCCT RWStl 7.9.3"},{"sourceNormalsIgnored",true},{"decodedTriangles",decoded->NbTriangles()},{"sourceFacets",int(facets.size())},{"ignoredAttributeFacets",color},{"vertexPolicy","exact-coordinate merge; source facet order/winding and degenerates retained"}}}};
-    mesh["summary"]=analyze(vertices,triangles);return mesh;
+    if(progress)progress("quality analysis",0,0);
+    mesh["summary"]=analyze(vertices,triangles);if(progress)progress("prepared",1,1);return mesh;
 } catch(const Standard_Failure& error){fail(path,"OCCT STL decode failed: "+QString::fromUtf8(error.GetMessageString()));}
   catch(const std::bad_alloc&){fail(path,"STL allocation failed; reduce the source triangle count and retry");}
 QJsonObject withUnits(const QJsonObject& base,const QString& units) {

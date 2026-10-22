@@ -1328,6 +1328,23 @@ QJsonObject CadDocument::reorderCandidate(const QJsonObject& authored,const QStr
     candidate["features"]=features;
     return candidate;
 }
+std::shared_ptr<const CadDocument::PreparedMeshImport> CadDocument::prepareMeshImport(const QJsonObject& base,const QJsonObject& mesh) {
+    auto prepared=std::make_shared<PreparedMeshImport>();prepared->base_=base;prepared->candidate_=base;
+    auto meshes=base.value("meshes").toArray();meshes.append(mesh);prepared->candidate_["meshes"]=meshes;
+    const auto error=validateStructure(prepared->candidate_);
+    if(!error.isEmpty())throw std::invalid_argument(error.toStdString());
+    return prepared;
+}
+QString CadDocument::commitMeshImport(const PreparedMeshImport& prepared,quint64 expectedRevision) {
+    // The only token producer validates an exact one-mesh append. All other
+    // authored state and prior meshes must still be the same accepted base.
+    if(isRolledBack() || revision_!=expectedRevision || authored_!=prepared.base_)
+        return "The design changed; Cancel and select the mesh again";
+    lastEvaluationError_={};
+    history_.push(new DocumentEdit(*this,prepared.candidate_,evaluation_,"Import STL mesh"));
+    return {};
+}
+
 QString CadDocument::commit(const QJsonObject& candidate, const QString& label) {
     lastEvaluationError_ = {};
     if (candidate["documentId"] != authored_["documentId"]) {

@@ -1409,6 +1409,7 @@ AlloyWindow::AlloyWindow() {
 }
 
 AlloyWindow::~AlloyWindow() {
+    if(meshImportWork_)meshImportWork_->cancelled.store(true);
     // A detached export may be awaiting GUI authorization. Always release it
     // without joining, including teardown that bypasses normal close guards.
     if(geometryEvaluationRunning_ && geometryEvaluationRunning_->exportPublication)
@@ -2019,6 +2020,7 @@ QJsonObject AlloyWindow::activateTab(const QString& tabId) {
     bool found=false;for(const auto& tab:designTabs_)found|=tab->id==tabId;
     if(!found)return failure("stale_tab","Design tab does not exist","tabId");
     if(const auto blocker=tabSwitchBlocker();!blocker.isEmpty())return failure("pending_input_active",blocker);
+    if(meshImportDock_)closeMeshImport();
     saveActiveTabState();activeTabId_=tabId;showActiveTab();return documentTabs();
 }
 
@@ -2256,7 +2258,7 @@ void AlloyWindow::registerCommands() {
             if(!session_.isEmpty() || document_->isRolledBack())return failure("active_command","Finish the active command and return to latest before importing");
             try {
                 const auto candidate=meshImportCommitting_ ? meshImportCandidate_ : CadDocument::stlImportCandidate(document_->authored(),a);
-                if(const auto error=document_->commit(candidate,"Import STL mesh");!error.isEmpty())return failure("mesh_import_failed",error);
+                if(const auto error=meshImportCommitting_ && meshImportPrepared_ ? document_->commitMeshImport(*meshImportPrepared_,meshImportBaseRevision_) : document_->commit(candidate,"Import STL mesh");!error.isEmpty())return failure("mesh_import_failed",error);
                 const auto id=candidate.value("meshes").toArray().last().toObject().value("id").toString();
                 execute("selection.set",{{"bodyId",id}});execute("view.fit");
                 return document_->state();
@@ -7448,6 +7450,7 @@ QString AlloyWindow::geometryWorkLabel(const QString& id,const QJsonObject& args
 }
 
 QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
+    if(meshImportDock_ && !meshImportCommitting_ && QStringList{"document.new","document.open","document.tabNew","document.tabActivate","document.tabClose"}.contains(id))closeMeshImport();
     if((meshImportDock_ || findChild<QFileDialog*>("mesh.import.chooser")) && !meshImportCommitting_) {
         const bool viewEdit=QStringList{"view.conventionUp","view.conventionSet","view.conventionReset","view.namedCreate","view.namedRename","view.namedDelete","view.homeSet","view.homeReset"}.contains(id);
         const bool safe=id.startsWith("mesh.import") || id=="app.state" || id=="app.identity" || id=="commands.list"
@@ -7774,7 +7777,7 @@ QJsonObject AlloyWindow::state() const {
     return {{"application", "Alloy"}, {"version", "0.1.0"}, {"stage", "sketch-authoring"},
         {"runtime", QJsonObject{{"qtVersion", qVersion()}, {"occtBuildVersion", ALLOY_OCCT_VERSION}}},
         {"revision", static_cast<qint64>(revision_)},
-        {"meshImport",meshImportDock_ ? QJsonObject{{"inputs",meshImportInputs_},{"preview",MeshImport::summary(meshImportCandidate_.value("meshes").toArray().last().toObject())},{"authored",false},{"loadingCancellable",false}} : QJsonObject{}}, {"identity", identity()}, {"sketchEvaluation",operationProgress(sketchEvaluationOperation_)}, {"documentOpen",operationProgress(documentOpenOperation_)}, {"meshExport",operationProgress(meshExportOperation_)}, {"activeSession", session_}, {"failedEditRepair",failedEditRepair_}, {"sectionEdit",sectionEdit_}, {"pendingReferencePosition",pendingReference_}, {"assembly",presentationAssembly()}, {"documentTabs",documentTabs()},
+        {"meshImport",meshImportState()}, {"meshImportOperation",meshImportOperation_}, {"identity", identity()}, {"sketchEvaluation",operationProgress(sketchEvaluationOperation_)}, {"documentOpen",operationProgress(documentOpenOperation_)}, {"meshExport",operationProgress(meshExportOperation_)}, {"activeSession", session_}, {"failedEditRepair",failedEditRepair_}, {"sectionEdit",sectionEdit_}, {"pendingReferencePosition",pendingReference_}, {"assembly",presentationAssembly()}, {"documentTabs",documentTabs()},
         {"recovery",QJsonObject{{"available",recovery_->error().isEmpty()},{"warning",recoveryWarning_},
             {"staleCount",recovery_->list().size()},{"scope","committed authored state only"}}},
         {"inlineEditor",inlineEditorState()},

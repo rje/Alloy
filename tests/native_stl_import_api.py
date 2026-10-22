@@ -4,6 +4,7 @@
 import argparse
 import json
 import shutil
+import time
 from pathlib import Path
 from app_harness import application
 from retained_stl_import_api import raw_facets
@@ -17,6 +18,24 @@ def main():
     output, fixtures = Path(args.output).resolve(), Path(args.fixtures).resolve()
     output.mkdir(parents=True, exist_ok=True)
     with application(args.app, output) as (call, transcript):
+        def ready():
+            deadline = time.monotonic() + 30
+            while True:
+                state = call('app.state')['meshImport']
+                if state['status'] != 'pending':
+                    return state
+                assert time.monotonic() < deadline, state
+                time.sleep(.02)
+        def preview(path):
+            assert call('mesh.importPreview', {'path': str(path)})['status'] == 'pending'
+            state = ready()
+            assert state['status'] == 'ready', state
+            return state['preview']
+        def units(value):
+            assert call('mesh.importUnits', {'units': value})['status'] == 'pending'
+            state = ready()
+            assert state['status'] == 'ready', state
+            return state['preview']
         assert any(c['id'] == 'document.importMeshDialog' for c in call('commands.list')['commands'])
         for name in ('ascii_box_10mm.stl', 'open_square.stl'):
             call('document.new', {'discard': True})
@@ -28,8 +47,8 @@ def main():
             before, selection, saved_bytes = call('document.inspect'), call('app.state')['selection'], saved.read_bytes()
             source = output / name
             shutil.copyfile(fixtures / name, source)
-            mm = call('mesh.importPreview', {'path': str(source)})['preview']
-            inch = call('mesh.importUnits', {'units': 'in'})['preview']
+            mm = preview(source)
+            inch = units('in')
             for axis in ('min', 'max'):
                 assert inch['boundsMm'][axis] == [x*25.4 for x in mm['boundsMm'][axis]]
             assert call('document.inspect') == before and call('app.state')['selection'] == selection
@@ -40,8 +59,8 @@ def main():
             call('mesh.importCancel')
             assert call('document.inspect') == before and call('app.state')['selection'] == selection
             assert saved.read_bytes() == saved_bytes
-            call('mesh.importPreview', {'path': str(source)})
-            call('mesh.importUnits', {'units': 'in'})
+            preview(source)
+            units('in')
             source.unlink()  # OK commits the preview, never reparses a changed/deleted source.
             call('mesh.importAccept')
             state = call('document.inspect')
@@ -61,7 +80,10 @@ def main():
             call('document.open', {'path': str(path), 'discard': True})
             assert call('mesh.inspect', {'meshId': mesh}) == geometry
         before, selection = call('document.inspect'), call('app.state')['selection']
-        call('mesh.importPreview', {'path': str(fixtures / 'truncated_binary.stl')}, 'mesh_import_failed')
+        call('mesh.importPreview', {'path': str(fixtures / 'truncated_binary.stl')})
+        failed = ready()
+        assert failed['status'] == 'failed' and failed['error']['code'] == 'mesh_import_failed', failed
+        call('mesh.importCancel')
         assert call('document.inspect') == before and call('app.state')['selection'] == selection
         (output/'transcript.json').write_text(json.dumps(transcript, indent=2))
         (output/'summary.json').write_text(json.dumps({'passed': True, 'responses': len(transcript)}, indent=2))

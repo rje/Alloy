@@ -64,6 +64,25 @@ protected:
 private:
     void registerMeshImportCommands();
     QJsonObject updateMeshImport(const QString& units);
+    void pollMeshImport();
+    QJsonObject meshImportState() const;
+    struct MeshImportWork {
+        std::atomic<bool> cancelled{false}, ready{false};
+        std::atomic<int> phase{0}, completed{0}, total{0};
+        quint64 generation=0, revision=0;
+        QString tabId, documentId, units;
+        CadDocument* target=nullptr; // UI comparison only; never dereferenced by the worker.
+        QJsonObject base, original, mesh, error;
+        std::shared_ptr<const CadDocument::PreparedMeshImport> prepared;
+        std::vector<gp_Pnt> facets;
+        qint64 workerMs=0;
+    };
+    std::shared_ptr<MeshImportWork> meshImportWork_;
+    std::weak_ptr<MeshImportWork> meshImportDraining_;
+    std::shared_ptr<const CadDocument::PreparedMeshImport> meshImportPrepared_;
+    QJsonObject meshImportOperation_;
+    quint64 meshImportGeneration_=0;
+    QString meshImportTabId_;
     void closeMeshImport();
     QPointer<QDockWidget> meshImportDock_;
     QJsonObject meshImportBase_, meshImportCandidate_, meshImportInputs_;

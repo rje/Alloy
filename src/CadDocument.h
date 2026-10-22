@@ -66,6 +66,15 @@ public:
     QString commitAnalyses(const QJsonArray& analyses, const QString& label);
     static QJsonObject sectionCandidate(const QJsonObject& authored, const QJsonObject& args);
     QString commit(const QJsonObject& candidate, const QString& label);
+    // Opaque proof of a worker-validated append. No API accepts prepared JSON.
+    class PreparedMeshImport {
+        friend class CadDocument;
+        QJsonObject base_, candidate_;
+    public:
+        const QJsonObject& candidate() const { return candidate_; }
+    };
+    static std::shared_ptr<const PreparedMeshImport> prepareMeshImport(const QJsonObject& base, const QJsonObject& mesh);
+    QString commitMeshImport(const PreparedMeshImport& prepared, quint64 expectedRevision);
     // Adopt a worker's fully evaluated Surface Extrude draft only at its exact base.
     QString commitSurfaceExtrudeEvaluation(const CandidateEvaluation& prepared,
         const QJsonObject& requestedCandidate, const QJsonObject& expectedBase, quint64 expectedRevision, const QString& label);
