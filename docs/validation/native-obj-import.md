@@ -3,7 +3,8 @@
 XCH-024/#733, 2026-10-21. This bounded child exposes strict material-free OBJ
 through File > Import Mesh and the existing responsive preview. XCH-017/#724
 retains cumulative OBJ acceptance; XCH-022/#731 retains strict OS chooser and
-uninterrupted native focus qualification. Root records independent acceptance.
+uninterrupted native focus qualification. Independent source and final evidence
+reviews accept this bounded child.
 
 ## Contract and source boundary
 
@@ -87,7 +88,9 @@ were inspected. This is API selection evidence, not native canvas input evidence
 Independent source review identified a unit-threshold divergence in the first
 candidate (mm triangulation then scaling). The shared owned-byte parser corrects
 that before final qualification. Re-review found no remaining source blocker;
-the root records overall bounded acceptance. All private validation editors
+the final independent evidence review accepted this bounded result after
+checking source/binary hashes, API transcript, native logs and inspected captures.
+All private validation editors
 exited; only user-owned PID72618 remained.
 
 The API fixture creates original grouped tetrahedra, offset quad and concave

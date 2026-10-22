@@ -18,8 +18,9 @@ chooser product/ready-preview workflow, with strict OS chooser input excluded.
 Cumulative native XCH-016/#723, strict OBJ XCH-017/#724 and measured
 repeat-validation cost XCH-020/#729 remain open.
 [XCH-023/#732](../validation/strict-obj-core.md) accepts strict OBJ
-parsing/retention after independent review; XCH-024/#733 isolates native
-integration before the cumulative XCH-017 gate.
+parsing/retention. [XCH-024/#733](../validation/native-obj-import.md) accepts
+bounded native ready preview and commit after independent review; strict OS
+chooser and uninterrupted focus remain XCH-022 before cumulative XCH-017.
 [XCH-021/#730](../validation/responsive-stl-import.md) accepts bounded
 responsive, in-flight cancellable STL loading and exact prepared commit;
 ready-preview Cancel is covered by XCH-019.

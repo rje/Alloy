@@ -35,7 +35,8 @@ retry after failed default mm. Final build, 2/2 CTests, 248 real-app responses a
 isolated actual-hit Cancel/OK at effective DPR1/2 pass; Apple M4 captures and API
 pick/highlight/resize were inspected. The first after-Cancel native key-window loss
 is retained under XCH-022/#731; no uninterrupted OS chooser or focus acceptance
-is claimed. Only user PID72618 remains; root records independent acceptance.
+is claimed. Independent source and final evidence reviews accept this bounded
+child. Only user PID72618 remains.
 Cumulative OBJ XCH-017 remains open. The dated public format contract
 is external at `../Alloy-reference-records/knowledge/specs/xch017-obj-import-2026-10-21.md`.
 The [printable bench-vise capstone](v1/capstone-candidate.md) is a researched
