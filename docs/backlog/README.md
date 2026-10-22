@@ -15,12 +15,13 @@ core/API import; [XCH-018/#727](../validation/retained-mesh-presentation.md)
 accepts separate Browser/GPU mesh identity, selection and visibility.
 [XCH-019/#728](../validation/native-stl-import.md) accepts the bounded native
 chooser product/ready-preview workflow, with strict OS chooser input excluded.
-Cumulative native XCH-016/#723, strict OBJ XCH-017/#724 and measured
-repeat-validation cost XCH-020/#729 remain open.
+Cumulative native XCH-016/#723 and measured repeat-validation cost XCH-020/#729
+remain open. The bounded strict OBJ cumulative slice XCH-017/#724 accepts
+independent combined child review.
 [XCH-023/#732](../validation/strict-obj-core.md) accepts strict OBJ
 parsing/retention. [XCH-024/#733](../validation/native-obj-import.md) accepts
 bounded native ready preview and commit after independent review; strict OS
-chooser and uninterrupted focus remain XCH-022 before cumulative XCH-017.
+chooser and uninterrupted focus remain XCH-022 before cumulative XCH-004.
 [XCH-021/#730](../validation/responsive-stl-import.md) accepts bounded
 responsive, in-flight cancellable STL loading and exact prepared commit;
 ready-preview Cancel is covered by XCH-019.

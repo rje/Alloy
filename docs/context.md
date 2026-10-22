@@ -37,7 +37,9 @@ pick/highlight/resize were inspected. The first after-Cancel native key-window l
 is retained under XCH-022/#731; no uninterrupted OS chooser or focus acceptance
 is claimed. Independent source and final evidence reviews accept this bounded
 child. Only user PID72618 remains.
-Cumulative OBJ XCH-017 remains open. The dated public format contract
+Cumulative bounded OBJ XCH-017/#724 accepts the combined child evidence after
+independent review; strict chooser/focus and combined STL/OBJ parity remain
+XCH-022 and XCH-004. The dated public format contract
 is external at `../Alloy-reference-records/knowledge/specs/xch017-obj-import-2026-10-21.md`.
 The [printable bench-vise capstone](v1/capstone-candidate.md) is a researched
 proposal, not a selected release gate; detailed public references remain outside

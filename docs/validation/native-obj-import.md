@@ -2,7 +2,8 @@
 
 XCH-024/#733, 2026-10-21. This bounded child exposes strict material-free OBJ
 through File > Import Mesh and the existing responsive preview. XCH-017/#724
-retains cumulative OBJ acceptance; XCH-022/#731 retains strict OS chooser and
+accepts cumulative bounded OBJ behavior after independent review of both child
+receipts; XCH-022/#731 retains strict OS chooser and
 uninterrupted native focus qualification. Independent source and final evidence
 reviews accept this bounded child.
 
@@ -129,3 +130,17 @@ repair or global input. XCH-022/#731 owns that concrete sequence. Strict native
 OS source selection/popup closure, uninterrupted multi-import native input,
 physical hardware input and Win/Linux runtime are unqualified here. Full-cap
 OBJ latency and process memory remain separate from the parser resource bounds.
+
+## Cumulative XCH-017 disposition
+
+The independent cumulative review accepted XCH-017/#724 against its bounded
+criteria without rerunning unchanged workflows. XCH-023's final real-app
+transcript refuses a late invalid index at line 6/face 2, a bowtie and a
+nonplanar face at line 5/face 1, each with a remedy; following document and
+selection inspections equal their pre-error values, and the fixture checks
+unchanged saved bytes. Original grouped and planar-quad imports in mm/in have
+independently checked vertices and triangles, source-independent history/reopen,
+and XCH-024 adds native preview/commit plus Browser/GPU presentation. This
+closes the specified material-free OBJ slice. XCH-022 and XCH-004 retain strict
+chooser/focus and combined STL/OBJ parity; later owners retain broader materials,
+hierarchy, placement, arbitrary polygon support and physical/platform coverage.
