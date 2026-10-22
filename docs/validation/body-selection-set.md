@@ -1,7 +1,7 @@
-# Shared body selection set candidate
+# Shared body selection set
 
-DOC-043/#721, 2026-10-21. Candidate; bounded native/API evidence is recorded below and independent
-review remains pending. DOC-006 remains open.
+DOC-043/#721, 2026-10-21. Independent Sol review accepts the bounded
+Body Priority/Browser/API selection set at `89b735b`. DOC-006 remains open.
 
 The dated public documentation audit and workflow contract are external in
 `../Alloy-reference-records/knowledge/specs/doc006-selection-completion-2026-10-21.md`.
@@ -25,8 +25,8 @@ Shift add, Command/Ctrl toggle. A blank ordinary Body Priority pick clears;
 modified misses preserve the set. Auto retains its established ordinary planar
 face preference. Auto modifier body hits invoke body selection when no finished
 profile set owns the pick. Ordinary Auto body fallback also uses the authority.
-Consequently this candidate does **not** establish the issue's full ordinary
-Auto multi-body canvas sequence. Face/edge sets, window selection, Components,
+Consequently this slice does **not** establish ordinary Auto canvas body
+selection; DOC-045/#726 retains that researched compatibility route. Face/edge sets, window selection, Components,
 filters and model Select Other remain outside this slice. Command-specific body
 pickers retain their existing meanings and reject explicit set operations while
 active.
@@ -109,7 +109,10 @@ identity comparison. This preexisting bug is unchanged here; the broader
 priority regression is **not passing**, and no face/edge preservation acceptance
 is claimed from it. Root will track the separate bounded fix.
 
-Independent compatibility review is pending. Keep #721 open: ordinary Auto
-still prefers faces, physical OS modifier delivery and Windows/Linux runtime
-are unqualified. No paid CI, push or publication ran. All private candidate
+Independent Sol source/evidence review accepts the stable body/occurrence
+identities, shared command authority, exact GPU membership and strict Qt
+actual-hit evidence. It found no additional blocking defect in this bounded
+slice. Ordinary Auto remains DOC-045/#726; physical OS modifier delivery and
+Windows/Linux runtime are unqualified and remain broader gates. The retained
+edge mismatch is DOC-044/#725. No paid CI or release ran. All private candidate
 editors exited; user PID72618 remains preserved.

@@ -3,6 +3,9 @@
 [Current execution order](priority-burndown-2026-10-21.md) identifies the next
 finishable Mac workflow, mesh import, native renderer and package gates without
 changing this scope freeze.
+[A printable miniature bench vise](capstone-candidate.md) is a researched
+first-v1 capstone proposal; its whole-workflow and physical-print gates are not
+yet accepted.
 
 Private review site: https://alloy-v1-review.rjevans1.chatgpt.site
 

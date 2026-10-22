@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **721 issues**: **569 implementation, 25 research,
+The current local backlog contains **723 issues**: **571 implementation, 25 research,
 6 research/design, 22 epics, and 99 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 [Connected-Line Surface Revolve](../validation/surface-revolve-chain.md) accepts
@@ -570,3 +570,5 @@ Slot drag presentation follow-up #258 tracks solved geometry during pointer moti
 the initial slot candidate evaluates the final shape on release. It remains Todo.
 
 [XCH-014/#720](../decisions/004-mesh-import-foundation.md) admits the pinned STL/OBJ decoder with strict validation required. XCH-015/#722 owns retained STL and measured limits; XCH-016/#723 owns native/GPU presentation; XCH-017/#724 owns strict OBJ. XCH-004/#72 remains the cumulative import gate.
+
+DOC-043/#721 accepts a bounded Body Priority/Browser/API multi-body set after independent review. DOC-045/#726 retains the ordinary Auto canvas body route; DOC-044/#725 repairs a separately diagnosed preexisting edge-refresh mismatch.

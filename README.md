@@ -1,5 +1,11 @@
 # Alloy
 
+[Shared multi-body selection](docs/validation/body-selection-set.md) now passes
+bounded native/API verification for Body Priority, Browser and modifier clicks,
+including repeated occurrence identities. Ordinary Auto canvas body selection
+remains DOC-045/#726, and [root-edge refresh](docs/validation/root-edge-refresh.md)
+has a separate targeted regression fix under DOC-044/#725.
+
 [The bounded sketch-transform minimum](docs/validation/sketch-transform-cumulative.md)
 now covers Move, Copy, Rotate and Scale for one connected four-Line XY profile;
 independent cumulative review accepts that slice while release gates remain open.

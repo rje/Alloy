@@ -8309,10 +8309,12 @@ void AlloyWindow::refresh() {
     if(session_.isEmpty()){
         if(!selectedEdge_.isEmpty()){
             const auto bodies=presentationBodies();bool current=false;
-            for(const auto& body:bodies)if(body.visible && body.bodyId==selectedEdge_["bodyId"] &&
-                (!selectedEdge_.contains("occurrenceId") || body.occurrenceId==selectedEdge_["occurrenceId"]))
-                for(const auto& edge:body.solidEdges)if(edge.edgeId==selectedEdge_["edgeId"] && !edge.edge.IsNull())current=true;
-            if(current)view_->highlightSolidEdges(bodies,selectedEdge_["bodyId"].toString(),QJsonArray{selectedEdge_["edgeId"]},selectedEdge_["occurrenceId"].toString());
+            const auto bodyId=selectedEdge_.value("bodyId").toString();
+            const auto edgeId=selectedEdge_.value("edgeId").toString();
+            const auto occurrenceId=selectedEdge_.value("occurrenceId").toString();
+            for(const auto& body:bodies)if(body.visible && body.bodyId==bodyId && body.occurrenceId==occurrenceId)
+                for(const auto& edge:body.solidEdges)if(edge.edgeId==edgeId && !edge.edge.IsNull())current=true;
+            if(current)view_->highlightSolidEdges(bodies,bodyId,QJsonArray{edgeId},occurrenceId);
             else selectedEdge_={};
         }
         if(selectedEdge_.isEmpty())view_->clearSolidEdgeHighlights();

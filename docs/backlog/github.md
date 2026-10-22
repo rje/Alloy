@@ -729,3 +729,5 @@ This is a publication snapshot. Use `python3 tools/backlog.py ready` for the liv
 | [#722 XCH-015: Import STL into a retained mesh body](https://github.com/rje/Alloy/issues/722) | P3 Shape/import/print breadth | implementation | P0 | [#720](https://github.com/rje/Alloy/issues/720) |
 | [#723 XCH-016: Qualify native mesh import and GPU presentation](https://github.com/rje/Alloy/issues/723) | P3 Shape/import/print breadth | implementation | P0 | [#722](https://github.com/rje/Alloy/issues/722) |
 | [#724 XCH-017: Import strict material-free OBJ mesh bodies](https://github.com/rje/Alloy/issues/724) | P3 Shape/import/print breadth | implementation | P0 | [#722](https://github.com/rje/Alloy/issues/722), [#723](https://github.com/rje/Alloy/issues/723) |
+| [#725 DOC-044: Keep root edge selection through refresh](https://github.com/rje/Alloy/issues/725) | P1 Geometry/document | implementation | P0 | [#307](https://github.com/rje/Alloy/issues/307) |
+| [#726 DOC-045: Resolve ordinary Auto canvas body-selection route](https://github.com/rje/Alloy/issues/726) | P1 Geometry/document | implementation | P0 | [#721](https://github.com/rje/Alloy/issues/721) |

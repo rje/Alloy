@@ -1,0 +1,9 @@
+# Proposed first-v1 capstone: printable miniature bench vise
+
+**Status: proposal, not selected or implemented.** The detailed dated public-source and project-state research is outside the repository at `../Alloy-reference-records/knowledge/specs/v1-capstone-2026-10-21.md`. Build an original Alloy design rather than copying reference geometry or assets.
+
+A compact bench vise offers a recognizable assembled hero view and an honest physical test: fixed frame, sliding carriage, replaceable pads, captive standard M6 nut/screw and hand knob. The first pass uses ordinary metal hardware so printed internal-thread fit is not a hidden prerequisite. Print each original structural part, measure rail/nut clearance on small coupons, then assemble and exercise limited jaw travel.
+
+The proposed from-blank workflow uses constrained sketches, named dimensions, retained Extrude/Join/Cut/Hole, a justified hole pattern, edge finishing, separate bodies/components, upstream parameter edits, measure/interference, undo/reopen and per-part STL/Core 3MF plus STEP readback. It should produce an editable `.alloy` model, original fixtures and print files, an assembled/exploded view and a short actual-input recording. Geometry, native interaction, GPU appearance, slicer output and physical assembly are separate acceptance evidence.
+
+Current bounded Mac receipts support several ingredients, but the full cross-feature chain, native component placement, print fit, package/runtime gates and Windows/Linux GPU checks remain open. Surface sheets, modeled internal threads and unrelated advanced commands do not naturally belong in this object and should retain their own cumulative gates. If this proposal is selected, create a bounded capstone issue with dependencies on the required native/assembly/export tasks before treating it as a release demonstration.
