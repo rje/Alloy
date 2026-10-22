@@ -1,5 +1,11 @@
 # Alloy
 
+[Strict retained OBJ core/API](docs/validation/strict-obj-core.md) now accepts
+bounded material-free OBJ positions, polygons and labels with deterministic
+triangulation, atomic diagnostics, editable history and source-independent
+reopen. Native chooser and preview integration remain XCH-024/#733; cumulative
+OBJ acceptance remains XCH-017/#724.
+
 [Responsive native STL preparation](docs/validation/responsive-stl-import.md)
 now keeps a 200,000-facet import responsive while loading, reports phases and
 supports pending Cancel. Bounded DPR2 actual-hit and exact source-independent

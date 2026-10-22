@@ -23,11 +23,12 @@ review. XCH-022 retains PID-safe
 chooser/popup and DPR1/2 focus/input qualification after the earlier delay-based
 test proved insufficient; it is also required for XCH-016.
 XCH-020 records the measured subsequent-Box cost.
-[Strict OBJ core/API](validation/strict-obj-core.md) now has an XCH-023/#732
-candidate: direct deterministic concave triangulation, no sidecar access,
-retained labels/diagnostics, source-independent history/reopen, 2/2 focused
-CTests and 114 real-app API responses. Independent review is pending. XCH-024
-owns native chooser/preview, followed by cumulative XCH-017. The dated public format contract
+[Strict OBJ core/API](validation/strict-obj-core.md) accepts XCH-023/#732:
+direct deterministic concave triangulation, no sidecar access, retained
+labels/diagnostics, source-independent history/reopen, 2/2 focused CTests and
+114 real-app API responses. Independent review passed after correcting
+duplicate-position connectivity quality and late-error line diagnostics.
+XCH-024 owns native chooser/preview, followed by cumulative XCH-017. The dated public format contract
 is external at `../Alloy-reference-records/knowledge/specs/xch017-obj-import-2026-10-21.md`.
 The [printable bench-vise capstone](v1/capstone-candidate.md) is a researched
 proposal, not a selected release gate; detailed public references remain outside
