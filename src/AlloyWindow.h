@@ -907,6 +907,7 @@ private:
     QJsonObject lastGeometryWork_;
     QString geometryWorkLabel(const QString& command,const QJsonObject& args) const;
     QDialog* search_ = nullptr;
+    QPointer<QWidget> searchReturnFocus_;
     QDialog* unitsDialog_ = nullptr;
     QToolButton* unitsBrowserButton_ = nullptr;
     QPointer<QDialog> lengthParametersDialog_;

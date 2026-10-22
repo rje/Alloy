@@ -1494,6 +1494,14 @@ void AlloyWindow::updateTimelineDrop(const QPoint& globalPosition) {
 }
 
 bool AlloyWindow::eventFilter(QObject* watched,QEvent* event) {
+    // Search owns ordinary typing, including shortcuts registered on the editor.
+    if(watched==searchInput_ && event->type()==QEvent::ShortcutOverride) {
+        const auto* key=static_cast<QKeyEvent*>(event);
+        if(!(key->modifiers() & (Qt::ControlModifier | Qt::AltModifier | Qt::MetaModifier))
+            && !key->text().isEmpty() && key->key()!=Qt::Key_Escape) {
+            event->accept();return true;
+        }
+    }
     if(watched==sketchSelectionTree_ && session_.value("command")=="sketch.edit"
         && (event->type()==QEvent::ShortcutOverride || event->type()==QEvent::KeyPress)) {
         const auto* key=static_cast<QKeyEvent*>(event);
@@ -8826,14 +8834,21 @@ void AlloyWindow::refresh() {
 }
 
 void AlloyWindow::showSearch() {
-    if (search_) { search_->show(); search_->raise(); search_->activateWindow(); return; }
+    if (search_) {
+        searchInput_->setText(session_.value("inputs").toObject().value("query").toString());
+        search_->show(); search_->raise(); search_->activateWindow(); searchInput_->setFocus(Qt::OtherFocusReason); return;
+    }
     search_ = new QDialog(this);
+    search_->setObjectName("commands.search.dialog"); search_->setAccessibleName("Command Search");
     search_->setWindowTitle("Alloy — Commands"); search_->resize(510, 400);
     connect(search_, &QDialog::rejected, this, [this] { execute("commands.close"); });
     auto* layout = new QVBoxLayout(search_);
     auto* input = new QLineEdit; searchInput_ = input;
+    input->setObjectName("commands.search.query"); input->setAccessibleName("Search commands");
+    input->installEventFilter(this);
     input->setPlaceholderText("Search supported commands…"); layout->addWidget(input);
     auto* list = new QListWidget; layout->addWidget(list);
+    list->setObjectName("commands.search.results"); list->setAccessibleName("Command results");
     auto populate = [this, list](const QString& query) {
         list->clear();
         for (const auto& command : commands_) {
@@ -8843,18 +8858,26 @@ void AlloyWindow::showSearch() {
         }
         if (list->count()) list->setCurrentRow(0);
     };
-    populate("");
+    populate(session_.value("inputs").toObject().value("query").toString());
     connect(input, &QLineEdit::textChanged, search_, populate);
     connect(input, &QLineEdit::textChanged, search_, [this](const QString& query) {
         if (session_.value("command").toString() == "commands.search" && session_.value("inputs").toObject()["query"].toString() != query)
             execute("command.update", {{"session", session_.value("id")}, {"inputs", QJsonObject{{"query", query}}}});
     });
     auto activate = [this, list] {
+        if(session_.value("command")!="commands.search")return;
         if (const auto* item = list->currentItem()) { const auto id = item->data(Qt::UserRole).toString(); execute("commands.close"); execute(id); }
     };
     connect(input, &QLineEdit::returnPressed, search_, activate);
     connect(list, &QListWidget::itemActivated, search_, [activate](QListWidgetItem*) { activate(); });
-    search_->show(); input->setFocus();
+    // Some native item-view styles reserve Return for editing rather than activation.
+    // Search always treats either Enter key as activating the selected command.
+    for(const auto key:{Qt::Key_Return,Qt::Key_Enter}) {
+        auto* shortcut=new QShortcut(QKeySequence(key),list);shortcut->setContext(Qt::WidgetShortcut);
+        connect(shortcut,&QShortcut::activated,search_,activate);
+    }
+    input->setText(session_.value("inputs").toObject().value("query").toString());
+    search_->show(); search_->raise(); search_->activateWindow(); input->setFocus();
 }
 
 QJsonObject AlloyWindow::identity() const {
@@ -9754,7 +9777,11 @@ QJsonObject AlloyWindow::beginSession(const QString& command, const QJsonObject&
     session_ = {{"id", CadDocument::newId()}, {"command", command}, {"status", "active"},
         {"inputs", values}, {"previewed", false}, {"baseDocumentRevision", static_cast<qint64>(document_->revision())},
         {"inputSchema", command == "commands.search" ? QJsonObject{{"query", parameter("string", "Search text")}} : findCommand(command)->parameters}};
-    if (command == "commands.search") showSearch(); else if(command.startsWith("solid.")) showPrimitive(); else showUnits();
+    if (command == "commands.search") {
+        searchReturnFocus_=QApplication::focusWidget();
+        if(!searchReturnFocus_ || searchReturnFocus_->window()!=this)searchReturnFocus_=view_;
+        showSearch();
+    } else if(command.startsWith("solid.")) showPrimitive(); else showUnits();
     return session_;
 }
 
@@ -10385,7 +10412,15 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
     if(dimensionEditor_)dimensionEditor_->hide();
     if(dimensionEditorValue_)dimensionEditorValue_->setReadOnly(false);
     if(lineLockCue_)lineLockCue_->hide();
-    if (target == "commands.search" && search_) search_->hide();
+    if (target == "commands.search" && search_) {
+        search_->hide();
+        auto* origin=searchReturnFocus_.data();
+        if(!origin || !origin->isVisible() || !origin->isEnabled() || origin->focusPolicy()==Qt::NoFocus)origin=view_;
+        raise(); activateWindow();
+        if(windowHandle())windowHandle()->requestActivate();
+        origin->setFocus(Qt::OtherFocusReason);
+        searchReturnFocus_.clear();
+    }
     if (target == "document.units" && unitsDialog_) unitsDialog_->hide();
     if(target=="inspect.section" && sectionDock_)sectionDock_->hide();
     if(target=="construction.midplane"){
