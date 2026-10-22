@@ -7,7 +7,7 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **728 issues**: **575 implementation, 25 research,
+The current local backlog contains **730 issues**: **577 implementation, 25 research,
 6 research/design, 22 epics, and 100 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 [XCH-015/#722](../validation/retained-stl-import.md) accepts strict retained STL
@@ -17,6 +17,8 @@ accepts separate Browser/GPU mesh identity, selection and visibility.
 chooser product/ready-preview workflow, with strict OS chooser input excluded.
 Cumulative native XCH-016/#723, strict OBJ XCH-017/#724 and measured
 repeat-validation cost XCH-020/#729 remain open.
+XCH-023 isolates OBJ parsing/retention and XCH-024 isolates native integration
+before the cumulative XCH-017 gate.
 [XCH-021/#730](../validation/responsive-stl-import.md) accepts bounded
 responsive, in-flight cancellable STL loading and exact prepared commit;
 ready-preview Cancel is covered by XCH-019.
