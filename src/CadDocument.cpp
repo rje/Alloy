@@ -1341,7 +1341,8 @@ QString CadDocument::commitMeshImport(const PreparedMeshImport& prepared,quint64
     if(isRolledBack() || revision_!=expectedRevision || authored_!=prepared.base_)
         return "The design changed; Cancel and select the mesh again";
     lastEvaluationError_={};
-    history_.push(new DocumentEdit(*this,prepared.candidate_,evaluation_,"Import STL mesh"));
+    const auto format=prepared.candidate_.value("meshes").toArray().last().toObject().value("source").toObject().value("format").toString().toUpper();
+    history_.push(new DocumentEdit(*this,prepared.candidate_,evaluation_,"Import "+format+" mesh"));
     return {};
 }
 

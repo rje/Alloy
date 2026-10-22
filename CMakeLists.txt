@@ -1498,6 +1498,8 @@ if(BUILD_TESTING)
     # Explicit GUI lease and evidence destination; never run in automatic CTest.
     add_executable(responsive_stl_import_controls_test tests/responsive_stl_import_controls.cpp)
     target_link_libraries(responsive_stl_import_controls_test PRIVATE alloy_application Qt6::Test)
+    add_executable(native_obj_import_controls_test tests/native_obj_import_controls.cpp)
+    target_link_libraries(native_obj_import_controls_test PRIVATE alloy_application Qt6::Test)
     add_executable(native_stl_import_controls_test tests/native_stl_import_controls.cpp)
     target_link_libraries(native_stl_import_controls_test PRIVATE alloy_application Qt6::Test)
     add_executable(retained_mesh_presentation_controls_test tests/retained_mesh_presentation_controls.cpp)

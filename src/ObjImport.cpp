@@ -44,9 +44,13 @@ struct Parser {
  }
 };
 }
-QJsonObject readObj(const QString& path,const QString& units,const Progress& progress)try{
+QByteArray readObjSource(const QString& path)try{
+ Parser p;p.path=path;QFile file(path);if(!QFileInfo(path).isAbsolute() || !file.open(QIODevice::ReadOnly))p.fail("Choose a readable absolute OBJ path");p.bytes=file.size();p.capacity();auto bytes=file.read(byteCap+1);p.bytes=bytes.size();p.capacity();return bytes;
+}catch(const std::bad_alloc&){Parser p;p.path=path;p.fail("OBJ allocation failed; reduce the source size");}
+QJsonObject readObj(const QString& path,const QString& units,const Progress& progress){return readObjData(readObjSource(path),path,units,progress);}
+QJsonObject readObjData(const QByteArray& bytes,const QString& path,const QString& units,const Progress& progress)try{
  Parser p;p.path=path;if(units!="mm" && units!="in")p.fail("OBJ requires explicit source units mm or in");const double scale=units=="in"?25.4:1.;
- QFile file(path);if(!QFileInfo(path).isAbsolute() || !file.open(QIODevice::ReadOnly))p.fail("Choose a readable absolute OBJ path");p.bytes=file.size();p.capacity();const auto bytes=file.read(byteCap+1);p.bytes=bytes.size();p.capacity();QStringDecoder decoder(QStringDecoder::Utf8,QStringConverter::Flag::Stateless);const QString text=decoder(bytes);if(decoder.hasError() || text.contains(QChar::Null)){
+ p.bytes=bytes.size();p.capacity();QStringDecoder decoder(QStringDecoder::Utf8,QStringConverter::Flag::Stateless);const QString text=decoder(bytes);if(decoder.hasError() || text.contains(QChar::Null)){
   qsizetype at=0;p.line=0;while(at<bytes.size()){++p.line;auto end=bytes.indexOf('\n',at);auto length=(end<0?bytes.size():end)-at;QByteArrayView row(bytes.constData()+at,length);QStringDecoder lineDecoder(QStringDecoder::Utf8,QStringConverter::Flag::Stateless);const QString decoded=lineDecoder(row);if(lineDecoder.hasError() || decoded.contains(QChar::Null))break;at=end<0?bytes.size():end+1;}p.fail("OBJ must be valid UTF-8 text without NUL");
  }
  qsizetype offset=0;while(offset<text.size()){const auto end=text.indexOf('\n',offset);const auto length=(end<0?text.size():end)-offset;auto row=QStringView(text).mid(offset,length);offset=end<0?text.size():end+1;++p.line;if(length>65536)p.fail("OBJ record exceeds 65536 UTF-16 code units");if(progress && p.line%1024==0)progress("preflight",p.line,0);QString line=row.toString();line=line.left(line.indexOf('#')<0?line.size():line.indexOf('#')).trimmed();if(line.isEmpty())continue;if(line.contains('\\'))p.fail("OBJ continuation/backslash syntax is unsupported");const auto t=line.split(QRegularExpression("\\s+"),Qt::SkipEmptyParts);const auto key=t[0];

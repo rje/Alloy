@@ -28,7 +28,15 @@ direct deterministic concave triangulation, no sidecar access, retained
 labels/diagnostics, source-independent history/reopen, 2/2 focused CTests and
 114 real-app API responses. Independent review passed after correcting
 duplicate-position connectivity quality and late-error line diagnostics.
-XCH-024 owns native chooser/preview, followed by cumulative XCH-017. The dated public format contract
+[XCH-024/#733](validation/native-obj-import.md) now exposes OBJ through the native
+filter and shared cancellable ready preview. Owned source bytes preserve the same
+canonical-mm polygon policy for direct import and repeated mm/in preview, including
+retry after failed default mm. Final build, 2/2 CTests, 248 real-app responses and
+isolated actual-hit Cancel/OK at effective DPR1/2 pass; Apple M4 captures and API
+pick/highlight/resize were inspected. The first after-Cancel native key-window loss
+is retained under XCH-022/#731; no uninterrupted OS chooser or focus acceptance
+is claimed. Only user PID72618 remains; root records independent acceptance.
+Cumulative OBJ XCH-017 remains open. The dated public format contract
 is external at `../Alloy-reference-records/knowledge/specs/xch017-obj-import-2026-10-21.md`.
 The [printable bench-vise capstone](v1/capstone-candidate.md) is a researched
 proposal, not a selected release gate; detailed public references remain outside

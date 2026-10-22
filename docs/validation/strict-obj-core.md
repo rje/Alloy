@@ -1,7 +1,8 @@
 # Strict material-free OBJ core/API
 
 XCH-023/#732 implements the geometry/persistence child of XCH-017. XCH-024
-owns native chooser, ready preview, input and GPU qualification. This receipt
+now records bounded native chooser, ready preview, input and GPU qualification
+in [its own receipt](native-obj-import.md). This receipt
 records Alloy policy and bounded verification; it claims no reference-product
 pixel or interaction parity.
 
@@ -111,5 +112,5 @@ limits, one retained occurrence, history identity and source-independent reopen.
 The real app fixture checks the original two-tetrahedra, quad and concave meshes
 in both units, ignored diagnostics, source deletion/reopen, and unchanged
 existing document/selection/dirty/history/saved bytes after eleven refusals.
-Native chooser/preview, GPU captures, physical input, cross-platform runtime,
-full-cap latency/memory measurement and broad OBJ compatibility remain unclaimed.
+This core receipt does not establish native chooser/preview, GPU captures, physical
+input, cross-platform runtime, full-cap latency/memory or broad OBJ compatibility.

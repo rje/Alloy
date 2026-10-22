@@ -7605,7 +7605,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
         const bool blocked=id.startsWith("solid.") || id.startsWith("surface.") || id.startsWith("primitive.") || id.startsWith("sketch.")
             || id.startsWith("construction.") || id.startsWith("feature.") || id.startsWith("body.rename") || id.startsWith("body.remove") || id.startsWith("body.paste") || id=="body.copySelection" || (id.startsWith("component.") && id!="component.inspect")
             || id.startsWith("document.save") || id.startsWith("document.export") || id.startsWith("document.open")
-            || id=="document.new" || id=="document.importStl" || id=="document.importStep" || id.startsWith("history.")
+            || id=="document.new" || id=="document.importStl" || id=="document.importObj" || id=="document.importStep" || id.startsWith("history.")
             || id=="reference.insert" || id=="reference.insertDialog" || id=="reference.update" || id=="reference.moveDialog"
             || id=="command.begin" || id=="command.update" || id=="command.commit";
         if(blocked)return finish(failure("pending_reference_position","Capture Position or Revert the pending local reference placement first"));
@@ -7617,7 +7617,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
         const bool modeling=id.startsWith("solid.") || id.startsWith("surface.") || id.startsWith("primitive.") || id.startsWith("sketch.")
             || id.startsWith("construction.") || (id.startsWith("feature.") && !deletingPin) || id=="component.create" || id=="component.newDialog"
             || id.startsWith("component.reparent") || id.startsWith("body.rename") || id.startsWith("body.remove") || id.startsWith("body.paste") || id=="body.copySelection"
-            || id=="document.importStl" || id=="document.importStep" || (id.startsWith("reference.") && id!="reference.inspect" && id!="reference.revert")
+            || id=="document.importStl" || id=="document.importObj" || id=="document.importStep" || (id.startsWith("reference.") && id!="reference.inspect" && id!="reference.revert")
             || (id=="command.begin" && args.value("command").toString()!="joint.slider" && args.value("command").toString()!="joint.revolute" && args.value("command").toString()!="joint.cylindrical")
             || ((id=="command.update" || id=="command.commit") && session_.value("command")!="joint.slider" && session_.value("command")!="joint.revolute" && session_.value("command")!="joint.cylindrical" && !session_.isEmpty());
         if(modeling)return finish(failure("assembly_pose_active","Return the joint to its assembled position before modeling"));

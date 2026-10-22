@@ -1167,6 +1167,12 @@ history as other commands. It selects the resulting mesh and fits the view.
 `document.inspect`, `history.undo`/`history.redo`, save and open preserve the
 source-independent authored occurrence. There is no material or texture sidecar
 access. Invalid OBJ returns `mesh_import_failed` with filename, original line,
-face ordinal, reason and remedy, without mutation. Native OBJ chooser/preview is
-separate XCH-024 work. The [bounded parser contract](validation/strict-obj-core.md)
+face ordinal, reason and remedy, without mutation. File > Import Mesh offers STL
+and OBJ; `mesh.importPreview {path}` starts the shared cancellable preparation,
+`mesh.importUnits {units}` rescales the owned original, and `mesh.importAccept`
+commits exactly the ready candidate through the corresponding import authority.
+Poll `app.state.meshImport.status` for `ready` or `failed`; pending Cancel and
+ready Cancel are `mesh.importCancel`. The panel reports bounded source labels
+and ignored record counts as plain text. See the [native workflow receipt](validation/native-obj-import.md)
+for input/focus limits. The [bounded parser contract](validation/strict-obj-core.md)
 records supported syntax, deterministic polygon policy, limits and evidence.

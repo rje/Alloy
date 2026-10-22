@@ -3,8 +3,10 @@
 [Strict retained OBJ core/API](docs/validation/strict-obj-core.md) now accepts
 bounded material-free OBJ positions, polygons and labels with deterministic
 triangulation, atomic diagnostics, editable history and source-independent
-reopen. Native chooser and preview integration remain XCH-024/#733; cumulative
-OBJ acceptance remains XCH-017/#724.
+reopen. [Native OBJ import](docs/validation/native-obj-import.md) now shares the cancellable
+mm/in ready preview, bounded label/loss display and exact prepared commit.
+Geometry/history and bounded actual-hit DPR1/2 Mac input pass; strict OS chooser
+and uninterrupted focus remain XCH-022/#731. Cumulative OBJ remains XCH-017/#724.
 
 [Responsive native STL preparation](docs/validation/responsive-stl-import.md)
 now keeps a 200,000-facet import responsive while loading, reports phases and

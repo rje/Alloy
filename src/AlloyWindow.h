@@ -73,6 +73,7 @@ private:
         QString tabId, documentId, units;
         CadDocument* target=nullptr; // UI comparison only; never dereferenced by the worker.
         QJsonObject base, original, mesh, error;
+        std::optional<QByteArray> objSource;
         std::shared_ptr<const CadDocument::PreparedMeshImport> prepared;
         std::vector<gp_Pnt> facets;
         qint64 workerMs=0;
@@ -86,6 +87,7 @@ private:
     void closeMeshImport();
     QPointer<QDockWidget> meshImportDock_;
     QJsonObject meshImportBase_, meshImportCandidate_, meshImportInputs_;
+    std::optional<QByteArray> meshImportObjSource_;
     bool meshImportCommitting_ = false;
     quint64 meshImportBaseRevision_ = 0;
     void registerSketchAxis3dCommands();
