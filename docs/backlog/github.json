@@ -3586,11 +3586,26 @@
     "XCH-014": {
       "number": 720,
       "url": "https://github.com/rje/Alloy/issues/720",
-      "state": "open"
+      "state": "closed"
     },
     "DOC-043": {
       "number": 721,
       "url": "https://github.com/rje/Alloy/issues/721",
+      "state": "open"
+    },
+    "XCH-015": {
+      "number": 722,
+      "url": "https://github.com/rje/Alloy/issues/722",
+      "state": "open"
+    },
+    "XCH-016": {
+      "number": 723,
+      "url": "https://github.com/rje/Alloy/issues/723",
+      "state": "open"
+    },
+    "XCH-017": {
+      "number": 724,
+      "url": "https://github.com/rje/Alloy/issues/724",
       "state": "open"
     }
   }
