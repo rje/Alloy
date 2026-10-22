@@ -15,6 +15,7 @@ This is a publication snapshot. Use `python3 tools/backlog.py ready` for the liv
 | [#5 FND-005: Choose a mature sketch solver with a constrained-rectangle bakeoff](https://github.com/rje/Alloy/issues/5) | P0 Foundation | research | P0 | [#2](https://github.com/rje/Alloy/issues/2) |
 | [#6 FND-006: Extend automation for command sessions and deterministic completion](https://github.com/rje/Alloy/issues/6) | P0 Foundation | implementation | P0 | — |
 | [#7 FND-007: Unify shortcuts, focus handling and native UI command activation](https://github.com/rje/Alloy/issues/7) | P0 Foundation | implementation | P0 | [#1](https://github.com/rje/Alloy/issues/1) |
+| [#734 FND-029: Preserve coherent Command Search focus and session state](https://github.com/rje/Alloy/issues/734) | P0 Foundation | implementation | P0 | [#1](https://github.com/rje/Alloy/issues/1), [#6](https://github.com/rje/Alloy/issues/6) |
 | [#8 FND-008: Specify initial modeling command contracts and unresolved defaults](https://github.com/rje/Alloy/issues/8) | P0 Foundation | research | P0 | [#1](https://github.com/rje/Alloy/issues/1) |
 | [#9 FND-009: Pin reproducible dependencies for required macOS Windows and Linux targets](https://github.com/rje/Alloy/issues/9) | P0 Foundation | implementation | P0 | [#2](https://github.com/rje/Alloy/issues/2) |
 | [#10 FND-010: Create cumulative real-app workflow runner and evidence ledger](https://github.com/rje/Alloy/issues/10) | P0 Foundation | implementation | P0 | — |
