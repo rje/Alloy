@@ -777,6 +777,8 @@ AlloyWindow::AlloyWindow() {
     bodiesNode_=new QTreeWidgetItem(document,{"Bodies"}); bodiesNode_->setExpanded(true);
     sketchesNode_=new QTreeWidgetItem(document,{"Sketches"});sketchesNode_->setExpanded(true);
     planesNode_=new QTreeWidgetItem(document,{"Construction"});planesNode_->setExpanded(true);
+    meshesNode_=new QTreeWidgetItem(document,{"Mesh Bodies"});meshesNode_->setExpanded(true);
+    meshesNode_->setData(0,Qt::UserRole+4,"meshes");
     bodiesNode_->setData(0,Qt::UserRole+4,"bodies");sketchesNode_->setData(0,Qt::UserRole+4,"sketches");planesNode_->setData(0,Qt::UserRole+4,"planes");
     auto* rootActivation=new QRadioButton("Alloy Design");rootActivation->setObjectName("component.activate.root");rootActivation->setAutoExclusive(false);tree_->setItemWidget(document,0,rootActivation);
     connect(rootActivation,&QRadioButton::clicked,this,[this]{const auto result=execute("component.activate",{{"definitionId",document_->authored()["documentId"]}});if(!result["ok"].toBool()){displayedDocumentRevision_=std::numeric_limits<quint64>::max();refresh();statusBar()->showMessage(result["error"].toObject()["message"].toString(),5000);}});
@@ -813,6 +815,7 @@ AlloyWindow::AlloyWindow() {
     connect(tree_,&QTreeWidget::customContextMenuRequested,this,[this,showRootContext,wireNamedViewReturn](const QPoint& point){
         auto* item=tree_->itemAt(point);
         if(!item || item->isHidden())return;
+        if(!item->data(0,Qt::UserRole+14).toString().isEmpty())return; // No B-rep editing menu for a retained mesh.
         if(item==upAxisNode_){
             const auto tabId=activeTabId_,documentId=document_->authored().value("documentId").toString();
             QMenu menu(this);auto* z=menu.addAction("Z Up");z->setObjectName("context.viewUpZ");
@@ -1083,6 +1086,22 @@ AlloyWindow::AlloyWindow() {
         if(item->parent()==analysesNode_){
             const auto tabId=activeTabId_;QTimer::singleShot(0,this,[this,id,visible,tabId]{if(tabId==activeTabId_)execute("analysis.visibility",{{"analysisId",id},{"visible",visible}});});return;
         }
+        if(item->parent()==meshesNode_){
+            pendingBrowserVisibility_=id;const auto tabId=activeTabId_;
+            QTimer::singleShot(0,this,[this,id,visible,tabId]{
+                if(tabId!=activeTabId_)return;pendingBrowserVisibility_.clear();
+                const auto response=execute("mesh.visibility",{{"meshId",id},{"visible",visible}});
+                if(!response.value("ok").toBool()){
+                    const QSignalBlocker block(tree_);
+                    for(const auto& value:document_->authored().value("meshes").toArray()){
+                        const auto mesh=value.toObject();if(mesh.value("id")!=id)continue;
+                        for(int i=0;i<meshesNode_->childCount();++i)if(meshesNode_->child(i)->data(0,Qt::UserRole+14)==id)
+                            meshesNode_->child(i)->setCheckState(0,mesh.value("visible").toBool(true) ? Qt::Checked : Qt::Unchecked);
+                    }
+                    statusBar()->showMessage(response.value("error").toObject().value("message").toString(),5000);
+                }
+            });return;
+        }
         pendingBrowserVisibility_=id;
         const auto tabId=activeTabId_,sessionId=session_.value("id").toString();
         // A checkbox changes before Qt emits itemClicked for this same item.
@@ -1104,6 +1123,7 @@ AlloyWindow::AlloyWindow() {
     });
     connect(tree_,&QTreeWidget::itemDoubleClicked,this,[this,wireNamedViewReturn](QTreeWidgetItem* item,int) {
         if(!item || item->isHidden() || !(item->flags()&Qt::ItemIsEnabled))return;
+        if(!item->data(0,Qt::UserRole+14).toString().isEmpty())return;
         if(item->parent()==namedViewsNode_ && !item->data(0,Qt::UserRole+9).toString().isEmpty()) {
             wireNamedViewReturn(item,false);
             return;
@@ -2219,12 +2239,24 @@ void AlloyWindow::registerCommands() {
             }
             return failure("stale_mesh","The retained mesh UUID is unavailable");
         });
-    add("document.importStl","Import STL mesh","Import one bounded STL as retained mesh geometry; no B-rep conversion or viewport presentation.",
+    add("mesh.visibility","Mesh visibility","Show or hide a retained mesh through document history.",
+        {{"meshId",parameter("string","Stable retained mesh UUID.")},{"visible",parameter("boolean","Visible state.")}},[this](const auto& a){
+            if(!session_.isEmpty() || document_->isRolledBack())return failure("active_command","Finish the command and return to latest before changing mesh visibility");
+            auto candidate=document_->authored();auto meshes=candidate.value("meshes").toArray();
+            for(int i=0;i<meshes.size();++i){auto mesh=meshes[i].toObject();if(mesh.value("id")!=a.value("meshId"))continue;
+                mesh["visible"]=a.value("visible");meshes[i]=mesh;candidate["meshes"]=meshes;
+                if(const auto error=document_->commit(candidate,"Mesh visibility");!error.isEmpty())return failure("mesh_visibility_failed",error);
+                return QJsonObject{{"meshId",a.value("meshId")},{"visible",a.value("visible")}};
+            }return failure("stale_mesh","The retained mesh UUID is unavailable");
+        });
+    add("document.importStl","Import STL mesh","Import one bounded STL as a retained, visible mesh body; no B-rep conversion.",
         {{"path",parameter("string","Absolute STL source path.")},{"units",parameter("string","Required source interpretation: mm or in.")}},[this](const auto& a){
             if(!session_.isEmpty() || document_->isRolledBack())return failure("active_command","Finish the active command and return to latest before importing");
             try {
                 const auto candidate=CadDocument::stlImportCandidate(document_->authored(),a);
                 if(const auto error=document_->commit(candidate,"Import STL mesh");!error.isEmpty())return failure("mesh_import_failed",error);
+                const auto id=candidate.value("meshes").toArray().last().toObject().value("id").toString();
+                execute("selection.set",{{"bodyId",id}});execute("view.fit");
                 return document_->state();
             } catch(const MeshImport::Error& error){return QJsonObject{{"ok",false},{"error",error.details}};}
             catch(const std::exception& error){return failure("mesh_import_failed",QString::fromUtf8(error.what()));}
@@ -6026,7 +6058,7 @@ void AlloyWindow::registerCommands() {
             selectedEdge_={};if(session_.isEmpty())view_->clearSolidEdgeHighlights();
             return QJsonObject{{"mode",selectionPriority_},{"authoredChange",false}};
         });
-    auto bodyId=parameter("string","Stable body UUID; empty string clears selection.");
+    auto bodyId=parameter("string","Stable solid or retained mesh UUID; empty string clears selection.");
     auto bodyOperation=parameter("string","Transient body-set operation; clear ignores bodyId.");
     bodyOperation["enum"]=QJsonArray{"replace","add","toggle","clear"};
     add("selection.set","Select body","Select visible bodies through the shared Browser/canvas authority.",{{"bodyId",optional(bodyId)},{"operation",optional(bodyOperation)},{"occurrenceId",optional(parameter("string","Exact local occurrence UUID when a definition has multiple instances."))}},[this](const auto& args){
@@ -6039,6 +6071,12 @@ void AlloyWindow::registerCommands() {
         QString occurrence=requestedOccurrence;
         if(!id.isEmpty()){
             int matches=0;
+            for(const auto& value:document_->authored().value("meshes").toArray()){const auto mesh=value.toObject();
+                if(mesh.value("id")==id && mesh.value("visible").toBool(true) && requestedOccurrence.isEmpty()){
+                    if(!session_.isEmpty())return failure("unsupported_mesh_selection","Retained meshes cannot be used as solid command inputs");
+                    ++matches;found=true;
+                }
+            }
             for(const auto& body:presentationBodies())if(body.visible && body.bodyId==id && (requestedOccurrence.isEmpty() || body.occurrenceId==requestedOccurrence)){
                 ++matches;occurrence=body.occurrenceId;
             }
@@ -6092,6 +6130,7 @@ void AlloyWindow::registerCommands() {
         selectedFace_={};selectedEdge_={};selectedPlane_.clear();view_->selectSupportFace({},{});selectedSketch_.clear();selectedProfile_.clear();selectedProfileIds_={};view_->selectProfile({},{});view_->selectBodies(members);
         if(session_.isEmpty())view_->clearSolidEdgeHighlights();
         QJsonObject result{{"bodyId",selectedBody_},{"kind","body"},{"members",members}};
+        for(const auto& value:document_->authored().value("meshes").toArray())if(value.toObject().value("id")==selectedBody_){result["kind"]="mesh";result["meshId"]=selectedBody_;}
         if(!selectedOccurrence_.isEmpty())result["occurrenceId"]=selectedOccurrence_;
         return result;
     });
@@ -6155,6 +6194,16 @@ void AlloyWindow::registerCommands() {
         {"toggle",optional(parameter("boolean","Toggle a body or a picked region in the current same-sketch selection."))}},[this](const auto& a){
         if(interferenceDialog_)return selectInterference(view_->pickBodyReference(a["x"].toDouble(),a["y"].toDouble()));
         if(measureDialog_)return pickMeasure(a["x"].toDouble(),a["y"].toDouble());
+        // Resolve frontmost mesh hits before analytic face fallbacks, which
+        // intentionally know only B-rep bodies and cannot occlude a mesh.
+        if(session_.isEmpty() && selectionPriority_=="auto"){
+            const auto front=view_->pickBodyReference(a["x"].toDouble(),a["y"].toDouble());
+            if(front.value("kind")=="mesh"){
+                const auto selected=execute("selection.set",{{"bodyId",front.value("meshId")},
+                    {"operation",a.value("toggle").toBool() ? "toggle" : a.value("additive").toBool() ? "add" : "replace"}});
+                return selected.value("ok").toBool() ? selected.value("result").toObject() : selected;
+            }
+        }
         if(session_.isEmpty() && selectionPriority_=="edge"){
             const auto hit=view_->pickSolidEdge(a["x"].toDouble(),a["y"].toDouble(),presentationBodies());
             return hit.isEmpty() ? failure("edge_unavailable","No visible retained edge is at this point")
@@ -6467,6 +6516,7 @@ void AlloyWindow::registerCommands() {
     });
     add("view.projectBody","Project body center","Return actual OCCT projection for a body's center, in logical pixels.",{{"bodyId",bodyId},{"occurrenceId",optional(parameter("string","Exact linked occurrence UUID."))}},[this](const auto& a){
         const auto id=a["bodyId"].toString(),occurrence=a.value("occurrenceId").toString();
+        const auto meshProjection=view_->projectMesh(id);if(!meshProjection.isEmpty() && occurrence.isEmpty())return meshProjection;
         const auto bodies=presentationBodies();const EvaluatedBody* match=nullptr;int count=0;
         for(const auto& body:bodies)if(body.visible && body.bodyId==id && (occurrence.isEmpty() || body.occurrenceId==occurrence)){match=&body;++count;}
         if(count>1)return failure("ambiguous_instance","Specify occurrenceId to project one linked body","occurrenceId");
@@ -7744,7 +7794,9 @@ QJsonObject AlloyWindow::state() const {
             : !view_->finishedPointSelection().isEmpty() && view_->finishedPointSelection()["sketchId"]==selectedSketch_ ? view_->finishedPointSelection()
             : !selectedSketch_.isEmpty() ? QJsonObject{{"kind","sketch"},{"sketchId",selectedSketch_}}
             : [&]{QJsonObject selected{{"kind","body"},{"bodyId",selectedBody_},{"members",bodySelectionMembers()}};
-                if(!selectedOccurrence_.isEmpty())selected["occurrenceId"]=selectedOccurrence_;return selected;}()},
+                if(!selectedOccurrence_.isEmpty())selected["occurrenceId"]=selectedOccurrence_;
+                for(const auto& value:document_->authored().value("meshes").toArray())if(value.toObject().value("id")==selectedBody_){selected["kind"]="mesh";selected["meshId"]=selectedBody_;}
+                return selected;}()},
         {"kernel", QJsonObject{{"candidate", "Open CASCADE"}, {"discoveredVersion", ALLOY_OCCT_VERSION}, {"integrated", true}, {"visualizationIntegrated", true}, {"policy",GeometryKernel::policy()}}},
         {"ui", QJsonObject{{"workspace", "design"}, {"tab",target=="sketch.edit" ? QString("sketch") : designTab_}, {"selectionPriority",selectionPriority_}, {"browserVisible", browserVisible_}, {"timelineVisible", timelineVisible_}, {"timeline",timelineState()}, {"ribbon",ribbonState}, {"navigationVisible", navigationVisible_}, {"commandSearchVisible", search_ && search_->isVisible()}, {"windowWidth", width()}, {"windowHeight", height()}, {"devicePixelRatio", devicePixelRatioF()},
             {"ownedPopups",popups},{"activeDialog", QJsonObject{{"command", session_.value("command")},
@@ -8114,12 +8166,31 @@ void AlloyWindow::refresh() {
             item->setFlags(Qt::ItemIsEnabled|Qt::ItemIsSelectable);
             item->setData(0,Qt::CheckStateRole,QVariant{});
         }
+        QSet<QString> liveMeshes;
+        for(const auto& value:document_->authored().value("meshes").toArray()){
+            const auto mesh=value.toObject();const auto id=mesh.value("id").toString();liveMeshes.insert(id);
+            auto* item=browserRow(meshesNode_,id,Qt::UserRole+14);item->setData(0,Qt::UserRole+14,id);
+            item->setData(0,Qt::UserRole+1,id);item->setData(0,Qt::UserRole+2,id);
+            item->setText(0,mesh.value("name").toString());item->setToolTip(0,"Retained triangle mesh (not a B-rep solid)");
+            QPixmap meshIcon(16,16);meshIcon.fill(Qt::transparent);
+            {QPainter painter(&meshIcon);painter.setRenderHint(QPainter::Antialiasing);painter.setPen(QPen(QColor("#475d70"),1));painter.setBrush(QColor("#a1b8c8"));
+                painter.drawPolygon(QPolygonF{QPointF(2,12),QPointF(8,2),QPointF(14,12)});painter.drawLine(QPointF(8,2),QPointF(8,12));painter.drawLine(QPointF(2,12),QPointF(11,7));painter.drawLine(QPointF(14,12),QPointF(5,7));}
+            item->setIcon(0,QIcon(meshIcon));
+            item->setFlags(Qt::ItemIsEnabled|Qt::ItemIsSelectable|Qt::ItemIsUserCheckable);
+            item->setCheckState(0,mesh.value("visible").toBool(true) ? Qt::Checked : Qt::Unchecked);item->setHidden(false);
+        }
+        for(int i=0;i<meshesNode_->childCount();++i){auto* row=meshesNode_->child(i);if(!liveMeshes.contains(row->data(0,Qt::UserRole+14).toString())){row->setSelected(false);row->setHidden(true);}}
+        meshesNode_->setHidden(liveMeshes.isEmpty());
         QJsonArray retainedBodies;
         const auto currentBodies=presentationBodies();
-        for(const auto& member:bodySelectionMembers())for(const auto& body:currentBodies)
-            if(body.visible && body.bodyId==member.toObject().value("bodyId") && body.occurrenceId==member.toObject().value("occurrenceId").toString()){
-                retainedBodies.append(member);break;
+        for(const auto& member:bodySelectionMembers()){
+            const auto ref=member.toObject();bool available=false;
+            for(const auto& body:currentBodies)if(body.visible && body.bodyId==ref.value("bodyId") && body.occurrenceId==ref.value("occurrenceId").toString()){available=true;break;}
+            if(!available && ref.value("occurrenceId").toString().isEmpty())for(const auto& value:document_->authored().value("meshes").toArray()){
+                const auto mesh=value.toObject();if(mesh.value("visible").toBool(true) && mesh.value("id")==ref.value("bodyId")){available=true;break;}
             }
+            if(available)retainedBodies.append(member);
+        }
         selectedBodies_=retainedBodies;
         const auto primary=retainedBodies.isEmpty() ? QJsonObject{} : retainedBodies.last().toObject();
         selectedBody_=primary.value("bodyId").toString();selectedOccurrence_=primary.value("occurrenceId").toString();
@@ -8265,6 +8336,7 @@ void AlloyWindow::refresh() {
         if(!revealFeature.isEmpty())showTimelineFeature(revealFeature);
         bodiesNode_->setExpanded(true);
         view_->setBodies(presentationBodies(),++presentationRevision_,document_->authored().value("features").toArray());
+        view_->setMeshes(document_->authored().value("meshes").toArray());
         refreshCanvasPresentation();
         const auto solvedAssembly=presentationAssembly();
         const auto assembly=solvedAssembly["joints"].toArray();

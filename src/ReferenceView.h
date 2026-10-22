@@ -104,6 +104,9 @@ public:
     // Only these explicitly worker-prepared shapes may bypass AIS remeshing.
     // Replaced on the next Thread result; unrelated/changed shapes use normal AIS.
     void setPreparedThreadMeshes(const std::vector<TopoDS_Shape>& shapes);
+    void setMeshes(const QJsonArray& meshes);
+    QJsonObject projectMesh(const QString& id) const;
+    QJsonObject meshPresentationState() const;
     void setBodies(const std::vector<EvaluatedBody>& bodies, quint64 revision, const QJsonArray& features = {});
     void setBodyStage(const std::vector<EvaluatedBody>& bodies, const QString& stageKey);
     void clearBodyStage();
@@ -428,6 +431,8 @@ private:
     quint64 sketchRevision_ = 0;
     std::vector<Handle(AIS_Shape)> interferenceFeedback_;
     Handle(AIS_Shape) preview_;
+    QMap<QString,Handle(AIS_InteractiveObject)> meshModels_;
+    QJsonArray meshRecords_;
     Handle(AIS_InteractiveObject) meshExportPreview_;
     QString meshExportPreviewInstance_;
     std::vector<Handle(AIS_Shape)> cutTools_;

@@ -923,6 +923,7 @@ private:
     QPushButton* combinePickTools_ = nullptr;
     QShortcut* combineEscape_ = nullptr;
     QTreeWidgetItem* bodiesNode_ = nullptr;
+    QTreeWidgetItem* meshesNode_ = nullptr;
     QTreeWidgetItem* sketchesNode_ = nullptr;
     QTreeWidgetItem* planesNode_ = nullptr;
     QWidget* sketchPanel_ = nullptr;

@@ -72,7 +72,7 @@ add_library(alloy_application STATIC
     src/TutorialRecorder.cpp src/TutorialRecorder.h
     src/CadDocument.cpp src/CadDocument.h src/LocalReferenceControls.cpp src/LocalReference.h
     src/RecoveryStore.cpp src/RecoveryStore.h
-    src/ReferenceView.cpp src/ReferenceView.h src/ReferenceRevolve.cpp src/ReferenceSweep.cpp src/ReferenceSketchText.cpp src/ReferenceSpline.cpp src/ReferenceConic.cpp
+    src/ReferenceView.cpp src/ReferenceMesh.cpp src/ReferenceView.h src/ReferenceRevolve.cpp src/ReferenceSweep.cpp src/ReferenceSketchText.cpp src/ReferenceSpline.cpp src/ReferenceConic.cpp
     src/ControlServer.cpp src/ControlServer.h)
 target_include_directories(alloy_application PUBLIC src)
 target_include_directories(alloy_application SYSTEM PRIVATE ${OpenCASCADE_INCLUDE_DIR})
@@ -1493,6 +1493,8 @@ if(BUILD_TESTING)
     add_executable(shoehorn_native_prefix_test tests/shoehorn_native_prefix.cpp)
     target_link_libraries(shoehorn_native_prefix_test PRIVATE alloy_application Qt6::Test)
     # Explicit GUI lease and evidence destination; never run in automatic CTest.
+    add_executable(retained_mesh_presentation_controls_test tests/retained_mesh_presentation_controls.cpp)
+    target_link_libraries(retained_mesh_presentation_controls_test PRIVATE alloy_application Qt6::Test)
     add_executable(body_selection_set_controls_test tests/body_selection_set_controls.cpp)
     target_link_libraries(body_selection_set_controls_test PRIVATE alloy_application Qt6::Test)
     add_executable(selection_priority_controls_test tests/selection_priority_controls.cpp)

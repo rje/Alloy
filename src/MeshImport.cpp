@@ -104,7 +104,7 @@ QString validate(const QJsonObject& mesh) {
     const auto source=mesh.value("source").toObject();const auto vertices=mesh.value("verticesMm").toArray(),triangles=mesh.value("triangles").toArray();
     const auto diagnostics=mesh.value("diagnostics").toObject();
     static const QRegularExpression hash("^[0-9a-f]{64}$");
-    if(mesh.size()!=10 || source.size()!=7 || diagnostics.size()!=6 || mesh.value("schema")!="alloy-mesh/1" || mesh.value("kind")!="mesh" || QUuid(mesh.value("id").toString()).isNull() || mesh.value("name").toString().isEmpty()
+    if((mesh.size()!=10+(mesh.contains("visible")?1:0)) || (mesh.contains("visible") && !mesh.value("visible").isBool()) || source.size()!=7 || diagnostics.size()!=6 || mesh.value("schema")!="alloy-mesh/1" || mesh.value("kind")!="mesh" || QUuid(mesh.value("id").toString()).isNull() || mesh.value("name").toString().isEmpty()
         || source.value("format")!="stl" || (source.value("units")!="mm" && source.value("units")!="in") || source.value("scaleToMm").toDouble()!=(source.value("units")=="in"?25.4:1.0)
         || !hash.match(source.value("sha256").toString()).hasMatch()
         || (source.value("encoding")!="ascii" && source.value("encoding")!="binary")
@@ -117,5 +117,5 @@ QString validate(const QJsonObject& mesh) {
     if(mesh.value("summary").toObject()!=analyze(vertices,triangles))return "Mesh summary does not match retained geometry";
     return {};
 }
-QJsonObject summary(const QJsonObject& mesh){auto result=mesh.value("summary").toObject();result["id"]=mesh.value("id");result["kind"]="mesh";result["name"]=mesh.value("name");result["source"]=mesh.value("source");result["diagnostics"]=mesh.value("diagnostics");return result;}
+QJsonObject summary(const QJsonObject& mesh){auto result=mesh.value("summary").toObject();result["id"]=mesh.value("id");result["kind"]="mesh";result["visible"]=mesh.value("visible").toBool(true);result["name"]=mesh.value("name");result["source"]=mesh.value("source");result["diagnostics"]=mesh.value("diagnostics");return result;}
 }

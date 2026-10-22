@@ -771,6 +771,7 @@ void ReferenceView::rebindDocument() {
     setZebra({});
     setFaceNormals({});
     setMeshExportPreview({});
+    setMeshes({});
     cancelNavigationGesture(navigationPressActive_);
     cancelOrbitCenterPick();
     nativeGestureActive_=false;
@@ -3026,6 +3027,12 @@ void ReferenceView::clearSketchCursor() {
 }
 void ReferenceView::fit(const std::vector<EvaluatedBody>& bodies,const std::vector<EvaluatedSketch>& sketches) {
     Bnd_Box bounds;
+    for(const auto& value:meshRecords_) {
+        const auto mesh=value.toObject();if(!mesh.value("visible").toBool(true))continue;
+        const auto box=mesh.value("summary").toObject().value("boundsMm").toObject();
+        const auto lo=box.value("min").toArray(),hi=box.value("max").toArray();
+        bounds.Update(lo[0].toDouble(),lo[1].toDouble(),lo[2].toDouble(),hi[0].toDouble(),hi[1].toDouble(),hi[2].toDouble());
+    }
     for(const auto& canvas:canvasModels_)if(context_->IsDisplayed(canvas))BRepBndLib::AddOptimal(canvas->Shape(),bounds,false,false);
     for(const auto& body:bodies)if(body.visible){
         // Evaluation already computed these exact AddOptimal bounds. Repeating
@@ -3068,6 +3075,8 @@ void ReferenceView::selectBodies(const QJsonArray& members) {
     context_->ClearSelected(false);
     for(const auto& value:members){
         const auto member=value.toObject();QString selected;
+        const auto mesh=meshModels_.value(member.value("bodyId").toString());
+        if(!mesh.IsNull() && context_->IsDisplayed(mesh))context_->AddOrRemoveSelected(mesh,false);
         for(auto it=modelReferences_.begin();it!=modelReferences_.end();++it){
             const auto ref=it.value();
             if(ref["bodyId"]!=member["bodyId"] || ref.value("occurrenceId").toString()!=member.value("occurrenceId").toString())continue;
@@ -3107,6 +3116,7 @@ QJsonObject ReferenceView::pickBodyReference(double x,double y) {
     context_->MoveTo(qRound(x*scale.x()),qRound(y*scale.y()),view_,true);
     if(!context_->HasDetected())return {};
     const auto detected=context_->DetectedInteractive();
+    for(auto it=meshModels_.begin();it!=meshModels_.end();++it)if(it.value()==detected)return {{"bodyId",it.key()},{"meshId",it.key()},{"kind","mesh"}};
     for(auto it=models_.begin();it!=models_.end();++it)if(it.value()==detected)return modelReferences_.value(it.key());
     return {};
 }
@@ -3669,6 +3679,7 @@ void ReferenceView::updateExtrusionDrag(const QPointF& position,const QString& p
 QJsonObject ReferenceView::diagnostics() const {
     QJsonObject result{{"initialized", !view_.IsNull()}, {"error", error_}, {"hardwareAccelerated", false},
         {"qualification", "unverified"}, {"backend", "OCCT OpenGL"}};
+    result["meshes"]=meshPresentationState();
     result["sectionAnalysis"]=sectionAnalysis_;
     result["sectionClippedActors"]=sectionClip_.IsNull() ? 0 : models_.size();
     if (view_.IsNull()) return result;
@@ -4612,6 +4623,12 @@ void ReferenceView::contextMenuEvent(QContextMenuEvent* e) {
     }
     const auto menuFace=sketchActive ? QJsonObject{} : pickSupportFace(e->pos().x(),e->pos().y(),documentBodies_);
     const auto menuBody=sketchActive ? QString{} : pickBody(e->pos().x(),e->pos().y());
+    if(!sketchActive && meshModels_.contains(menuBody)){
+        auto* menu=new QMenu(this);menu->setObjectName("context.viewportMesh");menu->setAttribute(Qt::WA_DeleteOnClose);
+        menu->addAction("Hide Mesh",this,[this,menuBody]{dispatch("mesh.visibility",{{"meshId",menuBody},{"visible",false}});});
+        menu->addAction("Fit",this,[this]{dispatch("view.fit",{});});
+        menu->popup(e->globalPos());e->accept();return;
+    }
     if(!sketchActive && (!menuBody.isEmpty() || !menuFace.isEmpty() || !selectedSupportFace_.isEmpty())) {
         auto* menu=new QMenu(this);menu->setObjectName("context.viewportBody");menu->setAttribute(Qt::WA_DeleteOnClose);
         QAction* create=nullptr;if(!menuFace.isEmpty() || !selectedSupportFace_.isEmpty()){create=menu->addAction("Create Sketch");create->setObjectName("context.createSketch");}
