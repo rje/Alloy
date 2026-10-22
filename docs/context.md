@@ -1,5 +1,9 @@
 ## Current execution order
 
+FND-029 splits coherent Command Search query/focus/reentry and Escape from the
+broader FND-007 shortcut gate. It is Todo until native input and independent
+review pass; FND-007 keeps the remaining shortcuts and cumulative workflow.
+
 The [2026-10-21 first-v1 burndown](v1/priority-burndown-2026-10-21.md)
 prioritizes Mac input/selection, retained mesh import, native Metal/Vulkan
 rendering and cumulative three-platform release qualification. The scope freeze
