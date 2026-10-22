@@ -40,3 +40,8 @@ Neither failure establishes a product input defect. Actual menu, pointer-pick,
 Escape and Reset input behavior remains the separate [NAV-009 native gate](https://github.com/rje/Alloy/issues/428). The API
 test does not prove OS-device, trackpad, ViewCube, configurable up-axis or
 cross-platform behavior.
+
+The 2026-10-21 [strict native retry](native-orbit-pivot.md) now passes the
+bounded Qt Free/Constrained menu and visible left-drag/Orbit-tool Escape prefix
+with genuine AppKit agreement. It stops before Set at undelivered PID-directed
+OS right-click and lost editor focus; #428 remains open.
