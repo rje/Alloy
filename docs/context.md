@@ -9,6 +9,11 @@ multi-body selection; [DOC-045/#726](validation/auto-body-route.md) accepts the
 documented Body Priority/Browser whole-body route while keeping ordinary Auto
 face-first. [DOC-044/#725](validation/root-edge-refresh.md) accepts the separate
 root-edge refresh repair.
+[XCH-015/#722](validation/retained-stl-import.md) accepts strict retained STL
+core/API import with original geometry, diagnostics, source-independent reopen
+and measured capacity. XCH-018 Browser/GPU and XCH-019 native chooser/preview
+are next; XCH-016 remains their cumulative native gate. XCH-020 records the
+measured subsequent-Box cost.
 The [printable bench-vise capstone](v1/capstone-candidate.md) is a researched
 proposal, not a selected release gate; detailed public references remain outside
 the repository.

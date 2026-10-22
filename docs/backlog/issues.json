@@ -12303,7 +12303,9 @@
       "phase": "P3 Shape/import/print breadth",
       "priority": "P0",
       "depends_on": [
-        "XCH-015"
+        "XCH-015",
+        "XCH-018",
+        "XCH-019"
       ],
       "labels": [
         "kind:implementation",
@@ -12311,7 +12313,7 @@
         "priority:P0",
         "area:xch"
       ],
-      "body": "<!-- alloy-backlog:XCH-016 -->\n**Backlog key:** `XCH-016` · **Phase:** `P3 Shape/import/print breadth` · **Priority:** `P0` · **Kind:** `implementation`\n\n## Bounded result: native retained mesh import\nExpose XCH-015's retained STL mesh body through File > Import Mesh and command search, a native local-file chooser, explicit mm/in interpretation and a cancellable preview/OK. Display and pick the committed mesh as one mesh body in the GPU viewport and Browser; never present it as an editable B-rep solid.\n\n## Acceptance\n- UI and API invoke the same authoritative command. Preview shows scaled bounds and triangle count without authored mutation; Cancel or chooser Cancel preserves document and selection. Successful commit creates one visible/selectable Browser mesh row and fit-to-view behavior. Hide/show and selection visibly agree with state; history and source-independent reopen remain correct.\n- Inspect actual-hit native mouse/keyboard flow without repair between demonstrated steps. Capture and inspect Apple M4 GPU frames at effective DPR1/2, renderer diagnostics, resize and selection/highlight. Record public-reference matched/mismatch/unknown; no exact visual-parity claim from unmatched screenshots.\n- Validate one printable closed STL, one open sheet and one invalid file from the original XCH-015 fixtures; compare authored data/API/geometry with native result and inspect errors. Keep native selector behavior bounded to one file and mm/in.\n\n## Dependencies and retained work\nXCH-015 owns STL decoding/persistence. XCH-017 adds OBJ to the same entry; XCH-004 remains the cumulative STL/OBJ acceptance owner. Full documented placement manipulators, more unit presets and batch import remain later work. Public workflow contract is external at `../Alloy-reference-records/knowledge/specs/xch004-mesh-import-2026-10-21.md`.\n\n## Dated native/visual research\nUse `../Alloy-reference-records/knowledge/specs/xch016-native-mesh-visual-2026-10-21.md` for the public illustrated UI/interaction checklist and source provenance. It records the documented insert/preview/placement breadth, the deliberate one-file mm/in first-v1 differences, and visual/default unknowns. Compare actual Alloy captures and input without claiming unmatched screenshot parity.\n"
+      "body": "<!-- alloy-backlog:XCH-016 -->\n**Backlog key:** `XCH-016` · **Phase:** `P3 Shape/import/print breadth` · **Priority:** `P0` · **Kind:** `implementation`\n\n## Bounded result: native retained mesh import\nExpose XCH-015's retained STL mesh body through File > Import Mesh and command search, a native local-file chooser, explicit mm/in interpretation and a cancellable preview/OK. Display and pick the committed mesh as one mesh body in the GPU viewport and Browser; never present it as an editable B-rep solid.\n\n## Acceptance\n- UI and API invoke the same authoritative command. Preview shows scaled bounds and triangle count without authored mutation; Cancel or chooser Cancel preserves document and selection. Successful commit creates one visible/selectable Browser mesh row and fit-to-view behavior. Hide/show and selection visibly agree with state; history and source-independent reopen remain correct.\n- Inspect actual-hit native mouse/keyboard flow without repair between demonstrated steps. Capture and inspect Apple M4 GPU frames at effective DPR1/2, renderer diagnostics, resize and selection/highlight. Record public-reference matched/mismatch/unknown; no exact visual-parity claim from unmatched screenshots.\n- Validate one printable closed STL, one open sheet and one invalid file from the original XCH-015 fixtures; compare authored data/API/geometry with native result and inspect errors. Keep native selector behavior bounded to one file and mm/in.\n\n## Dependencies and retained work\nXCH-015 owns STL decoding/persistence. XCH-017 adds OBJ to the same entry; XCH-004 remains the cumulative STL/OBJ acceptance owner. Full documented placement manipulators, more unit presets and batch import remain later work. Public workflow contract is external at `../Alloy-reference-records/knowledge/specs/xch004-mesh-import-2026-10-21.md`.\n\n## Dated native/visual research\nUse `../Alloy-reference-records/knowledge/specs/xch016-native-mesh-visual-2026-10-21.md` for the public illustrated UI/interaction checklist and source provenance. It records the documented insert/preview/placement breadth, the deliberate one-file mm/in first-v1 differences, and visual/default unknowns. Compare actual Alloy captures and input without claiming unmatched screenshot parity.\n\n## 2026-10-21 execution split\nXCH-018 owns Browser/GPU mesh presentation and selection. XCH-019 owns native chooser, units, preview, OK/Cancel and actual-hit flow. This issue remains the cumulative native mesh acceptance gate after both children; do not mark it complete from a compiled or API-only slice. XCH-020 separately tracks the measured repeat-validation cost without blocking this native gate.\n"
     },
     {
       "key": "XCH-017",
@@ -12364,6 +12366,57 @@
         "area:doc"
       ],
       "body": "<!-- alloy-backlog:DOC-045 -->\n**Backlog key:** `DOC-045` · **Phase:** `P1 Geometry/document` · **Priority:** `P0` · **Kind:** `implementation`\n\n## Resolve ordinary Auto canvas body selection\nDOC-043/#721 accepts shared multi-body selection through Body Priority, Browser and the API, with modified Auto body hits. Ordinary Auto currently prefers a supported face on a body and so does not demonstrate the ordinary Auto body-click sequence originally requested in #721. Preserve this difference explicitly and resolve the documented familiar route before changing behavior.\n\n## Acceptance\n- Research permitted public instructions/screenshots/tutorials for how an ordinary Auto canvas action selects a whole body while face selection remains available. Record documented behavior versus screenshot observation, inference and unknown in the external knowledge library. Do not run the reference application.\n- Implement the evidenced ordinary Auto body route through the shared DOC-043 selection authority, or document that Body Priority/Browser is the correct public route and revise the bounded compatibility claim accordingly. Do not blindly replace ordinary face picks; existing accepted face/sketch pickers must continue to work.\n- Verify actual-hit native click sequence without focus/selection repair, API identity, Browser cue and GPU highlight in a real two-body model, plus targeted face/sketch regression and save/history invariance. Separate physical OS keys and other-platform runtime from Qt-delivered evidence. Independent review decides matched/mismatch/unknown.\n\n## Dependency\nDOC-043/#721 shared body-set foundation. DOC-006/#18 retains broad selection filters, drag/window selection, multi-face/edge sets and other unfinished parity.\n\n## Accepted explicit-route disposition — 2026-10-21\nDated public evidence supports ordinary Auto supported-face selection and the explicit Body Priority/Browser whole-body routes; no undocumented modifier/double-click shortcut was added. Independent Sol review accepted the complementary DOC-043 DPR1/2 actual-hit native body/Browser/GPU receipts, DOC-044 full Auto/priority API regression, and DOC-043 finished-profile API regression for this bounded disposition. A single uninterrupted mixed native sequence, exact screenshot parity, physical OS modifiers and Windows/Linux runtime remain unclaimed. SKT-159/#585 retains hold-click model Parents; DOC-006/#18 retains broader selection. See `docs/validation/auto-body-route.md` and the dated external source ledger.\n"
+    },
+    {
+      "key": "XCH-018",
+      "title": "Present retained mesh bodies in Browser and GPU viewport",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P0",
+      "depends_on": [
+        "XCH-015"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P0",
+        "area:xch"
+      ],
+      "body": "## Bounded result\nPresent one retained STL mesh as a distinct mesh body in the Browser and accelerated viewport, without constructing a false B-rep solid. Use XCH-015's authored geometry and the shared document/selection state; this is the display prerequisite for native import XCH-019 and cumulative gate XCH-016.\n\n## Acceptance\n- Show stable named Browser row, mesh-body icon/category and visible/hidden state after API import and source-independent reopen. Browser select, hide/show, and whole-mesh canvas pick agree with stable mesh UUID and document state; Undo/Redo update both. Do not expose unsupported solid-face/edge editing commands for this body.\n- Fit to mesh bounds, shade its actual facets with deliberate selected color and readable edges against the grid. Capture/inspect Apple M4 native GPU frames at effective DPR1/2, resize and renderer vendor/version; check actual-hit Browser/canvas selection and click-to-clear without test repair.\n- Use original closed and open STL fixtures and one mixed solid-plus-mesh document. Inspect geometry, Browser, selection, visibility, history and saved-model invariants separately. Compare the dated public visual record in `../Alloy-reference-records/knowledge/specs/xch016-native-mesh-visual-2026-10-21.md`; mark matched/mismatch/unknown. Obtain bounded independent review. Native file chooser and import panel remain XCH-019.\n"
+    },
+    {
+      "key": "XCH-019",
+      "title": "Add native STL chooser and cancellable import preview",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P0",
+      "depends_on": [
+        "XCH-018"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P0",
+        "area:xch"
+      ],
+      "body": "## Bounded result\nExpose the retained STL importer in File > Import Mesh and command discovery. Use the local native file chooser, explicit mm/in interpretation, a live GPU preview with scaled bounds/triangle count, and OK/Cancel. XCH-018 supplies the displayed mesh and Browser; XCH-016 remains cumulative native acceptance.\n\n## Acceptance\n- Chooser cancel, preview cancel and invalid file preserve authored document, selection, dirty state and saved bytes. Unit changes update preview bounds without commit. OK invokes the same XCH-015 command authority as the local API and yields one retained mesh body, fit and selected.\n- Verify one closed printable STL, one open sheet and one invalid original fixture through an uninterrupted actual-hit native sequence, including focus after chooser return. Inspect panel readability and Apple M4 GPU frames at DPR1/2, resize and selection; separately verify exact imported geometry, Undo/Redo and source-independent save/reopen.\n- Compare with the dated public visual/interaction record at `../Alloy-reference-records/knowledge/specs/xch016-native-mesh-visual-2026-10-21.md`; record known deliberate scope differences and unknown defaults. One file and mm/in are this slice; placement handles, extra units and batch import remain broader work. Obtain bounded independent review. No paid CI.\n"
+    },
+    {
+      "key": "XCH-020",
+      "title": "Remove repeated retained-mesh validation from unrelated commits",
+      "kind": "implementation",
+      "phase": "P3 Shape/import/print breadth",
+      "priority": "P1",
+      "depends_on": [
+        "XCH-015"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P3",
+        "priority:P1",
+        "area:xch"
+      ],
+      "body": "## Measured problem\nAt XCH-015's 200000-facet/600000-vertex capacity fixture, importing took 3.449 s and a subsequent 4 × 5 × 6 mm Box commit took 1.638 s. General document validation rechecks owned mesh geometry and quality on each later modeling commit. See `docs/validation/retained-stl-import.md` and the external capacity receipt.\n\n## Bounded result and acceptance\nProfile the Box-after-import path on the same fixture; identify validation, JSON/history copying and evaluation time separately. Cache or structurally share only immutable, already-validated mesh geometry/quality where semantics permit, with invalidation on mesh replacement/reopen. Keep import atomic, diagnostics exact, history/Undo/Redo and native serialization source-independent. Demonstrate a material reduction in median Box-after-import latency on the same host/build/fixture, report before/after wall and sampled RSS, and preserve an unchanged normal Box baseline. If another stage dominates, document that measurement and split it into a linked Todo issue rather than attributing it to mesh validation. Use a focused real-app fixture and one independent review. REL-049 retains the wider packaged-command cost audit.\n"
     }
   ]
 }
