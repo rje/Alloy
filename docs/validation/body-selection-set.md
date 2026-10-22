@@ -25,8 +25,9 @@ Shift add, Command/Ctrl toggle. A blank ordinary Body Priority pick clears;
 modified misses preserve the set. Auto retains its established ordinary planar
 face preference. Auto modifier body hits invoke body selection when no finished
 profile set owns the pick. Ordinary Auto body fallback also uses the authority.
-Consequently this slice does **not** establish ordinary Auto canvas body
-selection; DOC-045/#726 retains that researched compatibility route. Face/edge sets, window selection, Components,
+Consequently this slice does **not** establish an ordinary Auto canvas body
+pick. [DOC-045/#726](auto-body-route.md) accepts Body Priority/Browser as the
+documented explicit routes and keeps Auto face-first. Face/edge sets, window selection, Components,
 filters and model Select Other remain outside this slice. Command-specific body
 pickers retain their existing meanings and reject explicit set operations while
 active.
@@ -107,12 +108,13 @@ empty root occurrence to null and invalidates the selection. A narrow follow-up
 should use owned `.value("occurrenceId").toString()` reads and string-normalized
 identity comparison. This preexisting bug is unchanged here; the broader
 priority regression is **not passing**, and no face/edge preservation acceptance
-is claimed from it. Root will track the separate bounded fix.
+is claimed from it. The separate [DOC-044](root-edge-refresh.md) fix now passes
+the priority regression.
 
 Independent Sol source/evidence review accepts the stable body/occurrence
 identities, shared command authority, exact GPU membership and strict Qt
 actual-hit evidence. It found no additional blocking defect in this bounded
-slice. Ordinary Auto remains DOC-045/#726; physical OS modifier delivery and
-Windows/Linux runtime are unqualified and remain broader gates. The retained
-edge mismatch is DOC-044/#725. No paid CI or release ran. All private candidate
+slice. Ordinary Auto's explicit route is documented under DOC-045/#726; physical
+OS modifier delivery and Windows/Linux runtime remain broader gates. The retained
+edge mismatch was repaired under DOC-044/#725. No paid CI or release ran. All private candidate
 editors exited; user PID72618 remains preserved.

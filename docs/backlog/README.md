@@ -572,4 +572,4 @@ the initial slot candidate evaluates the final shape on release. It remains Todo
 
 [XCH-014/#720](../decisions/004-mesh-import-foundation.md) admits the pinned STL/OBJ decoder with strict validation required. XCH-015/#722 owns retained STL and measured limits; XCH-016/#723 owns native/GPU presentation; XCH-017/#724 owns strict OBJ. XCH-004/#72 remains the cumulative import gate.
 
-DOC-043/#721 accepts a bounded Body Priority/Browser/API multi-body set after independent review. DOC-045/#726 retains the ordinary Auto canvas body route; DOC-044/#725 repairs a separately diagnosed preexisting edge-refresh mismatch.
+DOC-043/#721 accepts a bounded Body Priority/Browser/API multi-body set after independent review. [DOC-045/#726](../validation/auto-body-route.md) resolves the ordinary Auto question with a documented explicit route; [DOC-044/#725](../validation/root-edge-refresh.md) repairs a separately diagnosed preexisting edge-refresh mismatch. Model hold-click Parents remains SKT-159/#585.

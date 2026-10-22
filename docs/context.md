@@ -5,8 +5,10 @@ prioritizes Mac input/selection, retained mesh import, native Metal/Vulkan
 rendering and cumulative three-platform release qualification. The scope freeze
 and live GitHub issue states remain authoritative for readiness.
 [DOC-043](validation/body-selection-set.md) accepts shared Body Priority/Browser/API
-multi-body selection; DOC-045/#726 retains the ordinary Auto route. DOC-044/#725
-tracks the separate root-edge refresh regression and its targeted fix.
+multi-body selection; [DOC-045/#726](validation/auto-body-route.md) accepts the
+documented Body Priority/Browser whole-body route while keeping ordinary Auto
+face-first. [DOC-044/#725](validation/root-edge-refresh.md) accepts the separate
+root-edge refresh repair.
 The [printable bench-vise capstone](v1/capstone-candidate.md) is a researched
 proposal, not a selected release gate; detailed public references remain outside
 the repository.
