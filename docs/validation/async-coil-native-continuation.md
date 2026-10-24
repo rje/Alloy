@@ -1,0 +1,21 @@
+# Native continuation after asynchronous Coil edit — FND-030/#737
+
+**Unaccepted: external foreground interference blocks the final uninterrupted clean-exit gate.** No production focus or activation behavior was changed. The diagnostic native harness now observes the private process, actual AppKit/Qt key-window state, NSWorkspace foreground PID/name, authored document revision and active command/evaluation status. It stops before delivering a pointer or key to an inactive or wrong surface. A natural readiness wait observes queued activation; it never calls activation/focus repair between declared user steps.
+
+The focused replay uses the already accepted circular Coil command. API setup creates a real 0.25-revolution Coil before the single initial activation. Actual-hit Timeline input changes Revolutions to 0.5, observes pending evaluation before and after OK, waits for normal closure/readiness, then sends S, types `view.home` in Search and presses Escape. A second 0.75-revolution edit is cancelled. Exact authored/history checks allow only the intended 0.25→0.5 edit. Existing SOL-060 geometry/STL evidence is reused; this is a native continuation check, not new geometry/export qualification.
+
+The same private process can have a preexisting startup File menu. The harness records it and, only after native/foreground PID readiness, closes that private QMenu with Escape before declaring the sequence started. QWidget pointers cannot identify a menu in the user-owned editor process. The harness also resolves the current visible Timeline button, avoiding a hidden obsolete QObject retained briefly after refresh. Neither setup nor target observation repairs focus between demonstrated steps. Successful teardown saves the private model after the declared input sequence, avoiding an unsaved-close prompt.
+
+Evidence is external at `../Alloy-reference-records/validation/coil-continuation-2026-10-24/`:
+
+- `large-interrupted/focus-trace.jsonl`: private PID 25360 is active initially; Firefox PID 94152 becomes foreground at 3025 ms, and the committed edit is observed at 7861 ms while the editor stays inactive. This earlier trace's pending label is a test phase rather than sampled command state; it does not establish precise completion/activation causality. No S was delivered after the safe stop.
+- `assertions-complete-teardown-stopped/`: all requested native input assertions, including Cancel and both Search/Escape continuations, complete with private PID 27528 foreground. The trace samples actual pending status and document revision 2→3. `receipt.json` and captures were written, but its dirty-window teardown waited in the private Save prompt and the private process was terminated. It is input evidence, not a clean QtTest process pass.
+- `final-interrupted/focus-trace.jsonl`: the corrected teardown replay again proves pending edit OK, revision 2→3, naturally active Search and Escape with private PID 29058 foreground. At **3245 ms**, Firefox PID 94152 becomes foreground after that Escape and before the next Timeline pointer. The guard refuses that pointer, the fixture reports failure and exits; no further native steps or retries follow. `steps.json` and `candidate-document.json` preserve exact state before the stop.
+
+The final attempted command was:
+
+```sh
+ALLOY_COIL_CONTINUATION=1 ALLOY_COIL_EVIDENCE="$PWD/build-preview-release/evidence/coil-continuation-2026-10-24/accepted" build-preview-release/responsive_controls_test coilPrimitivePanel
+```
+
+The focused test target builds with the accepted Qt 6.11.2 / OCCT 7.9.3 Release cache and `-j4`. The input trace supports a bounded positive OK→Search/Escape prefix and demonstrates external foreground changes in the interrupted runs. It does not identify the cause of the original untraced SOL-060 after-closure observation or qualify the whole final gate. FND-030 remains Todo until an isolated clean replay completes; no forced activation is justified from these results. Do not reactivate or manipulate Firefox/user-owned applications to make it pass. Physical OS input and other-platform runtime remain FND-007/release work. All private editors are closed; user-owned PID 72618 was preserved. No CI, geometry corpus or export corpus was run for this task.

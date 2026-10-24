@@ -6,6 +6,7 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialogButtonBox>
+#include <QDialog>
 #include <QDir>
 #include <QDockWidget>
 #include <QDoubleSpinBox>
@@ -233,38 +234,77 @@ private slots:
     }
     void coilPrimitivePanel() {
         const auto out=qEnvironmentVariable("ALLOY_COIL_EVIDENCE");QVERIFY(!out.isEmpty());QVERIFY(QDir().mkpath(out));
+        const bool continuation=qEnvironmentVariableIsSet("ALLOY_COIL_CONTINUATION");
         AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1360,850);window.show();
         QVERIFY(QTest::qWaitForWindowExposed(&window));
+        if(continuation){
+            call(window,"solid.coil",{{"diameter",20},{"pitch",5},{"revolutions",.25},{"sectionSize",2},{"units","mm"}});
+            QTRY_VERIFY_WITH_TIMEOUT(!window.state().value("geometryWork").toObject().value("active").toBool(),30000);
+        }
         // Initial harness activation only. Observe native AppKit and Qt agreement;
         // setting QApplication's active-window bookkeeping would hide a failure.
         window.raise();window.activateWindow();window.windowHandle()->requestActivate();
-        auto readiness=[&] {
-            QJsonObject result{{"qtActive",window.isActiveWindow()},
+        auto readiness=[&](QWidget* expected=nullptr) {
+            if(!expected)expected=&window;
+            QJsonObject result{{"qtActive",expected->isActiveWindow()},
                 {"applicationActive",QGuiApplication::applicationState()==Qt::ApplicationActive},
-                {"focusWindowMatches",QGuiApplication::focusWindow()==window.windowHandle()}};
+                {"focusWindowMatches",QGuiApplication::focusWindow()==expected->windowHandle()}};
 #ifdef Q_OS_MACOS
             auto selector=reinterpret_cast<void*(*)(const char*)>(dlsym(RTLD_DEFAULT,"sel_registerName"));
             auto send=reinterpret_cast<void*(*)(void*,void*)>(dlsym(RTLD_DEFAULT,"objc_msgSend"));
             auto boolean=reinterpret_cast<bool(*)(void*,void*)>(dlsym(RTLD_DEFAULT,"objc_msgSend"));
             auto cls=reinterpret_cast<void*(*)(const char*)>(dlsym(RTLD_DEFAULT,"objc_getClass"));
             auto app=send(cls("NSApplication"),selector("sharedApplication"));
-            auto native=send(reinterpret_cast<void*>(window.winId()),selector("window"));
+            auto native=send(reinterpret_cast<void*>(expected->winId()),selector("window"));
             result.insert("nativeApplicationActive",boolean(app,selector("isActive")));
             result.insert("keyWindowMatchesEditor",send(app,selector("keyWindow"))==native);
             result.insert("firstResponderPresent",send(native,selector("firstResponder"))!=nullptr);
+            auto integer=reinterpret_cast<long(*)(void*,void*)>(dlsym(RTLD_DEFAULT,"objc_msgSend"));
+            auto string=reinterpret_cast<const char*(*)(void*,void*)>(dlsym(RTLD_DEFAULT,"objc_msgSend"));
+            const auto workspace=send(cls("NSWorkspace"),selector("sharedWorkspace"));
+            const auto foreground=send(workspace,selector("frontmostApplication"));
+            result.insert("foregroundPid",static_cast<qint64>(integer(foreground,selector("processIdentifier"))));
+            auto nativeName=send(foreground,selector("localizedName"));
+            result.insert("foregroundName",QString::fromUtf8(string(nativeName,selector("UTF8String"))));
+            result.insert("editorPid",QCoreApplication::applicationPid());
 #endif
             return result;
         };
-        QTRY_VERIFY_WITH_TIMEOUT(([&]{const auto state=readiness();return std::all_of(state.begin(),state.end(),[](auto value){return value.toBool();});})(),3000);
+        auto active=[&](QWidget* expected=nullptr){const auto state=readiness(expected);
+            for(const auto& key:{"qtActive","applicationActive","focusWindowMatches","nativeApplicationActive","keyWindowMatchesEditor","firstResponderPresent"})
+                if(state.contains(key) && !state.value(key).toBool())return false;
+            return !state.contains("foregroundPid") || state.value("foregroundPid")==state.value("editorPid");};
+        QTRY_VERIFY_WITH_TIMEOUT(active(),3000);
+        if(auto* popup=QApplication::activePopupWidget()){
+            QFile setup(out+"/initial-popup.json");QVERIFY(setup.open(QIODevice::WriteOnly));
+            setup.write(QJsonDocument(QJsonObject{{"phase","initial harness setup before declared sequence"},{"state",window.state()},{"readiness",readiness()}}).toJson());setup.close();
+            // QWidget pointers belong to this private process; native PID readiness above excludes a user-owned surface.
+            QVERIFY(qobject_cast<QMenu*>(popup));QVERIFY(active());
+            QTest::keyClick(popup,Qt::Key_Escape);QTRY_VERIFY(QApplication::activePopupWidget()==nullptr);QTRY_VERIFY(active());
+        }
+        QFile focusTrace(out+"/focus-trace.jsonl");QVERIFY(focusTrace.open(QIODevice::WriteOnly));
+        QElapsedTimer traceClock;traceClock.start();QString phase="initial activation";QJsonObject previous;
+        auto sample=[&]{auto current=readiness();auto* focus=QApplication::focusWidget();
+            current["phase"]=phase;current["focusObject"]=focus?focus->objectName():"none";
+            current["focusClass"]=focus?focus->metaObject()->className():"none";
+            const auto applicationState=window.state();const auto nativeSession=applicationState.value("activeSession").toObject();
+            current["documentRevision"]=applicationState.value("document").toObject().value("revision");
+            current["sessionCommand"]=nativeSession.value("command");current["evaluationStatus"]=nativeSession.value("evaluationStatus");
+            if(current==previous)return;previous=current;current["elapsedMs"]=traceClock.elapsed();
+            focusTrace.write(QJsonDocument(current).toJson(QJsonDocument::Compact));focusTrace.write("\n");focusTrace.flush();};
+        QTimer traceTimer;traceTimer.setInterval(20);connect(&traceTimer,&QTimer::timeout,&window,sample);traceTimer.start();sample();
         const auto initialReadiness=readiness();
         QJsonArray steps;
-        auto record=[&](const QString& name) {
+        auto record=[&](const QString& name,QWidget* expected=nullptr) {
+            phase=name;sample();
             auto* focus=QApplication::focusWidget();
             steps.append(QJsonObject{{"step",name},{"focusClass",focus?focus->metaObject()->className():"none"},
-                {"focusObject",focus?focus->objectName():"none"},{"state",window.state()},{"readiness",readiness()}});
+                {"focusObject",focus?focus->objectName():"none"},{"state",window.state()},{"expectedSurface",expected ? expected->objectName() : "Alloy editor"},{"readiness",readiness(expected)}});
+            QFile progress(out+"/steps.json");if(progress.open(QIODevice::WriteOnly))progress.write(QJsonDocument(steps).toJson(QJsonDocument::Indented));
             qInfo().noquote()<<name;
         };
-        auto click=[](QWidget* widget) {
+        auto click=[&](QWidget* widget) {
+            QVERIFY2(active(),"Stopped before pointer input: editor is inactive; inspect focus-trace.jsonl");
             QVERIFY(widget && widget->isVisible());
             const auto point=widget->rect().center();
             auto* target=QApplication::widgetAt(widget->mapToGlobal(point));QVERIFY(target);
@@ -274,16 +314,64 @@ private slots:
         auto type=[&](QDoubleSpinBox* spin,const char* text) {
             QVERIFY(spin);auto* editor=spin->findChild<QLineEdit*>();QVERIFY(editor);click(editor);
             QTRY_VERIFY(editor->hasFocus());
-            QTest::keySequence(editor,QKeySequence(QKeySequence::SelectAll));QTest::keyClicks(editor,text);
-            QTest::keyClick(editor,Qt::Key_Return);
+            QVERIFY(active());QTest::keySequence(editor,QKeySequence(QKeySequence::SelectAll));QVERIFY(active());QTest::keyClicks(editor,text);
+            QVERIFY(active());QTest::keyClick(editor,Qt::Key_Return);
             QVERIFY(QApplication::focusWidget()==spin || QApplication::focusWidget()==editor);
         };
         auto session=[&]{return window.state().value("activeSession").toObject();};
         auto inspect=[&]{return call(window,"document.inspect");};
+        if(continuation){
+            const auto before=inspect();const auto feature=before.value("authored").toObject().value("features").toArray().first().toObject();
+            QCOMPARE(feature.value("type").toString(),"coil");const auto featureId=feature.value("id").toString();
+            auto timeline=[&]()->QToolButton*{
+                for(auto* button:window.findChildren<QToolButton*>("timeline.feature."+featureId))if(button->isVisible())return button;
+                return nullptr;
+            };
+            bool continuationStepPassed=false;
+            auto searchAndEscape=[&](const QJsonObject& expected){
+                continuationStepPassed=false;
+                QTRY_VERIFY_WITH_TIMEOUT(active(),3000);auto* focus=QApplication::focusWidget();
+                QVERIFY2(focus && focus->isVisible() && focus->isEnabled(),"No usable native focus recipient after closure");
+                QTest::keyClick(focus,Qt::Key_S);QTRY_COMPARE(session().value("command").toString(),"commands.search");
+                auto* search=window.findChild<QDialog*>("commands.search.dialog");auto* query=window.findChild<QLineEdit*>("commands.search.query");
+                QVERIFY(search && query);QTRY_VERIFY(active(search) && query->hasFocus());record("Immediate S opens active Search",search);
+                QTest::keyClicks(query,"view.home");QCOMPARE(query->text(),QString("view.home"));QVERIFY(active(search));
+                QTest::keyClick(query,Qt::Key_Escape);QTRY_VERIFY(session().isEmpty());QTRY_VERIFY(active());
+                QCOMPARE(inspect(),expected);record("Search Escape returns naturally with exact document");continuationStepPassed=true;
+            };
+            record("Declared native continuation sequence starts");QTRY_VERIFY(timeline() && timeline()->isVisible());click(timeline());
+            QTRY_COMPARE(session().value("command").toString(),"solid.coil");
+            auto* dock=window.findChild<QDockWidget*>("primitiveDock");QVERIFY(dock);
+            const double turns=.5;
+            type(dock->findChild<QDoubleSpinBox*>("primitive.revolutions"),"0.5");
+            QCOMPARE(session().value("evaluationStatus").toString(),"pending");record("Before asynchronous edit OK");
+            click(dock->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok));
+            QCOMPARE(session().value("evaluationStatus").toString(),"pending");phase="Asynchronous edit OK pending";sample();
+            QTRY_VERIFY_WITH_TIMEOUT(session().isEmpty(),30000);record("Asynchronous edit committed before natural readiness observation");
+            const auto edited=inspect();auto expected=before.value("authored").toObject();auto features=expected.value("features").toArray();
+            auto changed=features.first().toObject();auto parameters=changed.value("parameters").toObject();parameters["revolutions"]=turns;changed["parameters"]=parameters;features[0]=changed;expected["features"]=features;
+            QCOMPARE(edited.value("authored").toObject(),expected);QCOMPARE(edited.value("undo").toObject().value("count").toInt(),before.value("undo").toObject().value("count").toInt()+1);
+            QFile candidate(out+"/candidate-document.json");QVERIFY(candidate.open(QIODevice::WriteOnly));candidate.write(QJsonDocument(QJsonObject{{"before",before},{"after",edited},{"expectedAuthored",expected}}).toJson());candidate.close();
+            searchAndEscape(edited);QVERIFY(continuationStepPassed);QVERIFY(active());
+            call(window,"capture.screenshot",{{"path",out+"/native-after-search.png"}});
+            QTRY_VERIFY(timeline());click(timeline());QTRY_COMPARE(session().value("command").toString(),"solid.coil");dock=window.findChild<QDockWidget*>("primitiveDock");
+            type(dock->findChild<QDoubleSpinBox*>("primitive.revolutions"),"0.75");
+            click(dock->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Cancel));QTRY_VERIFY(session().isEmpty());record("Edit Cancel closed");
+            QTRY_VERIFY_WITH_TIMEOUT(!window.state().value("geometryWork").toObject().value("active").toBool(),30000);
+            searchAndEscape(edited);QVERIFY(continuationStepPassed);QVERIFY(active());
+            call(window,"view.fit"); // Frame evidence only after the declared native sequence.
+            call(window,"capture.screenshot",{{"path",out+"/native-continuation.png"}});
+            QFile receipt(out+"/receipt.json");QVERIFY(receipt.open(QIODevice::WriteOnly));
+            receipt.write(QJsonDocument(QJsonObject{{"status","pass"},{"initialReadiness",initialReadiness},{"steps",steps},{"before",before},{"after",edited},{"final",inspect()},
+                {"inputRoute","API creates accepted quarter-turn Coil before initial activation; actual-hit Timeline/fields/OK/Cancel and S/Search/Escape thereafter; no interstep focus repair"},
+                {"gpu",window.state().value("viewport").toObject().value("gpu")}}).toJson(QJsonDocument::Indented));
+            receipt.close();traceTimer.stop();focusTrace.close();
+            call(window,"document.save",{{"path",out+"/continuation.alloy"}});window.close();return;
+        }
         const auto blank=inspect();
         for(const auto& kind:QStringList{"coil"}) {
             const auto before=inspect();
-            choose(window.findChild<QToolButton*>("solid.menu.create"),"solid.action.primitive."+kind);
+            QVERIFY(active());choose(window.findChild<QToolButton*>("solid.menu.create"),"solid.action.primitive."+kind);
             QTRY_COMPARE(session().value("command").toString(),"solid."+kind);
             record(kind+" Create menu");
             auto* dock=window.findChild<QDockWidget*>("primitiveDock");QVERIFY(dock);
@@ -294,7 +382,7 @@ private slots:
             dispatch.restart();click(cancelButtons->button(QDialogButtonBox::Cancel));QVERIFY(dispatch.elapsed()<500);QTRY_VERIFY_WITH_TIMEOUT(session().isEmpty(),30000);
             QTRY_VERIFY_WITH_TIMEOUT(!window.state().value("geometryWork").toObject().value("active").toBool(),30000);
             QCOMPARE(inspect(),before);record(kind+" Create Cancel exact rollback");
-            choose(window.findChild<QToolButton*>("solid.menu.create"),"solid.action.primitive."+kind);
+            QVERIFY(active());choose(window.findChild<QToolButton*>("solid.menu.create"),"solid.action.primitive."+kind);
             QTRY_COMPARE(session().value("command").toString(),"solid."+kind);
             dock=window.findChild<QDockWidget*>("primitiveDock");QVERIFY(dock);
             auto field=[&](const QString& name){return dock->findChild<QDoubleSpinBox*>("primitive."+name);};
@@ -338,7 +426,9 @@ private slots:
             click(timeline());QTRY_COMPARE(session().value("command").toString(),"solid."+kind);
             dock=window.findChild<QDockWidget*>("primitiveDock");QVERIFY(dock);
             type(field("pitch"),"7");
+            record("Before final asynchronous edit OK");
             buttons=dock->findChild<QDialogButtonBox*>();click(buttons->button(QDialogButtonBox::Ok));
+            phase="Final asynchronous edit OK pending";sample();
             QTRY_VERIFY_WITH_TIMEOUT(session().isEmpty(),30000);const auto edited=inspect();
             const auto retained=edited.value("authored").toObject().value("features").toArray().last().toObject();
             QCOMPARE(retained.value("id"),feature.value("id"));QCOMPARE(retained.value("bodyId"),feature.value("bodyId"));
@@ -361,7 +451,7 @@ private slots:
         QFile receipt(out+"/receipt.json");QVERIFY(receipt.open(QIODevice::WriteOnly));
         receipt.write(QJsonDocument(QJsonObject{{"status","pass"},{"initialReadiness",initialReadiness},{"steps",steps},{"gpu",gpu},
             {"windowSize",QJsonArray{window.width(),window.height()}},{"devicePixelRatio",window.devicePixelRatioF()},
-            {"final",final},{"inputRoute","Qt delivered actual-hit pointer and keyboard; initial activation only"},
+            {"final",final},{"continuationRequested",continuation},{"inputRoute","Qt delivered actual-hit pointer and keyboard; initial activation only"},
             {"limits",QJsonArray{"Undo/redo and save/reopen use shared API","Physical OS input and other-platform runtime unqualified","Exact matched public panel styling unknown"}}}).toJson(QJsonDocument::Indented));
         receipt.close();window.close();
     }
