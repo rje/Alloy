@@ -7,12 +7,14 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **733 issues**: **579 implementation, 25 research,
+The current local backlog contains **734 issues**: **580 implementation, 25 research,
 6 research/design, 22 epics, and 101 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 SOL-060 owns the complete bounded Coil workflow; REL-056 separately retains
 measured source-edit/history/display costs as a required REL-049 release audit
 child. Responsive native preparation alone does not accept intrinsic costs.
+FND-030 separately retains the observed post-async-Coil-edit activation loss
+and uninterrupted native continuation; FND-007 requires that child before closing.
 [FND-029/#734](../validation/command-search-focus.md) accepts the bounded
 Command Search focus/session child of FND-007 after independent review; the
 parent retains broader shortcuts, text-focus suppression and cumulative input.
