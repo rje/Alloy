@@ -83,6 +83,10 @@ Start with a compact record alongside each implemented workflow. A large empty
 catalog is less useful than complete records for the first real commands.
 The current [sketch controls record](research/commands/sketch-controls.md) is the
 first bounded example, including known helper controls and remaining questions.
+The initial sketch-to-export contract matrix is indexed in
+[initial command contracts](research/commands/initial-command-index.json) and
+summarized in [decision 007](decisions/007-initial-command-contracts.md); detailed
+public-source provenance and unknowns remain in the external knowledge record.
 
 ## Starter research inventory
 
