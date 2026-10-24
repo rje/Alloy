@@ -9,8 +9,12 @@ The fixture is retained in RHI-002 acceptance; migration does not imply a fix.
 SRF-057 still owns the complete native Stitch minimum and remains blocked.
 The on-disk build executable contains the last rejected seam candidate and must
 be rebuilt from intended source before validation or showing it to the user.
-Next is SOL-060's complete bounded circular-section Coil workflow, beginning
-with its public contract. Maintain one active implementation issue, obtain
+SOL-060/#505 is now active for the complete bounded circular-section Coil
+workflow. Its external public contract is `knowledge/specs/sol060-coil-2026-10-24.md`
+under the reference records: numeric XY center, centerline Diameter, Revolutions
+And Pitch, circular On Center section, +Z clockwise/New Body and named pitch
+binding. Numerical defaults and explicit viewpoint are Alloy choices; canvas
+placement and wider variants remain ADV-005 Todo. Maintain one active issue, obtain
 proportionate independent Sol review, push the accepted result and mark its
 issue/board Done before moving on.
 
