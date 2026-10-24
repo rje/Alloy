@@ -7,14 +7,18 @@ accepted. Evidence is external at
 `../Alloy-reference-records/validation/surface-stitch-seam-2026-10-24/attempts.md`.
 The fixture is retained in RHI-002 acceptance; migration does not imply a fix.
 SRF-057 still owns the complete native Stitch minimum and remains blocked.
-The on-disk build executable contains the last rejected seam candidate and must
-be rebuilt from intended source before validation or showing it to the user.
-SOL-060/#505 is now active for the complete bounded circular-section Coil
-workflow. Its external public contract is `knowledge/specs/sol060-coil-2026-10-24.md`
-under the reference records: numeric XY center, centerline Diameter, Revolutions
-And Pitch, circular On Center section, +Z clockwise/New Body and named pitch
-binding. Numerical defaults and explicit viewpoint are Alloy choices; canvas
-placement and wider variants remain ADV-005 Todo. Maintain one active issue, obtain
+The build was rebuilt from intended source after reverting the seam trials.
+[SOL-060/#505](validation/solid-coil.md) accepts `01a8be7` after independent Sol
+review: bounded circular-section Coil geometry, shared responsive UI/API,
+native Create/Timeline controls, named Pitch, retained edits/history/reopen and
+two independent STL checks. Its contract is external under
+`knowledge/specs/sol060-coil-2026-10-24.md`: numeric XY center, centerline Diameter,
+Revolutions And Pitch, circular On Center section, +Z clockwise/New Body.
+Numerical defaults/viewpoint are Alloy choices; wider variants remain ADV-005.
+REL-056/#736 retains measured source/history/display costs and is required by
+REL-049. FND-030/#737 retains the final post-async-edit activation loss and
+uninterrupted native continuation; FND-007 requires it. This focus gate is next,
+not accepted by the bounded functional Coil receipt. Maintain one active issue, obtain
 proportionate independent Sol review, push the accepted result and mark its
 issue/board Done before moving on.
 

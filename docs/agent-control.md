@@ -34,6 +34,19 @@ Selected synchronous geometry commands show [busy feedback](validation/geometry-
 after completion. The GUI thread and API remain blocked during evaluation;
 `active` is not a remotely pollable progress feed and `cancellable` is false.
 
+Coil uses the existing asynchronous completion protocol instead:
+`solid.coil` creates/edits a retained numeric-XY circular coil with `diameter`,
+`pitch` or `pitchParameter`, `revolutions`, `sectionSize`, optional `x`, `y`,
+`units`, `name` and existing `featureId`. `primitive.coil` opens the same native
+session. Preview and direct creation can return `completion: pending`; poll
+`command.status` with the returned session ID and preview generation until its
+terminal result. UI/API OK commits the exact current prepared candidate.
+`command.cancel` discards a pending result while kernel work finishes. Inspect
+`activeSession.evaluationTimingMs` and `evaluationHeartbeat` for preparation and
+publication separately; total completed-work time is not UI blocking time.
+See [the bounded Coil contract](validation/solid-coil.md) for supported limits,
+history/export evidence and remaining focus/performance gates.
+
 ## Launch and discover
 
 ```sh

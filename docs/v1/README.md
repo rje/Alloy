@@ -1,5 +1,13 @@
 # Printable-part v1 review
 
+2026-10-24: [Command Search](../validation/command-search-focus.md) and the
+bounded [circular Coil](../validation/solid-coil.md) are accepted after independent
+review. Coil has real native/API creation and edit, named Pitch, history/reopen,
+responsive preparation and independently read printable STLs. Measured
+source/history/display cost (REL-056) and post-async continuation (FND-030)
+remain explicit required release work. Stitch seam SRF-059 remains unaccepted
+after reverted prototype-renderer trials; no successful fix is implied.
+
 [Current execution order](priority-burndown-2026-10-21.md) identifies the next
 finishable Mac workflow, mesh import, native renderer and package gates without
 changing this scope freeze.

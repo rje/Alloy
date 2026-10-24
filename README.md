@@ -1,5 +1,12 @@
 # Alloy
 
+[Retained circular Coil](docs/validation/solid-coil.md) now creates an editable
+spring with centerline Diameter, Pitch, Revolutions and circular Section Size.
+Its worker keeps preview/Cancel responsive; named Pitch edits, retained history,
+native controls and independent STL checks pass bounded review. Remaining
+source/history costs and post-async native continuation are tracked separately
+under REL-056/#736 and FND-030/#737 before release acceptance.
+
 [Command Search](docs/validation/command-search-focus.md) now keeps fresh and
 reopened queries consistent, preserves ordinary text input, restores focus on
 Escape and activates the selected result with Return. The bounded DPR2 native

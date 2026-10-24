@@ -10,7 +10,8 @@ dependency keys with issue numbers.
 The current local backlog contains **734 issues**: **580 implementation, 25 research,
 6 research/design, 22 epics, and 101 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
-SOL-060 owns the complete bounded Coil workflow; REL-056 separately retains
+[SOL-060/#505](../validation/solid-coil.md) accepts the bounded Coil workflow
+after independent review; REL-056 separately retains
 measured source-edit/history/display costs as a required REL-049 release audit
 child. Responsive native preparation alone does not accept intrinsic costs.
 FND-030 separately retains the observed post-async-Coil-edit activation loss
