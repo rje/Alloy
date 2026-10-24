@@ -6,7 +6,9 @@
 #include "SolidFillet.h"
 #include "CadDocument.h"
 #include <QElapsedTimer>
+#include <functional>
 #include <QDebug>
+#include <qscopeguard.h>
 #include "SurfaceExtrude.h"
 #include "ReferenceCanvas.h"
 #include "AssemblySlider.h"
@@ -693,7 +695,8 @@ QJsonObject dependencyError(const QJsonObject& candidate) {
     // cannot form cycles and consumed bodies cannot be used as stale inputs.
     return {};
 }
-QJsonObject solveSketches(QJsonObject candidate,int firstFeature,EvaluatedDocument& prefix) {
+QJsonObject solveSketches(QJsonObject candidate,int firstFeature,EvaluatedDocument& prefix,
+    const std::function<QString(const QJsonObject&)>& validate) {
     auto features = candidate["features"].toArray();
     for (int i = firstFeature; i < features.size(); ++i) {
         const auto feature = features[i].toObject();
@@ -723,24 +726,42 @@ QJsonObject solveSketches(QJsonObject candidate,int firstFeature,EvaluatedDocume
         features[i] = solution.feature;
     }
     candidate["features"] = features;
-    const auto error = CadDocument::validate(candidate);
+    const auto error = validate(candidate);
     if (!error.isEmpty()) throw std::invalid_argument(error.toStdString());
     return candidate;
 }
 }
 
+// The record value owns the implicitly shared arrays. No persisted ID/hash/flag
+// can create this proof; it is produced only after complete mesh validation.
+struct CadDocument::ValidatedMeshRecords {
+    explicit ValidatedMeshRecords(QJsonArray value):records(std::move(value)){}
+    const QJsonArray records;
+    bool matches(const QJsonObject& document) const {return document.value("meshes").toArray()==records;}
+};
+std::shared_ptr<const CadDocument::ValidatedMeshRecords> CadDocument::meshProof(const QJsonObject& validated) {
+    const auto records=validated.value("meshes").toArray();
+    return records.isEmpty() ? nullptr : std::make_shared<const ValidatedMeshRecords>(records);
+}
+
 class DocumentEdit final : public QUndoCommand {
 public:
     DocumentEdit(CadDocument& document, QJsonObject candidate,
-        std::shared_ptr<const EvaluatedDocument> evaluated, const QString& label)
+        std::shared_ptr<const EvaluatedDocument> evaluated, const QString& label,
+        std::shared_ptr<const CadDocument::ValidatedMeshRecords> validatedMeshes = {})
         : document_(document), before_(document.authored()), after_(std::move(candidate)),
-          beforeEvaluation_(document.evaluation_), afterEvaluation_(std::move(evaluated)) { setText(label); }
-    void undo() override { document_.apply(before_, beforeEvaluation_, id_); }
-    void redo() override { document_.apply(after_, afterEvaluation_, id_); }
+          beforeEvaluation_(document.evaluation_), afterEvaluation_(std::move(evaluated)),
+          beforeMeshes_(document.validatedMeshes_),afterMeshes_(std::move(validatedMeshes)) {
+        if(!afterMeshes_ && beforeMeshes_ && beforeMeshes_->matches(after_))afterMeshes_=beforeMeshes_;
+        setText(label);
+    }
+    void undo() override { document_.apply(before_, beforeEvaluation_, id_,beforeMeshes_); }
+    void redo() override { document_.apply(after_, afterEvaluation_, id_,afterMeshes_); }
 private:
     CadDocument& document_;
     QJsonObject before_, after_;
     std::shared_ptr<const EvaluatedDocument> beforeEvaluation_, afterEvaluation_;
+    std::shared_ptr<const CadDocument::ValidatedMeshRecords> beforeMeshes_,afterMeshes_;
     QString id_ = CadDocument::newId();
 };
 
@@ -1252,9 +1273,11 @@ void CadDocument::reset() {
         {"displayUnits", "mm"}, {"features", QJsonArray{}}},std::make_shared<const EvaluatedDocument>());
     history_.setClean();
 }
-void CadDocument::apply(const QJsonObject& value, std::shared_ptr<const EvaluatedDocument> evaluation, const QString& transaction) {
+void CadDocument::apply(const QJsonObject& value, std::shared_ptr<const EvaluatedDocument> evaluation, const QString& transaction,
+    std::shared_ptr<const ValidatedMeshRecords> validatedMeshes) {
     returnToLatest();
     authored_ = value;
+    validatedMeshes_=validatedMeshes && validatedMeshes->matches(value) ? std::move(validatedMeshes) : nullptr;
     if(!hasOwner(authored_,activeOwnerId_))activeOwnerId_=authored_["documentId"].toString();
     evaluation_=std::move(evaluation); lastTransaction_ = transaction; ++revision_;
 }
@@ -1337,6 +1360,7 @@ std::shared_ptr<const CadDocument::PreparedMeshImport> CadDocument::prepareMeshI
     auto meshes=base.value("meshes").toArray();meshes.append(mesh);prepared->candidate_["meshes"]=meshes;
     const auto error=validateStructure(prepared->candidate_);
     if(!error.isEmpty())throw std::invalid_argument(error.toStdString());
+    prepared->validatedMeshes_=meshProof(prepared->candidate_);
     return prepared;
 }
 QString CadDocument::commitMeshImport(const PreparedMeshImport& prepared,quint64 expectedRevision) {
@@ -1346,7 +1370,7 @@ QString CadDocument::commitMeshImport(const PreparedMeshImport& prepared,quint64
         return "The design changed; Cancel and select the mesh again";
     lastEvaluationError_={};
     const auto format=prepared.candidate_.value("meshes").toArray().last().toObject().value("source").toObject().value("format").toString().toUpper();
-    history_.push(new DocumentEdit(*this,prepared.candidate_,evaluation_,"Import "+format+" mesh"));
+    history_.push(new DocumentEdit(*this,prepared.candidate_,evaluation_,"Import "+format+" mesh",prepared.validatedMeshes_));
     return {};
 }
 
@@ -1370,13 +1394,13 @@ QString CadDocument::commit(const QJsonObject& candidate, const QString& label) 
             feature["parameters"].toObject()["support"].toObject()["bodyId"].toString());
         if(!error.isEmpty()) {lastEvaluationError_={{"code","unsupported_sketch_origin_context"},{"message",error}};return error;}
     }
-    QElapsedTimer coilCostTimer;if(qEnvironmentVariableIsSet("ALLOY_TRACE_COIL_COST"))coilCostTimer.start();
+    QElapsedTimer coilCostTimer;if((qEnvironmentVariableIsSet("ALLOY_TRACE_COIL_COST") || qEnvironmentVariableIsSet("ALLOY_TRACE_MESH_COST")))coilCostTimer.start();
     auto prepared = prepareCandidate(candidate);
-    if(qEnvironmentVariableIsSet("ALLOY_TRACE_COIL_COST"))qInfo()<<"coil_document_phase_ms"<<label<<"evaluation"<<coilCostTimer.restart();
+    if((qEnvironmentVariableIsSet("ALLOY_TRACE_COIL_COST") || qEnvironmentVariableIsSet("ALLOY_TRACE_MESH_COST")))qInfo()<<"coil_document_phase_ms"<<label<<"evaluation"<<coilCostTimer.restart();
     if (!prepared.ok) {lastEvaluationError_ = prepared.diagnostics;return prepared.error;}
     if (prepared.authored == authored_) return {};
-    history_.push(new DocumentEdit(*this,prepared.authored,std::move(prepared.evaluation),label));
-    if(qEnvironmentVariableIsSet("ALLOY_TRACE_COIL_COST"))qInfo()<<"coil_document_phase_ms"<<label<<"historyPush"<<coilCostTimer.elapsed();
+    history_.push(new DocumentEdit(*this,prepared.authored,std::move(prepared.evaluation),label,prepared.validatedMeshes_));
+    if((qEnvironmentVariableIsSet("ALLOY_TRACE_COIL_COST") || qEnvironmentVariableIsSet("ALLOY_TRACE_MESH_COST")))qInfo()<<"coil_document_phase_ms"<<label<<"historyPush"<<coilCostTimer.elapsed();
     return {};
 }
 
@@ -1406,7 +1430,7 @@ QString CadDocument::commitCoilParameterEvaluation(const CandidateEvaluation& pr
     if(changes==0)return {};
     if(changes!=1 || !prepared.ok || !prepared.evaluation || prepared.authored!=resolveLengthBindings(requested))
         return "An exact prepared Coil parameter evaluation is required";
-    history_.push(new DocumentEdit(*this,prepared.authored,prepared.evaluation,"Edit user parameter"));return {};
+    history_.push(new DocumentEdit(*this,prepared.authored,prepared.evaluation,"Edit user parameter",prepared.validatedMeshes_));return {};
 }
 QString CadDocument::commitCoilEvaluation(const CandidateEvaluation& prepared,const QJsonObject& requestedCandidate,
     const QJsonObject& expectedBase,quint64 expectedRevision) {
@@ -1454,7 +1478,7 @@ QString CadDocument::commitEvaluatedFeature(const CandidateEvaluation& prepared,
     if(changes==0)return {};
     if(changes>1)return "Invalid "+featureLabel+" feature transaction";
     if(const auto guard=newFeatureReparentError(authored_,prepared.authored);!guard.isEmpty())return guard["message"].toString();
-    history_.push(new DocumentEdit(*this,prepared.authored,prepared.evaluation,label));
+    history_.push(new DocumentEdit(*this,prepared.authored,prepared.evaluation,label,prepared.validatedMeshes_));
     return {};
 }
 
@@ -1518,7 +1542,7 @@ QString CadDocument::adoptOpen(const CandidateEvaluation& prepared,const QString
     const QJsonObject& expectedBase,quint64 expectedRevision) {
     if(revision_!=expectedRevision || authored_!=expectedBase)return "The document changed while opening";
     if(!prepared.ok || !prepared.evaluation)return prepared.error.isEmpty() ? "Native document evaluation unavailable" : prepared.error;
-    activeOwnerId_.clear();history_.clear();apply(prepared.authored,prepared.evaluation);
+    activeOwnerId_.clear();history_.clear();apply(prepared.authored,prepared.evaluation,{},prepared.validatedMeshes_);
     path_=path;recoveredDirty_=false;lastEvaluationError_={};history_.setClean();return {};
 }
 QString CadDocument::open(const QString& path) {
@@ -1532,7 +1556,7 @@ QString CadDocument::recover(const QJsonObject& authored) {
     auto prepared=evaluateCandidate(authored);
     if(!prepared.ok) {lastEvaluationError_=prepared.diagnostics;return prepared.error;}
     activeOwnerId_.clear();history_.clear();
-    apply(prepared.authored,std::move(prepared.evaluation));
+    apply(prepared.authored,std::move(prepared.evaluation),{},prepared.validatedMeshes_);
     path_.clear();recoveredDirty_=true;
     return {};
 }
@@ -1567,7 +1591,7 @@ CadDocument::CandidateEvaluation CadDocument::prepareCandidate(const QJsonObject
             authoredOrder.reserve(static_cast<size_t>(oldFeatures.size()));
             for(const auto& value:oldFeatures)authoredOrder.push_back(value.toObject().value("id").toString());
             if(evaluation_->featureOrder==authoredOrder) {
-                const auto error=validateStructure(candidate);
+                const auto error=validateStructure(candidate,nullptr,validatedMeshes_.get());
                 if(!error.isEmpty()) {
                     CandidateEvaluation result;result.authored=candidate;result.error=error;
                     result.diagnostics={{"code","invalid_document"},{"message",error}};return result;
@@ -1582,7 +1606,7 @@ CadDocument::CandidateEvaluation CadDocument::prepareCandidate(const QJsonObject
                 for(auto& plane:updated->constructionPlanes)if(visibilityByFeature.contains(plane.featureId))
                     plane.visible=visibilityByFeature.value(plane.featureId);
                 updated->recompute="visibility_only";
-                CandidateEvaluation result;result.authored=candidate;result.evaluation=std::move(updated);result.ok=true;
+                CandidateEvaluation result;result.authored=candidate;result.evaluation=std::move(updated);result.ok=true;result.validatedMeshes_=validatedMeshes_ && validatedMeshes_->matches(candidate) ? validatedMeshes_ : meshProof(candidate);
                 result.diagnostics={{"code","evaluated"},{"recompute","visibility_only"},
                     {"featureCount",newFeatures.size()}};
                 return result;
@@ -1605,13 +1629,13 @@ CadDocument::CandidateEvaluation CadDocument::prepareCandidate(const QJsonObject
     oldDefinitions.remove("joints");newDefinitions.remove("joints");
     if(evaluation_ && oldDefinitions==newDefinitions){
         CandidateEvaluation result;result.authored=candidate;
-        const auto error=validateStructure(candidate);
+        const auto error=validateStructure(candidate,nullptr,validatedMeshes_.get());
         if(!error.isEmpty()){result.error=error;result.diagnostics={{"code","invalid_document"},{"message",error}};return result;}
         try{const auto joints=candidate.value("joints").toArray();
             if(AssemblyGraph::isJointGraph(candidate))
                 AssemblyRevolute::inspect(candidate,*evaluation_);
             else AssemblySlider::inspect(candidate,*evaluation_);
-            result.evaluation=evaluation_;result.ok=true;
+            result.evaluation=evaluation_;result.ok=true;result.validatedMeshes_=validatedMeshes_ && validatedMeshes_->matches(candidate) ? validatedMeshes_ : meshProof(candidate);
             result.diagnostics={{"code","evaluated"},{"recompute","occurrence_only"}};
         }catch(const std::exception& e){result.error=QString::fromUtf8(e.what());result.diagnostics={{"code","invalid_slider"},{"message",result.error}};}
         return result;
@@ -1623,32 +1647,39 @@ CadDocument::CandidateEvaluation CadDocument::prepareCandidate(const QJsonObject
             auto prefix=*evaluation_;
             if(!plan->hiddenSketchId.isEmpty())for(auto& sketch:prefix.sketches)
                 if(sketch.featureId==plan->hiddenSketchId)sketch.visible=false;
-            return evaluateCandidateFromPrefix(candidate,&prefix,plan->featureCount);
+            return evaluateCandidateFromPrefix(candidate,&prefix,plan->featureCount,validatedMeshes_);
         }
     } catch(const std::exception&) {} // Ordinary evaluator owns structured errors.
-    return evaluateCandidate(candidate);
+    return evaluateCandidateFromPrefix(candidate,nullptr,0,validatedMeshes_);
 }
 CadDocument::CandidateEvaluation CadDocument::evaluateCandidate(const QJsonObject& candidate) {
     return evaluateCandidateFromPrefix(candidate,nullptr,0);
 }
 CadDocument::CandidateEvaluation CadDocument::evaluateCandidateFromPrefix(const QJsonObject& candidate,
-    const EvaluatedDocument* prefix,int firstFeature) {
+    const EvaluatedDocument* prefix,int firstFeature,std::shared_ptr<const ValidatedMeshRecords> validatedMeshes) {
     CandidateEvaluation result;
     result.authored = candidate;
     QJsonObject structuralContext;
     QJsonObject resolved;
     try {resolved=resolveLengthBindings(candidate);}
     catch(const std::exception& error){result.error=QString::fromUtf8(error.what());result.diagnostics={{"code","invalid_parameter_binding"},{"message",result.error}};return result;}
-    const auto structural = validateStructure(resolved,&structuralContext);
+    const auto structural = validateStructure(resolved,&structuralContext,validatedMeshes.get());
     if (!structural.isEmpty()) {
         result.error = structural; result.diagnostics = structuralContext;
         result.diagnostics["code"] = "invalid_document";result.diagnostics["message"] = structural;return result;
     }
+    auto proof=validatedMeshes && validatedMeshes->matches(resolved) ? validatedMeshes : meshProof(resolved);
     const auto dependency = dependencyError(resolved);
     if (!dependency.isEmpty()) {result.diagnostics = dependency;result.error = dependency["message"].toString();return result;}
     try {
         auto solvingPrefix=prefix ? *prefix : EvaluatedDocument{};
-        const auto solved = solveSketches(resolved,firstFeature,solvingPrefix);
+        const auto solved = solveSketches(resolved,firstFeature,solvingPrefix,[proof](const QJsonObject& candidate){
+            try{const auto resolved=resolveLengthBindings(candidate);const auto error=validateStructure(resolved,nullptr,proof.get());
+                return error.isEmpty() ? dependencyError(resolved).value("message").toString() : error;}
+            catch(const std::exception& e){return QString::fromUtf8(e.what());}
+        });
+        if(solved.value("meshes").toArray()!=resolved.value("meshes").toArray())
+            throw GeometryKernel::EvaluationError({{"code","unexpected_mesh_change"},{"message","Sketch solving cannot replace retained mesh records"}});
         auto finalEvaluation=GeometryKernel::evaluateDocument(solved,solvingPrefix);
         // Internal solve-prefix reuse is still a full ordered recompute when
         // no accepted document prefix was supplied by prepareCandidate.
@@ -1663,6 +1694,7 @@ CadDocument::CandidateEvaluation CadDocument::evaluateCandidateFromPrefix(const 
         for(int i=0;i<normalized.size();++i){auto feature=normalized[i].toObject();if(evaluated->joinBodyResults.contains(feature["id"].toString())){feature["bodyResults"]=evaluated->joinBodyResults[feature["id"].toString()];normalized[i]=feature;}}
         result.authored["features"]=normalized;
         result.evaluation = std::move(evaluated); result.ok = true;
+        result.validatedMeshes_=proof;
         result.diagnostics = {{"code","evaluated"},{"recompute",prefix ? "exact_prefix_append" : "full_ordered"},{"featureCount",solved["features"].toArray().size()}};
     } catch (const GeometryKernel::EvaluationError& error) {result.diagnostics = error.diagnostics();result.error = QString::fromUtf8(error.what());}
       catch (const Standard_Failure& error) {
@@ -2689,7 +2721,12 @@ QString CadDocument::validate(const QJsonObject& candidate) {
         return structural.isEmpty() ? dependencyError(resolved)["message"].toString() : structural;
     } catch(const std::exception& error) {return QString::fromUtf8(error.what());}
 }
-QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject* errorContext) {
+QString CadDocument::validateOwnedCandidate(const QJsonObject& candidate) const {
+    try{const auto resolved=resolveLengthBindings(candidate);const auto error=validateStructure(resolved,nullptr,validatedMeshes_.get());
+        return error.isEmpty() ? dependencyError(resolved).value("message").toString() : error;}
+    catch(const std::exception& e){return QString::fromUtf8(e.what());}
+}
+QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject* errorContext,const ValidatedMeshRecords* validatedMeshes) {
     if (errorContext) *errorContext = {};
     if (candidate["schema"].toString() != "alloy-document/1") return "Unsupported document schema";
     const auto root = candidate["documentId"].toString();
@@ -2700,11 +2737,13 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
     QSet<QString> ids{root}, owners{root};
     if(candidate.contains("meshes") && !candidate.value("meshes").isArray())return "Meshes must be an array";
     if(candidate.value("meshes").toArray().size()>64)return "Document mesh limit is 64 bodies; use a separate document";
+    const bool reuseMeshRecords=validatedMeshes && validatedMeshes->matches(candidate);
+    if(qEnvironmentVariableIsSet("ALLOY_TRACE_MESH_COST"))qInfo()<<"mesh_validation_reuse"<<reuseMeshRecords<<"records"<<candidate.value("meshes").toArray().size();
     qint64 meshTriangles=0;
     for(const auto& value:candidate.value("meshes").toArray()) {
         if(!value.isObject())return "Mesh record must be an object";
-        const auto mesh=value.toObject();const auto error=MeshImport::validate(mesh);
-        if(!error.isEmpty())return error;
+        const auto mesh=value.toObject();
+        if(!reuseMeshRecords){const auto error=MeshImport::validate(mesh);if(!error.isEmpty())return error;}
         const auto id=mesh.value("id").toString();if(ids.contains(id))return "Duplicate mesh identity";
         ids.insert(id);meshTriangles+=mesh.value("triangles").toArray().size();
         if(meshTriangles>200000)return "Document mesh limit is 200000 triangles; reduce the mesh or use a separate document";
@@ -3604,6 +3643,8 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
 }
 QString CadDocument::label() const {return path_.isEmpty() ? "Untitled" : QFileInfo(path_).completeBaseName();}
 QJsonObject CadDocument::state() const {
+    const bool traceMesh=qEnvironmentVariableIsSet("ALLOY_TRACE_MESH_COST");QElapsedTimer meshStateTimer;if(traceMesh)meshStateTimer.start();
+    const auto traceExit=qScopeGuard([&]{if(traceMesh)qInfo()<<"mesh_document_state_ms"<<meshStateTimer.elapsed();});
     const auto* evaluation_=&evaluation();
     QJsonArray order;
     for (const auto& id : evaluation_->featureOrder) order.append(id);

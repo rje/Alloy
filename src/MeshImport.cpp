@@ -4,6 +4,9 @@
 #include <Poly_Triangulation.hxx>
 #include <Standard_Failure.hxx>
 #include <QFile>
+#include <QElapsedTimer>
+#include <QDebug>
+#include <qscopeguard.h>
 #include <QFileInfo>
 #include <QTemporaryFile>
 #include <QCryptographicHash>
@@ -121,6 +124,8 @@ QJsonObject withUnits(const QJsonObject& base,const QString& units) {
     mesh["verticesMm"]=vertices;mesh["summary"]=analyze(vertices,mesh.value("triangles").toArray());return mesh;
 }
 QString validate(const QJsonObject& mesh) {
+    const bool trace=qEnvironmentVariableIsSet("ALLOY_TRACE_MESH_COST");QElapsedTimer total;if(trace)total.start();
+    const auto traceExit=qScopeGuard([&]{if(trace)qInfo()<<"mesh_validation_ms"<<"total"<<total.elapsed();});
     const auto source=mesh.value("source").toObject();const auto vertices=mesh.value("verticesMm").toArray(),triangles=mesh.value("triangles").toArray();
     const auto diagnostics=mesh.value("diagnostics").toObject();
     static const QRegularExpression hash("^[0-9a-f]{64}$");
@@ -150,7 +155,9 @@ QString validate(const QJsonObject& mesh) {
     }
     for(const auto& v:vertices){const auto a=v.toArray();if(a.size()!=3)return "Mesh vertex requires three coordinates";for(const auto& x:a)if(!x.isDouble() || !std::isfinite(x.toDouble()) || std::abs(x.toDouble())>1e9)return "Invalid mesh coordinate";}
     for(const auto& t:triangles){const auto a=t.toArray();if(a.size()!=3)return "Mesh facet requires three indices";for(const auto& x:a)if(!x.isDouble() || x.toDouble()!=x.toInt(-1) || x.toInt(-1)<0 || x.toInt()>=vertices.size())return "Invalid mesh triangle index";}
-    if(mesh.value("summary").toObject()!=analyze(vertices,triangles))return "Mesh summary does not match retained geometry";
+    QElapsedTimer quality;if(trace)quality.start();const auto actualSummary=analyze(vertices,triangles);
+    if(trace)qInfo()<<"mesh_validation_ms"<<"quality"<<quality.elapsed()<<"vertices"<<vertices.size()<<"triangles"<<triangles.size();
+    if(mesh.value("summary").toObject()!=actualSummary)return "Mesh summary does not match retained geometry";
     return {};
 }
 QJsonObject summary(const QJsonObject& mesh){auto result=mesh.value("summary").toObject();result["id"]=mesh.value("id");result["kind"]="mesh";result["visible"]=mesh.value("visible").toBool(true);result["name"]=mesh.value("name");result["source"]=mesh.value("source");result["diagnostics"]=mesh.value("diagnostics");return result;}

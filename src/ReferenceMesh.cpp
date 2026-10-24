@@ -8,6 +8,8 @@
 #include <Select3D_SensitiveTriangulation.hxx>
 #include <SelectMgr_EntityOwner.hxx>
 #include <SelectMgr_Selection.hxx>
+#include <QElapsedTimer>
+#include <QDebug>
 
 namespace {
 // Retained triangle data only: no TopoDS faces, edges or solid promotion.
@@ -44,16 +46,18 @@ private:
 }
 void ReferenceView::setMeshes(const QJsonArray& meshes) {
     if(context_.IsNull())return;
+    const bool trace=qEnvironmentVariableIsSet("ALLOY_TRACE_MESH_COST");QElapsedTimer timer;if(trace)timer.start();int created=0;
     QSet<QString> live;
     for(const auto& value:meshes){const auto mesh=value.toObject();const auto id=mesh.value("id").toString();live.insert(id);
         // Immutable geometry at a stable UUID; visibility changes reuse GPU/BVH data.
-        if(!meshModels_.contains(id))meshModels_[id]=new MeshPresentation(mesh);
+        if(!meshModels_.contains(id)){meshModels_[id]=new MeshPresentation(mesh);++created;}
         const auto model=meshModels_.value(id);
         if(mesh.value("visible").toBool(true)){context_->Display(model,0,0,false);context_->Activate(model,0,false);}
         else context_->Erase(model,false);
     }
     for(auto it=meshModels_.begin();it!=meshModels_.end();)if(!live.contains(it.key())){context_->Remove(it.value(),false);it=meshModels_.erase(it);}else ++it;
     meshRecords_=meshes;context_->UpdateCurrentViewer();
+    if(trace)qInfo()<<"mesh_presentation_ms"<<timer.elapsed()<<"created"<<created<<"records"<<meshes.size();
 }
 QJsonObject ReferenceView::projectMesh(const QString& id) const {
     if(view_.IsNull())return {};

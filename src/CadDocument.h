@@ -10,6 +10,7 @@ class DocumentEdit;
 
 // Authored intent only. Evaluated BReps and viewport objects are separate caches.
 class CadDocument final {
+    struct ValidatedMeshRecords;
 public:
     struct CandidateEvaluation {
         bool ok = false;
@@ -17,6 +18,9 @@ public:
         std::shared_ptr<const EvaluatedDocument> evaluation;
         QJsonObject diagnostics;
         QString error;
+    private:
+        friend class CadDocument;
+        std::shared_ptr<const ValidatedMeshRecords> validatedMeshes_;
     };
     CadDocument();
     const QJsonObject& authored() const { return authored_; }
@@ -70,6 +74,7 @@ public:
     class PreparedMeshImport {
         friend class CadDocument;
         QJsonObject base_, candidate_;
+        std::shared_ptr<const ValidatedMeshRecords> validatedMeshes_;
     public:
         const QJsonObject& candidate() const { return candidate_; }
     };
@@ -157,6 +162,8 @@ public:
     static QJsonObject moveCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QJsonObject booleanCandidate(const QJsonObject& authored, const QJsonObject& arguments);
     static QString validate(const QJsonObject& candidate);
+    // Reuse only this document's privately validated, unchanged mesh records.
+    QString validateOwnedCandidate(const QJsonObject& candidate) const;
     static QString faceSketchOriginContextError(const QJsonObject& authored,const EvaluatedDocument& evaluated,
         const QString& ownerId,const QString& supportBodyId);
     static double millimeters(double value, const QString& units);
@@ -167,12 +174,17 @@ private:
         const QString& featureType, const QString& label);
     friend class DocumentEdit;
     static CandidateEvaluation evaluateCandidateFromPrefix(const QJsonObject& candidate,
-        const EvaluatedDocument* prefix, int firstFeature);
-    static QString validateStructure(const QJsonObject& candidate, QJsonObject* errorContext = nullptr);
-    void apply(const QJsonObject& value, std::shared_ptr<const EvaluatedDocument> evaluation, const QString& transaction = {});
+        const EvaluatedDocument* prefix, int firstFeature,
+        std::shared_ptr<const ValidatedMeshRecords> validatedMeshes = {});
+    static QString validateStructure(const QJsonObject& candidate, QJsonObject* errorContext = nullptr,
+        const ValidatedMeshRecords* validatedMeshes = nullptr);
+    static std::shared_ptr<const ValidatedMeshRecords> meshProof(const QJsonObject& fullyValidated);
+    void apply(const QJsonObject& value, std::shared_ptr<const EvaluatedDocument> evaluation, const QString& transaction = {},
+        std::shared_ptr<const ValidatedMeshRecords> validatedMeshes = {});
     std::shared_ptr<const EvaluatedDocument> rollbackEvaluation_;
     QString rollbackBeforeFeatureId_;
     QJsonObject authored_;
+    std::shared_ptr<const ValidatedMeshRecords> validatedMeshes_;
     QUndoStack history_;
     quint64 revision_ = 0;
     QString lastTransaction_;

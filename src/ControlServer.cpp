@@ -4,6 +4,8 @@
 #include <QJsonParseError>
 #include <QLocalSocket>
 #include <QTimer>
+#include <QElapsedTimer>
+#include <QDebug>
 
 ControlServer::ControlServer(AlloyWindow& window, QObject* parent)
     : QLocalServer(parent), window_(window) {
@@ -38,7 +40,10 @@ ControlServer::ControlServer(AlloyWindow& window, QObject* parent)
                         response = window_.executeApi(request.value("command").toString(), request.value("args").toObject());
                     }
                     response.insert("id", request.value("id"));
-                    socket->write(QJsonDocument(response).toJson(QJsonDocument::Compact) + '\n');
+                    const bool traceMesh=qEnvironmentVariableIsSet("ALLOY_TRACE_MESH_COST");QElapsedTimer timer;if(traceMesh)timer.start();
+                    const auto bytes=QJsonDocument(response).toJson(QJsonDocument::Compact) + '\n';
+                    if(traceMesh)qInfo()<<"mesh_response_serialization_ms"<<request.value("command").toString()<<timer.elapsed()<<"bytes"<<bytes.size();
+                    socket->write(bytes);
                     socket->flush();
                 }
             });

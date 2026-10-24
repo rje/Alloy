@@ -7724,7 +7724,8 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
         if(id.startsWith("sketch.") && (session_.value("tool")=="constraint"
             || session_.value("lastSolveFailure").toObject().value("code")=="constraint_conflict"))refresh();
     };
-    const bool traceCoilCost=qEnvironmentVariableIsSet("ALLOY_TRACE_COIL_COST") && QStringList{"document.parameterUpdate","history.undo","history.redo","command.preview","command.commit"}.contains(id);
+    const bool traceCoilCost=(qEnvironmentVariableIsSet("ALLOY_TRACE_COIL_COST") && QStringList{"document.parameterUpdate","history.undo","history.redo","command.preview","command.commit"}.contains(id))
+        || (qEnvironmentVariableIsSet("ALLOY_TRACE_MESH_COST") && QStringList{"solid.box","document.inspect","history.undo","history.redo","document.importStl","document.save","document.open"}.contains(id));
     QElapsedTimer coilCostTimer;if(traceCoilCost)coilCostTimer.start();
     QElapsedTimer phaseTimer;if(traceGraphSolves)phaseTimer.start();
     try { result=command->run(args); }
@@ -10794,7 +10795,7 @@ QJsonObject AlloyWindow::primitiveCandidate(const QString& command,const QJsonOb
     feature["parameters"]=parameters;feature["name"]=inputs.value("name").toString(type.first(1).toUpper()+type.sliced(1));
     if(index>=0)features[index]=feature;else features.append(feature);
     candidate["features"]=features;
-    const auto error=CadDocument::validate(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());
+    const auto error=document_->validateOwnedCandidate(candidate);if(!error.isEmpty())throw std::invalid_argument(error.toStdString());
     return candidate;
 }
 
