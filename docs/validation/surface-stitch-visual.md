@@ -85,3 +85,12 @@ authored/evaluated geometry except the expected revision counter, the focused
 CTest and 163-call real-app fixture, and all 32 external manifest hashes.
 The reviewer explicitly did not accept seam legibility; [SRF-059/#719](../backlog/github.md)
 preserves that visual remainder before SRF-057 native acceptance.
+
+The 2026-10-24 follow-up did not resolve that remainder: positive fill bias,
+depth-inheriting shared-edge wire and a fresh presentation-only curve each
+failed the sub-tolerance hidden-sketch criterion. All trials were reverted.
+Actor display and correct final curve coordinates were measured; the precise
+GPU failure remains unresolved. The compact external receipt is
+`../Alloy-reference-records/validation/surface-stitch-seam-2026-10-24/attempts.md`.
+SRF-059 remains Todo, and RHI-002 retains these fixtures as depth-aware CAD-edge
+acceptance cases. No fix or native Stitch acceptance follows from this work.
