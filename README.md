@@ -3,9 +3,11 @@
 [Retained circular Coil](docs/validation/solid-coil.md) now creates an editable
 spring with centerline Diameter, Pitch, Revolutions and circular Section Size.
 Its worker keeps preview/Cancel responsive; named Pitch edits, retained history,
-native controls and independent STL checks pass bounded review. Remaining
-source/history costs and post-async native continuation are tracked separately
-under REL-056/#736 and FND-030/#737 before release acceptance.
+native controls and independent STL checks pass bounded review. The accepted
+REL-056/#736 mesh-reuse fix brings measured Undo/Redo from 6–14 seconds to
+123–140 ms without changing GPU pixels or tessellation quality. Fresh source
+meshing remains long, with responsive scoped updates; REL-049 and FND-030/#737
+retain wider performance and uninterrupted native-continuation qualification.
 
 [Command Search](docs/validation/command-search-focus.md) now keeps fresh and
 reopened queries consistent, preserves ordinary text input, restores focus on

@@ -15,15 +15,21 @@ two independent STL checks. Its contract is external under
 `knowledge/specs/sol060-coil-2026-10-24.md`: numeric XY center, centerline Diameter,
 Revolutions And Pitch, circular On Center section, +Z clockwise/New Body.
 Numerical defaults/viewpoint are Alloy choices; wider variants remain ADV-005.
-REL-056/#736 retains measured source/history/display costs and is required by
-REL-049. FND-030/#737 retains the final post-async-edit activation loss and
+[REL-056/#736](validation/coil-cost.md) accepts `763c390`: qualified historical
+mesh reuse takes Undo/Redo from 6–14 s to 123–140 ms with unchanged geometry,
+mesh quality and GPU pixels. Numeric bound-Pitch updates on one Coil plus Moves
+prepare fresh meshes off-thread with 67–71 ms dispatch. Fresh mesh duration and
+broader parameter stacks remain REL-049 work. FND-030/#737 retains the
+post-async-edit native continuation gate and
 uninterrupted native continuation; FND-007 requires it. The bounded focus replay
 proves async OK/Search/Escape but stops before later input when Firefox takes
 foreground. FND-030 is back in Todo, unaccepted; no product activation change or
 further unchanged native retries are justified. See
 [the partial receipt](validation/async-coil-native-continuation.md).
-Next is REL-056's measured intrinsic display/source/history cost, which can be
-verified through the control API without a native foreground lease.
+Next is FND-008's initial command-contract matrix: the read-only closure audit
+found that its broader initial set lacks one pinned compact matrix and unknown/
+follow-up ledger. Finish that required research deliverable while the desktop
+is in use; do not claim native/platform gates from partial API evidence.
 Maintain one active issue, obtain
 proportionate independent Sol review, push the accepted result and mark its
 issue/board Done before moving on.

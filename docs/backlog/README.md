@@ -11,9 +11,10 @@ The current local backlog contains **734 issues**: **579 implementation, 25 rese
 6 research/design, 22 epics, and 102 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 [SOL-060/#505](../validation/solid-coil.md) accepts the bounded Coil workflow
-after independent review; REL-056 separately retains
-measured source-edit/history/display costs as a required REL-049 release audit
-child. Responsive native preparation alone does not accept intrinsic costs.
+after independent review; [REL-056/#736](../validation/coil-cost.md) accepts historical mesh reuse
+and scoped responsive source-update fix. Fresh mesh duration and other parameter
+stacks remain REL-049 release audit work; responsiveness alone is not a claim
+that fresh computation is faster.
 FND-030 separately retains the observed post-async-Coil-edit activation loss
 and uninterrupted native continuation; FND-007 requires that child before closing.
 [FND-029/#734](../validation/command-search-focus.md) accepts the bounded

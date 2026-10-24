@@ -47,6 +47,17 @@ publication separately; total completed-work time is not UI blocking time.
 See [the bounded Coil contract](validation/solid-coil.md) for supported limits,
 history/export evidence and remaining focus/performance gates.
 
+`document.parameterUpdate` also uses asynchronous completion for a numeric
+bound-Pitch update on the supported single-Coil-plus-Move stack, leaving the
+committed document unchanged until the prepared transaction succeeds. Pending
+results carry an operation ID; poll `command.status`, or discard through
+`command.cancel`. Completed results retain the legacy document-state fields
+and add `operationId`. The Parameters dialog disables conflicting editable
+controls and offers Cancel Update; closing it leaves the status-bar cancel
+control available. Cancellation discards the result while work drains.
+Rename, unit/expression transformations, multiple Coils and other feature
+stacks retain their existing route and broader REL-049 performance obligations.
+
 ## Launch and discover
 
 ```sh
