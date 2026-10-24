@@ -26,10 +26,14 @@ proves async OK/Search/Escape but stops before later input when Firefox takes
 foreground. FND-030 is back in Todo, unaccepted; no product activation change or
 further unchanged native retries are justified. See
 [the partial receipt](validation/async-coil-native-continuation.md).
-Next is FND-008's initial command-contract matrix: the read-only closure audit
-found that its broader initial set lacks one pinned compact matrix and unknown/
-follow-up ledger. Finish that required research deliverable while the desktop
-is in use; do not claim native/platform gates from partial API evidence.
+[FND-008/#8](decisions/007-initial-command-contracts.md) accepts the initial
+sketch/solid/parameters/history/mesh-export matrix after independent Sol research
+review. Public defaults, policy, unknowns and open follow-ups are separated;
+registered IDs/semantics are pinned to Alloy1160d04. Detailed evidence stays
+external and standard knowledge search finds the aggregate; all22 records
+validate. This does not accept native/platform or exact-parity gates.
+Next is XCH-020/#729's measured repeated validation after retained mesh import,
+which can be completed with the existing control-API capacity fixture.
 Maintain one active issue, obtain
 proportionate independent Sol review, push the accepted result and mark its
 issue/board Done before moving on.

@@ -1,6 +1,6 @@
 # 007 — Initial command contract research
 
-Date: 2026-10-24. Status: bounded public-source research ready for independent review.
+Date: 2026-10-24. Status: accepted bounded public-source research after independent Sol review.
 
 The initial sketch-to-solid command contract baseline and unresolved-default ledger
 are maintained in the external evidence record referenced by
@@ -23,3 +23,8 @@ and Browser context route. The open remaining native chooser and format-breadth
 obligations are owned by REL-053/#607, XCH-012/#604 and XCH-013/#605; the accepted
 DOC-036/#517 receipt covers keyboard traversal to the chooser, not its OS save
 completion. Existing open owners and exact remaining work are recorded in the ledger.
+
+The complete 22-record knowledge corpus validates and the rebuilt standard
+search finds this matrix. A narrowly repaired pre-existing metadata entry kept
+its original facts/date/type/URLs; no unrelated research was reclassified.
+Acceptance closes FND-008/#8 research, not any implementation or release gate.

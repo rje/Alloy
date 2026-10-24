@@ -10,6 +10,9 @@ dependency keys with issue numbers.
 The current local backlog contains **734 issues**: **579 implementation, 25 research,
 6 research/design, 22 epics, and 102 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
+[FND-008/#8](../decisions/007-initial-command-contracts.md) accepts the initial
+public command research matrix and open-default ledger; no implementation or
+runtime gate is accepted from that research alone.
 [SOL-060/#505](../validation/solid-coil.md) accepts the bounded Coil workflow
 after independent review; [REL-056/#736](../validation/coil-cost.md) accepts historical mesh reuse
 and scoped responsive source-update fix. Fresh mesh duration and other parameter

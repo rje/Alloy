@@ -1,5 +1,10 @@
 # Alloy
 
+[Initial command contracts](docs/decisions/007-initial-command-contracts.md)
+now cover the required sketch-to-solid/export baseline with sourced defaults,
+explicit unknowns, pinned API mappings and open follow-up owners. The detailed
+matrix remains external and searchable; research acceptance is not parity.
+
 [Retained circular Coil](docs/validation/solid-coil.md) now creates an editable
 spring with centerline Diameter, Pitch, Revolutions and circular Section Size.
 Its worker keeps preview/Cancel responsive; named Pitch edits, retained history,

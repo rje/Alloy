@@ -8,7 +8,7 @@
   "source_registry_path": "../../../../Alloy-reference-records/knowledge/sources.json",
   "reviewed_commit": "1160d0407a02cfaf39af59727599fa1409352456",
   "retrieved": "2026-10-24",
-  "status": "ready-for-independent-review",
+  "status": "accepted-research",
   "workflows": [
     {
       "id": "sketch-plane",
@@ -97,7 +97,10 @@
         "history.undo",
         "history.redo",
         "timeline.showLatest",
-        "timeline.showFeature"
+        "timeline.showFeature",
+        "timeline.rollbackBefore",
+        "timeline.moveToEnd",
+        "history.suppression"
       ]
     },
     {
@@ -115,5 +118,6 @@
   ],
   "evidence_boundary": "Public documentation/API and archived public images only; no proprietary runtime or Alloy execution claim.",
   "unknowns": "Stable IDs, evidence boundary, existing open owners, and bounded remaining work are in the external record and matrix.",
-  "source_crosscheck": "src/AlloyWindow.cpp at reviewed_commit; docs/agent-control.md is not a complete registry."
+  "source_crosscheck": "src/AlloyWindow.cpp at reviewed_commit; docs/agent-control.md is not a complete registry.",
+  "reviewed": "2026-10-24"
 }
