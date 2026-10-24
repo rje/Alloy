@@ -1,7 +1,7 @@
 {
   "repository": "rje/Alloy",
   "project_url": "https://github.com/users/rje/projects/1",
-  "updated": "2026-10-22T06:23:04.172290+00:00",
+  "updated": "2026-10-24T21:58:06.765692+00:00",
   "issues": {
     "HIS-008": {
       "number": 474,
@@ -3656,7 +3656,7 @@
     "FND-029": {
       "number": 734,
       "url": "https://github.com/rje/Alloy/issues/734",
-      "state": "open"
+      "state": "closed"
     },
     "NAV-022": {
       "number": 735,
