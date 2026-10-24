@@ -1,6 +1,6 @@
 # Command Search focus and session — FND-029
 
-2026-10-21 candidate: Search button, S and local `commands.search` share the
+Accepted 2026-10-24 at `c4b4322`: Search button, S and local `commands.search` share the
 existing authoritative command session. Fresh sessions synchronize an empty
 query into the reused dialog; reopening the same session synchronizes its
 retained query. Native typing and `command.update` populate the same input and
@@ -43,7 +43,9 @@ ALLOY_SEARCH_EVIDENCE="$PWD/build-preview-release/evidence/FND-029-search" \
 
 The explicit GUI fixture is excluded from automatic CTest. Final result:
 **3 passed, 0 failed, 3.362 seconds** (one workflow plus setup/cleanup).
-Artifacts in `build-preview-release/evidence/FND-029-search/`:
+Artifacts archived outside the generated build tree in
+`../Alloy-reference-records/validation/fnd029-command-search-2026-10-21/`
+(original run: `build-preview-release/evidence/FND-029-search/`):
 `report.json`, `qt-test.txt`, `build-final.txt`, `search.png`, `restored.png`.
 The retained `first-return-mismatch.json` documents the first run's focused
 result Return failure; the targeted fix and final rerun pass. Neither run repairs
@@ -80,5 +82,8 @@ user-owned PID72618 was preserved.
 
 Independent bounded source review accepted the initial focus/session changes,
 requested exact origin and execute-once assertions, then accepted the strengthened
-fixture and Return/Enter fix. Final evidence review is recorded by the integrating
-agent; this receipt alone does not claim completion of the wider FND-007 gate.
+fixture and Return/Enter fix. A final independent Sol review on 2026-10-24
+accepted source, report, native checks and both captures without repeating
+unchanged app runs. Physical OS delivery, DPR1, deleted-origin fallback and
+keypad Enter remain unexercised limits. This closes FND-029/#734; the wider
+FND-007 gate remains open.

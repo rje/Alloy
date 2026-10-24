@@ -10,7 +10,8 @@ dependency keys with issue numbers.
 The current local backlog contains **732 issues**: **578 implementation, 25 research,
 6 research/design, 22 epics, and 101 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
-FND-029 is a finishable Command Search focus/session child of FND-007; the
+[FND-029/#734](../validation/command-search-focus.md) accepts the bounded
+Command Search focus/session child of FND-007 after independent review; the
 parent retains broader shortcuts, text-focus suppression and cumulative input.
 [NAV-022](../validation/native-orbit-pivot.md) accepts a stricter native
 orbit/pivot harness and safe-stop receipt; NAV-009 remains Todo pending real

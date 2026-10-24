@@ -1,8 +1,10 @@
 ## Current execution order
 
-FND-029 splits coherent Command Search query/focus/reentry and Escape from the
-broader FND-007 shortcut gate. It is Todo until native input and independent
-review pass; FND-007 keeps the remaining shortcuts and cumulative workflow.
+[FND-029/#734](validation/command-search-focus.md) accepts coherent Command
+Search query/focus/reentry, Escape and single result activation at `c4b4322`
+after final independent Sol review on 2026-10-24. The existing DPR2 native
+fixture passes 3/3; evidence is archived externally. FND-007 keeps the remaining
+shortcuts and cumulative workflow. No paid CI was run.
 [NAV-022](validation/native-orbit-pivot.md) accepts the hardened native
 orbit/pivot validation harness and its first safe-stop receipt. NAV-009 remains
 Todo because PID-directed OS right-click did not reach the private editor;

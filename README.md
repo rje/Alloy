@@ -1,12 +1,18 @@
 # Alloy
 
+[Command Search](docs/validation/command-search-focus.md) now keeps fresh and
+reopened queries consistent, preserves ordinary text input, restores focus on
+Escape and activates the selected result with Return. The bounded DPR2 native
+workflow passes independent review; broader shortcut/platform gates remain open.
+
 [Strict retained OBJ core/API](docs/validation/strict-obj-core.md) now accepts
 bounded material-free OBJ positions, polygons and labels with deterministic
 triangulation, atomic diagnostics, editable history and source-independent
 reopen. [Native OBJ import](docs/validation/native-obj-import.md) now shares the cancellable
 mm/in ready preview, bounded label/loss display and exact prepared commit.
 Geometry/history and bounded actual-hit DPR1/2 Mac input pass; strict OS chooser
-and uninterrupted focus remain XCH-022/#731. Cumulative OBJ remains XCH-017/#724.
+and uninterrupted focus remain XCH-022/#731. Bounded cumulative OBJ XCH-017/#724
+is accepted.
 
 [Responsive native STL preparation](docs/validation/responsive-stl-import.md)
 now keeps a 200,000-facet import responsive while loading, reports phases and
