@@ -5,6 +5,8 @@
 #include "BodyCopy.h"
 #include "SolidFillet.h"
 #include "CadDocument.h"
+#include <QElapsedTimer>
+#include <QDebug>
 #include "SurfaceExtrude.h"
 #include "ReferenceCanvas.h"
 #include "AssemblySlider.h"
@@ -1368,10 +1370,13 @@ QString CadDocument::commit(const QJsonObject& candidate, const QString& label) 
             feature["parameters"].toObject()["support"].toObject()["bodyId"].toString());
         if(!error.isEmpty()) {lastEvaluationError_={{"code","unsupported_sketch_origin_context"},{"message",error}};return error;}
     }
+    QElapsedTimer coilCostTimer;if(qEnvironmentVariableIsSet("ALLOY_TRACE_COIL_COST"))coilCostTimer.start();
     auto prepared = prepareCandidate(candidate);
+    if(qEnvironmentVariableIsSet("ALLOY_TRACE_COIL_COST"))qInfo()<<"coil_document_phase_ms"<<label<<"evaluation"<<coilCostTimer.restart();
     if (!prepared.ok) {lastEvaluationError_ = prepared.diagnostics;return prepared.error;}
     if (prepared.authored == authored_) return {};
     history_.push(new DocumentEdit(*this,prepared.authored,std::move(prepared.evaluation),label));
+    if(qEnvironmentVariableIsSet("ALLOY_TRACE_COIL_COST"))qInfo()<<"coil_document_phase_ms"<<label<<"historyPush"<<coilCostTimer.elapsed();
     return {};
 }
 
@@ -1384,6 +1389,24 @@ QString CadDocument::commitSketchEvaluation(const CandidateEvaluation& prepared,
     if(requestedCandidate.value("features").toArray().size()!=expectedBase.value("features").toArray().size())
         return "Historical sketch evaluation cannot append features";
     return commitEvaluatedFeature(prepared,requestedCandidate,expectedBase,expectedRevision,"sketch",label);
+}
+QString CadDocument::commitCoilParameterEvaluation(const CandidateEvaluation& prepared,const QJsonObject& requested,
+    const QJsonObject& base,quint64 expectedRevision) {
+    lastEvaluationError_={};
+    if(revision_!=expectedRevision || authored_!=base)return "The document changed; Coil parameter result discarded";
+    auto old=base,next=requested;old.remove("userParameters");next.remove("userParameters");
+    if(old!=next)return "Coil parameter evaluation changed unrelated authored data";
+    const auto before=base.value("userParameters").toArray(),after=requested.value("userParameters").toArray();
+    if(before.size()!=after.size())return "Coil parameter evaluation must edit one existing parameter";
+    int changes=0;
+    for(int i=0;i<before.size();++i)if(before[i]!=after[i]){
+        if(before[i].toObject().value("id")!=after[i].toObject().value("id"))return "Coil parameter identity changed";
+        ++changes;
+    }
+    if(changes==0)return {};
+    if(changes!=1 || !prepared.ok || !prepared.evaluation || prepared.authored!=resolveLengthBindings(requested))
+        return "An exact prepared Coil parameter evaluation is required";
+    history_.push(new DocumentEdit(*this,prepared.authored,prepared.evaluation,"Edit user parameter"));return {};
 }
 QString CadDocument::commitCoilEvaluation(const CandidateEvaluation& prepared,const QJsonObject& requestedCandidate,
     const QJsonObject& expectedBase,quint64 expectedRevision) {

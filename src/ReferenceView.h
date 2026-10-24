@@ -289,7 +289,7 @@ private:
     void refreshExtrusionCue();
     void setExtrusionCue(const EvaluatedProfile& profile,double distanceMm,const QJsonArray& sourceProfileIds,const QString& units,const QString& operation,double startOffsetMm = 0);
     void updateExtrusionDrag(const QPointF& position,const QString& phase);
-    bool preservePreparedThreadMesh(const Handle(AIS_Shape)& presentation) const;
+    bool preservePreparedThreadMesh(const Handle(AIS_Shape)& presentation,bool retainedCoil=false) const;
     std::vector<TopoDS_Shape> preparedThreadMeshes_;
     void replacePreview(const TopoDS_Shape& shape, const QString& replacedBody, bool neutral);
     QPointF windowScale() const;
@@ -450,6 +450,7 @@ private:
     std::vector<EvaluatedBody> documentBodies_;
     QString bodyStageKey_;
     QMap<QString,QString> patchSourceProfiles_;
+    QSet<QString> retainedCoilBodyIds_;
     QMap<QString,QStringList> stitchedProfileBodies_;
     double gridCenterU_ = 0, gridCenterV_ = 0, gridStep_ = 10;
     double gridWidth_ = 200, gridHeight_ = 200;

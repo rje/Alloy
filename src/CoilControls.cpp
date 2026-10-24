@@ -8,6 +8,9 @@
 #include <QElapsedTimer>
 #include <QLabel>
 #include <QStatusBar>
+#include <QPushButton>
+#include <QDialog>
+#include <QLayout>
 #include <cmath>
 
 namespace {
@@ -48,7 +51,7 @@ QJsonObject AlloyWindow::previewCoil() {
 void AlloyWindow::evaluateCoil(GeometryEvaluation& task) {
     QElapsedTimer phase;phase.start();task.full=CadDocument::evaluateCandidate(task.candidate);task.fullMs=phase.restart();
     task.stage=task.full;
-    if(task.full.ok && task.candidate.value("features").toArray().last().toObject().value("id")!=task.featureId){
+    if(task.command=="solid.coil" && task.full.ok && task.candidate.value("features").toArray().last().toObject().value("id")!=task.featureId){
         auto prefix=task.candidate;QJsonArray through;
         for(const auto& row:prefix.value("features").toArray()){through.append(row);if(row.toObject().value("id")==task.featureId)break;}
         prefix["features"]=through;prefix.remove("objectOwners");prefix.remove("bodyNames");task.stage=CadDocument::evaluateCandidate(prefix);
@@ -105,4 +108,69 @@ void AlloyWindow::completeCoilEvaluation(const std::shared_ptr<GeometryEvaluatio
     if(session_.value("id")==task->sessionId)session_["evaluationTimingMs"]=timing;
     if(geometryEvaluationTerminal_.value("id")==task->sessionId)geometryEvaluationTerminal_["evaluationTimingMs"]=timing;
     if(!geometryEvaluationTerminal_.isEmpty())geometryEvaluationTerminal_["recovery"]=QJsonObject{{"durable",recoveryError.isEmpty()},{"warning",recoveryError}};
+}
+
+QJsonObject AlloyWindow::queueCoilParameterUpdate(const QJsonObject& candidate,const QJsonObject& feature) {
+    if(candidate==document_->authored())return document_->state();
+    auto task=std::make_shared<GeometryEvaluation>();task->command="document.parameterUpdate";task->phase="coilParameter";
+    task->document=document_;task->documentId=document_->authored().value("documentId").toString();task->revision=document_->revision();
+    task->base=document_->authored();task->candidate=candidate;task->feature=feature;task->featureId=feature.value("id").toString();
+    task->sessionId=CadDocument::newId();task->generation=++geometryEvaluationGeneration_;
+    coilParameterOperation_={{"id",task->sessionId},{"command",task->command},{"evaluationStatus","pending"},
+        {"previewGeneration",static_cast<qint64>(task->generation)},{"evaluationPhase","Coil parameter and display mesh"},
+        {"evaluationHeartbeat",QJsonObject{{"ticks",0},{"lastMs",QDateTime::currentMSecsSinceEpoch()},{"maxGapMs",0}}},
+        {"cancellation","Discard result; running kernel evaluation continues"}};
+    const QString message="Updating Coil parameter and display mesh… You can navigate or Cancel Update.";
+    statusBar()->showMessage(message);
+    auto addCancel=[&](QWidget* parent){auto* cancel=new QPushButton("Cancel Update",parent);cancel->setObjectName("parameters.cancelEvaluation");
+        connect(cancel,&QPushButton::clicked,this,[this,id=task->sessionId]{execute("command.cancel",{{"session",id}});});
+        coilParameterCancelButtons_.append(cancel);return cancel;};
+    statusBar()->addPermanentWidget(addCancel(statusBar()));
+    if(lengthParametersDialog_){
+        if(auto* status=lengthParametersDialog_->findChild<QLabel*>("parameters.status"))status->setText(message);
+        for(const auto& name:{"parameters.table","parameters.modelTable","parameters.name","parameters.units","parameters.value","parameters.add","parameters.update"})
+            if(auto* control=lengthParametersDialog_->findChild<QWidget*>(name);control && control->isEnabled()){
+                coilParameterFrozenControls_.append(control);control->setEnabled(false);
+            }
+        lengthParametersDialog_->layout()->addWidget(addCancel(lengthParametersDialog_));
+    }
+    geometryEvaluationQueued_=task;startGeometryEvaluation();return coilParameterOperation_;
+}
+
+void AlloyWindow::closeCoilParameterProgress(const QString& message) {
+    for(const auto& control:coilParameterFrozenControls_)if(control)control->setEnabled(true);
+    coilParameterFrozenControls_.clear();
+    for(const auto& button:coilParameterCancelButtons_)if(button){if(button->parentWidget()==statusBar())statusBar()->removeWidget(button);button->hide();button->deleteLater();}
+    coilParameterCancelButtons_.clear();statusBar()->clearMessage();
+    if(lengthParametersDialog_)if(auto* status=lengthParametersDialog_->findChild<QLabel*>("parameters.status"))status->setText(message);
+}
+
+QJsonObject AlloyWindow::cancelCoilParameterUpdate() {
+    ++geometryEvaluationGeneration_;geometryEvaluationQueued_.reset();
+    coilParameterOperation_["evaluationStatus"]="failed";coilParameterOperation_["resultDiscarded"]=true;
+    coilParameterOperation_["previewError"]=QJsonObject{{"code","command_cancelled"},{"message","Coil parameter result discarded"}};
+    closeCoilParameterProgress("Update cancelled; the committed parameter is unchanged.");
+    return {{"ok",true},{"completion","completed"},{"result",QJsonObject{{"resultDiscarded",true},{"evaluationStillRunning",bool(geometryEvaluationRunning_)}}}};
+}
+
+void AlloyWindow::completeCoilParameterUpdate(const std::shared_ptr<GeometryEvaluation>& task) {
+    if(coilParameterOperation_.value("id")!=task->sessionId || coilParameterOperation_.value("evaluationStatus")!="pending")return;
+    QElapsedTimer publication;publication.start();
+    QString error;
+    if(document_!=task->document || document_->revision()!=task->revision || document_->authored()!=task->base
+        || document_->authored().value("documentId")!=task->documentId || geometryEvaluationGeneration_!=task->generation)
+        error="The document changed; Coil parameter result discarded";
+    else if(!task->error.isEmpty())error=task->error;
+    else if(!task->full.ok)error=task->full.error;
+    if(error.isEmpty())error=document_->commitCoilParameterEvaluation(task->full,task->candidate,task->base,task->revision);
+    if(error.isEmpty()){
+        view_->setPreparedThreadMeshes(task->preparedDisplayMeshes);
+        coilParameterOperation_["evaluationStatus"]="completed";coilParameterOperation_["document"]=document_->state();
+    }else{
+        coilParameterOperation_["evaluationStatus"]="failed";
+        coilParameterOperation_["previewError"]=QJsonObject{{"code","parameter_evaluation_failed"},{"message",error},{"diagnostics",task->full.diagnostics}};
+    }
+    closeCoilParameterProgress(error);refresh();const auto recoveryError=syncRecovery();
+    coilParameterOperation_["evaluationTimingMs"]=QJsonObject{{"full",task->fullMs},{"displayMesh",task->sourceMs},{"publication",publication.elapsed()}};
+    coilParameterOperation_["recovery"]=QJsonObject{{"durable",recoveryError.isEmpty()},{"warning",recoveryError}};
 }

@@ -2141,6 +2141,26 @@ void AlloyWindow::registerCommands() {
          {"units",optional(parameterUnits)}},[this](const auto& a){
             if(!session_.isEmpty())return failure("active_command","Finish or Cancel the active command first");
             QJsonObject candidate;try{candidate=CadDocument::lengthParameterCandidate(document_->authored(),a);}catch(const std::exception& e){return failure("invalid_parameter",QString::fromUtf8(e.what()));}
+            if(a.contains("value")){
+                QJsonObject coil;int coils=0;bool supported=true;
+                for(const auto& row:document_->authored().value("features").toArray()){
+                    const auto feature=row.toObject();const auto type=feature.value("type").toString();
+                    if(type=="coil"){++coils;if(feature.value("parameters").toObject().value("pitchParameterId")==a.value("parameterId"))coil=feature;}
+                    else if(type!="move")supported=false;
+                }
+                if(supported && coils==1 && !coil.isEmpty()){
+                    if(candidate==document_->authored())return document_->state();
+                    QJsonObject previous,next;int changedRows=0;
+                    const auto oldRows=document_->authored().value("userParameters").toArray(),newRows=candidate.value("userParameters").toArray();
+                    if(oldRows.size()==newRows.size())for(int i=0;i<oldRows.size();++i){
+                        if(oldRows[i]!=newRows[i])++changedRows;
+                        if(oldRows[i].toObject().value("id")==a.value("parameterId")){previous=oldRows[i].toObject();next=newRows[i].toObject();}
+                    }
+                    const bool changedValue=previous.value("valueMm")!=next.value("valueMm");
+                    previous.remove("valueMm");next.remove("valueMm");
+                    if(changedRows==1 && changedValue && !previous.isEmpty() && previous==next)return queueCoilParameterUpdate(candidate,coil);
+                }
+            }
             const auto error=document_->commit(candidate,"Edit user parameter");return error.isEmpty() ? document_->state() : failure("parameter_evaluation_failed",error);
         });
     add("document.modelParameterSet","Edit model expression","Rebind an existing model length by stable target identity to a user name, or replace it with a numeric literal.",
@@ -7545,6 +7565,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
         // A successful asynchronous commit closes its dialog. Retain only its
         // terminal result, until another session or document change replaces it.
         const auto operation=meshExportOperation_.value("id")==args.value("session") ? meshExportOperation_
+            : coilParameterOperation_.value("id")==args.value("session") ? coilParameterOperation_
             : sketchEvaluationOperation_.value("id")==args.value("session") ? sketchEvaluationOperation_
             : documentOpenOperation_.value("id")==args.value("session") ? documentOpenOperation_
             : session_.isEmpty() ? geometryEvaluationTerminal_ : session_;
@@ -7552,10 +7573,27 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
         if(args.contains("generation") && args.value("generation")!=operation.value("previewGeneration"))
             return failure("stale_preview","This preview generation was superseded");
         const auto status=operation.value("evaluationStatus").toString("completed");
-        QJsonObject response{{"ok",true},{"completion",status},{"result",operation},
+        auto publicResult=operation;
+        if(coilParameterOperation_.value("id")==args.value("session") && status=="completed"){
+            // Keep the synchronous parameter command's document-state result,
+            // adding operation metadata without replacing its document UUID.
+            publicResult=operation.value("document").toObject();
+            for(auto it=operation.begin();it!=operation.end();++it)if(it.key()!="id" && it.key()!="document")publicResult[it.key()]=it.value();
+            publicResult["operationId"]=operation.value("id");
+        }
+        QJsonObject response{{"ok",true},{"completion",status},{"result",publicResult},
             {"documentRevision",static_cast<qint64>(document_->revision())}};
         if(status=="failed"){response["ok"]=false;response["error"]=operation.value("previewError");}
         return response;
+    }
+    if(id=="command.cancel" && coilParameterOperation_.value("evaluationStatus")=="pending" && coilParameterOperation_.value("id")==args.value("session")){
+        const auto error=validateArguments(*findCommand(id),args);if(!error.isEmpty())return failure("invalid_arguments",error);
+        return cancelCoilParameterUpdate();
+    }
+    if(geometryEvaluationRunning_ && geometryEvaluationRunning_->command=="document.parameterUpdate"){
+        const bool safe=id=="commands.list" || id=="app.state" || id=="document.inspect" || id.startsWith("view.") || id.startsWith("capture.")
+            || (id=="document.parametersDialog" && !args.value("visible").toBool(true));
+        if(!safe)return failure("evaluation_busy","Coil parameter is updating; navigate or Cancel Update");
     }
     if(threadRunning_) {
         const bool safe=id=="app.state" || id=="commands.list" || id=="document.inspect" || id=="command.cancel"
@@ -7598,7 +7636,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
             || id=="view.fit" || id=="capture.screenshot" || id=="capture.viewport" || id=="capture.dialog";
         if(!safe)return failure("evaluation_busy","A native document is opening; navigate or Cancel Open to discard its result");
     }
-    if(geometryEvaluationRunning_ && geometryEvaluationRunning_->command!="sketch.edit" && geometryEvaluationRunning_->command!="sketch.finish" && geometryEvaluationRunning_->command!="feature.edit" && geometryEvaluationRunning_->command!="document.exportStl" && geometryEvaluationRunning_->command!="document.export3mf" && geometryEvaluationRunning_->command!="document.exportObj") {
+    if(geometryEvaluationRunning_ && geometryEvaluationRunning_->command!="document.parameterUpdate" && geometryEvaluationRunning_->command!="sketch.edit" && geometryEvaluationRunning_->command!="sketch.finish" && geometryEvaluationRunning_->command!="feature.edit" && geometryEvaluationRunning_->command!="document.exportStl" && geometryEvaluationRunning_->command!="document.export3mf" && geometryEvaluationRunning_->command!="document.exportObj") {
         const bool safe=id=="commands.list" || id=="app.state" || id=="document.inspect" || id=="command.cancel"
             || (session_.value("command")=="surface.extrude" && (id=="command.preview" || id=="command.update" || id=="command.commit"
                 || id=="surface.extrudeEntity" || id=="surface.extrudeProfile" || id=="selection.pick"))
@@ -7686,6 +7724,8 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
         if(id.startsWith("sketch.") && (session_.value("tool")=="constraint"
             || session_.value("lastSolveFailure").toObject().value("code")=="constraint_conflict"))refresh();
     };
+    const bool traceCoilCost=qEnvironmentVariableIsSet("ALLOY_TRACE_COIL_COST") && QStringList{"document.parameterUpdate","history.undo","history.redo","command.preview","command.commit"}.contains(id);
+    QElapsedTimer coilCostTimer;if(traceCoilCost)coilCostTimer.start();
     QElapsedTimer phaseTimer;if(traceGraphSolves)phaseTimer.start();
     try { result=command->run(args); }
     // Timings are inclusive nested scopes, not additive solver/render buckets.
@@ -7694,7 +7734,8 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     if (result.value("ok").isBool() && !result.value("ok").toBool()) { refreshConstraintFailure(); if(!failedEditRepair_.isEmpty())refresh(); return finish(result); }
     if(meshPreviewWork_ && !meshPreviewCurrent(*meshPreviewWork_))clearMeshPreview();
     if(document_!=priorDocument || document_->revision()!=priorDocumentRevision
-        || (!session_.isEmpty() && session_.value("id")!=priorSessionId)){geometryEvaluationTerminal_={};documentOpenOperation_={};sketchEvaluationOperation_={};meshExportOperation_={};}
+        || (!session_.isEmpty() && session_.value("id")!=priorSessionId)){geometryEvaluationTerminal_={};documentOpenOperation_={};sketchEvaluationOperation_={};meshExportOperation_={};coilParameterOperation_={};}
+    if(traceCoilCost)qInfo()<<"coil_command_phase_ms"<<id<<"handlerIncludingState"<<coilCostTimer.restart();
     const auto afterCommandSolves=traceGraphSolves?AssemblyGraph::solveCount():0;
     const double commandPhaseMs=traceGraphSolves?phaseTimer.nsecsElapsed()/1e6:0;
     if(document_->revision()!=priorDocumentRevision && (transientSliderPosition_.has_value() || !jointGraphStage_.isEmpty() || (sliderTimer_ && sliderTimer_->isActive()))){
@@ -7705,7 +7746,9 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
     if(traceGraphSolves)phaseTimer.restart();
     refresh();
     const double refreshPhaseMs=traceGraphSolves?phaseTimer.nsecsElapsed()/1e6:0;
+    if(traceCoilCost)qInfo()<<"coil_command_phase_ms"<<id<<"refresh"<<coilCostTimer.restart();
     const auto recoveryError=syncRecovery();
+    if(traceCoilCost)qInfo()<<"coil_command_phase_ms"<<id<<"recovery"<<coilCostTimer.elapsed();
     if(traceGraphSolves)qInfo().noquote()<<"assembly_phase_ms"<<id
         <<"commandHandler_inclusive"<<commandPhaseMs<<"refresh_inclusive"<<refreshPhaseMs;
     if(traceGraphSolves)qInfo().noquote()<<"assembly_preview_solves"<<id
@@ -7814,11 +7857,11 @@ QJsonObject AlloyWindow::state() const {
     return {{"application", "Alloy"}, {"version", "0.1.0"}, {"stage", "sketch-authoring"},
         {"runtime", QJsonObject{{"qtVersion", qVersion()}, {"occtBuildVersion", ALLOY_OCCT_VERSION}}},
         {"revision", static_cast<qint64>(revision_)},
-        {"meshImport",meshImportState()}, {"meshImportOperation",meshImportOperation_}, {"identity", identity()}, {"sketchEvaluation",operationProgress(sketchEvaluationOperation_)}, {"documentOpen",operationProgress(documentOpenOperation_)}, {"meshExport",operationProgress(meshExportOperation_)}, {"activeSession", session_}, {"failedEditRepair",failedEditRepair_}, {"sectionEdit",sectionEdit_}, {"pendingReferencePosition",pendingReference_}, {"assembly",presentationAssembly()}, {"documentTabs",documentTabs()},
+        {"meshImport",meshImportState()}, {"meshImportOperation",meshImportOperation_}, {"identity", identity()}, {"coilParameterUpdate",operationProgress(coilParameterOperation_)}, {"sketchEvaluation",operationProgress(sketchEvaluationOperation_)}, {"documentOpen",operationProgress(documentOpenOperation_)}, {"meshExport",operationProgress(meshExportOperation_)}, {"activeSession", session_}, {"failedEditRepair",failedEditRepair_}, {"sectionEdit",sectionEdit_}, {"pendingReferencePosition",pendingReference_}, {"assembly",presentationAssembly()}, {"documentTabs",documentTabs()},
         {"recovery",QJsonObject{{"available",recovery_->error().isEmpty()},{"warning",recoveryWarning_},
             {"staleCount",recovery_->list().size()},{"scope","committed authored state only"}}},
         {"inlineEditor",inlineEditorState()},
-        {"geometryWork",QJsonObject{{"active",geometryBusyActive_ || bool(geometryEvaluationRunning_) || bool(threadRunning_)},{"cancellable",false},{"resultDiscardAvailable",(meshExportOperation_.value("evaluationStatus")=="pending" && meshExportOperation_.value("evaluationPhase")!="publishing") || sketchEvaluationOperation_.value("evaluationStatus")=="pending" || documentOpenOperation_.value("evaluationStatus")=="pending" || session_.value("command")=="surface.extrude" || session_.value("command")=="surface.boundaryFill" || ((session_.value("command")=="surface.trim" || session_.value("command")=="solid.loft" || session_.value("command")=="solid.thread" || session_.value("command")=="solid.coil") && session_.value("evaluationStatus")=="pending")},{"last",lastGeometryWork_}}},
+        {"geometryWork",QJsonObject{{"active",geometryBusyActive_ || bool(geometryEvaluationRunning_) || bool(threadRunning_)},{"cancellable",false},{"resultDiscardAvailable",(meshExportOperation_.value("evaluationStatus")=="pending" && meshExportOperation_.value("evaluationPhase")!="publishing") || coilParameterOperation_.value("evaluationStatus")=="pending" || sketchEvaluationOperation_.value("evaluationStatus")=="pending" || documentOpenOperation_.value("evaluationStatus")=="pending" || session_.value("command")=="surface.extrude" || session_.value("command")=="surface.boundaryFill" || ((session_.value("command")=="surface.trim" || session_.value("command")=="solid.loft" || session_.value("command")=="solid.thread" || session_.value("command")=="solid.coil") && session_.value("evaluationStatus")=="pending")},{"last",lastGeometryWork_}}},
         {"focus",QJsonObject{{"widgetClass",QApplication::focusWidget() ? QApplication::focusWidget()->metaObject()->className() : ""},
             {"widgetName",QApplication::focusWidget() ? QApplication::focusWidget()->objectName() : QString{}},
             {"viewport",QApplication::focusWidget()==view_},
@@ -10685,7 +10728,7 @@ void AlloyWindow::showLengthParameters() {
             args["parameterId"]=selected->data(Qt::UserRole).toString();}
         const auto result=execute(updating ? "document.parameterUpdate" : "document.parameterAdd",args);
         if(!result["ok"].toBool()){status->setText(result["error"].toObject()["message"].toString());return;}
-        status->clear();refreshLengthParameters();
+        status->setText(result.value("completion")=="pending" ? "Updating Coil parameter and display mesh… Cancel Update discards the result." : QString{});refreshLengthParameters();
     };
     connect(add,&QPushButton::clicked,dialog,[=]{submit(false);});
     connect(edit,&QPushButton::clicked,dialog,[=]{submit(true);});
@@ -10703,7 +10746,7 @@ void AlloyWindow::showLengthParameters() {
         if(numeric)args["value"]=number;else args["expression"]=expression;
         const auto result=execute("document.parameterUpdate",args);
         if(!result["ok"].toBool())status->setText(result["error"].toObject()["message"].toString());
-        else {status->clear();if(table->currentRow()==row)value->setText(expression);}
+        else {status->setText(result.value("completion")=="pending" ? "Updating Coil parameter and display mesh… Cancel Update discards the result." : QString{});if(table->currentRow()==row)value->setText(expression);}
         refreshLengthParameters();
     });
     connect(model,&QTreeWidget::itemChanged,dialog,[=,this](QTreeWidgetItem* item,int column){

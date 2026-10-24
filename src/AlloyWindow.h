@@ -494,6 +494,13 @@ private:
     QShortcut* loftEscape_=nullptr;
     struct GeometryEvaluation;
     QJsonObject previewCoil();
+    QJsonObject queueCoilParameterUpdate(const QJsonObject& candidate,const QJsonObject& feature);
+    QJsonObject cancelCoilParameterUpdate();
+    void completeCoilParameterUpdate(const std::shared_ptr<GeometryEvaluation>& task);
+    void closeCoilParameterProgress(const QString& message={});
+    QJsonObject coilParameterOperation_;
+    QList<QPointer<QWidget>> coilParameterFrozenControls_;
+    QList<QPointer<QPushButton>> coilParameterCancelButtons_;
     void completeCoilEvaluation(const std::shared_ptr<GeometryEvaluation>& task);
     static void evaluateCoil(GeometryEvaluation& task);
     std::shared_ptr<GeometryEvaluation> coilPrepared_;

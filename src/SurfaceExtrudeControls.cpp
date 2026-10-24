@@ -230,7 +230,7 @@ void AlloyWindow::startGeometryEvaluation() {
     std::thread([task]{
         try {
             QElapsedTimer timer;timer.start();
-            if(task->command=="solid.coil")evaluateCoil(*task);
+            if(task->command=="solid.coil" || task->command=="document.parameterUpdate")evaluateCoil(*task);
             else if(task->command=="document.exportStl" || task->command=="document.export3mf" || task->command=="document.exportObj")evaluateMeshExport(*task);
             else if(task->command=="document.open"){task->full=CadDocument::prepareOpen(task->inputs.value("path").toString());task->fullMs=timer.elapsed();}
             else if(task->command=="surface.trim" && task->phase=="partition")evaluateSurfaceTrimPartition(*task);
@@ -272,6 +272,11 @@ void AlloyWindow::pollGeometryEvaluation() {
         heartbeat["maxGapMs"]=std::max(heartbeat["maxGapMs"].toInteger(),now-heartbeat["lastMs"].toInteger());
         heartbeat["lastMs"]=now;session_["evaluationHeartbeat"]=heartbeat;
     }
+    if(coilParameterOperation_.value("evaluationStatus")=="pending"){
+        auto heartbeat=coilParameterOperation_.value("evaluationHeartbeat").toObject();const auto now=QDateTime::currentMSecsSinceEpoch();
+        heartbeat["ticks"]=heartbeat.value("ticks").toInteger()+1;heartbeat["maxGapMs"]=std::max(heartbeat.value("maxGapMs").toInteger(),now-heartbeat.value("lastMs").toInteger());
+        heartbeat["lastMs"]=now;coilParameterOperation_["evaluationHeartbeat"]=heartbeat;
+    }
     if(documentOpenOperation_.value("evaluationStatus")=="pending"){
         auto heartbeat=documentOpenOperation_.value("evaluationHeartbeat").toObject();const auto now=QDateTime::currentMSecsSinceEpoch();
         heartbeat["ticks"]=heartbeat.value("ticks").toInteger()+1;
@@ -293,6 +298,7 @@ void AlloyWindow::pollGeometryEvaluation() {
     if(task->command=="document.exportStl" || task->command=="document.export3mf" || task->command=="document.exportObj")completeMeshExport(task);
     else if(task->command=="sketch.edit" || task->command=="sketch.finish" || task->command=="feature.edit")completeSketchEvaluation(task);
     else if(task->command=="document.open")completeDocumentOpen(task);
+    else if(task->command=="document.parameterUpdate")completeCoilParameterUpdate(task);
     else if(task->command=="solid.coil")completeCoilEvaluation(task);
     else if(task->command=="solid.loft")completeLoftEvaluation(task);
     else if(task->command=="surface.trim")completeSurfaceTrimEvaluation(task);

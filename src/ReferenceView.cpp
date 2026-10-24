@@ -1,4 +1,5 @@
 #include <AIS_ColoredShape.hxx>
+#include <Poly_TriangulationParameters.hxx>
 #include <Graphic3d_ArrayOfTriangles.hxx>
 #include <Graphic3d_AspectFillArea3d.hxx>
 #include <Graphic3d_Group.hxx>
@@ -164,14 +165,17 @@ void showOriginTriad(const Handle(AIS_InteractiveContext)& context,std::vector<H
 
 namespace {
 QJsonObject threadMeshEvidence(const TopoDS_Shape& shape) {
-    int faces=0,meshedFaces=0,triangles=0;QStringList identities;
+    int faces=0,meshedFaces=0,triangles=0,nodes=0;QStringList identities;QJsonArray quality;
     for(TopExp_Explorer it(shape,TopAbs_FACE);it.More();it.Next()) {
         ++faces;TopLoc_Location location;const auto mesh=BRep_Tool::Triangulation(TopoDS::Face(it.Current()),location);
         if(mesh.IsNull())continue;
-        ++meshedFaces;triangles+=mesh->NbTriangles();
+        ++meshedFaces;triangles+=mesh->NbTriangles();nodes+=mesh->NbNodes();
+        QJsonObject faceQuality{{"face",faces},{"deflectionMm",mesh->Deflection()},{"triangles",mesh->NbTriangles()}};
+        if(!mesh->Parameters().IsNull())faceQuality["angleRad"]=mesh->Parameters()->Angle();quality.append(faceQuality);
         identities.append(QString::number(reinterpret_cast<quintptr>(mesh.get()),16));
     }
-    return {{"faces",faces},{"meshedFaces",meshedFaces},{"triangles",triangles},
+    return {{"faces",faces},{"meshedFaces",meshedFaces},{"triangles",triangles},{"nodes",nodes},{"quality",quality},
+        {"shapePartnerSignature",QString::number(qHash(QString::number(reinterpret_cast<quintptr>(shape.TShape().get()),16)),16)},
         {"identitySignature",QString::number(qHash(identities.join(":")),16)}};
 }
 void traceThreadMesh(const char* phase,const TopoDS_Shape& shape) {
@@ -1012,9 +1016,10 @@ void ReferenceView::sync() {
 void ReferenceView::setBodies(const std::vector<EvaluatedBody>& bodies,quint64 revision,const QJsonArray& features) {
     if(context_.IsNull() || modelRevision_==revision)return;
     hoverSupportFace({});
-    patchSourceProfiles_.clear();
+    patchSourceProfiles_.clear();retainedCoilBodyIds_.clear();
     for(const auto& row:features) {
         const auto feature=row.toObject();
+        if(feature.value("type")=="coil")retainedCoilBodyIds_.insert(feature.value("bodyId").toString());
         if(feature.value("type")!="surfacePatch")continue;
         const auto parameters=feature.value("parameters").toObject();
         const auto profileId=parameters.value("profileId").toString();
@@ -1034,31 +1039,42 @@ void ReferenceView::setPreparedThreadMeshes(const std::vector<TopoDS_Shape>& sha
     preparedThreadMeshes_=shapes;
     for(const auto& shape:preparedThreadMeshes_)traceThreadMesh("registered",shape);
 }
-bool ReferenceView::preservePreparedThreadMesh(const Handle(AIS_Shape)& presentation) const {
-    const auto& shape=presentation->Shape();
-    for(const auto& prepared:preparedThreadMeshes_)if(shape.IsPartner(prepared)) {
-        auto drawer=presentation->Attributes();
-        StdPrs_ToolTriangulatedShape::GetDeflection(shape,drawer);
-        if(!StdPrs_ToolTriangulatedShape::IsTessellated(shape,drawer))return false;
-        drawer->SetAutoTriangulation(false);
-        return true;
+bool ReferenceView::preservePreparedThreadMesh(const Handle(AIS_Shape)& presentation,bool retainedCoil) const {
+    const auto& shape=presentation->Shape();bool eligible=retainedCoil;
+    for(const auto& prepared:preparedThreadMeshes_)eligible|=shape.IsPartner(prepared);
+    if(!eligible)return false;
+    auto drawer=presentation->Attributes();
+    const double deflection=StdPrs_ToolTriangulatedShape::GetDeflection(shape,drawer);
+    bool qualified=StdPrs_ToolTriangulatedShape::IsTessellated(shape,drawer);
+    // Older/imported or export-coarsened meshes must also prove angular quality.
+    for(TopExp_Explorer it(shape,TopAbs_FACE);qualified && it.More();it.Next()){
+        TopLoc_Location location;const auto mesh=BRep_Tool::Triangulation(TopoDS::Face(it.Current()),location);
+        qualified=!mesh.IsNull() && !mesh->Parameters().IsNull() && mesh->Parameters()->HasAngle()
+            && std::isfinite(mesh->Parameters()->Angle()) && mesh->Parameters()->Angle()<=drawer->DeviationAngle()*(1+1e-12);
     }
-    return false;
+    if(qEnvironmentVariableIsSet("ALLOY_TRACE_COIL_COST"))qInfo()<<"coil_mesh_quality"<<"qualified"<<qualified<<"requestedDeflectionMm"<<deflection<<"angleRad"<<drawer->DeviationAngle();
+    if(!qualified)return false;
+    // A new AIS drawer otherwise clears a valid historical mesh merely because
+    // its own coefficients differ from drawer defaults. Preserve only meshes
+    // OCCT certifies for these unchanged display settings and this exact shape.
+    drawer->SetAutoTriangulation(false);return true;
 }
 void ReferenceView::displayBodies(const std::vector<EvaluatedBody>& bodies) {
     if(context_.IsNull())return;
     const bool trace=qEnvironmentVariableIsSet("ALLOY_TRACE_ASSEMBLY_SOLVES");
-    QElapsedTimer timer;if(trace)timer.start();
+    const bool coilCost=qEnvironmentVariableIsSet("ALLOY_TRACE_COIL_COST");
+    QElapsedTimer timer;if(trace || coilCost)timer.start();
     clearZebraPresentation();
     for(const auto& model:models_)context_->Remove(model,false);
     models_.clear();modelReferences_.clear();bodyVisibility_.clear();stitchedProfileBodies_.clear();
     for(const auto& body:bodies) {
+        QElapsedTimer bodyTimer;if(coilCost){bodyTimer.start();qInfo().noquote()<<"coil_display_before"<<body.bodyId<<QJsonDocument(threadMeshEvidence(body.shape)).toJson(QJsonDocument::Compact);}
         Handle(AIS_Shape) model=new AIS_ColoredShape(body.shape);model->SetDisplayMode(AIS_Shaded);
         // Bound screen presentation detail separately from export accuracy.
         // The finer legacy angular mesh stalled small multi-fillet parts.
         model->SetOwnDeviationCoefficient(0.0005);
         model->SetOwnDeviationAngle(0.10);
-        const bool preparedThread=preservePreparedThreadMesh(model);
+        const bool preparedThread=preservePreparedThreadMesh(model,retainedCoilBodyIds_.contains(body.bodyId));
         if(preparedThread)traceThreadMesh("committed_before_display",body.shape);
         const bool surface=body.summary.value("type")=="surface";
         model->SetColor(surface ? Quantity_Color(0.90,0.70,0.24,Quantity_TOC_RGB)
@@ -1074,8 +1090,10 @@ void ReferenceView::displayBodies(const std::vector<EvaluatedBody>& bodies) {
         // Face selection uses actual domains and maps to the same body ID.
         // Keep the inactive global owner for whole-body SetSelected cues.
         context_->Display(model,AIS_Shaded,0,false);
+        if(coilCost)qInfo()<<"coil_display_phase_ms"<<"display"<<bodyTimer.restart();
         context_->Deactivate(model,0);
         context_->Activate(model,AIS_Shape::SelectionMode(TopAbs_FACE));
+        if(coilCost){qInfo()<<"coil_display_phase_ms"<<"selection"<<bodyTimer.elapsed();qInfo().noquote()<<"coil_display_after"<<body.bodyId<<QJsonDocument(threadMeshEvidence(body.shape)).toJson(QJsonDocument::Compact);}
         if(preparedThread)traceThreadMesh("committed_after_display",body.shape);
         if(!sectionClip_.IsNull())model->AddClipPlane(sectionClip_);
         const auto key=presentationBodyKey(body);
@@ -1089,6 +1107,7 @@ void ReferenceView::displayBodies(const std::vector<EvaluatedBody>& bodies) {
         modelReferences_[key]={{"bodyId",body.bodyId},{"occurrenceId",body.occurrenceId},{"definitionId",body.definitionId}};
     }
     applyEditDisplay();
+    if(coilCost)qInfo()<<"coil_display_phase_ms"<<"total"<<timer.elapsed();
     if(trace)qInfo().noquote()<<"assembly_phase_ms displayBodies_inclusive"<<timer.nsecsElapsed()/1e6
         <<"bodies"<<bodies.size();
 }
@@ -3707,6 +3726,10 @@ QJsonObject ReferenceView::diagnostics() const {
     result.insert("details", raw);
     int displayedBodies=0;for(const auto& model:models_)if(context_->IsDisplayed(model))++displayedBodies;
     result.insert("displayedBodies",displayedBodies);
+    if(qEnvironmentVariableIsSet("ALLOY_TRACE_COIL_COST")){
+        QJsonArray displayMeshes;for(auto it=models_.cbegin();it!=models_.cend();++it){auto mesh=threadMeshEvidence(it.value()->Shape());mesh["bodyId"]=modelReferences_.value(it.key()).value("bodyId");displayMeshes.append(mesh);}
+        result.insert("displayMeshes",displayMeshes);
+    }
     int displayedSketches=sketchModels_.size();
     for(auto it=constructionSketchModels_.cbegin();it!=constructionSketchModels_.cend();++it)
         if(!sketchModels_.contains(it.key()))++displayedSketches;

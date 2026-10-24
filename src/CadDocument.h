@@ -80,6 +80,8 @@ public:
         const QJsonObject& requestedCandidate, const QJsonObject& expectedBase, quint64 expectedRevision, const QString& label);
     QString commitSketchEvaluation(const CandidateEvaluation& prepared,
         const QJsonObject& requestedCandidate, const QJsonObject& expectedBase, quint64 expectedRevision, const QString& label="Edit sketch");
+    QString commitCoilParameterEvaluation(const CandidateEvaluation& prepared,const QJsonObject& requestedCandidate,
+        const QJsonObject& expectedBase,quint64 expectedRevision);
     QString commitCoilEvaluation(const CandidateEvaluation& prepared, const QJsonObject& requestedCandidate,
         const QJsonObject& expectedBase, quint64 expectedRevision);
     QString commitThreadEvaluation(const CandidateEvaluation& prepared, const QJsonObject& requestedCandidate,
