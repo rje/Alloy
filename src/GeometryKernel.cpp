@@ -16,6 +16,7 @@
 #include "SolidHole.h"
 #include "SolidThreadGeometry.h"
 #include <BRepAlgoAPI_Cut.hxx>
+#include <BRepAlgoAPI_Check.hxx>
 #include <BRepTools.hxx>
 #include <BRepGProp.hxx>
 #include <GProp_GProps.hxx>
@@ -70,6 +71,10 @@
 #include <BRepPrimAPI_MakeCylinder.hxx>
 #include <BRepPrimAPI_MakeCone.hxx>
 #include <BRepPrimAPI_MakeTorus.hxx>
+#include <BRepOffsetAPI_MakePipeShell.hxx>
+#include <BRepLib.hxx>
+#include <Geom_CylindricalSurface.hxx>
+#include <Geom2d_Line.hxx>
 #include <BRepPrimAPI_MakePrism.hxx>
 #include <BRepOffsetAPI_DraftAngle.hxx>
 #include <BRep_Tool.hxx>
@@ -89,6 +94,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QDebug>
+#include <QElapsedTimer>
 #include <QCryptographicHash>
 #include <QMap>
 #include <QSet>
@@ -201,6 +207,56 @@ TopoDS_Shape GeometryKernel::primitive(const QString& type, const QJsonObject& p
         const double major=length(p,"majorRadiusMm"),minor=length(p,"minorRadiusMm");
         if(major<=minor)throw std::invalid_argument("Major radius must exceed minor radius");
         shape=BRepPrimAPI_MakeTorus(gp_Ax2(origin,gp::DZ()),major,minor).Shape();
+    } else if (type=="coil") {
+        QElapsedTimer phase;phase.start();
+        auto mark=[&](const char* stage){if(qEnvironmentVariableIsSet("ALLOY_TRACE_COIL"))qInfo()<<"coil_phase_ms"<<stage<<phase.nsecsElapsed()/1e6;phase.restart();};
+        const double radius=length(p,"diameterMm")/2, pitch=length(p,"pitchMm");
+        const double section=length(p,"sectionSizeMm"),turns=p.value("revolutions").toDouble();
+        if(!std::isfinite(turns) || turns<0.25 || turns>20 || pitch*turns>100000)
+            throw std::invalid_argument("Coil supports 0.25..20 revolutions and at most 100000 mm axial height");
+        // A conservative regular-tube guard: reject local curvature collapse and
+        // nonlocal adjacent-turn overlap before asking the kernel to sweep.
+        // For a circular helix, squared separation is 2R²(1-cos(t))+a²t².
+        const double a=pitch/(2*std::numbers::pi);
+        const auto distance2=[&](double t){return 2*radius*radius*(1-std::cos(t))+a*a*t*t;};
+        const double period=2*std::numbers::pi,k=a*a/(radius*radius);
+        double minimum=std::min(distance2(std::numbers::pi),distance2(period));
+        if(k<1){
+            // The derivative has its unique minimum here. If negative, its
+            // right root is the only interior distance minimum on [pi,2pi].
+            double lo=period-std::acos(-k),hi=period;
+            if(std::sin(lo)+k*lo<0){
+                for(int i=0;i<80;++i){const double mid=(lo+hi)/2;
+                    if(std::sin(mid)+k*mid<0)lo=mid;else hi=mid;}
+                minimum=std::min(minimum,distance2((lo+hi)/2));
+            }
+        }
+        const double clearance=std::sqrt(minimum);
+        const double curvatureRadius=(radius*radius+a*a)/radius;
+        if(section>=2*radius || section/2>=curvatureRadius || section>=clearance-1e-6)
+            throw std::invalid_argument("Coil exceeds the supported separated-tube range; reduce Section Size or increase Pitch/Diameter");
+        // Clockwise when viewed from +Z, rising along +Z. The circular section
+        // lies normal to the starting helix tangent and is centered on its path.
+        Handle(Geom_CylindricalSurface) cylinder=new Geom_CylindricalSurface(gp_Ax3(origin,gp::DZ()),radius);
+        const gp_Dir2d slope(-1,a);
+        Handle(Geom2d_Line) line=new Geom2d_Line(gp_Pnt2d(0,0),slope);
+        const double span=2*std::numbers::pi*turns/(-slope.X());
+        const auto edge=BRepBuilderAPI_MakeEdge(line,cylinder,0,span).Edge();
+        const auto spine=BRepBuilderAPI_MakeWire(edge).Wire();
+        if(!BRepLib::BuildCurves3d(spine))throw std::runtime_error("Coil helix 3D curve failed");
+        const gp_Pnt start(origin.X()+radius,origin.Y(),origin.Z());
+        const gp_Dir tangent(0,-radius,a);
+        const auto circle=BRepBuilderAPI_MakeEdge(gp_Circ(gp_Ax2(start,tangent,gp::DX()),section/2)).Edge();
+        const auto profile=BRepBuilderAPI_MakeWire(circle).Wire();
+        mark("helix_profile");
+        BRepOffsetAPI_MakePipeShell sweep(spine);sweep.SetMode(true);
+        sweep.SetTolerance(1e-6,1e-6,1e-4);sweep.Add(profile,false,false);
+        sweep.Build();
+        if(!sweep.IsDone() || !sweep.MakeSolid())throw std::runtime_error("Coil sweep failed");
+        shape=sweep.Shape();mark("sweep");
+        BRepAlgoAPI_Check interference(shape,true,true);
+        if(!interference.IsValid())throw std::runtime_error("Coil sweep has geometric self-interference");
+        mark("self_interference");
     } else throw std::invalid_argument("Unsupported primitive type");
     if (shape.IsNull() || !BRepCheck_Analyzer(shape).IsValid() || count(shape,TopAbs_SOLID)!=1)
         throw std::runtime_error("Kernel did not produce a valid solid");

@@ -230,7 +230,8 @@ void AlloyWindow::startGeometryEvaluation() {
     std::thread([task]{
         try {
             QElapsedTimer timer;timer.start();
-            if(task->command=="document.exportStl" || task->command=="document.export3mf" || task->command=="document.exportObj")evaluateMeshExport(*task);
+            if(task->command=="solid.coil")evaluateCoil(*task);
+            else if(task->command=="document.exportStl" || task->command=="document.export3mf" || task->command=="document.exportObj")evaluateMeshExport(*task);
             else if(task->command=="document.open"){task->full=CadDocument::prepareOpen(task->inputs.value("path").toString());task->fullMs=timer.elapsed();}
             else if(task->command=="surface.trim" && task->phase=="partition")evaluateSurfaceTrimPartition(*task);
             else if(task->command=="surface.boundaryFill" && task->phase=="partition")evaluateBoundaryFillPartition(*task);
@@ -265,7 +266,7 @@ void AlloyWindow::startGeometryEvaluation() {
 }
 
 void AlloyWindow::pollGeometryEvaluation() {
-    if((session_.value("command")=="surface.extrude" || session_.value("command")=="surface.boundaryFill" || session_.value("command")=="surface.trim" || session_.value("command")=="solid.loft") && session_.value("evaluationStatus")=="pending"){
+    if((session_.value("command")=="solid.coil" || session_.value("command")=="surface.extrude" || session_.value("command")=="surface.boundaryFill" || session_.value("command")=="surface.trim" || session_.value("command")=="solid.loft") && session_.value("evaluationStatus")=="pending"){
         auto heartbeat=session_.value("evaluationHeartbeat").toObject();const auto now=QDateTime::currentMSecsSinceEpoch();
         heartbeat["ticks"]=heartbeat["ticks"].toInteger()+1;
         heartbeat["maxGapMs"]=std::max(heartbeat["maxGapMs"].toInteger(),now-heartbeat["lastMs"].toInteger());
@@ -292,6 +293,7 @@ void AlloyWindow::pollGeometryEvaluation() {
     if(task->command=="document.exportStl" || task->command=="document.export3mf" || task->command=="document.exportObj")completeMeshExport(task);
     else if(task->command=="sketch.edit" || task->command=="sketch.finish" || task->command=="feature.edit")completeSketchEvaluation(task);
     else if(task->command=="document.open")completeDocumentOpen(task);
+    else if(task->command=="solid.coil")completeCoilEvaluation(task);
     else if(task->command=="solid.loft")completeLoftEvaluation(task);
     else if(task->command=="surface.trim")completeSurfaceTrimEvaluation(task);
     else if(task->command=="surface.boundaryFill"){
@@ -336,7 +338,7 @@ void AlloyWindow::pollGeometryEvaluation() {
     if(geometryEvaluationQueued_)startGeometryEvaluation();
     else {
         geometryEvaluationPoll_->stop();
-        if(statusBar()->currentMessage()=="Finishing background geometry; new modeling commands will resume shortly.")
+        if(statusBar()->currentMessage()=="Finishing background geometry; new modeling commands will resume shortly." || statusBar()->currentMessage()=="Computing Coil preview… You can navigate or Cancel.")
             statusBar()->clearMessage();
     }
 }

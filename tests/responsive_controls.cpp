@@ -11,6 +11,7 @@
 #include <QDoubleSpinBox>
 #include <QFile>
 #include <QFileInfo>
+#include <QElapsedTimer>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QLabel>
@@ -228,6 +229,140 @@ private slots:
             {"windowSize",QJsonArray{window.width(),window.height()}},{"devicePixelRatio",window.devicePixelRatioF()},
             {"final",final},{"inputRoute","Qt delivered actual-hit pointer and keyboard; initial activation only"},
             {"limits",QJsonArray{"Undo/redo and save/reopen use shared API","Physical OS input and other-platform runtime unqualified","Exact source panel styling and radius mapping unknown"}}}).toJson(QJsonDocument::Indented));
+        receipt.close();window.close();
+    }
+    void coilPrimitivePanel() {
+        const auto out=qEnvironmentVariable("ALLOY_COIL_EVIDENCE");QVERIFY(!out.isEmpty());QVERIFY(QDir().mkpath(out));
+        AlloyTheme::apply(*qApp);AlloyWindow window;window.resize(1360,850);window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        // Initial harness activation only. Observe native AppKit and Qt agreement;
+        // setting QApplication's active-window bookkeeping would hide a failure.
+        window.raise();window.activateWindow();window.windowHandle()->requestActivate();
+        auto readiness=[&] {
+            QJsonObject result{{"qtActive",window.isActiveWindow()},
+                {"applicationActive",QGuiApplication::applicationState()==Qt::ApplicationActive},
+                {"focusWindowMatches",QGuiApplication::focusWindow()==window.windowHandle()}};
+#ifdef Q_OS_MACOS
+            auto selector=reinterpret_cast<void*(*)(const char*)>(dlsym(RTLD_DEFAULT,"sel_registerName"));
+            auto send=reinterpret_cast<void*(*)(void*,void*)>(dlsym(RTLD_DEFAULT,"objc_msgSend"));
+            auto boolean=reinterpret_cast<bool(*)(void*,void*)>(dlsym(RTLD_DEFAULT,"objc_msgSend"));
+            auto cls=reinterpret_cast<void*(*)(const char*)>(dlsym(RTLD_DEFAULT,"objc_getClass"));
+            auto app=send(cls("NSApplication"),selector("sharedApplication"));
+            auto native=send(reinterpret_cast<void*>(window.winId()),selector("window"));
+            result.insert("nativeApplicationActive",boolean(app,selector("isActive")));
+            result.insert("keyWindowMatchesEditor",send(app,selector("keyWindow"))==native);
+            result.insert("firstResponderPresent",send(native,selector("firstResponder"))!=nullptr);
+#endif
+            return result;
+        };
+        QTRY_VERIFY_WITH_TIMEOUT(([&]{const auto state=readiness();return std::all_of(state.begin(),state.end(),[](auto value){return value.toBool();});})(),3000);
+        const auto initialReadiness=readiness();
+        QJsonArray steps;
+        auto record=[&](const QString& name) {
+            auto* focus=QApplication::focusWidget();
+            steps.append(QJsonObject{{"step",name},{"focusClass",focus?focus->metaObject()->className():"none"},
+                {"focusObject",focus?focus->objectName():"none"},{"state",window.state()},{"readiness",readiness()}});
+            qInfo().noquote()<<name;
+        };
+        auto click=[](QWidget* widget) {
+            QVERIFY(widget && widget->isVisible());
+            const auto point=widget->rect().center();
+            auto* target=QApplication::widgetAt(widget->mapToGlobal(point));QVERIFY(target);
+            QVERIFY(target==widget || widget->isAncestorOf(target));
+            QTest::mouseClick(target,Qt::LeftButton,Qt::NoModifier,target->mapFromGlobal(widget->mapToGlobal(point)));
+        };
+        auto type=[&](QDoubleSpinBox* spin,const char* text) {
+            QVERIFY(spin);auto* editor=spin->findChild<QLineEdit*>();QVERIFY(editor);click(editor);
+            QTRY_VERIFY(editor->hasFocus());
+            QTest::keySequence(editor,QKeySequence(QKeySequence::SelectAll));QTest::keyClicks(editor,text);
+            QTest::keyClick(editor,Qt::Key_Return);
+            QVERIFY(QApplication::focusWidget()==spin || QApplication::focusWidget()==editor);
+        };
+        auto session=[&]{return window.state().value("activeSession").toObject();};
+        auto inspect=[&]{return call(window,"document.inspect");};
+        const auto blank=inspect();
+        for(const auto& kind:QStringList{"coil"}) {
+            const auto before=inspect();
+            choose(window.findChild<QToolButton*>("solid.menu.create"),"solid.action.primitive."+kind);
+            QTRY_COMPARE(session().value("command").toString(),"solid."+kind);
+            record(kind+" Create menu");
+            auto* dock=window.findChild<QDockWidget*>("primitiveDock");QVERIFY(dock);
+            auto* cancelButtons=dock->findChild<QDialogButtonBox*>();QVERIFY(cancelButtons);
+            QPushButton* firstPreview=nullptr;for(auto* button:cancelButtons->buttons())if(button->text()=="Preview")firstPreview=qobject_cast<QPushButton*>(button);
+            QVERIFY(firstPreview);QElapsedTimer dispatch;dispatch.start();click(firstPreview);QVERIFY(dispatch.elapsed()<500);
+            QCOMPARE(session().value("evaluationStatus").toString(),"pending");record("Coil pending preview responsive");
+            dispatch.restart();click(cancelButtons->button(QDialogButtonBox::Cancel));QVERIFY(dispatch.elapsed()<500);QTRY_VERIFY_WITH_TIMEOUT(session().isEmpty(),30000);
+            QTRY_VERIFY_WITH_TIMEOUT(!window.state().value("geometryWork").toObject().value("active").toBool(),30000);
+            QCOMPARE(inspect(),before);record(kind+" Create Cancel exact rollback");
+            choose(window.findChild<QToolButton*>("solid.menu.create"),"solid.action.primitive."+kind);
+            QTRY_COMPARE(session().value("command").toString(),"solid."+kind);
+            dock=window.findChild<QDockWidget*>("primitiveDock");QVERIFY(dock);
+            auto field=[&](const QString& name){return dock->findChild<QDoubleSpinBox*>("primitive."+name);};
+            auto* scroll=dock->findChild<QScrollArea*>("primitive.formScroll");QVERIFY(scroll);
+            QTRY_VERIFY(([&]{
+                if(scroll->widget()->width()>scroll->viewport()->width())return false;
+                for(auto* input:scroll->widget()->findChildren<QDoubleSpinBox*>()) {
+                    const QRect bounds(input->mapTo(scroll->viewport(),QPoint{}),input->size());
+                    if(!scroll->viewport()->rect().contains(bounds))return false;
+                }
+                return true;
+            })());
+            QVERIFY(dock->findChild<QLabel*>("primitive.coilContract"));
+            QCOMPARE(field("revolutions")->suffix(),QString{});
+            type(field("diameter"),"20");type(field("pitch"),"5");type(field("revolutions"),"3");
+            type(field("sectionSize"),"2");type(field("x"),"4");type(field("y"),"-3");
+            auto* buttons=dock->findChild<QDialogButtonBox*>();QVERIFY(buttons);
+            QPushButton* preview=nullptr;for(auto* button:buttons->buttons())if(button->text()=="Preview")preview=qobject_cast<QPushButton*>(button);
+            QVERIFY(preview);click(preview);QTRY_VERIFY_WITH_TIMEOUT(session().value("previewed").toBool(),30000);
+            QCOMPARE(inspect(),before);record(kind+" Preview leaves document unchanged");
+            QCOMPARE(field("revolutions")->suffix(),QString{});
+            click(dock->findChild<QLineEdit*>("primitive.name"));click(preview);
+            QVERIFY(session().value("previewed").toBool());
+            QVERIFY(window.state().value("viewport").toObject().value("gpu").toObject().value("previewVisible").toBool());
+
+            call(window,"capture.dialog",{{"path",out+"/native-"+kind+"-panel.png"}});
+            call(window,"capture.screenshot",{{"path",out+"/native-"+kind+"-preview.png"}});
+            dispatch.restart();click(buttons->button(QDialogButtonBox::Ok));QVERIFY(dispatch.elapsed()<500);QTRY_VERIFY_WITH_TIMEOUT(session().isEmpty(),30000);
+            const auto created=inspect();const auto features=created.value("authored").toObject().value("features").toArray();
+            const auto feature=features.last().toObject();QCOMPARE(feature.value("type").toString(),kind);
+            QCOMPARE(features.size(),1);record(kind+" OK creates retained feature");
+            auto timeline=[&]{return window.findChild<QToolButton*>("timeline.feature."+feature.value("id").toString());};
+            QTRY_VERIFY(timeline() && timeline()->isVisible());click(timeline());
+            QTRY_COMPARE(session().value("command").toString(),"solid."+kind);
+            QCOMPARE(session().value("inputs").toObject().value("featureId"),feature.value("id"));
+            dock=window.findChild<QDockWidget*>("primitiveDock");QVERIFY(dock);
+            type(field("pitch"),"7");
+            buttons=dock->findChild<QDialogButtonBox*>();click(buttons->button(QDialogButtonBox::Cancel));
+            QTRY_VERIFY_WITH_TIMEOUT(session().isEmpty(),30000);QCOMPARE(inspect(),created);record(kind+" Timeline edit Cancel exact rollback");
+            QTRY_VERIFY_WITH_TIMEOUT(!window.state().value("geometryWork").toObject().value("active").toBool(),30000);
+            click(timeline());QTRY_COMPARE(session().value("command").toString(),"solid."+kind);
+            dock=window.findChild<QDockWidget*>("primitiveDock");QVERIFY(dock);
+            type(field("pitch"),"7");
+            buttons=dock->findChild<QDialogButtonBox*>();click(buttons->button(QDialogButtonBox::Ok));
+            QTRY_VERIFY_WITH_TIMEOUT(session().isEmpty(),30000);const auto edited=inspect();
+            const auto retained=edited.value("authored").toObject().value("features").toArray().last().toObject();
+            QCOMPARE(retained.value("id"),feature.value("id"));QCOMPARE(retained.value("bodyId"),feature.value("bodyId"));
+            QCOMPARE(retained.value("parameters").toObject().value("pitchMm").toDouble(),7.0);
+            record(kind+" Timeline edit OK stable identity");
+            call(window,"history.undo");QCOMPARE(inspect().value("authored"),created.value("authored"));
+            call(window,"history.redo");QCOMPARE(inspect().value("authored"),edited.value("authored"));
+        }
+        const auto final=inspect();QCOMPARE(final.value("bodies").toInt(),1);
+        const auto bodies=final.value("evaluation").toObject().value("bodies").toArray();
+        const double expectedVolumes[]={std::acos(-1.0)*3*std::hypot(20*std::acos(-1.0),7)};
+        for(int i=0;i<1;++i){const auto body=bodies[i].toObject();QVERIFY(body.value("valid").toBool());QVERIFY(body.value("closed").toBool());
+            QVERIFY(std::abs(body.value("volumeMm3").toDouble()/expectedVolumes[i]-1)<1e-5);}
+        QTest::qWait(150); // Settle queued Timeline and dock layouts before visual evidence.
+        call(window,"view.fit");call(window,"capture.screenshot",{{"path",out+"/native-final.png"}});
+        const auto path=out+"/native-coil.alloy";call(window,"document.save",{{"path",path}});
+        call(window,"document.open",{{"path",path}});QCOMPARE(inspect().value("authored"),final.value("authored"));
+        QCOMPARE(inspect().value("evaluation"),final.value("evaluation"));record("Exact save/reopen");
+        const auto gpu=window.state().value("viewport").toObject().value("gpu").toObject();QVERIFY(gpu.value("hardwareAccelerated").toBool());
+        QFile receipt(out+"/receipt.json");QVERIFY(receipt.open(QIODevice::WriteOnly));
+        receipt.write(QJsonDocument(QJsonObject{{"status","pass"},{"initialReadiness",initialReadiness},{"steps",steps},{"gpu",gpu},
+            {"windowSize",QJsonArray{window.width(),window.height()}},{"devicePixelRatio",window.devicePixelRatioF()},
+            {"final",final},{"inputRoute","Qt delivered actual-hit pointer and keyboard; initial activation only"},
+            {"limits",QJsonArray{"Undo/redo and save/reopen use shared API","Physical OS input and other-platform runtime unqualified","Exact matched public panel styling unknown"}}}).toJson(QJsonDocument::Indented));
         receipt.close();window.close();
     }
     void primitiveDockActionsStayReachable() {

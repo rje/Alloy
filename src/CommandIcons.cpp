@@ -71,6 +71,11 @@ public:
             pen(edge); painter->setBrush(blue); painter->drawPath(ring);
             painter->setBrush(Qt::NoBrush); pen(side,1.1);
             painter->drawArc(QRectF(4,10,24,17),195*16,150*16);
+        } else if (command_ == "primitive.coil") {
+            pen(edge,2);painter->setBrush(Qt::NoBrush);
+            QPainterPath spring;spring.moveTo(8,27);
+            for(int turn=0;turn<4;++turn){const double y=25-turn*5;spring.cubicTo(30,y+2,29,y-7,8,y-3);spring.cubicTo(2,y-2,3,y-5,9,y-5);}
+            painter->drawPath(spring);
         } else if (command_ == "solid.sphereDialog") {
             pen(edge); painter->setBrush(blue); painter->drawEllipse(QRectF(4,4,24,24));
             painter->setBrush(Qt::NoBrush); painter->drawEllipse(QRectF(11,4,10,24));

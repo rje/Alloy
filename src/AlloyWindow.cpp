@@ -577,7 +577,7 @@ AlloyWindow::AlloyWindow() {
         }
         groups->addLayout(box);groups->addWidget(divider());
     };
-    group("CREATE", {{"primitive.box", "▣"}, {"primitive.cylinder", "◉"}, {"primitive.cone", "△"}, {"primitive.torus", "◎"}, {"solid.sphereDialog", "●"}, {"solid.threadDialog", "≋"}, {"sketch.create", "▧"}, {"solid.extrudeDialog", "▣"}, {"solid.revolveDialog", "◉"}, {"solid.sweepDialog", "◒"}, {"solid.pipeDialog", "◉"}, {"solid.ribDialog", "▥"}, {"solid.loftDialog", "◒"}, {"solid.thickenDialog", "▤"}, {"solid.mirrorDialog", "◧"}, {"solid.featureMirrorDialog", "◧"}, {"solid.circularPatternDialog", "◌"}});
+    group("CREATE", {{"primitive.box", "▣"}, {"primitive.cylinder", "◉"}, {"primitive.cone", "△"}, {"primitive.torus", "◎"}, {"primitive.coil", "≋"}, {"solid.sphereDialog", "●"}, {"solid.threadDialog", "≋"}, {"sketch.create", "▧"}, {"solid.extrudeDialog", "▣"}, {"solid.revolveDialog", "◉"}, {"solid.sweepDialog", "◒"}, {"solid.pipeDialog", "◉"}, {"solid.ribDialog", "▥"}, {"solid.loftDialog", "◒"}, {"solid.thickenDialog", "▤"}, {"solid.mirrorDialog", "◧"}, {"solid.featureMirrorDialog", "◧"}, {"solid.circularPatternDialog", "◌"}});
     group("MODIFY", {{"solid.pressPullDialog", "⇧"}, {"solid.combineDialog", "▣"}, {"solid.filletDialog", "◩"}, {"solid.chamferDialog", "◪"}, {"solid.shellDialog", "▱"}, {"solid.faceOffsetDialog", "↗"}, {"solid.splitBodyDialog", "◫"}, {"solid.moveDialog", "✥"}});
     group("ASSEMBLE", {{"joint.asBuiltDialog","◉"},{"joint.sliderDialog", "⇆"},{"position.revert","↶"}});
     group("CONSTRUCT", {{"construction.plane", "▰"}, {"construction.angledPlane", "∠"}, {"construction.point", "·"}, {"construction.axis", "╱"}, {"construction.pathPlane", "⟂"}, {"construction.tangentPlane", "▱"}, {"construction.midplane", "◫"}});
@@ -2765,7 +2765,7 @@ void AlloyWindow::registerCommands() {
     position["minimum"]=-100000; position["maximum"]=100000;
     auto name=optional(parameter("string","Body/feature name; defaults to the primitive name."));
     auto featureId=parameter("string","Stable authored feature UUID.");
-    for(const QString& type:{"box","cylinder","cone","torus"}) {
+    for(const QString& type:{"box","cylinder","cone","torus","coil"}) {
         const auto title=type.first(1).toUpper()+type.sliced(1);
         QJsonObject schema{{"height",length},{"x",position},{"y",position},{"z",position},
             {"units",optional(units)},{"name",name},{"featureId",optional(featureId)}};
@@ -2773,9 +2773,16 @@ void AlloyWindow::registerCommands() {
             schema[field]=optional(length);schema[field+"Parameter"]=optional(parameter("string","Direct name of a user length."));
         }} else if(type=="cylinder"){schema["radius"]=length;schema["height"]=optional(length);schema["heightParameter"]=optional(parameter("string","Direct user length name or stable UUID."));}
         else if(type=="cone") {schema["baseDiameter"]=length;auto top=length;top["minimum"]=0;schema["topDiameter"]=top;}
+        else if(type=="coil") {schema.remove("height");schema.remove("z");schema["diameter"]=length;schema["pitch"]=optional(length);
+            schema["pitchParameter"]=optional(parameter("string","Direct user length name or stable UUID."));schema["sectionSize"]=length;
+            auto turns=parameter("number","Revolutions, 0.25..20.");turns["minimum"]=0.25;turns["maximum"]=20;schema["revolutions"]=turns;}
         else {schema.remove("height");schema["majorRadius"]=length;schema["minorRadius"]=length;}
         const auto id="solid."+type;
         add(id,title,"Create or edit a real primitive as a New Body.",schema,[this,id](const auto& a){
+            if(id=="solid.coil"){
+                const auto opened=beginSession(id,a);if(opened.contains("ok") && !opened.value("ok").toBool())return opened;
+                session_["coilCommitRequested"]=true;session_["coilDirectRequest"]=true;return previewCoil();
+            }
             const auto candidate=primitiveCandidate(id,a);
             const auto error=document_->commit(candidate,a.value("featureId").toString().isEmpty() ? "Create "+id.sliced(6) : "Edit "+id.sliced(6));
             if(!error.isEmpty()) return failure("evaluation_failed",error);
@@ -6018,8 +6025,10 @@ void AlloyWindow::registerCommands() {
             const auto unit=document_->authored()["displayUnits"].toString();const double scale=unit=="in" ? 25.4 : 1;
             QJsonObject inputs{{"featureId",feature["id"]},{"name",feature["name"]},{"units",unit}};
             for(auto it=p.begin();it!=p.end();++it)if(it.key().endsWith("Mm"))inputs[it.key().chopped(2)]=it.value().toDouble()/scale;
-            if(feature["type"]=="box" || feature["type"]=="cylinder")for(const auto& field:feature["type"]=="box" ? QStringList{"width","depth","height"} : QStringList{"height"})if(p.contains(field+"ParameterId"))
+            if(feature["type"]=="coil")inputs["revolutions"]=p["revolutions"];
+            if(feature["type"]=="box" || feature["type"]=="cylinder" || feature["type"]=="coil")for(const auto& field:feature["type"]=="box" ? QStringList{"width","depth","height"} : feature["type"]=="coil" ? QStringList{"pitch"} : QStringList{"height"})if(p.contains(field+"ParameterId"))
                 for(const auto& row:document_->authored()["userParameters"].toArray())if(row.toObject()["id"]==p[field+"ParameterId"]){inputs[field+"Parameter"]=row.toObject()["name"];break;}
+            if(feature["type"]=="coil")inputs.remove("z");
             return beginSession("solid."+feature["type"].toString(),inputs);
         }
         return failure("stale_entity","Feature does not exist","featureId");
@@ -6548,7 +6557,7 @@ void AlloyWindow::registerCommands() {
         return failure("stale_entity","Body instance does not exist");
     });
     auto sessionTarget = parameter("string", "Implemented session target; modeling targets follow alongside their features.");
-    sessionTarget["enum"] = QJsonArray{"surface.stitch","surface.untrim","surface.extend","surface.ruled","surface.offset","surface.patch","surface.sweep","surface.revolve","solid.scale","solid.draft","solid.align","canvas.set","document.units", "commands.search","solid.box","solid.cylinder","solid.cone","solid.torus","solid.extrude","solid.combine","solid.move","solid.fillet","solid.chamfer","solid.sphere","solid.thread","solid.shell","solid.faceOffset","solid.loft","solid.revolve","solid.sweep","solid.pipe","solid.rib","solid.rectangularPattern","solid.circularPattern","solid.mirror","inspect.section","joint.slider","joint.revolute","joint.cylindrical","sketch.create","construction.point","construction.axis","construction.midplane","construction.angledPlane","construction.pathPlane","construction.tangentPlane","solid.splitBody"};
+    sessionTarget["enum"] = QJsonArray{"surface.stitch","surface.untrim","surface.extend","surface.ruled","surface.offset","surface.patch","surface.sweep","surface.revolve","solid.scale","solid.draft","solid.align","canvas.set","document.units", "commands.search","solid.box","solid.cylinder","solid.cone","solid.torus","solid.coil","solid.extrude","solid.combine","solid.move","solid.fillet","solid.chamfer","solid.sphere","solid.thread","solid.shell","solid.faceOffset","solid.loft","solid.revolve","solid.sweep","solid.pipe","solid.rib","solid.rectangularPattern","solid.circularPattern","solid.mirror","inspect.section","joint.slider","joint.revolute","joint.cylindrical","sketch.create","construction.point","construction.axis","construction.midplane","construction.angledPlane","construction.pathPlane","construction.tangentPlane","solid.splitBody"};
     add("command.begin", "Begin command session", "Begin a real editable dialog with disposable inputs.",
         {{"command", sessionTarget}, {"inputs", parameter("object", "Initial input overrides.")}},
         [this](const auto& a) { return beginSession(a["command"].toString(), a["inputs"].toObject()); });
@@ -6610,7 +6619,7 @@ void AlloyWindow::registerCommands() {
             if(updates.value("extent")=="all") {inputs.remove("endSupport");inputs.remove("endOffset");inputs.remove("endOffsetParameter");session_.remove("invalidEndOffset");}
             if(updates.value("operation")=="newBody")inputs.remove("targetBodyIds");
         }
-        if(session_.value("command")=="solid.box" || session_.value("command")=="solid.cylinder")for(const auto& field:session_.value("command")=="solid.box" ? QStringList{"width","depth","height"} : QStringList{"height"}){
+        if(session_.value("command")=="solid.box" || session_.value("command")=="solid.cylinder" || session_.value("command")=="solid.coil")for(const auto& field:session_.value("command")=="solid.box" ? QStringList{"width","depth","height"} : session_.value("command")=="solid.coil" ? QStringList{"pitch"} : QStringList{"height"}){
             if(updates.contains(field) && !updates.contains(field+"Parameter"))inputs.remove(field+"Parameter");
             if(updates.contains(field+"Parameter")){
                 if(updates.contains(field))return failure("invalid_arguments","Choose numeric dimension or direct length name",field);
@@ -6809,11 +6818,15 @@ void AlloyWindow::registerCommands() {
         }
         if(target=="solid.extrude" && session_.value("invalidNamedInput")=="startOffset"
             && (updates.contains("startOffset") || updates.contains("startOffsetParameter") || updates.value("start")=="profilePlane"))session_.remove("invalidNamedInput");
-        if(target=="solid.box" && session_.contains("invalidNamedInput")){
+        if((target=="solid.box" || target=="solid.coil") && session_.contains("invalidNamedInput")){
             const auto field=session_["invalidNamedInput"].toString();
             if(updates.contains(field) || updates.contains(field+"Parameter"))session_.remove("invalidNamedInput");
         }
         if(target=="solid.shell" && session_.contains("invalidNamedInput") && (updates.contains("thicknessMm") || updates.contains("thicknessParameter")))session_.remove("invalidNamedInput");
+        if(target=="solid.coil"){
+            if(inputs==session_.value("inputs").toObject())return session_;
+            session_["coilCommitRequested"]=false;
+        }
         session_["inputs"] = inputs;if(target=="solid.extrude") {
             QJsonObject source{{"sketchId",inputs.value("sketchId")}};
             if(inputs.contains("sourceEntityId"))source["sourceEntityId"]=inputs.value("sourceEntityId");
@@ -6824,6 +6837,7 @@ void AlloyWindow::registerCommands() {
         }
         if(target=="solid.scale" || target=="solid.align" || target=="solid.draft"){session_["previewed"]=false;session_["geometryEvaluated"]=false;session_.remove("documentDraft");session_.remove("geometry");view_->clearBodyStage();return session_;}
         if(target=="solid.thread")return previewThread();
+        if(target=="solid.coil")return previewCoil();
         session_["previewed"] = false;if((target!="solid.extrude" || !updatingExtrudePreview_)
             && (target!="solid.faceOffset" || !updatingFaceOffsetPreview_))view_->clearPreview();
         if(target=="solid.faceOffset" || target=="inspect.section" || target=="solid.hole" || target=="solid.rib" || target=="solid.pipe" || target=="solid.sweep" || target=="solid.revolve" || target=="solid.loft") {session_["geometryEvaluated"]=false;session_.remove("geometry");session_.remove("documentDraft");session_.remove("previewError");}
@@ -6874,6 +6888,7 @@ void AlloyWindow::registerCommands() {
             if(extrudeError_)extrudeError_->setText(preview.value("ok").toBool() ? "" : preview["error"].toObject()["message"].toString());
             return preview;
         }
+        if(session_.value("command")=="solid.coil")return previewCoil();
         if(session_.value("command")=="solid.thread")return previewThread();
         if(session_.value("command")=="solid.fillet")return previewFillet();
         if(session_.value("command")=="solid.chamfer")return previewChamfer();
@@ -6947,7 +6962,8 @@ void AlloyWindow::registerCommands() {
                 if(id.isEmpty() && feature!=features.last().toObject())continue;
                 const auto shape=GeometryKernel::primitive(feature["type"].toString(),feature["parameters"].toObject());
                 view_->showPreview(shape,id.isEmpty() ? QString{} : feature["bodyId"].toString());
-                result["geometry"]=GeometryKernel::summarize(shape);break;
+                result["geometry"]=GeometryKernel::summarize(shape);
+                break;
             }
             result["geometryEvaluated"]=true;
         } else result["geometryEvaluated"] = false;
@@ -7586,6 +7602,7 @@ QJsonObject AlloyWindow::execute(const QString& id, const QJsonObject& args) {
         const bool safe=id=="commands.list" || id=="app.state" || id=="document.inspect" || id=="command.cancel"
             || (session_.value("command")=="surface.extrude" && (id=="command.preview" || id=="command.update" || id=="command.commit"
                 || id=="surface.extrudeEntity" || id=="surface.extrudeProfile" || id=="selection.pick"))
+            || (session_.value("command")=="solid.coil" && (id=="command.preview" || id=="command.update" || id=="command.commit"))
             || (session_.value("command")=="surface.trim" && id=="command.commit")
             || (session_.value("command")=="surface.boundaryFill" && (id=="command.commit" || id=="command.preview" || id=="surface.boundaryFillSelectCells"))
             || id=="view.orbit" || id=="view.pan" || id=="view.zoom" || id=="view.orientation" || id=="view.home"
@@ -7801,7 +7818,7 @@ QJsonObject AlloyWindow::state() const {
         {"recovery",QJsonObject{{"available",recovery_->error().isEmpty()},{"warning",recoveryWarning_},
             {"staleCount",recovery_->list().size()},{"scope","committed authored state only"}}},
         {"inlineEditor",inlineEditorState()},
-        {"geometryWork",QJsonObject{{"active",geometryBusyActive_ || bool(geometryEvaluationRunning_) || bool(threadRunning_)},{"cancellable",false},{"resultDiscardAvailable",(meshExportOperation_.value("evaluationStatus")=="pending" && meshExportOperation_.value("evaluationPhase")!="publishing") || sketchEvaluationOperation_.value("evaluationStatus")=="pending" || documentOpenOperation_.value("evaluationStatus")=="pending" || session_.value("command")=="surface.extrude" || session_.value("command")=="surface.boundaryFill" || ((session_.value("command")=="surface.trim" || session_.value("command")=="solid.loft" || session_.value("command")=="solid.thread") && session_.value("evaluationStatus")=="pending")},{"last",lastGeometryWork_}}},
+        {"geometryWork",QJsonObject{{"active",geometryBusyActive_ || bool(geometryEvaluationRunning_) || bool(threadRunning_)},{"cancellable",false},{"resultDiscardAvailable",(meshExportOperation_.value("evaluationStatus")=="pending" && meshExportOperation_.value("evaluationPhase")!="publishing") || sketchEvaluationOperation_.value("evaluationStatus")=="pending" || documentOpenOperation_.value("evaluationStatus")=="pending" || session_.value("command")=="surface.extrude" || session_.value("command")=="surface.boundaryFill" || ((session_.value("command")=="surface.trim" || session_.value("command")=="solid.loft" || session_.value("command")=="solid.thread" || session_.value("command")=="solid.coil") && session_.value("evaluationStatus")=="pending")},{"last",lastGeometryWork_}}},
         {"focus",QJsonObject{{"widgetClass",QApplication::focusWidget() ? QApplication::focusWidget()->metaObject()->className() : ""},
             {"widgetName",QApplication::focusWidget() ? QApplication::focusWidget()->objectName() : QString{}},
             {"viewport",QApplication::focusWidget()==view_},
@@ -8313,7 +8330,7 @@ void AlloyWindow::refresh() {
             const auto feature=entry.toObject();if(feature["ownerId"].toString()!=document_->activeOwnerId())continue;const auto id=feature["id"].toString(),name=feature["name"].toString();
             const auto type=feature["type"].toString();
             static const QMap<QString,QPair<QString,QString>> presentation{
-                {"sketch",{"sketch.create","Sketch"}},{"box",{"primitive.box","Box"}},{"cylinder",{"primitive.cylinder","Cylinder"}},{"cone",{"primitive.cone","Cone"}},{"torus",{"primitive.torus","Torus"}},
+                {"sketch",{"sketch.create","Sketch"}},{"box",{"primitive.box","Box"}},{"cylinder",{"primitive.cylinder","Cylinder"}},{"cone",{"primitive.cone","Cone"}},{"torus",{"primitive.torus","Torus"}},{"coil",{"primitive.coil","Coil"}},
                 {"extrude",{"solid.extrudeDialog","Extrude"}},{"sphere",{"solid.sphereDialog","Sphere"}},{"fillet",{"solid.filletDialog","Fillet"}},
                 {"surfacePatch",{"surface.patchDialog","Patch"}},{"surfaceSweep",{"surface.sweepDialog","Sweep"}},{"surfaceUntrim",{"surface.untrimDialog","Untrim"}},{"surfaceExtend",{"surface.extendDialog","Extend"}},{"surfaceRuled",{"surface.ruledDialog","Ruled"}},{"surfaceStitch",{"surface.stitchDialog","Stitch"}},{"surfaceOffset",{"surface.offsetDialog","Offset"}},{"surfaceRevolve",{"surface.revolveDialog","Revolve"}},{"rib",{"solid.ribDialog","Rib"}},{"pipe",{"solid.pipeDialog","Pipe"}},{"sweep",{"solid.sweepDialog","Sweep"}},{"revolve",{"solid.revolveDialog","Revolve"}},{"chamfer",{"solid.chamferDialog","Chamfer"}},
                 {"thread",{"solid.threadDialog","Thread"}},{"faceOffset",{"solid.faceOffsetDialog","Offset Face"}},{"shell",{"solid.shellDialog","Shell"}},{"loft",{"solid.loftDialog","Loft"}},{"thicken",{"solid.thickenDialog","Thicken"}},
@@ -8473,7 +8490,7 @@ void AlloyWindow::refresh() {
         const auto inputs=session_.value("inputs").toObject();
         for(auto it=primitiveInputs_.begin();it!=primitiveInputs_.end();++it){const QSignalBlocker block(it.value());
             if(auto* named=dynamic_cast<LengthDistanceSpinBox*>(it.value()))named->showBinding({});
-            it.value()->setValue(inputs[it.key()].toDouble());it.value()->setSuffix(" "+inputs["units"].toString());
+            it.value()->setValue(inputs[it.key()].toDouble());it.value()->setSuffix(it.key()=="revolutions" ? "" : " "+inputs["units"].toString());
             if(auto* named=dynamic_cast<LengthDistanceSpinBox*>(it.value()))named->showBinding(inputs.value(it.key()+"Parameter").toString());}
         const QSignalBlocker block(primitiveName_);primitiveName_->setText(inputs["name"].toString());
     }
@@ -9761,10 +9778,11 @@ QJsonObject AlloyWindow::beginSession(const QString& command, const QJsonObject&
         if(command=="solid.box"){values["width"]=20/scale;values["depth"]=30/scale;}
         else if(command=="solid.cone"){values["baseDiameter"]=20/scale;values["topDiameter"]=0;values["height"]=24/scale;}
         else if(command=="solid.torus"){values.remove("height");values["majorRadius"]=14/scale;values["minorRadius"]=4/scale;}
+        else if(command=="solid.coil"){values.remove("height");values.remove("z");values["diameter"]=20/scale;values["pitch"]=5/scale;values["sectionSize"]=2/scale;values["revolutions"]=3;}
         else values["radius"]=5/scale;
     }
     for (auto it = inputs.begin(); it != inputs.end(); ++it) values[it.key()] = it.value();
-    if(command=="solid.box" || command=="solid.cylinder")for(const auto& field:command=="solid.box" ? QStringList{"width","depth","height"} : QStringList{"height"})if(values.contains(field+"Parameter")){
+    if(command=="solid.box" || command=="solid.cylinder" || command=="solid.coil")for(const auto& field:command=="solid.box" ? QStringList{"width","depth","height"} : command=="solid.coil" ? QStringList{"pitch"} : QStringList{"height"})if(values.contains(field+"Parameter")){
         const auto row=lengthParameter(values[field+"Parameter"].toString());if(row.isEmpty())return failure("unknown_parameter","User length name is unavailable",field+"Parameter");
         values[field]=row["valueMm"].toDouble()/(values["units"]=="in" ? 25.4 : 1);
     }
@@ -10217,6 +10235,24 @@ QJsonObject AlloyWindow::finishSession(const QString& id, bool commit) {
         if(commit && (session_.contains("pendingSketchMove") || session_["moveInteraction"].toObject()["active"].toBool()))
             return failure("pending_move","Accept or cancel Move before finishing the sketch");
         if(!commit)closeSketchMoveControls();
+    }
+    if(session_.value("command")=="solid.coil"){
+        if(commit){
+            session_["coilCommitRequested"]=true;
+            const auto preview=previewCoil();
+            if(preview.value("evaluationStatus")=="pending" || (preview.contains("ok") && !preview.value("ok").toBool()))return preview;
+            if(!coilPrepared_)return failure("evaluation_failed","A current Coil preview is required");
+            const auto task=coilPrepared_;
+            const auto error=document_->commitCoilEvaluation(task->full,task->candidate,task->base,task->revision);
+            if(!error.isEmpty())return failure("evaluation_failed",error);
+        }
+        ++geometryEvaluationGeneration_;geometryEvaluationQueued_.reset();coilPrepared_.reset();
+        auto terminal=session_;terminal["status"]=commit ? "committed" : "cancelled";
+        terminal["evaluationStatus"]=commit ? "completed" : "failed";
+        if(!commit)terminal["previewError"]=QJsonObject{{"code","command_cancelled"},{"message","Coil result discarded"}};
+        geometryEvaluationTerminal_=terminal;
+        session_={};view_->clearPreview();view_->setEditDisplay({},{});if(primitiveDock_)primitiveDock_->hide();
+        return QJsonObject{{"sessionId",id},{"status",commit ? "committed" : "cancelled"},{"document",document_->state()},{"evaluationStillRunning",bool(geometryEvaluationRunning_)}};
     }
     if(commit && session_.value("invalidEndOffset").toBool())return failure("invalid_arguments","Resolve the end offset before committing");
     if(commit && session_.contains("invalidNamedInput"))return failure("unknown_parameter","Resolve the unavailable user length name before committing");
@@ -10699,16 +10735,18 @@ QJsonObject AlloyWindow::primitiveCandidate(const QString& command,const QJsonOb
     QJsonObject parameters;
     const QStringList dimensions=type=="box" ? QStringList{"width","depth","height"}
         : type=="cone" ? QStringList{"baseDiameter","topDiameter","height"}
-        : type=="torus" ? QStringList{"majorRadius","minorRadius"} : QStringList{"radius","height"};
+        : type=="torus" ? QStringList{"majorRadius","minorRadius"}
+        : type=="coil" ? QStringList{"diameter","pitch","sectionSize"} : QStringList{"radius","height"};
     for(const auto& name:dimensions){
         const auto binding=name+"Parameter";
-        if((type=="box" || (type=="cylinder" && name=="height")) && inputs.contains(binding)){
+        if((type=="box" || (type=="cylinder" && name=="height") || (type=="coil" && name=="pitch")) && inputs.contains(binding)){
             const auto row=lengthParameter(inputs[binding].toString());
             if(row.isEmpty())throw std::invalid_argument("User length name is unavailable: "+binding.toStdString());
             parameters[name+"ParameterId"]=row["id"];
             parameters[name+"Mm"]=row["valueMm"];
         }else parameters[name+"Mm"]=CadDocument::millimeters(inputs.value(name).toDouble(),units);
     }
+    if(type=="coil")parameters["revolutions"]=inputs.value("revolutions");
     for(const auto& name:{"x","y","z"})parameters[QString(name)+"Mm"]=CadDocument::millimeters(inputs.value(name).toDouble(),units);
     feature["parameters"]=parameters;feature["name"]=inputs.value("name").toString(type.first(1).toUpper()+type.sliced(1));
     if(index>=0)features[index]=feature;else features.append(feature);
@@ -10749,28 +10787,37 @@ void AlloyWindow::showPrimitive() {
         auto* help=new QLabel("Alloy sizing: major radius reaches the tube center; minor radius sizes the tube.",contents);
         help->setWordWrap(true);help->setStyleSheet("color: #53616b;");form->addRow(help);
     }
+    if(command=="solid.coil") {
+        auto* help=new QLabel("Revolution And Pitch · Circular · On Center\nClockwise · +Z · New Body\nDiameter measures the helix centerline. Section Size is the circular wire diameter.",contents);
+        help->setObjectName("primitive.coilContract");help->setWordWrap(true);form->addRow(help);
+    }
     primitiveName_=new QLineEdit(inputs["name"].toString(),contents);primitiveName_->setObjectName("primitive.name");
     primitiveName_->setSizePolicy(QSizePolicy::Ignored,QSizePolicy::Fixed);form->addRow("Name",primitiveName_);
     const QStringList fields=command=="solid.box" ? QStringList{"width","depth","height","x","y","z"}
         : command=="solid.cone" ? QStringList{"baseDiameter","topDiameter","height","x","y","z"}
         : command=="solid.torus" ? QStringList{"majorRadius","minorRadius","x","y","z"}
+        : command=="solid.coil" ? QStringList{"diameter","revolutions","pitch","sectionSize","x","y"}
         : QStringList{"radius","height","x","y","z"};
     for(const auto& field:fields) {
-        const bool named=(command=="solid.box" && (field=="width" || field=="depth" || field=="height")) || (command=="solid.cylinder" && field=="height");
+        const bool named=(command=="solid.box" && (field=="width" || field=="depth" || field=="height")) || (command=="solid.cylinder" && field=="height") || (command=="solid.coil" && field=="pitch");
         auto* input=named ? static_cast<QDoubleSpinBox*>(new LengthDistanceSpinBox(contents)) : new QDoubleSpinBox(contents);
         // A spinbox's full-range size hint can exceed this narrow command form.
         // Let the form allocate its available width rather than clipping the field.
         input->setSizePolicy(QSizePolicy::Ignored,QSizePolicy::Fixed);
         input->setKeyboardTracking(false);input->setDecimals(6);input->setRange(field.size()==1 ? -100000 : field=="topDiameter" ? 0 : 0.000001,100000);
-        input->setSuffix(" "+inputs["units"].toString());input->setValue(inputs[field].toDouble());input->setObjectName("primitive."+field);
+        input->setSuffix(field=="revolutions" ? "" : " "+inputs["units"].toString());if(field=="revolutions")input->setRange(.25,20);input->setValue(inputs[field].toDouble());input->setObjectName("primitive."+field);
         if(named){auto* fieldInput=static_cast<LengthDistanceSpinBox*>(input);
             fieldInput->namedValue=[this,inputs](const QString& name)->std::optional<double>{const auto row=lengthParameter(name);if(row.isEmpty())return {};return row["valueMm"].toDouble()/(inputs["units"]=="in" ? 25.4 : 1);};
             fieldInput->showBinding(inputs.value(field+"Parameter").toString());
             connect(fieldInput,&QDoubleSpinBox::editingFinished,this,[this,field,fieldInput]{
-                if(session_.value("command")!="solid.box" && session_.value("command")!="solid.cylinder")return;
+                if(session_.value("command")!="solid.box" && session_.value("command")!="solid.cylinder" && session_.value("command")!="solid.coil")return;
                 const auto typed=fieldInput->enteredIdentifier();
                 if(!typed.isEmpty() && lengthParameter(typed).isEmpty()){
                     session_["invalidNamedInput"]=field;session_["previewed"]=false;view_->clearPreview();
+                    if(session_.value("command")=="solid.coil"){
+                        ++geometryEvaluationGeneration_;geometryEvaluationQueued_.reset();coilPrepared_.reset();session_["coilCommitRequested"]=false;
+                        session_["evaluationStatus"]="failed";session_["previewError"]=QJsonObject{{"code","unknown_parameter"},{"message","User length name is unavailable"}};
+                    }
                     primitiveError_->setText("User length name is unavailable");return;
                 }
                 if(session_.value("invalidNamedInput")==field && (!typed.isEmpty() || fieldInput->literalEdited()))session_.remove("invalidNamedInput");
@@ -10778,7 +10825,7 @@ void AlloyWindow::showPrimitive() {
                 else if(fieldInput->literalEdited())updatePrimitive({{field,fieldInput->value()}});
             });
         }
-        const QMap<QString,QString> labels{{"baseDiameter","Base diameter"},{"topDiameter","Top diameter"},{"majorRadius","Major radius"},{"minorRadius","Minor radius"}};
+        const QMap<QString,QString> labels{{"baseDiameter","Base diameter"},{"topDiameter","Top diameter"},{"majorRadius","Major radius"},{"minorRadius","Minor radius"},{"sectionSize","Section Size"},{"x",command=="solid.coil" ? "Center X" : "X"},{"y",command=="solid.coil" ? "Center Y" : "Y"}};
         primitiveInputs_[field]=input;form->addRow(labels.value(field,field.first(1).toUpper()+field.sliced(1)),input);
         connect(input,qOverload<double>(&QDoubleSpinBox::valueChanged),this,[this,field,input](double value){
             if(auto* named=dynamic_cast<LengthDistanceSpinBox*>(input);named && !named->enteredIdentifier().isEmpty())return;
@@ -10810,7 +10857,7 @@ void AlloyWindow::showPrimitive() {
 void AlloyWindow::updatePrimitive(const QJsonObject& inputs) {
     auto response=execute("command.update",{{"session",session_.value("id")},{"inputs",inputs}});
     if(response["ok"].toBool())response=execute("command.preview",{{"session",session_.value("id")}});
-    primitiveError_->setText(response["ok"].toBool() ? "" : response["error"].toObject()["message"].toString());
+    primitiveError_->setText(session_.value("command")=="solid.coil" && session_.value("evaluationStatus")=="pending" ? "Computing Coil preview… You can navigate or Cancel." : response["ok"].toBool() ? "" : response["error"].toObject()["message"].toString());
 }
 
 QJsonObject AlloyWindow::selectSolidEdge(const QString& bodyId,const QString& edgeId,const QString& occurrenceId) {

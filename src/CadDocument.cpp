@@ -1065,8 +1065,8 @@ QJsonObject CadDocument::resolveLengthBindings(const QJsonObject& authored) {
                 if(!values.contains(id))throw std::invalid_argument("Extrude references a missing length parameter");
                 p[binding.second]=values[id];
             }
-        } else if(feature["type"]=="box" || feature["type"]=="shell" || feature["type"]=="cylinder") {
-            const QStringList fields=feature["type"]=="box" ? QStringList{"width","depth","height"} : feature["type"]=="cylinder" ? QStringList{"height"} : QStringList{"thickness"};
+        } else if(feature["type"]=="box" || feature["type"]=="shell" || feature["type"]=="cylinder" || feature["type"]=="coil") {
+            const QStringList fields=feature["type"]=="box" ? QStringList{"width","depth","height"} : feature["type"]=="cylinder" ? QStringList{"height"} : feature["type"]=="coil" ? QStringList{"pitch"} : QStringList{"thickness"};
             for(const auto& field:fields) {
                 const auto idKey=field+"ParameterId";
                 if(!p.contains(idKey))continue;
@@ -1133,6 +1133,8 @@ QJsonArray CadDocument::modelLengthRows(const QJsonObject& authored) {
             }
         } else if(type=="cylinder") {
             append("heightMm","Height",{{"featureId",featureId},{"field","heightMm"}},p,effective,"heightParameterId");
+        } else if(type=="coil") {
+            append("pitchMm","Pitch",{{"featureId",featureId},{"field","pitchMm"}},p,effective,"pitchParameterId");
         } else if(type=="shell") {
             append("thicknessMm","Thickness",{{"featureId",featureId},{"field","thicknessMm"}},p,effective,"thicknessParameterId");
         } else if(type=="extrude") {
@@ -1383,6 +1385,10 @@ QString CadDocument::commitSketchEvaluation(const CandidateEvaluation& prepared,
         return "Historical sketch evaluation cannot append features";
     return commitEvaluatedFeature(prepared,requestedCandidate,expectedBase,expectedRevision,"sketch",label);
 }
+QString CadDocument::commitCoilEvaluation(const CandidateEvaluation& prepared,const QJsonObject& requestedCandidate,
+    const QJsonObject& expectedBase,quint64 expectedRevision) {
+    return commitEvaluatedFeature(prepared,requestedCandidate,expectedBase,expectedRevision,"coil","Coil");
+}
 QString CadDocument::commitThreadEvaluation(const CandidateEvaluation& prepared,
     const QJsonObject& requestedCandidate,const QJsonObject& expectedBase,quint64 expectedRevision,const QString& label) {
     return commitEvaluatedFeature(prepared,requestedCandidate,expectedBase,expectedRevision,"thread",label);
@@ -1402,7 +1408,7 @@ QString CadDocument::commitBoundaryFillEvaluation(const CandidateEvaluation& pre
 QString CadDocument::commitEvaluatedFeature(const CandidateEvaluation& prepared,
     const QJsonObject& requestedCandidate, const QJsonObject& expectedBase, quint64 expectedRevision,
     const QString& featureType, const QString& label) {
-    const QString featureLabel=featureType=="thread" ? "Thread" : featureType=="sketch" ? "Sketch" : featureType=="boundaryFill" ? "Boundary Fill" : featureType=="surfaceTrim" ? "Surface Trim" : featureType=="loft" ? "Loft" : "Surface Extrude";
+    const QString featureLabel=featureType=="coil" ? "Coil" : featureType=="thread" ? "Thread" : featureType=="sketch" ? "Sketch" : featureType=="boundaryFill" ? "Boundary Fill" : featureType=="surfaceTrim" ? "Surface Trim" : featureType=="loft" ? "Loft" : "Surface Extrude";
     lastEvaluationError_={};
     if(revision_!=expectedRevision || authored_!=expectedBase)
         return "The document changed; cancel and restart "+featureLabel;
@@ -3459,7 +3465,7 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
             }
             continue;
         }
-        if (type != "box" && type != "cylinder" && type != "cone" && type != "torus" && type != "extrude") return "Unsupported feature type";
+        if (type != "box" && type != "cylinder" && type != "cone" && type != "torus" && type != "coil" && type != "extrude") return "Unsupported feature type";
         const bool cut=type=="extrude" && (p["operation"]=="cut" || p["operation"]=="join" || p["operation"]=="intersect");
         if(cut) {
             if(feature.contains("bodyId"))return "Extrude Join/Cut/Intersect modifies a target and cannot own a new body ID";
@@ -3550,6 +3556,7 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
         const QStringList dimensions = type == "box" ? QStringList{"widthMm", "depthMm", "heightMm"}
                                                      : type == "cone" ? QStringList{"baseDiameterMm", "topDiameterMm", "heightMm"}
                                                      : type == "torus" ? QStringList{"majorRadiusMm", "minorRadiusMm"}
+                                                     : type == "coil" ? QStringList{"diameterMm", "pitchMm", "sectionSizeMm"}
                                                      : QStringList{"radiusMm", "heightMm"};
         for (const auto& field : dimensions) {
             if (!p[field].isDouble() || !std::isfinite(p[field].toDouble())
@@ -3561,12 +3568,13 @@ QString CadDocument::validateStructure(const QJsonObject& candidate, QJsonObject
                 return "Placement out of supported range: " + QString(field);
         }
         if(type=="torus" && p["majorRadiusMm"].toDouble()<=p["minorRadiusMm"].toDouble())return "Major radius must exceed minor radius";
+        if(type=="coil" && (!p.value("revolutions").isDouble() || !std::isfinite(p.value("revolutions").toDouble()) || p.value("revolutions").toDouble()<0.25 || p.value("revolutions").toDouble()>20 || p.value("zMm").toDouble()!=0))return "Coil requires 0.25..20 revolutions on the XY plane";
         int bindings=0;
-        if(type=="box" || type=="cylinder")for(const auto& field:type=="box" ? QStringList{"width","depth","height"} : QStringList{"height"})if(p.contains(field+"ParameterId")) {
+        if(type=="box" || type=="cylinder" || type=="coil")for(const auto& field:type=="box" ? QStringList{"width","depth","height"} : type=="coil" ? QStringList{"pitch"} : QStringList{"height"})if(p.contains(field+"ParameterId")) {
             if(!validId(p[field+"ParameterId"].toString()))return "Primitive dimension binding requires a stable parameter ID";
             ++bindings;
         }
-        if (p.size() != dimensions.size() + 3 + bindings) return "Unknown feature parameter";
+        if (p.size() != dimensions.size() + 3 + bindings + int(type=="coil")) return "Unknown feature parameter";
     }
     if (errorContext) *errorContext = {};
     return {};

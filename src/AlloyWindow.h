@@ -493,6 +493,10 @@ private:
     QDockWidget* loftDock_=nullptr;
     QShortcut* loftEscape_=nullptr;
     struct GeometryEvaluation;
+    QJsonObject previewCoil();
+    void completeCoilEvaluation(const std::shared_ptr<GeometryEvaluation>& task);
+    static void evaluateCoil(GeometryEvaluation& task);
+    std::shared_ptr<GeometryEvaluation> coilPrepared_;
     struct LoftPreviewSource;
     struct LoftPreviewEvaluation;
     std::shared_ptr<const LoftPreviewSource> loftSource_;
@@ -552,6 +556,7 @@ private:
         QJsonObject trimClickResult;
         qint64 sourceMs = 0, fullMs = 0, stageMs = 0;
         QString error;
+        std::vector<TopoDS_Shape> preparedDisplayMeshes;
         std::vector<EvaluatedBody> exportBodies; // Independent geometry; never live reference arrays.
         std::vector<gp_Trsf> exportTransforms; // One placed-body build transform per detached export body.
         std::shared_ptr<MeshExport::PublicationGate> exportPublication;
