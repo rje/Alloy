@@ -17,8 +17,14 @@ Revolutions And Pitch, circular On Center section, +Z clockwise/New Body.
 Numerical defaults/viewpoint are Alloy choices; wider variants remain ADV-005.
 REL-056/#736 retains measured source/history/display costs and is required by
 REL-049. FND-030/#737 retains the final post-async-edit activation loss and
-uninterrupted native continuation; FND-007 requires it. This focus gate is next,
-not accepted by the bounded functional Coil receipt. Maintain one active issue, obtain
+uninterrupted native continuation; FND-007 requires it. The bounded focus replay
+proves async OK/Search/Escape but stops before later input when Firefox takes
+foreground. FND-030 is back in Todo, unaccepted; no product activation change or
+further unchanged native retries are justified. See
+[the partial receipt](validation/async-coil-native-continuation.md).
+Next is REL-056's measured intrinsic display/source/history cost, which can be
+verified through the control API without a native foreground lease.
+Maintain one active issue, obtain
 proportionate independent Sol review, push the accepted result and mark its
 issue/board Done before moving on.
 

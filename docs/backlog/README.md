@@ -7,8 +7,8 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **734 issues**: **580 implementation, 25 research,
-6 research/design, 22 epics, and 101 validation gates**. Counts describe decomposition, not coverage.
+The current local backlog contains **734 issues**: **579 implementation, 25 research,
+6 research/design, 22 epics, and 102 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
 [SOL-060/#505](../validation/solid-coil.md) accepts the bounded Coil workflow
 after independent review; REL-056 separately retains
