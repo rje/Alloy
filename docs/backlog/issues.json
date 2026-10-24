@@ -9221,7 +9221,8 @@
         "REL-003",
         "GATE-005",
         "REL-018",
-        "REL-056"
+        "REL-056",
+        "REL-057"
       ],
       "labels": [
         "area:rel"
@@ -12474,7 +12475,7 @@
         "priority:P1",
         "area:xch"
       ],
-      "body": "## Measured problem\nAt XCH-015's 200000-facet/600000-vertex capacity fixture, importing took 3.449 s and a subsequent 4 × 5 × 6 mm Box commit took 1.638 s. General document validation rechecks owned mesh geometry and quality on each later modeling commit. See `docs/validation/retained-stl-import.md` and the external capacity receipt.\n\n## Bounded result and acceptance\nProfile the Box-after-import path on the same fixture; identify validation, JSON/history copying and evaluation time separately. Cache or structurally share only immutable, already-validated mesh geometry/quality where semantics permit, with invalidation on mesh replacement/reopen. Keep import atomic, diagnostics exact, history/Undo/Redo and native serialization source-independent. Demonstrate a material reduction in median Box-after-import latency on the same host/build/fixture, report before/after wall and sampled RSS, and preserve an unchanged normal Box baseline. If another stage dominates, document that measurement and split it into a linked Todo issue rather than attributing it to mesh validation. Use a focused real-app fixture and one independent review. REL-049 retains the wider packaged-command cost audit.\n"
+      "body": "## Measured problem\nAt XCH-015's 200000-facet/600000-vertex capacity fixture, importing took 3.449 s and a subsequent 4 × 5 × 6 mm Box commit took 1.638 s. General document validation rechecks owned mesh geometry and quality on each later modeling commit. See `docs/validation/retained-stl-import.md` and the external capacity receipt.\n\n## Bounded result and acceptance\nProfile the Box-after-import path on the same fixture; identify validation, JSON/history copying and evaluation time separately. Cache or structurally share only immutable, already-validated mesh geometry/quality where semantics permit, with invalidation on mesh replacement/reopen. Keep import atomic, diagnostics exact, history/Undo/Redo and native serialization source-independent. Demonstrate a material reduction in median Box-after-import latency on the same host/build/fixture, report before/after wall and sampled RSS, and preserve an unchanged normal Box baseline. If another stage dominates, document that measurement and split it into a linked Todo issue rather than attributing it to mesh validation. Use a focused real-app fixture and one independent review. REL-049 retains the wider packaged-command cost audit.\n\n## Separately measured recovery remainder\nThe matched2026-10-24 profile identifies269–289ms rewriting an89MB recovery snapshot after each full-cap Box. REL-057 retains that independent encoding/write cost under REL-049. Report validation and total wall improvements separately; do not attribute recovery cost to mesh quality validation.\n"
     },
     {
       "key": "XCH-021",
@@ -12561,6 +12562,23 @@
         "area:rel"
       ],
       "body": "## Measured first-v1 performance remainder\nSOL-060's responsive prepared Coil route keeps native input alive, but intrinsic display cost and the existing synchronous parameter/history paths remain release work. The 2026-10-24 original fixture/report is external at `../Alloy-reference-records/validation/coil-2026-10-24/api-responsive/report.json`. Its named Pitch=7 source update took 5.883 s, Undo 5.645 s and Redo 171 ms. A default worker preview reports full evaluation 329 ms, display mesh 4543 ms, publication 225 ms and heartbeat max gap59 ms. Earlier direct kernel phases were about88 ms plus63 ms summary. Do not confuse different fixture states/load or the older synchronous baseline with a matched before/after comparison.\n\n## Bounded result and acceptance\n- Profile the accepted saved Coil+named Pitch+downstream Move fixture's source update and Undo path, separating retained evaluation, display meshing, main-thread publication and history/JSON cost. Identify the actual dominant work rather than assuming sweep or solver time.\n- Reuse immutable prepared display/evaluation data or remove demonstrated redundant work where safe; maintain visual quality, supported tessellation error and ordinary GPU behavior. If the intrinsic operation remains long, also keep parameter/history input responsive using existing worker foundations. Do not substitute only moving unchanged work off the UI thread for the intrinsic-cost investigation.\n- On the same host/build/input states report a small matched before/after sample, material latency reduction and remaining main-thread gaps. Preserve authored values/IDs, named binding and downstream Move, Undo/Redo/reopen, B-rep validity and independent printable output. One bounded independent review; no broad command corpus or paid CI.\n\nSOL-060 owns functional Coil acceptance. This issue is Todo and is a required child of REL-049's stable-v1 cost audit; functional closure does not accept these release timings.\n"
+    },
+    {
+      "key": "REL-057",
+      "title": "Reduce large retained-mesh recovery snapshot serialization and write cost",
+      "kind": "implementation",
+      "phase": "P4 Initial release",
+      "priority": "P1",
+      "depends_on": [
+        "XCH-020"
+      ],
+      "labels": [
+        "kind:implementation",
+        "phase:P4",
+        "priority:P1",
+        "area:rel"
+      ],
+      "body": "## Measured remainder from XCH-020\nThe exact200000-facet/600000-vertex fixture's ordinary4x5x6 Box profile separates repeated validation from recovery. `../Alloy-reference-records/validation/mesh-box-cost-2026-10-24/before/{report.json,app.log}` records recovery269/270/289ms rewriting an89MB native recovery snapshot; normalBox median99.4ms and full-cap median874.5ms before the validation fix. Presentation/reuse is a separate124–126ms refresh, not the recovery cause. XCH-020 must report its own validation improvement separately.\n\n## Bounded result and acceptance\n- Profile recovery encoding/serialization versus atomic-write cost on the same accepted capacity fixture after XCH-020. Choose the smallest supported encoding/data-reuse correction; inspect current formatting before assuming it is the cause. Avoid a new blob/archive framework without measured need.\n- Materially reduce recovery bytes/CPU/I/O while preserving full authored meshes and source-independent crash recovery, per-tab owner locks, atomic replacement, stale-candidate behavior and prior valid data after failure. No caller-supplied validation flags or references to disposable source/build paths. Ordinary native save readability/compatibility must be retained or an explicit compatible policy stated.\n- Run a small matched Box/recovery before/after sample plus normalBox baseline/RSS. Reuse existing meaningful recovery roundtrip/failure-atomic checks and one independent review; no broad crash corpus or native keyboard/focus replay. Confirm recovered authored data and imported geometry remain exact after the STL source is unavailable.\n\nThis is a Todo performance child required by REL-049, split from XCH-020's separately attributable validation fix. No paid CI or release tag.\n"
     }
   ]
 }

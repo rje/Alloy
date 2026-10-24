@@ -7,9 +7,11 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **734 issues**: **579 implementation, 25 research,
+The current local backlog contains **735 issues**: **580 implementation, 25 research,
 6 research/design, 22 epics, and 102 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
+XCH-020 owns repeated validated-mesh checks after unrelated modeling; REL-057
+separately owns the measured large recovery snapshot rewrite under REL-049.
 [FND-008/#8](../decisions/007-initial-command-contracts.md) accepts the initial
 public command research matrix and open-default ledger; no implementation or
 runtime gate is accepted from that research alone.
