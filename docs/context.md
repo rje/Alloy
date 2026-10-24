@@ -32,8 +32,12 @@ review. Public defaults, policy, unknowns and open follow-ups are separated;
 registered IDs/semantics are pinned to Alloy1160d04. Detailed evidence stays
 external and standard knowledge search finds the aggregate; all22 records
 validate. This does not accept native/platform or exact-parity gates.
-Next is XCH-020/#729's measured repeated validation after retained mesh import,
-which can be completed with the existing control-API capacity fixture.
+[XCH-020/#729](validation/mesh-box-cost.md) accepts `0428e2c`: private immutable
+mesh-record proof reuse reduces matched capacity Box median874.5→561.5 ms;
+global invariants, changed/untrusted reopen, history and source-independent
+native saves remain checked. Normal Box timings overlap and sampled benchmark
+RSS is essentially unchanged. Recovery363–391 ms is separately attributed to
+REL-057/#738, which is next for the same retained-mesh workflow under REL-049.
 Maintain one active issue, obtain
 proportionate independent Sol review, push the accepted result and mark its
 issue/board Done before moving on.

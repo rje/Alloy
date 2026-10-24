@@ -1,6 +1,6 @@
 # Box after retained mesh cost
 
-XCH-020 / #729, 2026-10-24. This bounded change removes repeated strict
+XCH-020 / #729, accepted at `0428e2c` after independent Sol review, 2026-10-24. This bounded change removes repeated strict
 validation of unchanged, already validated retained mesh records. It does not
 make the full command latency negligible; recovery snapshot cost remains
 REL-057 / #738 under REL-049.

@@ -58,6 +58,12 @@ control available. Cancellation discards the result while work drains.
 Rename, unit/expression transformations, multiple Coils and other feature
 stacks retain their existing route and broader REL-049 performance obligations.
 
+Unchanged retained mesh records can reuse a private immutable validation proof
+during unrelated authored edits and history. This does not alter the public
+inspection/save schema: source hashes or serialized flags do not grant trust,
+and changed records and native-file open/recovery still validate incoming data.
+See [the matched capacity receipt](validation/mesh-box-cost.md).
+
 ## Launch and discover
 
 ```sh

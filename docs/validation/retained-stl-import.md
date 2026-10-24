@@ -1,5 +1,9 @@
 # Retained STL mesh import
 
+The later [owned validation reuse receipt](mesh-box-cost.md) accepts XCH-020/#729
+for unrelated-edit cost. Its matched capacity Box median is 874.5→561.5 ms; the
+earlier measurements below remain historical. Recovery cost is separate REL-057.
+
 XCH-015/#722, 2026-10-21. Bounded core/API implementation of
 [decision 004](../decisions/004-mesh-import-foundation.md). REF-MESH-01–09 and the
 public workflow contract remain external under

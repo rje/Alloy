@@ -1,5 +1,10 @@
 # Alloy
 
+[Owned retained-mesh validation](docs/validation/mesh-box-cost.md) now avoids
+rechecking unchanged imported geometry on unrelated edits. Matched full-capacity
+Box median improves 874.5 → 561.5 ms; changed/reopened meshes still validate fully.
+Recovery rewrite cost remains separately tracked under REL-057/#738.
+
 [Initial command contracts](docs/decisions/007-initial-command-contracts.md)
 now cover the required sketch-to-solid/export baseline with sourced defaults,
 explicit unknowns, pinned API mappings and open follow-up owners. The detailed

@@ -10,7 +10,8 @@ dependency keys with issue numbers.
 The current local backlog contains **735 issues**: **580 implementation, 25 research,
 6 research/design, 22 epics, and 102 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
-XCH-020 owns repeated validated-mesh checks after unrelated modeling; REL-057
+[XCH-020/#729](../validation/mesh-box-cost.md) accepts owned mesh-validation reuse;
+REL-057
 separately owns the measured large recovery snapshot rewrite under REL-049.
 [FND-008/#8](../decisions/007-initial-command-contracts.md) accepts the initial
 public command research matrix and open-default ledger; no implementation or
@@ -33,8 +34,9 @@ core/API import; [XCH-018/#727](../validation/retained-mesh-presentation.md)
 accepts separate Browser/GPU mesh identity, selection and visibility.
 [XCH-019/#728](../validation/native-stl-import.md) accepts the bounded native
 chooser product/ready-preview workflow, with strict OS chooser input excluded.
-Cumulative native XCH-016/#723 and measured repeat-validation cost XCH-020/#729
-remain open. The bounded strict OBJ cumulative slice XCH-017/#724 accepts
+Cumulative native XCH-016/#723 remains open. XCH-020/#729 accepts the matched
+repeat-validation fix; independent recovery cost remains REL-057/#738.
+The bounded strict OBJ cumulative slice XCH-017/#724 accepts
 independent combined child review.
 [XCH-023/#732](../validation/strict-obj-core.md) accepts strict OBJ
 parsing/retention. [XCH-024/#733](../validation/native-obj-import.md) accepts
