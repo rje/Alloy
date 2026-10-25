@@ -22,7 +22,8 @@
     "readiness_result": "Historical ready count below predates reconciliation: 36 ready at original audit.",
     "closed_issue_policy": "Closed issues are supporting evidence only; they do not establish family-wide or cumulative release readiness.",
     "tut018_policy": "Corrected adapted tutorial independently accepted at ffe84b5; source dimensions/native input and responsiveness remain qualified.",
-    "reconciled_at": "2026-10-18 after corrected iron cumulative acceptance and measured REL-038\u2013041 stalls"
+    "reconciled_at": "2026-10-18 after corrected iron cumulative acceptance and measured REL-038\u2013041 stalls",
+    "renderer_timing_amendment": "2026-10-24 user decision: RHI-001/RHI-002/GATE-045 are post-v1; GATE-050 no longer depends on GATE-045, which is retained at GATE-110. Other snapshot states/counts are historical."
   },
   "issues": [
     {
@@ -2802,9 +2803,9 @@
       "kind": "research",
       "category": "rhi",
       "phase": "P0 Foundation",
-      "priority": "P1",
-      "proposed_bucket": "v1-candidate",
-      "rationale": "Open rhi breadth improves representative part creation or ordinary workflow quality. Schedule after core blockers according to dependency and risk; completion is not a substitute for cumulative gate evidence.",
+      "priority": "P2",
+      "proposed_bucket": "later-roadmap",
+      "rationale": "User decision 2026-10-24 defers native Metal/Vulkan backend work beyond v1 unless material immediate advantage warrants reconsideration; requirements remain Todo through GATE-110. Required v1 GPU/visual behavior stays in existing release gates.",
       "depends_on": [
         "FND-002",
         "DOC-005",
@@ -2822,9 +2823,9 @@
       "kind": "implementation",
       "category": "rhi",
       "phase": "P1 Geometry/document",
-      "priority": "P1",
-      "proposed_bucket": "v1-candidate",
-      "rationale": "Open rhi breadth improves representative part creation or ordinary workflow quality. Schedule after core blockers according to dependency and risk; completion is not a substitute for cumulative gate evidence.",
+      "priority": "P2",
+      "proposed_bucket": "later-roadmap",
+      "rationale": "User decision 2026-10-24 defers native Metal/Vulkan backend work beyond v1 unless material immediate advantage warrants reconsideration; requirements remain Todo through GATE-110. Required v1 GPU/visual behavior stays in existing release gates.",
       "depends_on": [
         "RHI-001",
         "DOC-005",
@@ -2842,9 +2843,9 @@
       "kind": "validation",
       "category": "cumulative product gate",
       "phase": "P4 Initial release",
-      "priority": "P0",
-      "proposed_bucket": "v1-blocker",
-      "rationale": "Open cumulative product gate requirement attached to the initial dependable shape-creation path. It blocks the release claim until its exact acceptance evidence is current; split only if existing scope proves too broad.",
+      "priority": "P2",
+      "proposed_bucket": "later-roadmap",
+      "rationale": "User decision 2026-10-24 defers native Metal/Vulkan backend work beyond v1 unless material immediate advantage warrants reconsideration; requirements remain Todo through GATE-110. Required v1 GPU/visual behavior stays in existing release gates.",
       "depends_on": [
         "GATE-040",
         "RHI-002",
@@ -3552,7 +3553,6 @@
         "SKT-013",
         "HIS-004",
         "UX-001",
-        "GATE-045",
         "SKT-025",
         "PAR-004",
         "DOC-022",
@@ -4797,7 +4797,8 @@
         "FULL-001",
         "FULL-002",
         "FULL-003",
-        "FULL-004"
+        "FULL-004",
+        "GATE-045"
       ],
       "url": "https://github.com/rje/Alloy/issues/130"
     },

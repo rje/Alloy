@@ -54,7 +54,7 @@ Important gaps visible before any final burndown:
 - Suppression, rollback, reference repair, full expression coverage, everyday
   native input, visual consistency, interaction performance and all-platform
   packages remain release work. Production rendering is GPU OpenGL; Metal/Vulkan
-  migration remains open under the accepted renderer direction.
+  migration remains Todo beyond v1 by user decision 2026-10-24, unless material immediate advantage warrants reconsideration. Actual packaged GPU behavior and visual quality remain v1 requirements.
 
 Issue keys identify existing scope owners. The local issue mirror is dated;
 closed broad parents and accepted ingredients do not prove their whole feature

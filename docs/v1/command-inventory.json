@@ -2165,14 +2165,12 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "GPU prototype exists; production is hardware OpenGL. Native Metal/Vulkan migration, transparent triangle ordering, broader scale/display and platform runtime remain open.",
+      "gap": "Hardware OpenGL remains eligible for v1 under the 2026-10-24 user decision. Transparent triangle ordering, readable CAD edges/seams, selection, broader scale/display and packaged platform GPU qualification remain open; native Metal/Vulkan migration is post-v1 under RHI-001/RHI-002/GATE-045.",
       "apiIds": [],
       "issueKeys": [
         "DOC-005",
         "VIS-003",
-        "REL-027",
-        "RHI-001",
-        "RHI-002"
+        "REL-027"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -2181,7 +2179,7 @@
         "docs/validation/gpu-foundation.md",
         "docs/validation/surface-thicken.md"
       ],
-      "planningStatus": "Existing scope owners; verify accepted subset before pulling"
+      "planningStatus": "Required v1 viewport behavior and quality remain with REL-027 and release gates; backend migration is post-v1, not a visual-defect waiver"
     },
     {
       "id": "construction.offset-plane",
@@ -4204,7 +4202,7 @@
       "scope": "proposed-v1",
       "implementation": "partial",
       "nativeEvidence": "partial",
-      "gap": "The accepted local macOS arm64 archive and runtime inventory are not clean-host, Intel Mac, Windows or Linux package/GPU/input qualification. A disclosed OpenGL development preview remains separate from stable Metal/Vulkan acceptance.",
+      "gap": "The accepted local macOS arm64 archive and runtime inventory are not clean-host, Intel Mac, Windows or Linux package/GPU/input qualification. Hardware OpenGL may qualify for stable v1; native Metal/Vulkan migration and GATE-045 are post-v1 by user decision 2026-10-24.",
       "apiIds": [],
       "issueKeys": [
         "REL-003",
@@ -4218,10 +4216,7 @@
         "CI-010",
         "CI-011",
         "CI-012",
-        "GATE-005",
-        "RHI-001",
-        "RHI-002",
-        "GATE-045"
+        "GATE-005"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
@@ -4233,7 +4228,7 @@
         "docs/validation/runtime-inventory.md",
         "docs/validation/cross-platform-runtime-recipe.md"
       ],
-      "planningStatus": "Native packages and GATE-005 remain open; stable Metal/Vulkan requires RHI-001/RHI-002 and GATE-045"
+      "planningStatus": "Native packages and GATE-005 remain open; packaged actual GPU and visual evidence are required independently of the post-v1 backend migration"
     },
     {
       "id": "release.input",

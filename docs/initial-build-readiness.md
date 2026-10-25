@@ -14,9 +14,13 @@ work, and export a correctly sized printable part. Existing advanced examples
 must remain usable and responsive. Controls must be readable, selection obvious,
 and refusals actionable. Platform/input claims require evidence for that route.
 
-The current hardware-backed OpenGL renderer may serve an explicitly labelled
-development preview; this does not close the Metal/Vulkan destination or the
-stable-release RHI gates. Native compilation is already demonstrated, but those
+By user decision 2026-10-24, the current hardware-backed OpenGL renderer may
+qualify for stable v1 as well as development previews. Native Metal/Vulkan
+selection, migration and GATE-045 qualification are deferred beyond v1 unless
+a material immediate advantage warrants reconsideration; their long-term Todo
+requirements remain under decision 003. Actual packaged GPU, display-scale,
+selection, CAD edge/overlay quality and three-platform runtime requirements
+remain release gates. Native compilation is already demonstrated, but those
 unbundled binaries are not installable packages. No tag, matrix run or release
 promotion follows automatically from an ordinary commit.
 

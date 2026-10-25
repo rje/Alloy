@@ -489,7 +489,7 @@ Rust is outside this plan.
 | `GATE-020` | Editable mounting bracket | Constrained sketch → extrusion/join/cut → fillet → upstream edit → reopen/export |
 | `GATE-030` | Surface-authored duct plus enclosure/knob/slot fixtures | Surface continuity, gaps/stitch, thickening, new solid/sketch operations and editable history |
 | `GATE-040` | Imported adapter and printable parts | Independent source files/readback across declared formats, units, losses, mesh validity |
-| `GATE-045` | Native Metal/Vulkan CAD viewport | Packaged hardware and cumulative workflow evidence on every declared target |
+| `GATE-045` | Post-v1 native Metal/Vulkan CAD viewport | Todo backend migration qualification retained through GATE-110; v1 actual packaged GPU/visual requirements remain GATE-005/050 |
 | `GATE-050` | Dependable initial shape release | Packaged app, recovery/negative corpus, performance, physical workflow and qualified visuals |
 | `GATE-060` | Adjustable clamp assembly and drawings | Occurrences, DOF/limits, variants, drawing association/BOM and exports |
 | `GATE-070` | Configured instrument enclosure | Folded/flat metal, Form/direct/mesh edits, advanced modeling, local rendering/animation |
@@ -498,7 +498,7 @@ Rust is outside this plan.
 | `GATE-100` | Electronics-to-enclosure product | ERC/DRC, connectivity, board/package alignment and independent fabrication-file checks |
 | `GATE-110` | Full noncloud scope reconciliation | Every accepted command/option/family traced to implemented children and cumulative workflows; only evidenced cloud suboperations may defer |
 
-Each gate depends on actual feature issues plus earlier gates. Every newly
+Each gate depends on actual feature issues plus its required earlier gates. By user decision 2026-10-24, native-backend RHI-001/RHI-002/GATE-045 are post-v1 unless material immediate advantage warrants reconsideration; GATE-050 bypasses GATE-045, which remains required by GATE-110. This does not waive v1 packaged hardware, selection, visual quality or platform evidence. Every newly
 implemented capability must map into the growing fixture ledger; the main
 showcase object need not exercise every option, so retain small focused fixtures
 alongside it. Run **all previously accepted representative workflows** on the

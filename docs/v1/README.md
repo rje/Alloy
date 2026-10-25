@@ -1,5 +1,7 @@
 # Printable-part v1 review
 
+2026-10-24 user timing amendment: hardware OpenGL may qualify for stable v1. Native Metal/Vulkan selection, migration and GATE-045 are deferred beyond v1 unless a material immediate advantage warrants reconsideration. RHI-001/RHI-002/GATE-045 remain Todo through GATE-110; GATE-050 no longer depends on GATE-045. Packaged actual GPU/platform, capture/resize/DPI, selection, CAD edge/seam/overlay quality, transparency and performance acceptance remain required. This supersedes earlier backend timing statements, not visual defects or runtime evidence requirements.
+
 2026-10-24: [Command Search](../validation/command-search-focus.md) and the
 bounded [circular Coil](../validation/solid-coil.md) are accepted after independent
 review. Coil has real native/API creation and edit, named Pitch, history/reopen,
@@ -10,7 +12,7 @@ required release work. Stitch seam SRF-059 remains unaccepted
 after reverted prototype-renderer trials; no successful fix is implied.
 
 [Current execution order](priority-burndown-2026-10-21.md) identifies the next
-finishable Mac workflow, mesh import, native renderer and package gates without
+finishable Mac workflow, mesh import, viewport quality and package gates without
 changing this scope freeze.
 [A printable miniature bench vise](capstone-candidate.md) is a researched
 first-v1 capstone proposal; its whole-workflow and physical-print gates are not
@@ -64,6 +66,6 @@ also passes the [body Browser export path](../validation/native-browser-mesh.md)
 - [Backlog map](backlog-map.json) and [workstreams](backlog-notes.md): dated 484-issue reconciled snapshot, not a live board. It includes corrected TUT-018/TUT-034 acceptance, bounded TUT-035 clearance acceptance and the earlier REL-033–041 responsiveness state. REL-037 has a newer [final Open receipt](../validation/open-final-presentation.md).
 - [Iron reassessment](iron-reassessment.md): final shape rejected; public-view comparison and corrected fixture acceptance.
 
-Sequence: the [cumulative adapted enclosure gate](../validation/enclosure-cumulative-gate.md) is accepted → reconcile each v1 gap into a bounded owner → creation/revision reliability → native interaction polish → native renderer and packaged platform qualification. Close each active issue with its stated evidence before pulling another; split only explicit remaining requirements into linked Todo work.
+Sequence: the [cumulative adapted enclosure gate](../validation/enclosure-cumulative-gate.md) is accepted → reconcile each v1 gap into a bounded owner → creation/revision reliability → native interaction polish → viewport quality and packaged platform qualification. Close each active issue with its stated evidence before pulling another; split only explicit remaining requirements into linked Todo work.
 
 Site source is external at ../Alloy-reference-records/planning/v1-review-site; hosting identity is retained in its .openai/hosting.json. The site is owner-private. Source/data and local render/filter checks passed, and private deployment succeeded 2026-10-19. Browser visual QA for this revision was unavailable and remains open; an older hosting screenshot does not verify it.

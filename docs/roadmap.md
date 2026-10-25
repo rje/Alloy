@@ -97,4 +97,4 @@ A smoke test is control/workflow evidence. Geometry checks and matched visual
 comparisons establish different claims. Run checks appropriate to the increment
 and stop once the requested behavior is convincingly demonstrated.
 
-Native renderer migration is tracked in RHI-001/RHI-002 and GATE-045 under [decision 003](decisions/003-renderer-direction.md), without blocking the first sketch milestone. Published builds follow [version cadence](releases.md).
+Native renderer migration is tracked in RHI-001/RHI-002 and GATE-045 under [decision 003](decisions/003-renderer-direction.md), as post-v1 Todo work by user decision 2026-10-24 unless material immediate advantage warrants reconsideration. Actual packaged GPU/visual/platform requirements remain v1 gates. Published builds follow [version cadence](releases.md).
