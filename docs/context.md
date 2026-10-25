@@ -1,5 +1,26 @@
 ## Current execution order
 
+2026-10-25 read-only task-contract audit reviewed all99 live-open first-v1 issues
+(two independent Sol passes over feature tasks and release gates). The graph is
+acyclic and excludes deferred RHI work, but release membership is not executable
+contract readiness. Before treating the queue as fully specified, reconcile:
+- Broad-parent obligations versus frozen minima: SRF-006, DOC-012, HIS-002 and
+  SOL-003 remain transitively required; do not infer parent closure from children.
+- Pin concrete preimplementation fixtures/options for ASM-011, SKT-101,
+  SOL-063/065/068/069/070; PRT-003 needs its bounded defect corpus reconciled.
+- GATE-010 through050 name unregistered runner cases and demand every historical
+  workflow fresh on each build. The runner ledger only defines GATE-000 and
+  misclassifies all validation ancestors as release gates. A bounded typed
+  evidence/receipt integration contract is needed before these become executable
+  exits; preserve candidate-specific platform/GPU/input/export qualification.
+- REL-018 still contains superseded stable Metal/Vulkan wording; older issues
+  contain Qt-shell-only boilerplate. REL-001 needs a finite negative corpus;
+  REL-049 needs an explicit budget/actionable-inefficiency stopping rule.
+These are audit findings, not changed scope, accepted fixes or issue closures.
+Recent native surface/import/chooser children are comparatively concrete; a
+missing native/platform receipt is unfinished qualification, not vague scope.
+
+
 2026-10-24 board organization: use [v1 remaining work](https://github.com/users/rje/projects/1/views/2)
 for the first-release queue; Full backlog remains view1. Release scope is a
 separate single-select field derived from REL-054 and its transitive dependency
