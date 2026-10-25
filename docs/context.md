@@ -30,8 +30,11 @@ v1.research-completion-20261025 with tools/knowledge.py. The corpus validates24
 records. Generated research builds/unpacked candidate source/dev oracle venv
 were retired after review; all71 pinned exchange artifacts remain. No private
 editor, full app build, CI, tag or release was used by this research. Preserve
-user-owned instances. The dated109-task planning note below precedes the two
-research closures; regenerate current board/site data after publishing.
+user-owned instances. Both research issues are now closed/Done on GitHub; the readiness refresh
+shows522 closed of756 total and the v1 view has107 open tasks. Release scope
+checks zero changes. The dated109-task planning note below precedes these two
+closures. Local site data regenerated from the final mirror; hosted-site
+deployment and browser QA are not claimed.
 
 2026-10-25 task-contract cleanup is accepted as planning after independent Astra
 review. [The split map](v1/burndown-contracts-2026-10-25.md) and

@@ -16,6 +16,13 @@ and [work-order contract](../v1/work-order-contract.md) pin behavior, controls,
 results, evidence roles and proportional stopping rules. New requirements are
 not implied by splitting; old broad remainders stay open and reachable.
 
+Research-completion amendment2026-10-25: [decision008](../decisions/008-v1-research-completion.md)
+settles the remaining material source/control/foundation decisions; SOL-099 and
+XCH-001 are accepted research closures. The current v1 board has107 open
+implementation/qualification tasks. Use the [readiness index](../research/commands/v1-research-readiness.json)
+and fixed [performance targets](../v1/performance-budgets.md); no generic research
+phase remains hidden in those work orders.
+
 ### Release scope on the project board
 
 Use [v1 — remaining work](https://github.com/users/rje/projects/1/views/2) for
