@@ -65,6 +65,11 @@ Progress. Do not close a parent merely because one child passes.
 ## Cumulative gates and reuse
 
 A gate lists the required capability minimums and their concrete fixtures once.
+Keep the evidence work to plain JSON, a finite table and small extensions to the
+existing stdlib runner. Reviewers provide reuse/risk decisions; no automated
+semantic impact engine, database, daemon or new test framework is required.
+Existing reports/receipt references can cover several named assertions; do not
+manufacture one new wrapper or runtime case for every historical issue.
 It distinguishes runtime cases from reviewed research/license/CI receipts and
 candidate-bound native/platform receipts. A `kind:validation` issue is not
 necessarily a cumulative release gate. Unregistered proposed runner commands

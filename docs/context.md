@@ -27,9 +27,12 @@ research/visuals/original fixtures remain external in
 knowledge/specs/v1-contract-burndown-2026-10-25/. The review corrected a path count
 outside its finite path and pinned actual cubic SVG coordinates/analytic oracle.
 
-Publish the new canonical issues, ensure all are project members, sync Release
-scope with tools/project_scope.py, and regenerate local review-site data. New
-work is Todo until actively pulled. No private editor/build is needed for this
+All756 canonical issues are now published and project members; Release scope
+sync verifies zero changes (109 open v1,127 open later-roadmap). The local review
+site regenerated and passed static/render-filter checks; no hosted-site deployment
+or browser QA is claimed. External knowledge validates23 records, including
+v1.contract-burndown-20261025 with28 source observations and3 registered visuals.
+New work is Todo until actively pulled. No private editor/build is needed for this
 backlog change; preserve the user-owned running instance. The earlier99-task
 read-only audit is superseded by these specific contracts and dependencies.
 

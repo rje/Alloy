@@ -1,7 +1,7 @@
 {
   "repository": "rje/Alloy",
   "project_url": "https://github.com/users/rje/projects/1",
-  "updated": "2026-10-25T00:03:13.045680+00:00",
+  "updated": "2026-10-25T17:43:59.737405+00:00",
   "issues": {
     "HIS-008": {
       "number": 474,
@@ -3677,6 +3677,111 @@
       "number": 738,
       "url": "https://github.com/rje/Alloy/issues/738",
       "state": "closed"
+    },
+    "FND-031": {
+      "number": 739,
+      "url": "https://github.com/rje/Alloy/issues/739",
+      "state": "open"
+    },
+    "FND-032": {
+      "number": 740,
+      "url": "https://github.com/rje/Alloy/issues/740",
+      "state": "open"
+    },
+    "FND-033": {
+      "number": 741,
+      "url": "https://github.com/rje/Alloy/issues/741",
+      "state": "open"
+    },
+    "CI-013": {
+      "number": 742,
+      "url": "https://github.com/rje/Alloy/issues/742",
+      "state": "open"
+    },
+    "DOC-046": {
+      "number": 743,
+      "url": "https://github.com/rje/Alloy/issues/743",
+      "state": "open"
+    },
+    "DOC-047": {
+      "number": 744,
+      "url": "https://github.com/rje/Alloy/issues/744",
+      "state": "open"
+    },
+    "DOC-048": {
+      "number": 745,
+      "url": "https://github.com/rje/Alloy/issues/745",
+      "state": "open"
+    },
+    "DOC-049": {
+      "number": 746,
+      "url": "https://github.com/rje/Alloy/issues/746",
+      "state": "open"
+    },
+    "SOL-098": {
+      "number": 747,
+      "url": "https://github.com/rje/Alloy/issues/747",
+      "state": "open"
+    },
+    "HIS-014": {
+      "number": 748,
+      "url": "https://github.com/rje/Alloy/issues/748",
+      "state": "open"
+    },
+    "XCH-026": {
+      "number": 749,
+      "url": "https://github.com/rje/Alloy/issues/749",
+      "state": "open"
+    },
+    "XCH-027": {
+      "number": 750,
+      "url": "https://github.com/rje/Alloy/issues/750",
+      "state": "open"
+    },
+    "XCH-025": {
+      "number": 751,
+      "url": "https://github.com/rje/Alloy/issues/751",
+      "state": "open"
+    },
+    "XCH-028": {
+      "number": 752,
+      "url": "https://github.com/rje/Alloy/issues/752",
+      "state": "open"
+    },
+    "XCH-029": {
+      "number": 753,
+      "url": "https://github.com/rje/Alloy/issues/753",
+      "state": "open"
+    },
+    "XCH-030": {
+      "number": 754,
+      "url": "https://github.com/rje/Alloy/issues/754",
+      "state": "open"
+    },
+    "XCH-031": {
+      "number": 755,
+      "url": "https://github.com/rje/Alloy/issues/755",
+      "state": "open"
+    },
+    "PRT-017": {
+      "number": 756,
+      "url": "https://github.com/rje/Alloy/issues/756",
+      "state": "open"
+    },
+    "PRT-018": {
+      "number": 757,
+      "url": "https://github.com/rje/Alloy/issues/757",
+      "state": "open"
+    },
+    "SOL-099": {
+      "number": 758,
+      "url": "https://github.com/rje/Alloy/issues/758",
+      "state": "open"
+    },
+    "PRT-019": {
+      "number": 759,
+      "url": "https://github.com/rje/Alloy/issues/759",
+      "state": "open"
     }
   }
 }
