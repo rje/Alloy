@@ -1,5 +1,14 @@
 # v1 release execution ledger
 
+2026-10-25 burndown clarification: the canonical issue graph now names separate
+minimum owners for naming/reference repair, selection, constant Fillet and
+STEP/IGES/DXF/SVG; broader family parents remain open outside v1. See
+[the work-order contract](work-order-contract.md) and [the dated split map](burndown-contracts-2026-10-25.md).
+The selected minima are unchanged; dated counts and owner annotations below are
+historical, not the live board. Typed gate evidence/coverage/runner delivery is
+FND-031/032/033; CI-013 separates promotion-tool readiness from publication.
+
+
 2026-10-24 user timing amendment: hardware OpenGL may qualify for stable v1. Native Metal/Vulkan selection, migration and GATE-045 are deferred beyond v1 unless a material immediate advantage warrants reconsideration. RHI-001/RHI-002/GATE-045 remain Todo through GATE-110; GATE-050 no longer depends on GATE-045. Packaged actual GPU/platform, capture/resize/DPI, selection, CAD edge/seam/overlay quality, transparency and performance acceptance remain required. This supersedes earlier backend timing statements, not visual defects or runtime evidence requirements.
 
 Purpose: connect the v1 inventory to candidate owners, existing local receipts, and the cumulative release evidence still required. This is an execution ledger, not a feature-completion report. Existing receipts support bounded slices only; they do not imply the full row or any candidate package passed. The inventory/reconciliation and the independent audit are dated planning inputs, not a live issue-board refresh. The [2026-10-20 planning freeze](scope-reconciliation-2026-10-20.md) resolves the earlier `S`/`O` scope choices; this table's labels and `(o)`/`(c)` suffixes remain dated implementation/ownership observations. Before pulling work, check current issue state and the frozen minimum rather than treating the table's old status prose as a current scope decision.

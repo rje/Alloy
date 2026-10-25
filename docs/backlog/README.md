@@ -7,9 +7,14 @@ issues. Stable keys survive GitHub issue numbering. Published numbers and links
 are in [github.md](github.md) and [github.json](github.json); do not replace
 dependency keys with issue numbers.
 
-The current local backlog contains **735 issues**: **580 implementation, 25 research,
-6 research/design, 22 epics, and 102 validation gates**. Counts describe decomposition, not coverage.
+The current local backlog contains **756 issues**: **595 implementation, 26 research,
+6 research/design, 22 epics, and 107 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
+
+The [2026-10-25 burndown split map](../v1/burndown-contracts-2026-10-25.md)
+and [work-order contract](../v1/work-order-contract.md) pin behavior, controls,
+results, evidence roles and proportional stopping rules. New requirements are
+not implied by splitting; old broad remainders stay open and reachable.
 
 ### Release scope on the project board
 
@@ -523,8 +528,11 @@ Rust is outside this plan.
 Each gate depends on actual feature issues plus its required earlier gates. By user decision 2026-10-24, native-backend RHI-001/RHI-002/GATE-045 are post-v1 unless material immediate advantage warrants reconsideration; GATE-050 bypasses GATE-045, which remains required by GATE-110. This does not waive v1 packaged hardware, selection, visual quality or platform evidence. Every newly
 implemented capability must map into the growing fixture ledger; the main
 showcase object need not exercise every option, so retain small focused fixtures
-alongside it. Run **all previously accepted representative workflows** on the
-same candidate build. A previous green issue is not a fresh regression result.
+alongside it. Use the finite candidate suite and typed evidence plan from
+FND-031/032/033: reuse accepted implementation receipts with explicit candidate
+applicability, deduplicate shared fixtures and rerun changed/platform-risk paths.
+Exact-archive native/runtime/GPU/export observations remain required on each
+advertised OS. A previous green issue is not a fresh candidate observation.
 
 The runner is implemented by `FND-010`; the [ledger](../../tests/workflows/ledger.json)
 lists current shell, authored, session, kernel, native-audit and primitive cases.

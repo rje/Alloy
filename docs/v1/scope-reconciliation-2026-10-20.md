@@ -1,5 +1,14 @@
 # First-v1 planning scope freeze
 
+2026-10-25 burndown clarification: the canonical issue graph now names separate
+minimum owners for naming/reference repair, selection, constant Fillet and
+STEP/IGES/DXF/SVG; broader family parents remain open outside v1. See
+[the work-order contract](work-order-contract.md) and [the dated split map](burndown-contracts-2026-10-25.md).
+The selected minima are unchanged; dated counts and owner annotations below are
+historical, not the live board. Typed gate evidence/coverage/runner delivery is
+FND-031/032/033; CI-013 separates promotion-tool readiness from publication.
+
+
 2026-10-24 user timing amendment: hardware OpenGL may qualify for stable v1. Native Metal/Vulkan selection, migration and GATE-045 are deferred beyond v1 unless a material immediate advantage warrants reconsideration. RHI-001/RHI-002/GATE-045 remain Todo through GATE-110; GATE-050 no longer depends on GATE-045. Packaged actual GPU/platform, capture/resize/DPI, selection, CAD edge/seam/overlay quality, transparency and performance acceptance remain required. This supersedes earlier backend timing statements, not visual defects or runtime evidence requirements.
 
 This freezes the **planning boundary**, not feature readiness or release approval, for REL-030/#469 on 2026-10-20. The user's 2026-10-17 review accepted the printable-part direction; the 150-row inventory has 134 first-v1 rows, one experimental assembly row, six infrastructure rows and nine later rows. Within the 134, the dated implementation audit labels 60 `S`, 27 `O`, 34 `E` and 13 `R`; these letters remain historical evidence/ownership markers, not undecided scope. The 63-row [partial disposition](partial-row-disposition.md) includes three rows whose bounded minima were accepted afterward; the 27-row [open-owner disposition](open-row-disposition.md) chooses the other incomplete boundaries. Every remaining proposed-v1 `E` row keeps its named accepted bounded minimum, and each `R` row remains a required cumulative gate. The 2026-10-17 command discovery is a dated 397-ID snapshot, not a current full-registry claim.

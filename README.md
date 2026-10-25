@@ -1,5 +1,9 @@
 # Alloy
 
+The [v1 burndown work orders](docs/v1/burndown-contracts-2026-10-25.md) now pin
+behavior, native controls, results and exit evidence, with explicit minimum
+owners and retained wider scope. This is planning acceptance, not feature closure.
+
 2026-10-24 release scope: native Metal/Vulkan renderer migration is deferred
 beyond v1. The current GPU-accelerated OCCT/OpenGL viewport may qualify for
 v1; cross-platform runtime, visual quality, selection/navigation and performance

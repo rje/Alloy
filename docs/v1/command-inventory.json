@@ -415,6 +415,8 @@
       "gap": "HIS-009/HIS-010 inspect failed support and changed-boundary edits; SKT-154 gives actionable Delete guidance. SKT-160 accepts ordinary root sketch reassignment, SKT-161 defines generated-loop identity, and SKT-162 accepts explicit distinct-face Offset recreation. SKT-163 accepts bounded same-face changed-valid recreation; physical native input and wider supports remain open.",
       "apiIds": [],
       "issueKeys": [
+        "DOC-046",
+        "HIS-014",
         "HIS-002",
         "SKT-025",
         "DOC-012",
@@ -443,7 +445,11 @@
         "docs/validation/generated-loop-replacement.md",
         "docs/validation/generated-loop-same-face.md"
       ],
-      "planningStatus": "HIS-009/HIS-010 inspection, SKT-154 guidance, SKT-160 ordinary repair, SKT-161 identity policy and SKT-162 distinct-face recreation accepted; same-face accepted; wider repair open"
+      "planningStatus": "HIS-009/HIS-010 inspection, SKT-154 guidance, SKT-160 ordinary repair, SKT-161 identity policy and SKT-162 distinct-face recreation accepted; same-face accepted; wider repair open; 2026-10-25 exit owners: DOC-046, HIS-014. Existing accepted subsets/receipts remain valid; the minimum cumulative exit is still open.",
+      "v1MinimumOwners": [
+        "DOC-046",
+        "HIS-014"
+      ]
     },
     {
       "id": "sketch.lifecycle",
@@ -1630,6 +1636,7 @@
         "solid.filletDialog"
       ],
       "issueKeys": [
+        "SOL-098",
         "SOL-003",
         "SOL-022",
         "GEO-018",
@@ -1648,7 +1655,10 @@
         "docs/validation/shoehorn-perimeter.md",
         "docs/validation/paired-ridge-fillet.md"
       ],
-      "planningStatus": "Existing scope owners; verify accepted subset before pulling"
+      "planningStatus": "Existing scope owners; verify accepted subset before pulling; 2026-10-25 exit owners: SOL-098. Existing accepted subsets/receipts remain valid; the minimum cumulative exit is still open.",
+      "v1MinimumOwners": [
+        "SOL-098"
+      ]
     },
     {
       "id": "solid.chamfer",
@@ -2373,6 +2383,9 @@
         "selection.sketchSet"
       ],
       "issueKeys": [
+        "DOC-047",
+        "DOC-048",
+        "DOC-049",
         "DOC-006",
         "DOC-025",
         "DOC-033",
@@ -2386,7 +2399,12 @@
         "docs/validation/body-picking.md",
         "docs/validation/selection-priority.md"
       ],
-      "planningStatus": "Existing scope owners; verify accepted subset before pulling"
+      "planningStatus": "Existing scope owners; verify accepted subset before pulling; 2026-10-25 exit owners: DOC-047, DOC-048, DOC-049. Existing accepted subsets/receipts remain valid; the minimum cumulative exit is still open.",
+      "v1MinimumOwners": [
+        "DOC-047",
+        "DOC-048",
+        "DOC-049"
+      ]
     },
     {
       "id": "component.local",
@@ -2838,6 +2856,7 @@
         "document.importStep"
       ],
       "issueKeys": [
+        "XCH-025",
         "DOC-011",
         "XCH-003",
         "XCH-009",
@@ -2857,7 +2876,10 @@
         "docs/validation/native-exchange-sheet.md",
         "docs/validation/native-exchange-menu.md"
       ],
-      "planningStatus": "Existing scope owners; verify accepted subset before pulling"
+      "planningStatus": "Existing scope owners; verify accepted subset before pulling; 2026-10-25 exit owners: XCH-025. Existing accepted subsets/receipts remain valid; the minimum cumulative exit is still open.",
+      "v1MinimumOwners": [
+        "XCH-025"
+      ]
     },
     {
       "id": "print.stl",
@@ -3749,15 +3771,20 @@
       "gap": "A documented single-edge Start/End Variable-radius mode is the proposed first-v1 advanced Fillet choice under SOL-064. It is not implemented; Chord Length and wider modes remain later under ADV-005/SOL-003.",
       "apiIds": [],
       "issueKeys": [
+        "SOL-064",
+        "SOL-099",
         "SOL-003",
-        "ADV-005",
-        "SOL-064"
+        "ADV-005"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
       ],
       "receipts": [],
-      "planningStatus": "Existing scope owners; verify accepted subset before pulling"
+      "planningStatus": "Existing scope owners; verify accepted subset before pulling; 2026-10-25 exit owners: SOL-064, SOL-099. Existing accepted subsets/receipts remain valid; the minimum cumulative exit is still open.",
+      "v1MinimumOwners": [
+        "SOL-064",
+        "SOL-099"
+      ]
     },
     {
       "id": "solid.advanced-chamfer",
@@ -3907,13 +3934,21 @@
       "gap": "No Stitch/Unstitch command; Boundary Fill does not replace gap-aware sewing.",
       "apiIds": [],
       "issueKeys": [
+        "SRF-056",
+        "SRF-057",
+        "SRF-059",
         "SRF-006"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
       ],
       "receipts": [],
-      "planningStatus": "Existing scope owners; verify accepted subset before pulling"
+      "planningStatus": "Existing scope owners; verify accepted subset before pulling; 2026-10-25 exit owners: SRF-056, SRF-057, SRF-059. Existing accepted subsets/receipts remain valid; the minimum cumulative exit is still open.",
+      "v1MinimumOwners": [
+        "SRF-056",
+        "SRF-057",
+        "SRF-059"
+      ]
     },
     {
       "id": "surface.inspect",
@@ -4006,13 +4041,19 @@
       "gap": "No IGES command registration.",
       "apiIds": [],
       "issueKeys": [
+        "XCH-026",
+        "XCH-027",
         "XCH-002"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
       ],
       "receipts": [],
-      "planningStatus": "Existing scope owners; verify accepted subset before pulling"
+      "planningStatus": "Existing scope owners; verify accepted subset before pulling; 2026-10-25 exit owners: XCH-026, XCH-027. Existing accepted subsets/receipts remain valid; the minimum cumulative exit is still open.",
+      "v1MinimumOwners": [
+        "XCH-026",
+        "XCH-027"
+      ]
     },
     {
       "id": "exchange.mesh-input",
@@ -4068,13 +4109,19 @@
       "gap": "No DXF registration.",
       "apiIds": [],
       "issueKeys": [
+        "XCH-028",
+        "XCH-029",
         "XCH-006"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
       ],
       "receipts": [],
-      "planningStatus": "Existing scope owners; verify accepted subset before pulling"
+      "planningStatus": "Existing scope owners; verify accepted subset before pulling; 2026-10-25 exit owners: XCH-028, XCH-029. Existing accepted subsets/receipts remain valid; the minimum cumulative exit is still open.",
+      "v1MinimumOwners": [
+        "XCH-028",
+        "XCH-029"
+      ]
     },
     {
       "id": "exchange.svg",
@@ -4086,13 +4133,19 @@
       "gap": "No SVG import registration; bitmap Canvas does not provide vector paths.",
       "apiIds": [],
       "issueKeys": [
+        "XCH-030",
+        "XCH-031",
         "XCH-007"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
       ],
       "receipts": [],
-      "planningStatus": "Existing scope owners; verify accepted subset before pulling"
+      "planningStatus": "Existing scope owners; verify accepted subset before pulling; 2026-10-25 exit owners: XCH-030, XCH-031. Existing accepted subsets/receipts remain valid; the minimum cumulative exit is still open.",
+      "v1MinimumOwners": [
+        "XCH-030",
+        "XCH-031"
+      ]
     },
     {
       "id": "print.mesh-audit",
@@ -4104,13 +4157,19 @@
       "gap": "External STL validators provide bounded receipts; no general native print-audit workflow.",
       "apiIds": [],
       "issueKeys": [
+        "PRT-017",
+        "PRT-018",
         "PRT-003"
       ],
       "sourceFiles": [
         "docs/backlog/issues.json"
       ],
       "receipts": [],
-      "planningStatus": "Existing scope owners; verify accepted subset before pulling"
+      "planningStatus": "Existing scope owners; verify accepted subset before pulling; 2026-10-25 exit owners: PRT-017, PRT-018. Existing accepted subsets/receipts remain valid; the minimum cumulative exit is still open.",
+      "v1MinimumOwners": [
+        "PRT-017",
+        "PRT-018"
+      ]
     },
     {
       "id": "print.refinement",

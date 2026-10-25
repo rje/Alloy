@@ -1,24 +1,37 @@
 ## Current execution order
 
-2026-10-25 read-only task-contract audit reviewed all99 live-open first-v1 issues
-(two independent Sol passes over feature tasks and release gates). The graph is
-acyclic and excludes deferred RHI work, but release membership is not executable
-contract readiness. Before treating the queue as fully specified, reconcile:
-- Broad-parent obligations versus frozen minima: SRF-006, DOC-012, HIS-002 and
-  SOL-003 remain transitively required; do not infer parent closure from children.
-- Pin concrete preimplementation fixtures/options for ASM-011, SKT-101,
-  SOL-063/065/068/069/070; PRT-003 needs its bounded defect corpus reconciled.
-- GATE-010 through050 name unregistered runner cases and demand every historical
-  workflow fresh on each build. The runner ledger only defines GATE-000 and
-  misclassifies all validation ancestors as release gates. A bounded typed
-  evidence/receipt integration contract is needed before these become executable
-  exits; preserve candidate-specific platform/GPU/input/export qualification.
-- REL-018 still contains superseded stable Metal/Vulkan wording; older issues
-  contain Qt-shell-only boilerplate. REL-001 needs a finite negative corpus;
-  REL-049 needs an explicit budget/actionable-inefficiency stopping rule.
-These are audit findings, not changed scope, accepted fixes or issue closures.
-Recent native surface/import/chooser children are comparatively concrete; a
-missing native/platform receipt is unfinished qualification, not vague scope.
+2026-10-25 task-contract cleanup is accepted as planning after independent Astra
+review. [The split map](v1/burndown-contracts-2026-10-25.md) and
+[work-order contract](v1/work-order-contract.md) define behavior, UI/controls,
+results, edits/refusals and proportional exits. The canonical graph has756 tasks:
+21 smaller owners were added, ten broad/publication parents moved outside v1,
+and the open first-v1 queue is109 before implementation closure. Full-roadmap
+reachability and all frozen minimums are preserved; no modeling/native/platform
+issue is accepted or closed from this planning work.
+
+FND-031/032/033 own typed receipts, finite coverage and actual runner integration;
+later gate adapters/flags remain unavailable until implemented. Existing focused
+cases still run; do not invent aliases for research/CI/native validation issues.
+Current candidate-specific three-platform GPU/input/save/export remains required.
+CI-013 is promotion-tool/dry-run readiness; CI-003 retains actual publication
+outside mandatory v1 closure. No CI/tag/release is authorized by planning.
+
+DOC-046/047 precede face-supported sketches; DOC-048/049 finish selection sets
+and filters afterward. SOL-098 and HIS-014 qualify the chosen constant-Fillet and
+reference-repair minima. XCH-025 qualifies the accepted STEP minimum;
+XCH-026/027,028/029,030/031 split IGES, DXF and SVG core/native workflows.
+PRT-017/018 split the finite mesh audit and native consumer flow; PRT-019 retains
+wider diagnostics. SOL-099 is the explicit unresolved Variable-Fillet endpoint
+Position decision and blocks SOL-064 implementation until resolved. Detailed
+research/visuals/original fixtures remain external in
+knowledge/specs/v1-contract-burndown-2026-10-25/. The review corrected a path count
+outside its finite path and pinned actual cubic SVG coordinates/analytic oracle.
+
+Publish the new canonical issues, ensure all are project members, sync Release
+scope with tools/project_scope.py, and regenerate local review-site data. New
+work is Todo until actively pulled. No private editor/build is needed for this
+backlog change; preserve the user-owned running instance. The earlier99-task
+read-only audit is superseded by these specific contracts and dependencies.
 
 
 2026-10-24 board organization: use [v1 remaining work](https://github.com/users/rje/projects/1/views/2)

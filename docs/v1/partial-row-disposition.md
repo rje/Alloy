@@ -1,5 +1,14 @@
 # Partial capability rows in the printable-part v1 plan
 
+2026-10-25 burndown clarification: the canonical issue graph now names separate
+minimum owners for naming/reference repair, selection, constant Fillet and
+STEP/IGES/DXF/SVG; broader family parents remain open outside v1. See
+[the work-order contract](work-order-contract.md) and [the dated split map](burndown-contracts-2026-10-25.md).
+The selected minima are unchanged; dated counts and owner annotations below are
+historical, not the live board. Typed gate evidence/coverage/runner delivery is
+FND-031/032/033; CI-013 separates promotion-tool readiness from publication.
+
+
 Implementation baseline, 2026-10-18, following the user's review of the v1
 direction; the first-15 scope proposal below was added 2026-10-19. These are
 the retained minimum **first-v1 planning** variants, not

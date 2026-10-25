@@ -1,5 +1,14 @@
 # First-v1 minimums for the 27 open-owner rows
 
+2026-10-25 burndown clarification: the canonical issue graph now names separate
+minimum owners for naming/reference repair, selection, constant Fillet and
+STEP/IGES/DXF/SVG; broader family parents remain open outside v1. See
+[the work-order contract](work-order-contract.md) and [the dated split map](burndown-contracts-2026-10-25.md).
+The selected minima are unchanged; dated counts and owner annotations below are
+historical, not the live board. Typed gate evidence/coverage/runner delivery is
+FND-031/032/033; CI-013 separates promotion-tool readiness from publication.
+
+
 REL-030 planning freeze, 2026-10-20. These are the selected **first-release boundaries**, not statements that native input, geometry, packages or platform runtime pass. The `O` labels in the dated execution ledger identify earlier ownership uncertainty. This table chooses one supported subset per row while retaining every wider noncloud mode with its family issue. Shared release gates still apply to the chosen subset. See the [63-row partial disposition](partial-row-disposition.md) for `S` rows and the [execution ledger](release-execution-ledger.md) for receipts.
 
 | Inventory row | First-v1 minimum | Retained wider work / accountable issue |

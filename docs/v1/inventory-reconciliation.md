@@ -1,5 +1,14 @@
 # Printable-part inventory reconciliation
 
+2026-10-25 burndown clarification: the canonical issue graph now names separate
+minimum owners for naming/reference repair, selection, constant Fillet and
+STEP/IGES/DXF/SVG; broader family parents remain open outside v1. See
+[the work-order contract](work-order-contract.md) and [the dated split map](burndown-contracts-2026-10-25.md).
+The selected minima are unchanged; dated counts and owner annotations below are
+historical, not the live board. Typed gate evidence/coverage/runner delivery is
+FND-031/032/033; CI-013 separates promotion-tool readiness from publication.
+
+
 Audit date: 2026-10-18. Owner: REL-030/#469. This is a local document/ownership audit, not a new runtime or compatibility acceptance. The original audit was document-only; subsequent 2026-10-19 planning updates synchronized issues and the private review page. The [2026-10-20 planning freeze](scope-reconciliation-2026-10-20.md) supersedes this audit's undecided-scope language; its row-status suffixes remain historical. No build, editor launch, recording or release promotion resulted from this reconciliation.
 
 2026-10-19 planning update: all **63 rows currently marked `S`** have a

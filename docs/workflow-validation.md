@@ -1,5 +1,14 @@
 # Cumulative real-app validation
 
+2026-10-25 work-order amendment: [v1 closure policy](v1/work-order-contract.md)
+allows reviewed unchanged implementation evidence with explicit applicability,
+while exact-candidate package/runtime/GPU/native/export evidence remains required.
+The existing runner has **not** implemented typed receipt ingestion or later
+gate specifications: FND-031 delivers the evidence validator, FND-032 the finite
+coverage manifest, and FND-033 the orchestration. Their proposed new flags must
+not be presented as working commands before those tasks pass. Existing cases
+continue to execute normally; this planning amendment is not runtime acceptance.
+
 FND-010 adds a stdlib Python runner around the existing real-entrypoint
 `tests/shell_api.py`. It does not implement CAD or a separate automation model.
 Registered cases include `shell_api`, `FND-010`, `DOC-001`, `DOC-002`, `FND-006`,
@@ -33,8 +42,9 @@ CAD dimensions are non-applicable to the shell, not accepted modeling evidence.
 save/reopen workflow. Their named cases alias that fresh evidence rather than
 launching duplicate workflows. `primitive-regression` runs shell, authored units,
 shared sessions and primitives once each. See the [primitive receipt](validation/primitives.md)
-for separate native physical checks. STEP and printing export remain unimplemented;
-the aggregate report's inherited shell export explanation does not qualify export.
+for separate native physical checks. STEP and printing exports now have separate
+accepted feature receipts; this older shell/primitive aggregate does not qualify
+those export capabilities or current packaged output.
 `FND-009` audits retained historical native-matrix artifacts separately from the
 current candidate; its build dimension stays unperformed for a prebuilt app.
 
@@ -46,10 +56,11 @@ python3 tests/workflows/run.py --case FND-010 --exclude-case shell_api --evidenc
 python3 tests/workflows/run.py --gate GATE-010 --cumulative --evidence build/evidence/gate-refusal
 ```
 
-All three must exit 2 today. The later gate checks predecessor issue states
-live through `gh`, an explicit registered gate evidence specification, case
-coverage of every ancestor task, and inherited earlier
-gate capabilities/evidence dimensions. Unknown cases and unavailable capabilities
+All three must exit 2 until actual later cases/specifications exist. The current
+runner checks predecessor issue states live through `gh` and requires case
+coverage of every ancestor task; it also treats validation ancestors as gates.
+Those are known limits, not the target v1 evidence model. FND-031/032/033 replace
+that inheritance with explicit gate membership and typed prerequisite receipts. Unknown cases and unavailable capabilities
 block acceptance. Unauthenticated/offline gate prerequisite checks also block;
 individual cases can run without GitHub access. A successful shell case cannot
 close GATE-010, or requalify GATE-000's historical physical-input observation on a
@@ -62,5 +73,6 @@ entrypoint cases and fixtures alongside each feature. Only a successful case
 can contribute capabilities/coverage; names in the ledger are not test results.
 Update the staged shell assertions as modeling becomes available and require new
 geometry/undo/reopen/export fixtures. Do not keep asserting unavailable CAD as a
-substitute for testing the implemented workflow. Physical/visual evidence needs
-its own current, candidate-bound case before gates can accept it.
+substitute for testing the implemented workflow. Physical/visual evidence needs its own current, candidate-bound observation or
+reviewed trusted tester receipt. The planned typed validator admits those
+separately from executable CAD cases; an API capture alone cannot qualify input.

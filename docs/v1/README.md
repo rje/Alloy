@@ -1,5 +1,10 @@
 # Printable-part v1 review
 
+2026-10-25: [Burndown contracts and split map](burndown-contracts-2026-10-25.md)
+now name finishable owners, exact workflow/results and finite exits; see the
+[work-order standard](work-order-contract.md). The109 open v1 tasks are a
+dependency/work decomposition count, not109 undefined or accepted features.
+
 2026-10-24 user timing amendment: hardware OpenGL may qualify for stable v1. Native Metal/Vulkan selection, migration and GATE-045 are deferred beyond v1 unless a material immediate advantage warrants reconsideration. RHI-001/RHI-002/GATE-045 remain Todo through GATE-110; GATE-050 no longer depends on GATE-045. Packaged actual GPU/platform, capture/resize/DPI, selection, CAD edge/seam/overlay quality, transparency and performance acceptance remain required. This supersedes earlier backend timing statements, not visual defects or runtime evidence requirements.
 
 2026-10-24: [Command Search](../validation/command-search-focus.md) and the
