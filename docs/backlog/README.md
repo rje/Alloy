@@ -10,6 +10,28 @@ dependency keys with issue numbers.
 The current local backlog contains **735 issues**: **580 implementation, 25 research,
 6 research/design, 22 epics, and 102 validation gates**. Counts describe decomposition, not coverage.
 Use the live issue state for completion and readiness.
+
+### Release scope on the project board
+
+Use [v1 — remaining work](https://github.com/users/rje/projects/1/views/2) for
+first-release burndown; [Full backlog](https://github.com/users/rje/projects/1/views/1)
+retains the whole roadmap. Both retain Todo / In Progress / Done as work status.
+The separate **Release scope** field is derived from REL-054 and its transitive
+canonical dependencies: `v1` for that release graph and `Later roadmap` for
+other canonical issues. This is release membership, not a claim that an entire
+feature family is implemented. Closed prerequisites retain their scope; the
+remaining-work view filters to open v1 issues. Unmanaged legacy project cards
+are left untouched.
+
+After publishing new canonical issues or changing release dependencies, run
+`python3 tools/project_scope.py --apply`, then run it without `--apply` to
+confirm zero changes. The script changes only Release scope, preserves Status
+and issue state, and refuses to proceed if canonical issues are missing from
+the project. Keep the accepted scope freeze and dependency graph aligned before
+syncing; do not manually classify broad parents as v1 just because their bounded
+children are required. Native renderer migration is post-v1 by the 2026-10-24
+user decision.
+
 [XCH-020/#729](../validation/mesh-box-cost.md) accepts owned mesh-validation reuse;
 REL-057
 separately owns the measured large recovery snapshot rewrite under REL-049.

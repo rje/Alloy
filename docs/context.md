@@ -1,5 +1,12 @@
 ## Current execution order
 
+2026-10-24 board organization: use [v1 remaining work](https://github.com/users/rje/projects/1/views/2)
+for the first-release queue; Full backlog remains view1. Release scope is a
+separate single-select field derived from REL-054 and its transitive dependency
+graph, preserving work Status and issue state. After publishing issues or
+changing dependencies, run `python3 tools/project_scope.py --apply` and confirm
+zero remaining changes with a dry run. See [backlog rules](backlog/README.md).
+
 2026-10-24 user scope decision: defer the native Metal/Vulkan RHI migration
 until after v1. Keep RHI-001/RHI-002/GATE-045 open as post-v1 work; the first
 release may use the current hardware-accelerated OCCT/OpenGL viewport. This
