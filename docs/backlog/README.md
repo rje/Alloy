@@ -33,8 +33,8 @@ children are required. Native renderer migration is post-v1 by the 2026-10-24
 user decision.
 
 [XCH-020/#729](../validation/mesh-box-cost.md) accepts owned mesh-validation reuse;
-REL-057
-separately owns the measured large recovery snapshot rewrite under REL-049.
+[REL-057/#738](../validation/recovery-cost.md) accepts single-encoding recovery
+serialization; the broader performance audit remains under REL-049.
 [FND-008/#8](../decisions/007-initial-command-contracts.md) accepts the initial
 public command research matrix and open-default ledger; no implementation or
 runtime gate is accepted from that research alone.
@@ -57,7 +57,7 @@ accepts separate Browser/GPU mesh identity, selection and visibility.
 [XCH-019/#728](../validation/native-stl-import.md) accepts the bounded native
 chooser product/ready-preview workflow, with strict OS chooser input excluded.
 Cumulative native XCH-016/#723 remains open. XCH-020/#729 accepts the matched
-repeat-validation fix; independent recovery cost remains REL-057/#738.
+repeat-validation fix; REL-057/#738 accepts the separate recovery serialization fix.
 The bounded strict OBJ cumulative slice XCH-017/#724 accepts
 independent combined child review.
 [XCH-023/#732](../validation/strict-obj-core.md) accepts strict OBJ
