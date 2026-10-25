@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: MIT
 #include "RecoveryStore.h"
 #include <QCoreApplication>
+#include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonDocument>
 #include <QTemporaryDir>
 #include <iostream>
@@ -36,6 +38,23 @@ int main(int argc,char** argv) {
             "same authored document in a second tab has independent snapshot");
         check(owner.removeOwned(secondTabId).isEmpty() && QFile::exists(path),
             "closing duplicate tab retains first tab snapshot");
+        // Same /1 checksum survives appended/reordered member encoding and
+        // legacy Qt canonical serialization; checksum/member injection cannot.
+        QFile encoded(path);check(encoded.open(QIODevice::ReadOnly),"read encoded snapshot");
+        const auto originalBytes=encoded.readAll();encoded.close();
+        auto legacy=QJsonDocument::fromJson(originalBytes).object();
+        const auto hash=legacy.take("sha256").toString();
+        check(hash==QString::fromLatin1(QCryptographicHash::hash(QJsonDocument(legacy).toJson(QJsonDocument::Compact),QCryptographicHash::Sha256).toHex()),"canonical legacy checksum equivalence");
+        legacy["sha256"]=hash;rewrite(path,legacy);
+#ifndef Q_OS_WIN
+        const auto parent=QFileInfo(path).absolutePath();const auto permissions=QFile::permissions(parent);
+        check(QFile::setPermissions(parent,QFileDevice::ReadOwner|QFileDevice::ExeOwner),"make atomic destination unwritable");
+        const auto failed=owner.write(tabId,QJsonObject{{"documentId",documentId},{"changed",true}},{});
+        check(QFile::setPermissions(parent,permissions),"restore destination permissions");
+        check(!failed.isEmpty(),"atomic replacement failure reported");
+        QFile prior(path);check(prior.open(QIODevice::ReadOnly),"prior valid snapshot readable");
+        check(QJsonDocument::fromJson(prior.readAll()).object()==legacy,"failed replacement preserves previous valid snapshot");
+#endif
         RecoveryStore other(root);check(other.error().isEmpty(),"second owner initialized");
         check(other.list().isEmpty(),"live session hidden");
         check(!other.transfer(staleId,[](const auto&){return QString{};}).isEmpty(),"live transfer refused");
@@ -57,6 +76,9 @@ int main(int argc,char** argv) {
     }
     QFile file(path);check(file.open(QIODevice::ReadOnly),"read second source");
     auto value=QJsonDocument::fromJson(file.readAll()).object();file.close();
+    auto injected=value;injected["unexpected"]=true;rewrite(path,injected);
+    check(receiver.list().first().toObject().value("status")=="malformed","extra member injection refused");
+    check(!receiver.transfer(staleId,[](const auto&){return QString{};}).isEmpty(),"injected transfer refused");
     value["schema"]="alloy-recovery/2";rewrite(path,value);
     rows=receiver.list();check(rows.size()==1 && rows[0].toObject().value("status")=="unsupported_version","newer version visible");
     check(!receiver.transfer(staleId,[](const auto&){return QString{};}).isEmpty(),"newer transfer refused");

@@ -40,6 +40,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--app', required=True)
     parser.add_argument('--evidence', required=True)
+    parser.add_argument('--mesh-fixture', help='Optional retained STL for source-independent crash recovery')
     args = parser.parse_args()
     evidence = Path(args.evidence).resolve()
     evidence.mkdir(parents=True, exist_ok=True)
@@ -48,7 +49,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix='alloy-recovery-') as directory:
         root = Path(directory)
         def call(endpoint, transport, command, arguments=None, expected_error=None):
-            response = request(endpoint, command, arguments, timeout=30,
+            response = request(endpoint, command, arguments, timeout=120,
                 transport=transport, helper=None)
             transcript.append({'command': command, 'args': arguments or {},
                 'response': response})
@@ -66,8 +67,26 @@ def main():
             box = call(endpoint, transport, 'solid.box',
                 {'width': 37, 'depth': 12, 'height': 5, 'units': 'mm'})
             assert box['recovery']['durable'], box
+            mesh_page = None
+            if args.mesh_fixture:
+                mesh_source=root / 'capacity.stl';shutil.copyfile(args.mesh_fixture,mesh_source)
+                response=call(endpoint,transport,'document.importStl',{'path':str(mesh_source),'units':'mm'})
+                assert response['recovery']['durable']
+                mesh_state=call(endpoint,transport,'document.inspect')['result']
+                mesh_id=mesh_state['meshes'][0]['id']
+                mesh_page=call(endpoint,transport,'mesh.inspect',{'meshId':mesh_id,'vertexOffset':599000,'triangleOffset':199000})['result']
+                assert mesh_page['verticesMm'][-1]==[498,1599,0] and mesh_page['triangles'][-1]==[599997,599998,599999]
+                mesh_source.unlink()
             unnamed = call(endpoint, transport, 'document.inspect')['result']
             assert unnamed['dirty'] and not unnamed['path'] and unnamed['bodies'] == 1
+            # document.inspect intentionally omits bulk retained arrays. Keep the
+            # full durable pre-crash authored record for native-save equality.
+            full_unnamed=unnamed['authored']
+            if mesh_page is not None:
+                snapshots=list((root/'recovery').glob('*/[0-9a-f-]*.json'))
+                assert len(snapshots)==1
+                full_unnamed=json.loads(snapshots[0].read_text())['authored']
+
             assert call(endpoint, transport, 'document.recoveryList')['result']['count'] == 0, 'live owner must be hidden'
 
             call(endpoint, transport, 'document.tabNew')
@@ -125,6 +144,11 @@ def main():
                 assert document['authored'] == source['authored'], 'exact authored IDs and parameters'
                 assert document['dirty'] and not document['path'] and document['recoveredIntoNewTab']
                 assert document['id'] == source['id']
+                if source is unnamed and mesh_page is not None:
+                    assert document['meshes']==unnamed['meshes']
+                    assert call(endpoint,transport,'mesh.inspect',{'meshId':mesh_id,'vertexOffset':599000,'triangleOffset':199000})['result']==mesh_page
+                    assert not mesh_source.exists()
+
                 recovered.append({'source': row['originalPath'], 'tab': call(endpoint, transport, 'document.tabs')['result']['activeTabId'],
                     'documentId': document['id'], 'features': document['features'],
                     'parameterIds': [parameter['id'] for parameter in document['authored'].get('userParameters', [])]})
@@ -136,7 +160,7 @@ def main():
                 destination = evidence / ('recovered-unnamed.alloy' if not row['originalPath'] else 'recovered-named.alloy')
                 saved = call(endpoint, transport, 'document.save', {'path': str(destination)})
                 assert saved['recovery']['durable'] and not saved['result']['dirty']
-                assert json.loads(destination.read_text()) == source['authored']
+                assert json.loads(destination.read_text()) == (full_unnamed if source is unnamed else source['authored'])
             assert call(endpoint, transport, 'document.recoveryList')['result']['count'] == 0
             assert hashlib.sha256(original.read_bytes()).hexdigest() == original_hash, 'source file changed'
             call(endpoint, transport, 'app.quit')
@@ -147,6 +171,7 @@ def main():
                 second.wait(timeout=5)
         (evidence / 'result.json').write_text(json.dumps({
             'ok': True, 'originalSha256': original_hash,
+            'retainedMeshSourceIndependent': mesh_page is not None,
             'unnamedDocumentId': unnamed['id'], 'namedDocumentId': named['id'],
             'recovered': recovered, 'recoveryRootAfterQuit': list((root / 'recovery').glob('*/[0-9a-f-]*.json')),
         }, indent=2, default=str))

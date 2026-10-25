@@ -3,6 +3,8 @@
 #include "PrivateDirectory.h"
 #include <QCryptographicHash>
 #include <QDateTime>
+#include <QElapsedTimer>
+#include <QDebug>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -110,14 +112,28 @@ QString RecoveryStore::write(const QString& tabId,const QJsonObject& authored,co
     QJsonObject envelope{{"schema",kSchema},{"sessionId",sessionId_},{"tabId",tabId},{"documentId",documentId},
         {"originalPath",originalPath},{"capturedAtUtc",QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs)},
         {"authored",authored}};
-    envelope["sha256"]=digest(envelope);
-    const auto bytes=QJsonDocument(envelope).toJson(QJsonDocument::Compact);
+    const bool trace=qEnvironmentVariableIsSet("ALLOY_TRACE_RECOVERY_COST");
+    QElapsedTimer timer;if(trace)timer.start();
+    auto bytes=QJsonDocument(envelope).toJson(QJsonDocument::Compact);
+    const auto encodeDigestMs=trace?timer.nsecsElapsed()/1e6:0.;if(trace)timer.restart();
+    const auto hash=QCryptographicHash::hash(bytes,QCryptographicHash::Sha256).toHex();
+    const auto hashMs=trace?timer.nsecsElapsed()/1e6:0.;if(trace)timer.restart();
+    // Preserve the /1 checksum over Qt's canonical unsigned object. JSON member
+    // order is immaterial: append only the fixed member and hex digest instead
+    // of serializing the complete (potentially large) authored object twice.
+    if(!bytes.endsWith('}'))return "Cannot encode recovery object";
+    bytes.chop(1);bytes.append(",\"sha256\":\"");bytes.append(hash);bytes.append("\"}");
+    const auto encodeFinalMs=trace?timer.nsecsElapsed()/1e6:0.;if(trace)timer.restart();
     QSaveFile file(path);file.setDirectWriteFallback(false);
     if(!file.open(QIODevice::WriteOnly))return file.errorString();
 #ifndef Q_OS_WIN
     if(!file.setPermissions(QFileDevice::ReadOwner|QFileDevice::WriteOwner))return "Cannot protect recovery snapshot";
 #endif
-    if(file.write(bytes)!=bytes.size() || !file.commit())return file.errorString();
+    if(file.write(bytes)!=bytes.size())return file.errorString();
+    const auto writeMs=trace?timer.nsecsElapsed()/1e6:0.;if(trace)timer.restart();
+    if(!file.commit())return file.errorString();
+    if(trace)qInfo().noquote()<<"recovery_cost"<<"bytes"<<bytes.size()<<"encodeDigestMs"<<encodeDigestMs
+        <<"hashMs"<<hashMs<<"encodeFinalMs"<<encodeFinalMs<<"writeMs"<<writeMs<<"commitMs"<<timer.nsecsElapsed()/1e6;
     return {};
 }
 
