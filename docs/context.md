@@ -45,7 +45,14 @@ mesh-record proof reuse reduces matched capacity Box median874.5→561.5 ms;
 global invariants, changed/untrusted reopen, history and source-independent
 native saves remain checked. Normal Box timings overlap and sampled benchmark
 RSS is essentially unchanged. Recovery363–391 ms is separately attributed to
-REL-057/#738, which is active for the same retained-mesh workflow under REL-049.
+[REL-057/#738](validation/recovery-cost.md) now accepts `5f5199f` after
+independent Sol review. Removing duplicate compact JSON serialization reduces
+matched recovery median715→433 ms and total capacity Box1028→761 ms on the
+current host. Recovery bytes remain11.74 MB; ordinary native save remains89.34 MB.
+Legacy checksums, atomic failure preservation, locks and source-independent
+full-capacity crash recovery pass. Host load differs from XCH-020; these are
+matched samples, not comparable absolute speed claims across both runs.
+Broader intrinsic performance remains under REL-049.
 Maintain one active issue, obtain
 proportionate independent Sol review, push the accepted result and mark its
 issue/board Done before moving on.

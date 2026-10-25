@@ -8,7 +8,9 @@ gates remain required. See [renderer decision](docs/decisions/003-renderer-direc
 [Owned retained-mesh validation](docs/validation/mesh-box-cost.md) now avoids
 rechecking unchanged imported geometry on unrelated edits. Matched full-capacity
 Box median improves 874.5 → 561.5 ms; changed/reopened meshes still validate fully.
-Recovery rewrite cost remains separately tracked under REL-057/#738.
+[Recovery serialization](docs/validation/recovery-cost.md) now encodes the
+authored snapshot once. Matched recovery median improves715→433 ms with the
+same bytes and legacy crash-recovery compatibility; wider costs remain REL-049.
 
 [Initial command contracts](docs/decisions/007-initial-command-contracts.md)
 now cover the required sketch-to-solid/export baseline with sourced defaults,
