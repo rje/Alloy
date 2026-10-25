@@ -1,5 +1,10 @@
 # Alloy
 
+2026-10-24 release scope: native Metal/Vulkan renderer migration is deferred
+beyond v1. The current GPU-accelerated OCCT/OpenGL viewport may qualify for
+v1; cross-platform runtime, visual quality, selection/navigation and performance
+gates remain required. See [renderer decision](docs/decisions/003-renderer-direction.md).
+
 [Owned retained-mesh validation](docs/validation/mesh-box-cost.md) now avoids
 rechecking unchanged imported geometry on unrelated edits. Matched full-capacity
 Box median improves 874.5 → 561.5 ms; changed/reopened meshes still validate fully.

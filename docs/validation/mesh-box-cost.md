@@ -44,8 +44,10 @@ Before, each Box repeated strict validation three times, at 143–159 ms each
 Warm candidate evaluation is 24–26 ms and command handler 36–37 ms; history push,
 state construction and response JSON serialization each round below 1 ms.
 Cached mesh presentation is 9–10 ms, with no new mesh actor; total refresh is
-136–138 ms. Recovery writes the full approximately 89 MB native snapshot and
-costs 363–391 ms, now the dominant measured stage. Before recovery was
+136–138 ms. Recovery writes the full authored snapshot and costs 363–391 ms, now the
+dominant measured stage. REL-057 profiling corrected the byte attribution:
+the compact recovery snapshot is approximately 11.74 MB; the ordinary indented
+native save is approximately 89.34 MB. Before recovery was
 269–289 ms; that unchanged stage varied with this run and is not attributed to
 the validation change. REL-057 addresses it separately.
 

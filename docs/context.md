@@ -1,5 +1,13 @@
 ## Current execution order
 
+2026-10-24 user scope decision: defer the native Metal/Vulkan RHI migration
+until after v1. Keep RHI-001/RHI-002/GATE-045 open as post-v1 work; the first
+release may use the current hardware-accelerated OCCT/OpenGL viewport. This
+defers the backend replacement, not viewport quality, navigation, picking,
+readable edges/selection, performance or packaged macOS/Windows/Linux GPU
+qualification. Existing visual defects retain their owners; migration is not
+an assumed fix. See decision003 for the amended release boundary.
+
 2026-10-24 execution resumed: Search FND-029 is closed/Done after final review.
 SRF-059's bounded renderer investigation failed the 0.005 mm seam visibility
 criterion; all three trials were reverted and the issue is back in Todo, not
@@ -37,7 +45,7 @@ mesh-record proof reuse reduces matched capacity Box median874.5→561.5 ms;
 global invariants, changed/untrusted reopen, history and source-independent
 native saves remain checked. Normal Box timings overlap and sampled benchmark
 RSS is essentially unchanged. Recovery363–391 ms is separately attributed to
-REL-057/#738, which is next for the same retained-mesh workflow under REL-049.
+REL-057/#738, which is active for the same retained-mesh workflow under REL-049.
 Maintain one active issue, obtain
 proportionate independent Sol review, push the accepted result and mark its
 issue/board Done before moving on.
@@ -53,8 +61,9 @@ Todo because PID-directed OS right-click did not reach the private editor;
 Set/Pick/Reset and subsequent checks were not run.
 
 The [2026-10-21 first-v1 burndown](v1/priority-burndown-2026-10-21.md)
-prioritizes Mac input/selection, retained mesh import, native Metal/Vulkan
-rendering and cumulative three-platform release qualification. The scope freeze
+prioritizes Mac input/selection, retained mesh import, viewport quality
+and cumulative three-platform release qualification. Native Metal/Vulkan
+migration is deferred beyond v1 by the 2026-10-24 user scope decision. The scope freeze
 and live GitHub issue states remain authoritative for readiness.
 [DOC-043](validation/body-selection-set.md) accepts shared Body Priority/Browser/API
 multi-body selection; [DOC-045/#726](validation/auto-body-route.md) accepts the
