@@ -1,5 +1,38 @@
 ## Current execution order
 
+2026-10-25 all identified first-v1 prerequisite research is completed. Independent
+Astra accepts SOL-099/#758 and XCH-001/#69 closure; decision008 and the neutral
+research-readiness index pin the resolved controls, seven-format admission,
+mesh-audit method and budget decisions. All109 preclosure work orders have an
+external readiness entry, with no remaining material research question. After
+closing those two research gates the open v1 queue is107 implementation/
+qualification tasks; no production feature/native/platform/performance gate is
+accepted by this research.
+
+Use [decision008](decisions/008-v1-research-completion.md),
+[readiness index](research/commands/v1-research-readiness.json) and
+[fixed performance targets](v1/performance-budgets.md) as coding inputs.
+SOL-064 endpoint Position is read-only normalized0/1; Radius is editable. The
+public screenshot is2019 and current API corroborates semantics, not current
+pixels. IGES uses installed OCCT TKDEIGES with explicit empty healing flags and
+strict complete/nonempty transfer; actual mm/in headless probes plus independent
+analytic file checks pass. DXF uses the finite owned double-precision C++ adapter
+after source-backed mature-library comparison; Python ezdxf is dev-only. SVG uses
+existing QtCore XML with the exact authored-path adapter. PRT-017's BVH/adaptive
+predicate/control-flow sources and strict numeric assumptions are fixed. SKT-100
+has an explicit public/policy error/repair UI contract. Remaining native input
+and renderer-failure investigations are engineering tasks with defined outcomes,
+not unspecified reference behavior.
+
+Full records/visuals/fixtures/probes are external at
+knowledge/specs/v1-research-completion-2026-10-25; query
+v1.research-completion-20261025 with tools/knowledge.py. The corpus validates24
+records. Generated research builds/unpacked candidate source/dev oracle venv
+were retired after review; all71 pinned exchange artifacts remain. No private
+editor, full app build, CI, tag or release was used by this research. Preserve
+user-owned instances. The dated109-task planning note below precedes the two
+research closures; regenerate current board/site data after publishing.
+
 2026-10-25 task-contract cleanup is accepted as planning after independent Astra
 review. [The split map](v1/burndown-contracts-2026-10-25.md) and
 [work-order contract](v1/work-order-contract.md) define behavior, UI/controls,

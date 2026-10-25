@@ -1,5 +1,11 @@
 # Printable-part v1 review
 
+2026-10-25 research completion: [decision008](../decisions/008-v1-research-completion.md)
+and [readiness index](../research/commands/v1-research-readiness.json) resolve all
+identified material prerequisites. SOL-099/XCH-001 close as research only, leaving
+107 open implementation/qualification tasks; older109-task counts below are the
+preclosure planning snapshot.
+
 2026-10-25: [Burndown contracts and split map](burndown-contracts-2026-10-25.md)
 now name finishable owners, exact workflow/results and finite exits; see the
 [work-order standard](work-order-contract.md). The109 open v1 tasks are a

@@ -1,5 +1,11 @@
 # Alloy
 
+[Required v1 research is complete](docs/decisions/008-v1-research-completion.md):
+controls, format foundations, mesh-audit method and performance targets are fixed.
+Research gates close separately from the107 remaining implementation/qualification
+tasks; [the indexed handoff](docs/research/commands/v1-research-readiness.json)
+points to source/visual/probe records outside the repository.
+
 The [v1 burndown work orders](docs/v1/burndown-contracts-2026-10-25.md) now pin
 behavior, native controls, results and exit evidence, with explicit minimum
 owners and retained wider scope. This is planning acceptance, not feature closure.

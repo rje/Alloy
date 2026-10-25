@@ -1,5 +1,11 @@
 # V1 burndown work orders — 2026-10-25
 
+Research-completion amendment: [decision008](../decisions/008-v1-research-completion.md)
+resolves SOL-099/XCH-001 and all identified material preimplementation choices.
+Their accepted records remain dependencies for traceability. The current open
+v1 list is107 implementation/qualification tasks;109 below is the preclosure
+planning snapshot.
+
 The task-contract cleanup reviewed all99 previously open v1 issues. It adds21
 smaller owners and moves ten broad/publication parents outside the first-v1
 closure, producing109 open v1 work orders before any implementation is closed.
@@ -41,8 +47,9 @@ Detailed public-source records, permitted visual references and original large
 fixtures remain in `../Alloy-reference-records/knowledge/specs/v1-contract-burndown-2026-10-25/`.
 Repository issues use neutral source IDs. Numeric fixture values, implementation
 policies and unresolved parity are explicitly distinguished from documented
-controls. [SOL-099](https://github.com/rje/Alloy/issues/758) is the one narrow unresolved control decision: implementation
-of [SOL-064](https://github.com/rje/Alloy/issues/509) remains dependent on a decisive answer, not an invented UI default.
+controls. [SOL-099](https://github.com/rje/Alloy/issues/758) was the narrow unresolved
+control decision; its public screenshot/API answer is now fixed in decision008
+and [SOL-064](https://github.com/rje/Alloy/issues/509).
 [XCH-001](https://github.com/rje/Alloy/issues/69) remains the existing finite format/library admission decision; accepted
 STEP/mesh/3MF records are reused, not declared unknown again.
 

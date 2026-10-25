@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "id": "v1-research-readiness-20261025",
+  "decision": "docs/decisions/008-v1-research-completion.md",
+  "scope": "All109 preclosure open first-v1 work orders in REL-054 closure",
+  "research_record": "v1.research-completion-20261025",
+  "external_bundle": "../Alloy-reference-records/knowledge/specs/v1-research-completion-2026-10-25",
+  "readiness_table": "readiness.json",
+  "resolved_decisions": [
+    {
+      "source_id": "V1R-CTL-20261025",
+      "issues": [
+        "SOL-099",
+        "SOL-064"
+      ],
+      "result": "Editable endpoint Radius; read-only normalized Position0/1; fixed linear kernel policy."
+    },
+    {
+      "source_id": "V1R-XCH-20261025",
+      "issues": [
+        "XCH-001",
+        "XCH-025",
+        "XCH-026",
+        "XCH-027",
+        "XCH-028",
+        "XCH-029",
+        "XCH-030",
+        "XCH-031"
+      ],
+      "result": "Pinned foundations, exact admitted format/entity/unit/transform/layer policies, original fixtures and headless probe/checker evidence."
+    },
+    {
+      "source_id": "V1R-PRT017-20261025",
+      "issues": [
+        "PRT-017"
+      ],
+      "result": "Pinned method/source/license and strict numeric/identity policy; nine-case implementation still required."
+    },
+    {
+      "source_id": "SKT100-RESEARCH-20261025",
+      "issues": [
+        "SKT-100"
+      ],
+      "result": "Public/policy error presentation, actions/focus/dismissal and original recovery fixture fixed."
+    },
+    {
+      "source_id": "Alloy-performance-policy-20261025",
+      "issues": [
+        "REL-004",
+        "REL-016",
+        "REL-049"
+      ],
+      "result": "Concrete initial engineering budgets in docs/v1/performance-budgets.md; measurements/optimization still required."
+    }
+  ],
+  "material_research_blockers": [],
+  "limits": [
+    "Source generation/pixel/default metadata and exact proprietary interpolation parity remain explicitly unclaimed.",
+    "Native/hardware availability and diagnosing implementation defects are execution/qualification work, not unresolved external research.",
+    "No production feature or release gate passes merely because these research decisions pass."
+  ]
+}
